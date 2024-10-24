@@ -1671,7 +1671,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("Finalize")
     protected void finalize() throws Throwable {
         try {
             // If ssl is null, object must not be fully constructed so nothing for us to do here.

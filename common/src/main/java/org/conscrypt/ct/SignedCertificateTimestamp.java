@@ -28,19 +28,40 @@ import org.conscrypt.Internal;
 @Internal
 public class SignedCertificateTimestamp {
     public enum Version {
-        V1
-    };
+            V1(0)
+        ;
+
+        private final int value;
+
+        Version(int value) {
+            this.value = value;
+        }
+
+        int value() {
+            return value;
+        }
+    }
 
     public enum SignatureType {
-        CERTIFICATE_TIMESTAMP,
-        TREE_HASH
-    };
+        CERTIFICATE_TIMESTAMP(0),
+        TREE_HASH(1)
+        ;
+        private final int value;
+
+        SignatureType(int value) {
+            this.value = value;
+        }
+
+        int value() {
+            return value;
+        }
+    }
 
     public enum Origin {
         EMBEDDED,
         TLS_EXTENSION,
         OCSP_RESPONSE
-    };
+    }
 
     private final Version version;
     private final byte[] logId;
@@ -88,7 +109,7 @@ public class SignedCertificateTimestamp {
     public static SignedCertificateTimestamp decode(InputStream input, Origin origin)
             throws SerializationException {
         int version = Serialization.readNumber(input, Constants.VERSION_LENGTH);
-        if (version != Version.V1.ordinal()) {
+        if (version != Version.V1.value()) {
             throw new SerializationException("Unsupported SCT version " + version);
         }
 
@@ -112,8 +133,8 @@ public class SignedCertificateTimestamp {
      */
     public void encodeTBS(OutputStream output, CertificateEntry certEntry)
             throws SerializationException {
-        Serialization.writeNumber(output, version.ordinal(), Constants.VERSION_LENGTH);
-        Serialization.writeNumber(output, SignatureType.CERTIFICATE_TIMESTAMP.ordinal(),
+        Serialization.writeNumber(output, version.value(), Constants.VERSION_LENGTH);
+        Serialization.writeNumber(output, SignatureType.CERTIFICATE_TIMESTAMP.value(),
                 Constants.SIGNATURE_TYPE_LENGTH);
         Serialization.writeNumber(output, timestamp, Constants.TIMESTAMP_LENGTH);
         certEntry.encode(output);

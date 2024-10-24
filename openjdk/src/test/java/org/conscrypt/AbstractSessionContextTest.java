@@ -120,9 +120,6 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
 
     @Test
     public void testSerializeSession() throws Exception {
-        Certificate mockCert = mock(Certificate.class);
-        when(mockCert.getEncoded()).thenReturn(new byte[] {0x05, 0x06, 0x07, 0x10});
-
         byte[] encodedBytes = new byte[] {0x01, 0x02, 0x03};
         NativeSslSession session = new MockSessionBuilder()
                 .id(new byte[] {0x11, 0x09, 0x03, 0x20})

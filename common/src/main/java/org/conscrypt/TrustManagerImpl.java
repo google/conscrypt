@@ -60,7 +60,6 @@ import java.security.cert.PKIXRevocationChecker.Option;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -109,7 +108,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * The CertPinManager, which validates the chain against a host-to-pin mapping
      */
-    private CertPinManager pinManager;
+    private final CertPinManager pinManager;
 
     /**
      * The backing store for the AndroidCAStore if non-null. This will
@@ -142,7 +141,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private final Exception err;
     private final CertificateFactory factory;
     private final CertBlocklist blocklist;
-    private LogStore ctLogStore;
+    private final LogStore ctLogStore;
     private Verifier ctVerifier;
     private Policy ctPolicy;
 
@@ -194,10 +193,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 rootKeyStoreLocal = keyStore;
                 trustedCertificateStoreLocal =
                     (certStore != null) ? certStore : Platform.newDefaultCertStore();
-                acceptedIssuersLocal = null;
                 trustedCertificateIndexLocal = new TrustedCertificateIndex();
             } else {
-                rootKeyStoreLocal = null;
                 trustedCertificateStoreLocal = certStore;
                 acceptedIssuersLocal = acceptedIssuers(keyStore);
                 trustedCertificateIndexLocal
@@ -249,7 +246,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
             // TODO remove duplicates if same cert is found in both a
             // PrivateKeyEntry and TrustedCertificateEntry
-            List<X509Certificate> trusted = new ArrayList<X509Certificate>();
+            List<X509Certificate> trusted = new ArrayList<>();
             for (Enumeration<String> en = ks.aliases(); en.hasMoreElements();) {
                 final String alias = en.nextElement();
                 final X509Certificate cert = (X509Certificate) ks.getCertificate(alias);
@@ -257,14 +254,14 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                     trusted.add(cert);
                 }
             }
-            return trusted.toArray(new X509Certificate[trusted.size()]);
+            return trusted.toArray(new X509Certificate[0]);
         } catch (KeyStoreException e) {
             return new X509Certificate[0];
         }
     }
 
     private static Set<TrustAnchor> trustAnchors(X509Certificate[] certs) {
-        Set<TrustAnchor> trustAnchors = new HashSet<TrustAnchor>(certs.length);
+        Set<TrustAnchor> trustAnchors = new HashSet<>(certs.length);
         for (X509Certificate cert : certs) {
             trustAnchors.add(new TrustAnchor(cert, null));
         }
@@ -335,7 +332,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     /**
      * Returns the full trusted certificate chain found from {@code certs}.
-     *
+     * <p>
      * Throws {@link CertificateException} when no trusted chain can be found from {@code certs}.
      */
     public List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
@@ -352,7 +349,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     /**
      * Returns the full trusted certificate chain found from {@code certs}.
-     *
+     * <p>
      * Throws {@link CertificateException} when no trusted chain can be found from {@code certs}.
      */
     public List<X509Certificate> getTrustedChainForServer(X509Certificate[] certs,
@@ -476,15 +473,15 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     private List<X509Certificate> checkTrusted(X509Certificate[] certs, byte[] ocspData,
             byte[] tlsSctData, String authType, String host, boolean clientAuth)
             throws CertificateException {
-        if (certs == null || certs.length == 0 || authType == null || authType.length() == 0) {
+        if (certs == null || certs.length == 0 || authType == null || authType.isEmpty()) {
             throw new IllegalArgumentException("null or zero-length parameter");
         }
         if (err != null) {
             throw new CertificateException(err);
         }
-        Set<X509Certificate> used = new HashSet<X509Certificate>();
-        ArrayList<X509Certificate> untrustedChain = new ArrayList<X509Certificate>();
-        ArrayList<TrustAnchor> trustedChain = new ArrayList<TrustAnchor>();
+        Set<X509Certificate> used = new HashSet<>();
+        List<X509Certificate> untrustedChain = new ArrayList<>();
+        List<TrustAnchor> trustedChain = new ArrayList<>();
         // Initialize the chain to contain the leaf certificate. This potentially could be a trust
         // anchor. If the leaf is a trust anchor we still continue with path building to build the
         // complete trusted chain for additional validation such as certificate pinning.
@@ -504,7 +501,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * Recursively build certificate chains until a valid chain is found or all possible paths are
      * exhausted.
-     *
+     * <p>
      * The chain is built in two sections, the complete trusted path is the the combination of
      * {@code untrustedChain} and {@code trustAnchorChain}. The chain begins at the leaf
      * certificate and ends in the final trusted root certificate.
@@ -526,7 +523,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      */
     private List<X509Certificate> checkTrustedRecursive(X509Certificate[] certs, byte[] ocspData,
             byte[] tlsSctData, String host, boolean clientAuth,
-            ArrayList<X509Certificate> untrustedChain, ArrayList<TrustAnchor> trustAnchorChain,
+            List<X509Certificate> untrustedChain, List<TrustAnchor> trustAnchorChain,
             Set<X509Certificate> used) throws CertificateException {
         CertificateException lastException = null;
         X509Certificate current;
@@ -668,8 +665,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                         "Trust anchor for certification path not found.", null, certPath, -1));
             }
 
-            List<X509Certificate> wholeChain = new ArrayList<X509Certificate>();
-            wholeChain.addAll(untrustedChain);
+            List<X509Certificate> wholeChain = new ArrayList<>(untrustedChain);
             for (TrustAnchor anchor : trustAnchorChain) {
                 wholeChain.add(anchor.getTrustedCert());
             }
@@ -698,7 +694,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
             // Validate the untrusted part of the chain
             try {
-                Set<TrustAnchor> anchorSet = new HashSet<TrustAnchor>();
+                Set<TrustAnchor> anchorSet = new HashSet<>();
                 // We know that untrusted chains to the first trust anchor, only add that.
                 anchorSet.add(trustAnchorChain.get(0));
                 PKIXParameters params = new PKIXParameters(anchorSet);
@@ -762,7 +758,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
         PKIXRevocationChecker revChecker = null;
         List<PKIXCertPathChecker> checkers =
-                new ArrayList<PKIXCertPathChecker>(params.getCertPathCheckers());
+                new ArrayList<>(params.getCertPathCheckers());
         for (PKIXCertPathChecker checker : checkers) {
             if (checker instanceof PKIXRevocationChecker) {
                 revChecker = (PKIXRevocationChecker) checker;
@@ -803,7 +799,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (anchors.size() <= 1) {
             return anchors;
         }
-        List<TrustAnchor> sortedAnchors = new ArrayList<TrustAnchor>(anchors);
+        List<TrustAnchor> sortedAnchors = new ArrayList<>(anchors);
         Collections.sort(sortedAnchors, TRUST_ANCHOR_COMPARATOR);
         return sortedAnchors;
     }
@@ -848,7 +844,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         private static final String EKU_msSGC = "1.3.6.1.4.1.311.10.3.3";
 
         private static final Set<String> SUPPORTED_EXTENSIONS
-                = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(EKU_OID)));
+                = Collections.unmodifiableSet(new HashSet<>(Collections.singletonList(EKU_OID)));
 
         private final boolean clientAuth;
         private final X509Certificate leaf;
@@ -859,7 +855,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         }
 
         @Override
-        public void init(boolean forward) throws CertPathValidatorException {
+        public void init(boolean forward) {
         }
 
         @Override
@@ -946,7 +942,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         if (storeAnchors.isEmpty()) {
             return indexedAnchors;
         }
-        Set<TrustAnchor> result = new HashSet<TrustAnchor>(storeAnchors.size());
+        Set<TrustAnchor> result = new HashSet<>(storeAnchors.size());
         for (X509Certificate storeCert : storeAnchors) {
             result.add(trustedCertificateIndex.index(storeCert));
         }

@@ -20,6 +20,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -361,7 +362,7 @@ public class ChainStrengthAnalyzerTest {
 
     private static X509Certificate createCert(String pem) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X509");
-        InputStream pemInput = new ByteArrayInputStream(pem.getBytes("UTF-8"));
+        InputStream pemInput = new ByteArrayInputStream(pem.getBytes(StandardCharsets.UTF_8));
         return (X509Certificate) cf.generateCertificate(pemInput);
     }
 }

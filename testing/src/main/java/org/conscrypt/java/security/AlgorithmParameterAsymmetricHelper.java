@@ -16,12 +16,12 @@
 
 package org.conscrypt.java.security;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
 
+import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.util.Arrays;
 import javax.crypto.Cipher;
 
 public class AlgorithmParameterAsymmetricHelper extends TestHelper<AlgorithmParameters> {
@@ -47,10 +47,10 @@ public class AlgorithmParameterAsymmetricHelper extends TestHelper<AlgorithmPara
 
         Cipher cipher = Cipher.getInstance(algorithmName);
         cipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic(), parameters);
-        byte[] bs = cipher.doFinal(plainData.getBytes("UTF-8"));
+        byte[] bs = cipher.doFinal(plainData.getBytes(StandardCharsets.UTF_8));
 
         cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate(), parameters);
         byte[] decrypted = cipher.doFinal(bs);
-        assertTrue(Arrays.equals(plainData.getBytes("UTF-8"), decrypted));
+        assertArrayEquals(plainData.getBytes(StandardCharsets.UTF_8), decrypted);
     }
 }

@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -33,7 +34,6 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
-import java.security.Provider;
 import java.security.ProviderException;
 import java.security.PublicKey;
 import java.security.Security;
@@ -56,12 +56,10 @@ import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -105,38 +103,35 @@ public class SignatureTest {
             .skipAlgorithm("Ed25519")
             .skipAlgorithm("EdDSA")
             .skipAlgorithm("HSS/LMS")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider provider, String algorithm) throws Exception {
-                    KeyPair kp = keyPair(algorithm);
-                    // Signature.getInstance(String)
-                    Signature sig1 = Signature.getInstance(algorithm);
-                    assertEquals(algorithm, sig1.getAlgorithm());
-                    test_Signature(sig1, kp);
+            .run((provider, algorithm) -> {
+                KeyPair kp = keyPair(algorithm);
+                // Signature.getInstance(String)
+                Signature sig1 = Signature.getInstance(algorithm);
+                assertEquals(algorithm, sig1.getAlgorithm());
+                test_Signature(sig1, kp);
 
-                    // Signature.getInstance(String, Provider)
-                    Signature sig2 = Signature.getInstance(algorithm, provider);
-                    assertEquals(algorithm, sig2.getAlgorithm());
-                    assertEquals(provider, sig2.getProvider());
-                    test_Signature(sig2, kp);
+                // Signature.getInstance(String, Provider)
+                Signature sig2 = Signature.getInstance(algorithm, provider);
+                assertEquals(algorithm, sig2.getAlgorithm());
+                assertEquals(provider, sig2.getProvider());
+                test_Signature(sig2, kp);
 
-                    // Signature.getInstance(String, String)
-                    Signature sig3 = Signature.getInstance(algorithm, provider.getName());
-                    assertEquals(algorithm, sig3.getAlgorithm());
-                    assertEquals(provider, sig3.getProvider());
-                    test_Signature(sig3, kp);
-                }
+                // Signature.getInstance(String, String)
+                Signature sig3 = Signature.getInstance(algorithm, provider.getName());
+                assertEquals(algorithm, sig3.getAlgorithm());
+                assertEquals(provider, sig3.getProvider());
+                test_Signature(sig3, kp);
             });
     }
 
     private final Map<String, KeyPair> keypairAlgorithmToInstance
-            = new HashMap<String, KeyPair>();
+            = new HashMap<>();
 
     private KeyPair keyPair(String sigAlgorithm) throws Exception {
-        String sigAlgorithmUpperCase = sigAlgorithm.toUpperCase(Locale.US);
+        String sigAlgorithmUpperCase = sigAlgorithm.toUpperCase(Locale.ROOT);
         if (sigAlgorithmUpperCase.endsWith("ENCRYPTION")) {
             sigAlgorithm = sigAlgorithm.substring(0, sigAlgorithm.length()-"ENCRYPTION".length());
-            sigAlgorithmUpperCase = sigAlgorithm.toUpperCase(Locale.US);
+            sigAlgorithmUpperCase = sigAlgorithm.toUpperCase(Locale.ROOT);
         }
 
         String kpAlgorithm;
@@ -209,6 +204,7 @@ public class SignatureTest {
                 sig.verify(signature);
                 fail("Expected RI to have a NONEwithDSA bug");
             } catch (SignatureException bug) {
+                // Expected
             }
         } else if (StandardNames.IS_RI
                 && "NONEwithECDSA".equalsIgnoreCase(sig.getAlgorithm())
@@ -218,6 +214,7 @@ public class SignatureTest {
                 sig.verify(signature);
                 fail("Expected RI to have a NONEwithECDSA bug");
             } catch (ProviderException bug) {
+                // Expected
             }
         } else {
             // Calling Signature.verify a second time should not throw
@@ -258,10 +255,10 @@ public class SignatureTest {
             + "56ac8c0e4ae12d97");
 
 
-    /**
+    /*
      * This should actually fail because the ASN.1 encoding is incorrect. It is
      * missing the NULL in the AlgorithmIdentifier field.
-     * <p>
+     *
      * http://code.google.com/p/android/issues/detail?id=18566 <br/>
      * http://b/5038554
      */
@@ -1944,8 +1941,8 @@ public class SignatureTest {
 
         byte[] signature = sig.sign();
         assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA1withRSA_Vector1Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, SHA1withRSA_Vector1Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -1965,9 +1962,7 @@ public class SignatureTest {
         final PrivateKey privKey;
         try {
             privKey = kf.generatePrivate(keySpec);
-        } catch (NullPointerException e) {
-            return;
-        } catch (InvalidKeySpecException e) {
+        } catch (NullPointerException | InvalidKeySpecException e) {
             return;
         }
 
@@ -1990,9 +1985,7 @@ public class SignatureTest {
         final PrivateKey privKey;
         try {
             privKey = kf.generatePrivate(keySpec);
-        } catch (NullPointerException e) {
-            return;
-        } catch (InvalidKeySpecException e) {
+        } catch (NullPointerException | InvalidKeySpecException e) {
             return;
         }
 
@@ -2014,9 +2007,7 @@ public class SignatureTest {
         final PrivateKey privKey;
         try {
             privKey = kf.generatePrivate(keySpec);
-        } catch (NullPointerException e) {
-            return;
-        } catch (InvalidKeySpecException e) {
+        } catch (NullPointerException | InvalidKeySpecException e) {
             return;
         }
 
@@ -2196,8 +2187,8 @@ public class SignatureTest {
         assertNotNull("Signature must not be null", signature);
         assertPSSAlgorithmParametersEquals(
                 SHA1withRSAPSS_NoSalt_Vector2Signature_ParameterSpec, sig.getParameters());
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA1withRSAPSS_NoSalt_Vector2Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, SHA1withRSAPSS_NoSalt_Vector2Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -2275,8 +2266,8 @@ public class SignatureTest {
         assertNotNull("Signature must not be null", signature);
         assertPSSAlgorithmParametersEquals(
                 SHA224withRSAPSS_NoSalt_Vector2Signature_ParameterSpec, sig.getParameters());
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA224withRSAPSS_NoSalt_Vector2Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, SHA224withRSAPSS_NoSalt_Vector2Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -2354,8 +2345,8 @@ public class SignatureTest {
         assertNotNull("Signature must not be null", signature);
         assertPSSAlgorithmParametersEquals(
                 SHA256withRSAPSS_NoSalt_Vector2Signature_ParameterSpec, sig.getParameters());
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA256withRSAPSS_NoSalt_Vector2Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, SHA256withRSAPSS_NoSalt_Vector2Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -2433,8 +2424,8 @@ public class SignatureTest {
         assertNotNull("Signature must not be null", signature);
         assertPSSAlgorithmParametersEquals(
                 SHA384withRSAPSS_NoSalt_Vector2Signature_ParameterSpec, sig.getParameters());
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA384withRSAPSS_NoSalt_Vector2Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, SHA384withRSAPSS_NoSalt_Vector2Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -2512,8 +2503,8 @@ public class SignatureTest {
         assertNotNull("Signature must not be null", signature);
         assertPSSAlgorithmParametersEquals(
                 SHA512withRSAPSS_NoSalt_Vector2Signature_ParameterSpec, sig.getParameters());
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, SHA512withRSAPSS_NoSalt_Vector2Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, SHA512withRSAPSS_NoSalt_Vector2Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -2564,8 +2555,8 @@ public class SignatureTest {
 
         byte[] signature = sig.sign();
         assertNotNull("Signature must not be null", signature);
-        assertTrue("Signature should match expected",
-                Arrays.equals(signature, NONEwithRSA_Vector1Signature));
+        assertArrayEquals("Signature should match expected",
+                signature, NONEwithRSA_Vector1Signature);
 
         RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(RSA_2048_modulus,
                 RSA_2048_publicExponent);
@@ -2587,7 +2578,7 @@ public class SignatureTest {
         sig.initVerify(pubKey);
         sig.update(Vector1Data);
         assertFalse("Invalid signature must not verify",
-                sig.verify("Invalid".getBytes("UTF-8")));
+                sig.verify("Invalid".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -2692,7 +2683,7 @@ public class SignatureTest {
         sig.update(Vector1Data);
 
         assertFalse("Invalid signature should not verify",
-                sig.verify("Invalid sig".getBytes("UTF-8")));
+                sig.verify("Invalid sig".getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -3073,24 +3064,21 @@ public class SignatureTest {
 
         final CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
         final byte[] message = new byte[64];
-        List<Future<Void>> futures = new ArrayList<Future<Void>>();
+        List<Future<Void>> futures = new ArrayList<>();
 
         for (int i = 0; i < THREAD_COUNT; i++) {
-            futures.add(es.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    // Try to make sure all the threads are ready first.
-                    latch.countDown();
-                    latch.await();
+            futures.add(es.submit(() -> {
+                // Try to make sure all the threads are ready first.
+                latch.countDown();
+                latch.await();
 
-                    for (int j = 0; j < 100; j++) {
-                        s.initSign(p);
-                        s.update(message);
-                        s.sign();
-                    }
-
-                    return null;
+                for (int j = 0; j < 100; j++) {
+                    s.initSign(p);
+                    s.update(message);
+                    s.sign();
                 }
+
+                return null;
             }));
         }
         es.shutdown();
@@ -3143,13 +3131,13 @@ public class SignatureTest {
         ecdsaVerify.initVerify(pub);
         ecdsaVerify.update(NAMED_CURVE_VECTOR);
         boolean result = ecdsaVerify.verify(NAMED_CURVE_SIGNATURE);
-        assertEquals(true, result);
+        assertTrue(result);
 
         ecdsaVerify = Signature.getInstance("SHA1withECDSA");
         ecdsaVerify.initVerify(pub);
-        ecdsaVerify.update("Not Satoshi Nakamoto".getBytes("UTF-8"));
+        ecdsaVerify.update("Not Satoshi Nakamoto".getBytes(StandardCharsets.UTF_8));
         result = ecdsaVerify.verify(NAMED_CURVE_SIGNATURE);
-        assertEquals(false, result);
+        assertFalse(result);
     }
 
     private static void assertPSSAlgorithmParametersEquals(

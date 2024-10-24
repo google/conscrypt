@@ -19,11 +19,11 @@ package org.conscrypt.javax.crypto;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.security.Provider;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -50,49 +50,42 @@ public class KeyGeneratorTest {
     }
 
     @Test
-    public void test_getInstance() throws Exception {
+    public void test_getInstance() {
         ServiceTester.test("KeyGenerator")
             // Do not test AndroidKeyStore's KeyGenerator. It cannot be initialized without
             // providing AndroidKeyStore-specific algorithm parameters.
             // It's OKish not to test AndroidKeyStore's KeyGenerator here because it's tested
             // by cts/tests/test/keystore.
             .skipProvider("AndroidKeyStore")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider provider, String algorithm) throws Exception {
-                    // KeyGenerator.getInstance(String)
-                    KeyGenerator kg1 = KeyGenerator.getInstance(algorithm);
-                    assertEquals(algorithm, kg1.getAlgorithm());
-                    test_KeyGenerator(kg1);
+            .run((provider, algorithm) -> {
+                // KeyGenerator.getInstance(String)
+                KeyGenerator kg1 = KeyGenerator.getInstance(algorithm);
+                assertEquals(algorithm, kg1.getAlgorithm());
+                test_KeyGenerator(kg1);
 
-                    // KeyGenerator.getInstance(String, Provider)
-                    KeyGenerator kg2 = KeyGenerator.getInstance(algorithm, provider);
-                    assertEquals(algorithm, kg2.getAlgorithm());
-                    assertEquals(provider, kg2.getProvider());
-                    test_KeyGenerator(kg2);
+                // KeyGenerator.getInstance(String, Provider)
+                KeyGenerator kg2 = KeyGenerator.getInstance(algorithm, provider);
+                assertEquals(algorithm, kg2.getAlgorithm());
+                assertEquals(provider, kg2.getProvider());
+                test_KeyGenerator(kg2);
 
-                    // KeyGenerator.getInstance(String, String)
-                    KeyGenerator kg3 = KeyGenerator.getInstance(algorithm, provider.getName());
-                    assertEquals(algorithm, kg3.getAlgorithm());
-                    assertEquals(provider, kg3.getProvider());
-                    test_KeyGenerator(kg3);
-                }
+                // KeyGenerator.getInstance(String, String)
+                KeyGenerator kg3 = KeyGenerator.getInstance(algorithm, provider.getName());
+                assertEquals(algorithm, kg3.getAlgorithm());
+                assertEquals(provider, kg3.getProvider());
+                test_KeyGenerator(kg3);
             });
     }
 
-    private static final Map<String, List<Integer>> KEY_SIZES
-            = new HashMap<String, List<Integer>>();
+    private static final Map<String, List<Integer>> KEY_SIZES = new HashMap<>();
     private static void putKeySize(String algorithm, int keySize) {
-        algorithm = algorithm.toUpperCase();
-        List<Integer> keySizes = KEY_SIZES.get(algorithm);
-        if (keySizes == null) {
-            keySizes = new ArrayList<Integer>();
-            KEY_SIZES.put(algorithm, keySizes);
-        }
+        algorithm = algorithm.toUpperCase(Locale.ROOT);
+        List<Integer> keySizes =
+                KEY_SIZES.computeIfAbsent(algorithm, k -> new ArrayList<>());
         keySizes.add(keySize);
     }
     private static List<Integer> getKeySizes(String algorithm) throws Exception {
-        algorithm = algorithm.toUpperCase();
+        algorithm = algorithm.toUpperCase(Locale.ROOT);
         List<Integer> keySizes = KEY_SIZES.get(algorithm);
         if (keySizes == null) {
             throw new Exception("Unknown key sizes for KeyGenerator." + algorithm);
@@ -153,7 +146,7 @@ public class KeyGeneratorTest {
             kg.init(keySize);
             test_SecretKey(kg, kg.generateKey());
 
-            kg.init(keySize, (SecureRandom) null);
+            kg.init(keySize, null);
             test_SecretKey(kg, kg.generateKey());
 
             kg.init(keySize, new SecureRandom());
@@ -161,9 +154,10 @@ public class KeyGeneratorTest {
         }
     }
 
-    private void test_SecretKey(KeyGenerator kg, SecretKey sk) throws Exception {
+    private void test_SecretKey(KeyGenerator kg, SecretKey sk) {
         assertNotNull(sk);
-        assertEquals(kg.getAlgorithm().toUpperCase(), sk.getAlgorithm().toUpperCase());
+        assertEquals(kg.getAlgorithm().toUpperCase(Locale.ROOT),
+                sk.getAlgorithm().toUpperCase(Locale.ROOT));
         assertNotNull(sk.getEncoded());
         assertNotNull(sk.getFormat());
     }

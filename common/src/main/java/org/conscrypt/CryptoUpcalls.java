@@ -23,6 +23,7 @@ import java.security.Provider;
 import java.security.Security;
 import java.security.Signature;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.crypto.Cipher;
@@ -43,8 +44,8 @@ final class CryptoUpcalls {
     /**
      * Finds providers that are not us that provide the requested algorithms.
      */
-    private static ArrayList<Provider> getExternalProviders(String algorithm) {
-        ArrayList<Provider> providers = new ArrayList<Provider>(1);
+    private static List<Provider> getExternalProviders(String algorithm) {
+        List<Provider> providers = new ArrayList<>(1);
         for (Provider p : Security.getProviders(algorithm)) {
             if (!Conscrypt.isConscrypt(p)) {
                 providers.add(p);
@@ -61,7 +62,7 @@ final class CryptoUpcalls {
         // http://docs.oracle.com/javase/6/docs/technotes/guides/security/StandardNames.html
         String keyAlgorithm = javaKey.getAlgorithm();
         if (!"EC".equals(keyAlgorithm)) {
-            throw new RuntimeException("Unexpected key type: " + javaKey.toString());
+            throw new RuntimeException("Unexpected key type: " + javaKey);
         }
 
         return signDigestWithPrivateKey(javaKey, message, "NONEwithECDSA");
@@ -94,7 +95,7 @@ final class CryptoUpcalls {
         // If the preferred provider was us, fall back to trying to find the
         // first not-us provider that initializes correctly.
         if (signature == null) {
-            ArrayList<Provider> providers = getExternalProviders("Signature." + algorithm);
+            List<Provider> providers = getExternalProviders("Signature." + algorithm);
             RuntimeException savedRuntimeException = null;
             for (Provider p : providers) {
                 try {
@@ -169,7 +170,7 @@ final class CryptoUpcalls {
         }
 
         String transformation = "RSA/ECB/" + jcaPadding;
-        Cipher c = null;
+        Cipher c;
 
         // Since this is a delegated key, we cannot handle providing a cipher using this key.
         // Otherwise we wouldn't end up in this class in the first place. The first step is to
@@ -182,10 +183,7 @@ final class CryptoUpcalls {
             if (Conscrypt.isConscrypt(c.getProvider())) {
                 c = null;
             }
-        } catch (NoSuchAlgorithmException e) {
-            logger.warning("Unsupported cipher algorithm: " + transformation);
-            return null;
-        } catch (NoSuchPaddingException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             logger.warning("Unsupported cipher algorithm: " + transformation);
             return null;
         } catch (InvalidKeyException e) {
@@ -196,17 +194,13 @@ final class CryptoUpcalls {
         // If the preferred provider was us, fall back to trying to find the
         // first not-us provider that initializes correctly.
         if (c == null) {
-            ArrayList<Provider> providers = getExternalProviders("Cipher." + transformation);
+            List<Provider> providers = getExternalProviders("Cipher." + transformation);
             for (Provider p : providers) {
                 try {
                     c = Cipher.getInstance(transformation, p);
                     c.init(cipherMode, javaKey);
                     break;
-                } catch (NoSuchAlgorithmException e) {
-                    c = null;
-                } catch (InvalidKeyException e) {
-                    c = null;
-                } catch (NoSuchPaddingException e) {
+                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
                     c = null;
                 }
             }

@@ -111,19 +111,18 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     /**
      * @deprecated NPN is not supported
      */
-    @Override
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public final byte[] getNpnSelectedProtocol() {
-        return super.getNpnSelectedProtocol();
+        return null;
     }
 
     /**
      * @deprecated NPN is not supported
      */
-    @Override
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public final void setNpnProtocols(byte[] npnProtocols) {
-        super.setNpnProtocols(npnProtocols);
     }
 
     /**

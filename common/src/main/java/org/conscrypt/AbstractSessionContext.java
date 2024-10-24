@@ -247,7 +247,7 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("Finalize")
     protected void finalize() throws Throwable {
         try {
             freeNative();

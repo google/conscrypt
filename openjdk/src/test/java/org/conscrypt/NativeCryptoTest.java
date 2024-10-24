@@ -31,8 +31,8 @@ import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -44,13 +44,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -238,7 +238,7 @@ public class NativeCryptoTest {
     public void EVP_PKEY_cmp_withNullShouldThrow() throws Exception {
         RSAPrivateCrtKey privKey1 = TEST_RSA_KEY;
         NativeRef.EVP_PKEY pkey1 = getRsaPkey(privKey1);
-        assertNotSame(NULL, pkey1);
+        assertFalse(pkey1.isNull());
         NativeCrypto.EVP_PKEY_cmp(pkey1, null);
     }
 
@@ -247,14 +247,14 @@ public class NativeCryptoTest {
         RSAPrivateCrtKey privKey1 = TEST_RSA_KEY;
 
         NativeRef.EVP_PKEY pkey1 = getRsaPkey(privKey1);
-        assertNotSame(NULL, pkey1);
+        assertFalse(pkey1.isNull());
 
         NativeRef.EVP_PKEY pkey1_copy = getRsaPkey(privKey1);
-        assertNotSame(NULL, pkey1_copy);
+        assertFalse(pkey1_copy.isNull());
 
         // Generate a different key.
         NativeRef.EVP_PKEY pkey2 = getRsaPkey(generateRsaKey());
-        assertNotSame(NULL, pkey2);
+        assertFalse(pkey2.isNull());
 
         assertEquals("Same keys should be the equal", 1, NativeCrypto.EVP_PKEY_cmp(pkey1, pkey1));
 
@@ -589,8 +589,8 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        List<String> ciphers = new ArrayList<String>(NativeCrypto.SUPPORTED_TLS_1_2_CIPHER_SUITES_SET);
-        NativeCrypto.SSL_set_cipher_lists(s, null, ciphers.toArray(new String[ciphers.size()]));
+        List<String> ciphers = new ArrayList<>(NativeCrypto.SUPPORTED_TLS_1_2_CIPHER_SUITES_SET);
+        NativeCrypto.SSL_set_cipher_lists(s, null, ciphers.toArray(new String[0]));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -632,7 +632,7 @@ public class NativeCryptoTest {
         public long beforeHandshake(long context) throws SSLException {
             long s = NativeCrypto.SSL_new(context, null);
             // Limit cipher suites to a known set so authMethod is known.
-            List<String> cipherSuites = new ArrayList<String>();
+            List<String> cipherSuites = new ArrayList<>();
             if (enabledCipherSuites == null) {
                 cipherSuites.add("ECDHE-RSA-AES128-SHA");
                 if (pskEnabled) {
@@ -645,7 +645,7 @@ public class NativeCryptoTest {
             }
             // Protocol list is included for determining whether to send TLS_FALLBACK_SCSV
             NativeCrypto.setEnabledCipherSuites(
-                    s, null, cipherSuites.toArray(new String[cipherSuites.size()]), new String[] {"TLSv1.2"});
+                    s, null, cipherSuites.toArray(new String[0]), new String[] {"TLSv1.2"});
 
             if (channelIdPrivateKey != null) {
                 NativeCrypto.SSL_set1_tls_channel_id(s, null, channelIdPrivateKey.getNativeRef());
@@ -854,11 +854,7 @@ public class NativeCryptoTest {
                 if (pskIdentity != null) {
                     // Create a NULL-terminated modified UTF-8 representation of pskIdentity.
                     byte[] b;
-                    try {
-                        b = pskIdentity.getBytes("UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        throw new RuntimeException("UTF-8 encoding not supported", e);
-                    }
+                    b = pskIdentity.getBytes(StandardCharsets.UTF_8);
                     callbacks.clientPSKKeyRequestedResultIdentity = Arrays.copyOf(b, b.length + 1);
                 }
                 callbacks.clientPSKKeyRequestedResultKey = pskKey;
@@ -949,7 +945,6 @@ public class NativeCryptoTest {
                 executor.submit(new Callable<TestSSLHandshakeCallbacks>() {
                     @Override
                     public TestSSLHandshakeCallbacks call() throws Exception {
-                        @SuppressWarnings("resource")
                         // Socket needs to remain open after the handshake
                         Socket socket = (client ? new Socket(listener.getInetAddress(),
                                                           listener.getLocalPort())
@@ -1398,7 +1393,7 @@ public class NativeCryptoTest {
         ServerHooks sHooks = new ServerHooks();
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
-        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         sHooks.pskKey = cHooks.pskKey;
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server =
@@ -1435,7 +1430,7 @@ public class NativeCryptoTest {
         ServerHooks sHooks = new ServerHooks();
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
-        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         sHooks.pskKey = cHooks.pskKey;
         sHooks.pskIdentityHint = "Some non-ASCII characters: \u00c4\u0332";
         cHooks.pskIdentity = "More non-ASCII characters: \u00f5\u044b";
@@ -1466,7 +1461,7 @@ public class NativeCryptoTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint_of_max_length()
             throws Exception {
         // normal TLS-PSK client and server case where the server provides the client with a PSK
@@ -1476,7 +1471,7 @@ public class NativeCryptoTest {
         ServerHooks sHooks = new ServerHooks();
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
-        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         sHooks.pskKey = cHooks.pskKey;
         sHooks.pskIdentityHint = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
                 + "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx";
@@ -1513,8 +1508,8 @@ public class NativeCryptoTest {
         ServerHooks sHooks = new ServerHooks();
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
-        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
-        sHooks.pskKey = "1, 2, 3, 3, Testing...".getBytes("UTF-8");
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
+        sHooks.pskKey = "1, 2, 3, 3, Testing...".getBytes(StandardCharsets.UTF_8);
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server =
                 handshake(listener, 0, false, sHooks, null, null);
@@ -1535,7 +1530,7 @@ public class NativeCryptoTest {
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
         cHooks.pskKey = null;
-        sHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        sHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server =
                 handshake(listener, 0, false, sHooks, null, null);
@@ -1555,7 +1550,7 @@ public class NativeCryptoTest {
         ServerHooks sHooks = new ServerHooks();
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
-        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         sHooks.pskKey = null;
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server =
@@ -1570,7 +1565,7 @@ public class NativeCryptoTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_do_handshake_with_psk_key_too_long() throws Exception {
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks() {
@@ -1583,7 +1578,7 @@ public class NativeCryptoTest {
         ServerHooks sHooks = new ServerHooks();
         cHooks.pskEnabled = true;
         sHooks.pskEnabled = true;
-        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes("UTF-8");
+        cHooks.pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         sHooks.pskKey = cHooks.pskKey;
         Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
         Future<TestSSLHandshakeCallbacks> server =
@@ -1685,7 +1680,7 @@ public class NativeCryptoTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_use_psk_identity_hint() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
@@ -1733,7 +1728,7 @@ public class NativeCryptoTest {
             {
                 Hooks cHooks = new Hooks() {
                     @Override
-                    public long getContext() throws SSLException {
+                    public long getContext() {
                         return clientContext;
                     }
                     @Override
@@ -1746,7 +1741,7 @@ public class NativeCryptoTest {
                 Hooks sHooks = new ServerHooks(
                         SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
                     @Override
-                    public long getContext() throws SSLException {
+                    public long getContext() {
                         return serverContext;
                     }
                     @Override
@@ -1767,7 +1762,7 @@ public class NativeCryptoTest {
             {
                 Hooks cHooks = new Hooks() {
                     @Override
-                    public long getContext() throws SSLException {
+                    public long getContext() {
                         return clientContext;
                     }
                     @Override
@@ -1786,7 +1781,7 @@ public class NativeCryptoTest {
                 Hooks sHooks = new ServerHooks(
                         SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
                     @Override
-                    public long getContext() throws SSLException {
+                    public long getContext() {
                         return serverContext;
                     }
                     @Override
@@ -1971,7 +1966,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
-                assertEquals("spdy/2", new String(negotiated, "UTF-8"));
+                assertEquals("spdy/2", new String(negotiated, StandardCharsets.UTF_8));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
@@ -1980,7 +1975,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
-                assertEquals("spdy/2", new String(negotiated, "UTF-8"));
+                assertEquals("spdy/2", new String(negotiated, StandardCharsets.UTF_8));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
         };
@@ -2039,7 +2034,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
-                assertEquals("spdy/2", new String(negotiated, "UTF-8"));
+                assertEquals("spdy/2", new String(negotiated, StandardCharsets.UTF_8));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
@@ -2048,7 +2043,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long c, Socket sock,
                     FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
                 byte[] negotiated = NativeCrypto.getApplicationProtocol(ssl, null);
-                assertEquals("spdy/2", new String(negotiated, "UTF-8"));
+                assertEquals("spdy/2", new String(negotiated, StandardCharsets.UTF_8));
                 super.afterHandshake(session, ssl, c, sock, fd, callback);
             }
         };
@@ -2608,7 +2603,7 @@ public class NativeCryptoTest {
                 assertTrue(session2 != NULL);
 
                 // Make sure d2i_SSL_SESSION retores SSL_SESSION_cipher value http://b/7091840
-                assertTrue(NativeCrypto.SSL_SESSION_cipher(session2) != null);
+                assertNotNull(NativeCrypto.SSL_SESSION_cipher(session2));
                 assertEquals(NativeCrypto.SSL_SESSION_cipher(session),
                         NativeCrypto.SSL_SESSION_cipher(session2));
 
@@ -2730,7 +2725,7 @@ public class NativeCryptoTest {
     public void test_get_RSA_private_params() throws Exception {
         // Test getting params for the wrong kind of key.
         final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-        assertFalse(groupCtx == NULL);
+        assertNotEquals(NULL, groupCtx);
         NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupCtx);
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         NativeCrypto.get_RSA_private_params(ctx);
@@ -2745,7 +2740,7 @@ public class NativeCryptoTest {
     public void test_get_RSA_public_params() throws Exception {
         // Test getting params for the wrong kind of key.
         final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-        assertFalse(groupCtx == NULL);
+        assertNotEquals(NULL, groupCtx);
         NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupCtx);
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
         NativeCrypto.get_RSA_public_params(ctx);
@@ -2801,7 +2796,7 @@ public class NativeCryptoTest {
     private void check_EC_GROUP(String name, String pStr, String aStr, String bStr, String xStr,
             String yStr, String nStr, long hLong) throws Exception {
         long groupRef = NativeCrypto.EC_GROUP_new_by_curve_name(name);
-        assertFalse(groupRef == NULL);
+        assertNotEquals(NULL, groupRef);
         NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupRef);
 
         // prime
@@ -2873,7 +2868,7 @@ public class NativeCryptoTest {
     @Test
     public void test_ECDH_compute_key_null_key_Failure() throws Exception {
         final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-        assertFalse(groupCtx == NULL);
+        assertNotEquals(NULL, groupCtx);
         NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(groupCtx);
         NativeRef.EVP_PKEY pkey1Ref =
                 new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(groupRef));
@@ -2950,7 +2945,7 @@ public class NativeCryptoTest {
         assertTrue(key1.getPublicKey() instanceof RSAPublicKey);
 
         final long groupCtx = NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1");
-        assertFalse(groupCtx == NULL);
+        assertNotEquals(NULL, groupCtx);
         NativeRef.EC_GROUP group1 = new NativeRef.EC_GROUP(groupCtx);
         key1 = new OpenSSLKey(NativeCrypto.EC_KEY_generate_key(group1));
         assertTrue(key1.getPublicKey() instanceof ECPublicKey);
@@ -2958,10 +2953,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_create_BIO_InputStream() throws Exception {
-        byte[] actual = "Test".getBytes("UTF-8");
+        byte[] actual = "Test".getBytes(StandardCharsets.UTF_8);
         ByteArrayInputStream is = new ByteArrayInputStream(actual);
 
-        @SuppressWarnings("resource")
         OpenSSLBIOInputStream bis = new OpenSSLBIOInputStream(is, true);
         try {
             byte[] buffer = new byte[1024];
@@ -2976,7 +2970,7 @@ public class NativeCryptoTest {
 
     @Test
     public void test_create_BIO_OutputStream() throws Exception {
-        byte[] actual = "Test".getBytes("UTF-8");
+        byte[] actual = "Test".getBytes(StandardCharsets.UTF_8);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
 
         long ctx = NativeCrypto.create_BIO_OutputStream(os);

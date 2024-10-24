@@ -75,7 +75,7 @@ public final class CertificatePriorityComparator implements Comparator<X509Certi
     }
 
     @Override
-    @SuppressWarnings("JdkObsolete")  // Certificate uses Date
+    @SuppressWarnings({"JdkObsolete", "JavaUtilDate"})  // Certificate uses Date
     public int compare(X509Certificate lhs, X509Certificate rhs) {
         int result;
         boolean lhsSelfSigned = lhs.getSubjectDN().equals(lhs.getIssuerDN());

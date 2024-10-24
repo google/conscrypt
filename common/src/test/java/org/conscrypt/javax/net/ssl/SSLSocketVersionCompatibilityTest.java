@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -126,10 +127,6 @@ import tests.util.Pair;
  */
 @RunWith(Parameterized.class)
 public class SSLSocketVersionCompatibilityTest {
-
-//    @Rule
-//    public TestRule switchTargetSdkVersionRule = SwitchTargetSdkVersionRule.getInstance();
-
     @Parameterized.Parameters(name = "{index}: {0} client, {1} server")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][] {
@@ -153,12 +150,7 @@ public class SSLSocketVersionCompatibilityTest {
     @Before
     public void setup() {
         threadGroup = new ThreadGroup("SSLSocketVersionedTest");
-        executor = Executors.newCachedThreadPool(new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(threadGroup, r);
-            }
-        });
+        executor = Executors.newCachedThreadPool(r -> new Thread(threadGroup, r));
     }
 
     @After
@@ -175,27 +167,24 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                server.startHandshake();
-                assertNotNull(server.getSession());
-                assertNull(server.getHandshakeSession());
-                try {
-                    server.getSession().getPeerCertificates();
-                    fail();
-                } catch (SSLPeerUnverifiedException expected) {
-                    // Ignored.
-                }
-                Certificate[] localCertificates = server.getSession().getLocalCertificates();
-                assertNotNull(localCertificates);
-                TestKeyStore.assertChainLength(localCertificates);
-                assertNotNull(localCertificates[0]);
-                TestSSLContext
-                    .assertServerCertificateChain(c.serverTrustManager, localCertificates);
-                TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
-                return null;
+        Future<Void> future = runAsync(() -> {
+            server.startHandshake();
+            assertNotNull(server.getSession());
+            assertNull(server.getHandshakeSession());
+            try {
+                server.getSession().getPeerCertificates();
+                fail();
+            } catch (SSLPeerUnverifiedException expected) {
+                // Ignored.
             }
+            Certificate[] localCertificates = server.getSession().getLocalCertificates();
+            assertNotNull(localCertificates);
+            TestKeyStore.assertChainLength(localCertificates);
+            assertNotNull(localCertificates[0]);
+            TestSSLContext
+                .assertServerCertificateChain(c.serverTrustManager, localCertificates);
+            TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
+            return null;
         });
         client.startHandshake();
         assertNotNull(client.getSession());
@@ -240,7 +229,7 @@ public class SSLSocketVersionCompatibilityTest {
         assertNotNull(client1.getSession().getId());
         final byte[] clientSessionId1 = client1.getSession().getId();
         final byte[] serverSessionId1 = future1.get();
-        assertTrue(Arrays.equals(clientSessionId1, serverSessionId1));
+        assertArrayEquals(clientSessionId1, serverSessionId1);
         client1.close();
         server1.close();
         final SSLSocket client2 = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
@@ -252,10 +241,10 @@ public class SSLSocketVersionCompatibilityTest {
         assertNotNull(client2.getSession().getId());
         final byte[] clientSessionId2 = client2.getSession().getId();
         final byte[] serverSessionId2 = future2.get();
-        assertTrue(Arrays.equals(clientSessionId2, serverSessionId2));
+        assertArrayEquals(clientSessionId2, serverSessionId2);
         client2.close();
         server2.close();
-        assertTrue(Arrays.equals(clientSessionId1, clientSessionId2));
+        assertArrayEquals(clientSessionId1, clientSessionId2);
         c.close();
     }
 
@@ -270,17 +259,14 @@ public class SSLSocketVersionCompatibilityTest {
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledCipherSuites(new String[0]);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    server.startHandshake();
-                    fail();
-                } catch (SSLHandshakeException expected) {
-                    // Ignored.
-                }
-                return null;
+        Future<Void> future = runAsync(() -> {
+            try {
+                server.startHandshake();
+                fail();
+            } catch (SSLHandshakeException expected) {
+                // Ignored.
             }
+            return null;
         });
         try {
             client.startHandshake();
@@ -304,17 +290,14 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    server.startHandshake();
-                    fail();
-                } catch (SSLHandshakeException expected) {
-                    // Ignored.
-                }
-                return null;
+        Future<Void> future = runAsync(() -> {
+            try {
+                server.startHandshake();
+                fail();
+            } catch (SSLHandshakeException expected) {
+                // Ignored.
             }
+            return null;
         });
         try {
             client.startHandshake();
@@ -338,12 +321,9 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                server.startHandshake();
-                return null;
-            }
+        Future<Void> future = runAsync(() -> {
+            server.startHandshake();
+            return null;
         });
         client.startHandshake();
         future.get();
@@ -353,6 +333,7 @@ public class SSLSocketVersionCompatibilityTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void test_SSLSocket_HandshakeCompletedListener() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
                 .clientProtocol(clientVersion)
@@ -361,12 +342,9 @@ public class SSLSocketVersionCompatibilityTest {
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                server.startHandshake();
-                return null;
-            }
+        Future<Void> future = runAsync(() -> {
+            server.startHandshake();
+            return null;
         });
         final boolean[] handshakeCompletedListenerCalled = new boolean[1];
         client.addHandshakeCompletedListener(new HandshakeCompletedListener() {
@@ -476,18 +454,12 @@ public class SSLSocketVersionCompatibilityTest {
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                server.startHandshake();
-                return null;
-            }
+        Future<Void> future = runAsync(() -> {
+            server.startHandshake();
+            return null;
         });
-        client.addHandshakeCompletedListener(new HandshakeCompletedListener() {
-            @Override
-            public void handshakeCompleted(HandshakeCompletedEvent event) {
-                throw expectedException;
-            }
+        client.addHandshakeCompletedListener(event -> {
+            throw expectedException;
         });
         client.startHandshake();
         future.get();
@@ -541,7 +513,7 @@ public class SSLSocketVersionCompatibilityTest {
         } catch (SSLHandshakeException expected) {
             // Depending on the timing of the socket closures, this can happen as well.
             assertTrue("Unexpected handshake error: " + expected.getMessage(),
-                    expected.getMessage().toLowerCase().contains("connection closed"));
+                    expected.getMessage().toLowerCase(Locale.ROOT).contains("connection closed"));
         }
     }
 
@@ -554,21 +526,16 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<IOException> future = runAsync(new Callable<IOException>() {
-            @Override
-            public IOException call() throws Exception {
-                try {
-                    if (!serverClientMode) {
-                        server.setSoTimeout(1000);
-                    }
-                    server.setUseClientMode(serverClientMode);
-                    server.startHandshake();
-                    return null;
-                } catch (SSLHandshakeException e) {
-                    return e;
-                } catch (SocketTimeoutException e) {
-                    return e;
+        Future<IOException> future = runAsync(() -> {
+            try {
+                if (!serverClientMode) {
+                    server.setSoTimeout(1000);
                 }
+                server.setUseClientMode(serverClientMode);
+                server.startHandshake();
+                return null;
+            } catch (SSLHandshakeException | SocketTimeoutException e) {
+                return e;
             }
         });
         if (!clientClientMode) {
@@ -596,26 +563,23 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                assertFalse(server.getWantClientAuth());
-                assertFalse(server.getNeedClientAuth());
-                // confirm turning one on by itself
-                server.setWantClientAuth(true);
-                assertTrue(server.getWantClientAuth());
-                assertFalse(server.getNeedClientAuth());
-                // confirm turning setting on toggles the other
-                server.setNeedClientAuth(true);
-                assertFalse(server.getWantClientAuth());
-                assertTrue(server.getNeedClientAuth());
-                // confirm toggling back
-                server.setWantClientAuth(true);
-                assertTrue(server.getWantClientAuth());
-                assertFalse(server.getNeedClientAuth());
-                server.startHandshake();
-                return null;
-            }
+        Future<Void> future = runAsync(() -> {
+            assertFalse(server.getWantClientAuth());
+            assertFalse(server.getNeedClientAuth());
+            // confirm turning one on by itself
+            server.setWantClientAuth(true);
+            assertTrue(server.getWantClientAuth());
+            assertFalse(server.getNeedClientAuth());
+            // confirm turning setting on toggles the other
+            server.setNeedClientAuth(true);
+            assertFalse(server.getWantClientAuth());
+            assertTrue(server.getNeedClientAuth());
+            // confirm toggling back
+            server.setWantClientAuth(true);
+            assertTrue(server.getWantClientAuth());
+            assertFalse(server.getNeedClientAuth());
+            server.startHandshake();
+            return null;
         });
         client.startHandshake();
         assertNotNull(client.getSession().getLocalCertificates());
@@ -678,18 +642,15 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    server.setNeedClientAuth(true);
-                    server.startHandshake();
-                    fail();
-                } catch (SSLHandshakeException expected) {
-                    // Ignored.
-                }
-                return null;
+        Future<Void> future = runAsync(() -> {
+            try {
+                server.setNeedClientAuth(true);
+                server.startHandshake();
+                fail();
+            } catch (SSLHandshakeException expected) {
+                // Ignored.
             }
+            return null;
         });
         try {
             client.startHandshake();
@@ -779,13 +740,10 @@ public class SSLSocketVersionCompatibilityTest {
             SSLSocket client =
                     (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-            Future<Void> future = runAsync(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    server.setNeedClientAuth(true);
-                    server.startHandshake();
-                    return null;
-                }
+            Future<Void> future = runAsync(() -> {
+                server.setNeedClientAuth(true);
+                server.startHandshake();
+                return null;
             });
             client.startHandshake();
             assertNotNull(client.getSession().getLocalCertificates());
@@ -810,13 +768,11 @@ public class SSLSocketVersionCompatibilityTest {
         SSLContext clientContext = SSLContext.getInstance("TLS");
         X509TrustManager trustManager = new X509TrustManager() {
             @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType)
-                    throws CertificateException {
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
                 throw new AssertionError();
             }
             @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType)
-                    throws CertificateException {
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
                 throw new RuntimeException(); // throw a RuntimeException from custom TrustManager
             }
             @Override
@@ -828,17 +784,14 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    server.startHandshake();
-                    fail();
-                } catch (SSLHandshakeException expected) {
-                    // Ignored.
-                }
-                return null;
+        Future<Void> future = runAsync(() -> {
+            try {
+                server.startHandshake();
+                fail();
+            } catch (SSLHandshakeException expected) {
+                // Ignored.
             }
+            return null;
         });
         try {
             client.startHandshake();
@@ -877,18 +830,15 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                server.setEnableSessionCreation(false);
-                try {
-                    server.startHandshake();
-                    fail();
-                } catch (SSLException expected) {
-                    // Ignored.
-                }
-                return null;
+        Future<Void> future = runAsync(() -> {
+            server.setEnableSessionCreation(false);
+            try {
+                server.startHandshake();
+                fail();
+            } catch (SSLException expected) {
+                // Ignored.
             }
+            return null;
         });
         try {
             client.startHandshake();
@@ -911,17 +861,14 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    server.startHandshake();
-                    fail();
-                } catch (SSLException expected) {
-                    // Ignored.
-                }
-                return null;
+        Future<Void> future = runAsync(() -> {
+            try {
+                server.startHandshake();
+                fail();
+            } catch (SSLException expected) {
+                // Ignored.
             }
+            return null;
         });
         client.setEnableSessionCreation(false);
         try {
@@ -957,11 +904,7 @@ public class SSLSocketVersionCompatibilityTest {
         server.close();
         client.close();
         // ...so are a lot of other operations...
-        HandshakeCompletedListener l = new HandshakeCompletedListener() {
-            @Override
-            public void handshakeCompleted(HandshakeCompletedEvent e) {
-            }
-        };
+        HandshakeCompletedListener l = e -> { };
         client.addHandshakeCompletedListener(l);
         assertNotNull(client.getEnabledCipherSuites());
         assertNotNull(client.getEnabledProtocols());
@@ -1009,9 +952,7 @@ public class SSLSocketVersionCompatibilityTest {
             @SuppressWarnings("unused")
             int bytesRead = input.read(null, -1, -1);
             fail();
-        } catch (NullPointerException expected) {
-            // Ignored.
-        } catch (SocketException expected) {
+        } catch (NullPointerException | SocketException expected) {
             // Ignored.
         }
         try {
@@ -1023,9 +964,7 @@ public class SSLSocketVersionCompatibilityTest {
         try {
             output.write(null, -1, -1);
             fail();
-        } catch (NullPointerException expected) {
-            // Ignored.
-        } catch (SocketException expected) {
+        } catch (NullPointerException | SocketException expected) {
             // Ignored.
         }
         // ... and one gives IllegalArgumentException
@@ -1164,17 +1103,14 @@ public class SSLSocketVersionCompatibilityTest {
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 underlying, c.host.getHostName(), c.port, false);
-        Future<Void> clientFuture = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                wrapping.startHandshake();
-                wrapping.getOutputStream().write(42);
-                // close the underlying socket,
-                // so that no SSL shutdown is sent
-                underlying.close();
-                wrapping.close();
-                return null;
-            }
+        Future<Void> clientFuture = runAsync(() -> {
+            wrapping.startHandshake();
+            wrapping.getOutputStream().write(42);
+            // close the underlying socket,
+            // so that no SSL shutdown is sent
+            underlying.close();
+            wrapping.close();
+            return null;
         });
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.startHandshake();
@@ -1205,25 +1141,22 @@ public class SSLSocketVersionCompatibilityTest {
             client.setSSLParameters(p);
             client.connect(new InetSocketAddress(c.host, c.port));
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-            Future<Void> future = runAsync(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    server.startHandshake();
-                    assertNotNull(server.getSession());
-                    try {
-                        server.getSession().getPeerCertificates();
-                        fail();
-                    } catch (SSLPeerUnverifiedException expected) {
-                        // Ignored.
-                    }
-                    Certificate[] localCertificates = server.getSession().getLocalCertificates();
-                    assertNotNull(localCertificates);
-                    TestKeyStore.assertChainLength(localCertificates);
-                    assertNotNull(localCertificates[0]);
-                    TestSSLContext
-                            .assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
-                    return null;
+            Future<Void> future = runAsync(() -> {
+                server.startHandshake();
+                assertNotNull(server.getSession());
+                try {
+                    server.getSession().getPeerCertificates();
+                    fail();
+                } catch (SSLPeerUnverifiedException expected) {
+                    // Ignored.
                 }
+                Certificate[] localCertificates = server.getSession().getLocalCertificates();
+                assertNotNull(localCertificates);
+                TestKeyStore.assertChainLength(localCertificates);
+                assertNotNull(localCertificates[0]);
+                TestSSLContext
+                        .assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
+                return null;
             });
             client.startHandshake();
             assertNotNull(client.getSession());
@@ -1260,17 +1193,14 @@ public class SSLSocketVersionCompatibilityTest {
             client.setSSLParameters(p);
             client.connect(c.getLoopbackAsHostname("unmatched.example.com", c.port));
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-            Future<Void> future = runAsync(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    try {
-                        server.startHandshake();
-                        fail("Should receive SSLHandshakeException as server");
-                    } catch (SSLHandshakeException expected) {
-                        // Ignored.
-                    }
-                    return null;
+            Future<Void> future = runAsync(() -> {
+                try {
+                    server.startHandshake();
+                    fail("Should receive SSLHandshakeException as server");
+                } catch (SSLHandshakeException expected) {
+                    // Ignored.
                 }
+                return null;
             });
             try {
                 client.startHandshake();
@@ -1320,12 +1250,9 @@ public class SSLSocketVersionCompatibilityTest {
 
         // Start the handshake.
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                client.startHandshake();
-                return null;
-            }
+        Future<Void> future = runAsync(() -> {
+            client.startHandshake();
+            return null;
         });
         server.startHandshake();
 
@@ -1385,12 +1312,9 @@ public class SSLSocketVersionCompatibilityTest {
             assertTrue(isConscryptSocket(server));
             setNpnProtocols.invoke(server, npnProtocols);
 
-            Future<Void> future = executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    server.startHandshake();
-                    return null;
-                }
+            Future<Void> future = executor.submit(() -> {
+                server.startHandshake();
+                return null;
             });
             client.startHandshake();
 
@@ -1412,12 +1336,9 @@ public class SSLSocketVersionCompatibilityTest {
 
             final SSLSocket server = (SSLSocket) serverSocket.accept();
 
-            Future<Void> future = executor.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    server.startHandshake();
-                    return null;
-                }
+            Future<Void> future = executor.submit(() -> {
+                server.startHandshake();
+                return null;
             });
             client.startHandshake();
 
@@ -1475,12 +1396,9 @@ public class SSLSocketVersionCompatibilityTest {
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
 
         // Start the handshake.
-        Future<Integer> handshakeFuture = runAsync(new Callable<Integer>() {
-            @Override
-            public Integer call() throws Exception {
-                clientWrapping.startHandshake();
-                return clientWrapping.getInputStream().read();
-            }
+        Future<Integer> handshakeFuture = runAsync(() -> {
+            clientWrapping.startHandshake();
+            return clientWrapping.getInputStream().read();
         });
         server.startHandshake();
         // TLS 1.3 sends some post-handshake management messages, so send a single byte through
@@ -1492,13 +1410,10 @@ public class SSLSocketVersionCompatibilityTest {
         final Socket toClose = closeUnderlying ? underlying : clientWrapping;
 
         // Schedule the socket to be closed in 1 second.
-        Future<Void> future = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                Thread.sleep(1000);
-                toClose.close();
-                return null;
-            }
+        Future<Void> future = runAsync(() -> {
+            Thread.sleep(1000);
+            toClose.close();
+            return null;
         });
 
         // Read from the socket.
@@ -1546,21 +1461,18 @@ public class SSLSocketVersionCompatibilityTest {
         // TODO(nmittler): Interrupts do not work with the engine-based socket.
         assumeFalse(isConscryptEngineSocket(wrapping));
 
-        Future<Void> clientFuture = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                wrapping.startHandshake();
-                try {
-                    wrapping.setSoTimeout(readingTimeoutMillis);
-                    wrapping.getInputStream().read();
-                    fail();
-                } catch (SocketException expected) {
-                    // Conscrypt throws an exception complaining that the socket is closed
-                    // if it's interrupted by a close() in the middle of a read()
-                    assertTrue(expected.getMessage().contains("closed"));
-                }
-                return null;
+        Future<Void> clientFuture = runAsync(() -> {
+            wrapping.startHandshake();
+            try {
+                wrapping.setSoTimeout(readingTimeoutMillis);
+                wrapping.getInputStream().read();
+                fail();
+            } catch (SocketException expected) {
+                // Conscrypt throws an exception complaining that the socket is closed
+                // if it's interrupted by a close() in the middle of a read()
+                assertTrue(expected.getMessage().contains("closed"));
             }
+            return null;
         });
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.startHandshake();
@@ -1591,7 +1503,7 @@ public class SSLSocketVersionCompatibilityTest {
         server.close();
     }
 
-    /**
+    /*
      * Test to confirm that an SSLSocket.close() on one
      * thread will interrupt another thread blocked writing on the same
      * socket.
@@ -1604,7 +1516,7 @@ public class SSLSocketVersionCompatibilityTest {
      * See also b/147323301 where close() triggered an infinite loop instead.
      */
     @Test
-    @Ignore
+    @Ignore("See comment above")
     public void test_SSLSocket_interrupt_write_withAutoclose() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
             .clientProtocol(clientVersion)
@@ -1615,22 +1527,19 @@ public class SSLSocketVersionCompatibilityTest {
             underlying, c.host.getHostName(), c.port, true);
         final byte[] data = new byte[1024 * 64];
 
-        Future<Void> clientFuture = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                wrapping.startHandshake();
-                try {
-                    for (int i = 0; i < 64; i++) {
-                        wrapping.getOutputStream().write(data);
-                    }
-                    // Failure here means that no exception was thrown, so the data buffer is
-                    // probably too small.
-                    fail();
-                } catch (SocketException expected) {
-                    assertTrue(expected.getMessage().contains("closed"));
+        Future<Void> clientFuture = runAsync(() -> {
+            wrapping.startHandshake();
+            try {
+                for (int i = 0; i < 64; i++) {
+                    wrapping.getOutputStream().write(data);
                 }
-                return null;
+                // Failure here means that no exception was thrown, so the data buffer is
+                // probably too small.
+                fail();
+            } catch (SocketException expected) {
+                assertTrue(expected.getMessage().contains("closed"));
             }
+            return null;
         });
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.startHandshake();
@@ -1681,18 +1590,15 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Test
     public void test_SSLSocket_ClientHello_SNI() throws Exception {
-        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
-            @Override
-            public void run(SSLSocketFactory sslSocketFactory) throws Exception {
-                ClientHello clientHello = TlsTester
-                    .captureTlsHandshakeClientHello(executor, sslSocketFactory);
-                ServerNameHelloExtension sniExtension =
-                    (ServerNameHelloExtension) clientHello.findExtensionByType(
-                        HelloExtension.TYPE_SERVER_NAME);
-                assertNotNull(sniExtension);
-                assertEquals(
-                    Collections.singletonList("localhost.localdomain"), sniExtension.hostnames);
-            }
+        ForEachRunner.runNamed(sslSocketFactory -> {
+            ClientHello clientHello = TlsTester
+                .captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            ServerNameHelloExtension sniExtension =
+                (ServerNameHelloExtension) clientHello.findExtensionByType(
+                    HelloExtension.TYPE_SERVER_NAME);
+            assertNotNull(sniExtension);
+            assertEquals(
+                Collections.singletonList("localhost.localdomain"), sniExtension.hostnames);
         }, getSSLSocketFactoriesToTest());
     }
 
@@ -1700,29 +1606,26 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_ClientHello_ALPN() throws Exception {
         final String[] protocolList = new String[] { "h2", "http/1.1" };
 
-        ForEachRunner.runNamed(new ForEachRunner.Callback<SSLSocketFactory>() {
-            @Override
-            public void run(SSLSocketFactory sslSocketFactory) throws Exception {
-                ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(executor,
-                        new DelegatingSSLSocketFactory(sslSocketFactory) {
-                            @Override public SSLSocket configureSocket(SSLSocket socket) {
-                                Conscrypt.setApplicationProtocols(socket, protocolList);
-                                return socket;
-                            }
-                        });
-                AlpnHelloExtension alpnExtension =
-                        (AlpnHelloExtension) clientHello.findExtensionByType(
-                                HelloExtension.TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION);
-                assertNotNull(alpnExtension);
-                assertEquals(Arrays.asList(protocolList), alpnExtension.protocols);
-            }
+        ForEachRunner.runNamed(sslSocketFactory -> {
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(executor,
+                    new DelegatingSSLSocketFactory(sslSocketFactory) {
+                        @Override public SSLSocket configureSocket(SSLSocket socket) {
+                            Conscrypt.setApplicationProtocols(socket, protocolList);
+                            return socket;
+                        }
+                    });
+            AlpnHelloExtension alpnExtension =
+                    (AlpnHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION);
+            assertNotNull(alpnExtension);
+            assertEquals(Arrays.asList(protocolList), alpnExtension.protocols);
         }, getSSLSocketFactoriesToTest());
     }
 
     private List<Pair<String, SSLSocketFactory>> getSSLSocketFactoriesToTest()
             throws NoSuchAlgorithmException, KeyManagementException {
         List<Pair<String, SSLSocketFactory>> result =
-                new ArrayList<Pair<String, SSLSocketFactory>>();
+                new ArrayList<>();
         result.add(Pair.of("default", (SSLSocketFactory) SSLSocketFactory.getDefault()));
         for (String sslContextProtocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
             SSLContext sslContext = SSLContext.getInstance(sslContextProtocol);
@@ -1743,14 +1646,12 @@ public class SSLSocketVersionCompatibilityTest {
                 .clientProtocol(clientVersion)
                 .serverProtocol(serverVersion)
                 .build();
-        SSLSocket client =
-            (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        try {
+        try (SSLSocket client
+                     = (SSLSocket) context.clientContext.getSocketFactory().createSocket()) {
             client.connect(new InetSocketAddress(context.host, context.port));
             setHostname(client);
             assertTrue(client.getPort() > 0);
         } finally {
-            client.close();
             context.close();
         }
     }
@@ -1762,26 +1663,25 @@ public class SSLSocketVersionCompatibilityTest {
                 .clientProtocol(clientVersion)
                 .serverProtocol(serverVersion)
                 .build();
-        final SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
-        SSLParameters clientParams = client.getSSLParameters();
-        clientParams.setServerNames(
-                Collections.singletonList((SNIServerName) new SNIHostName("www.example.com")));
-        client.setSSLParameters(clientParams);
-        SSLParameters serverParams = c.serverSocket.getSSLParameters();
-        serverParams.setSNIMatchers(
-                Collections.singletonList(SNIHostName.createSNIMatcher("www\\.example\\.com")));
-        c.serverSocket.setSSLParameters(serverParams);
-        client.connect(new InetSocketAddress(c.host, c.port));
-        final SSLSocket server = (SSLSocket) c.serverSocket.accept();
-        @SuppressWarnings("unused")
-        Future<?> future = runAsync(new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
+        final SSLSocket server;
+        try (SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket()) {
+            SSLParameters clientParams = client.getSSLParameters();
+            clientParams.setServerNames(
+                    Collections.singletonList(new SNIHostName("www.example.com")));
+            client.setSSLParameters(clientParams);
+            SSLParameters serverParams = c.serverSocket.getSSLParameters();
+            serverParams.setSNIMatchers(Collections.singletonList(
+                    SNIHostName.createSNIMatcher("www\\.example\\.com")));
+            c.serverSocket.setSSLParameters(serverParams);
+            client.connect(new InetSocketAddress(c.host, c.port));
+            server = (SSLSocket) c.serverSocket.accept();
+            @SuppressWarnings("unused")
+            Future<?> future = runAsync(() -> {
                 client.startHandshake();
                 return null;
-            }
-        });
-        server.startHandshake();
+            });
+            server.startHandshake();
+        }
         SSLSession serverSession = server.getSession();
         assertTrue(serverSession instanceof ExtendedSSLSession);
         ExtendedSSLSession extendedServerSession = (ExtendedSSLSession) serverSession;
@@ -1793,6 +1693,7 @@ public class SSLSocketVersionCompatibilityTest {
         assertTrue(serverName instanceof SNIHostName);
         SNIHostName serverHostName = (SNIHostName) serverName;
         assertEquals("www.example.com", serverHostName.getAsciiName());
+        server.close();
     }
 
     @Test
@@ -1806,35 +1707,29 @@ public class SSLSocketVersionCompatibilityTest {
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, listener.getLocalPort());
         final Socket server = listener.accept();
-        Future<Void> c = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    client.startHandshake();
-                    fail("Should receive handshake exception");
-                } catch (SSLHandshakeException expected) {
-                    assertFalse(expected.getMessage().contains("SSL_ERROR_ZERO_RETURN"));
-                    assertFalse(expected.getMessage().contains("You should never see this."));
-                }
-                return null;
+        Future<Void> c = runAsync(() -> {
+            try {
+                client.startHandshake();
+                fail("Should receive handshake exception");
+            } catch (SSLHandshakeException expected) {
+                assertFalse(expected.getMessage().contains("SSL_ERROR_ZERO_RETURN"));
+                assertFalse(expected.getMessage().contains("You should never see this."));
             }
+            return null;
         });
-        Future<Void> s = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                // Wait until the client sends something.
-                byte[] scratch = new byte[8192];
-                @SuppressWarnings("unused")
-                int bytesRead = server.getInputStream().read(scratch);
-                // Write a bogus TLS alert:
-                // TLSv1.2 Record Layer: Alert (Level: Warning, Description: Protocol Version)
-                server.getOutputStream()
-                    .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
-                // TLSv1.2 Record Layer: Alert (Level: Warning, Description: Close Notify)
-                server.getOutputStream()
-                    .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
-                return null;
-            }
+        Future<Void> s = runAsync(() -> {
+            // Wait until the client sends something.
+            byte[] scratch = new byte[8192];
+            @SuppressWarnings("unused")
+            int bytesRead = server.getInputStream().read(scratch);
+            // Write a bogus TLS alert:
+            // TLSv1.2 Record Layer: Alert (Level: Warning, Description: Protocol Version)
+            server.getOutputStream()
+                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
+            // TLSv1.2 Record Layer: Alert (Level: Warning, Description: Close Notify)
+            server.getOutputStream()
+                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
+            return null;
         });
         c.get(5, TimeUnit.SECONDS);
         s.get(5, TimeUnit.SECONDS);
@@ -1853,79 +1748,73 @@ public class SSLSocketVersionCompatibilityTest {
                 .build();
         final Socket client = SocketFactory.getDefault().createSocket(context.host, context.port);
         final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        Future<Void> s = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    server.startHandshake();
-                    fail("Should receive handshake exception");
-                } catch (SSLHandshakeException expected) {
-                    assertFalse(expected.getMessage().contains("SSL_ERROR_ZERO_RETURN"));
-                    assertFalse(expected.getMessage().contains("You should never see this."));
-                }
-                return null;
+        Future<Void> s = runAsync(() -> {
+            try {
+                server.startHandshake();
+                fail("Should receive handshake exception");
+            } catch (SSLHandshakeException expected) {
+                assertFalse(expected.getMessage().contains("SSL_ERROR_ZERO_RETURN"));
+                assertFalse(expected.getMessage().contains("You should never see this."));
             }
+            return null;
         });
-        Future<Void> c = runAsync(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                // Send bogus ClientHello:
-                // TLSv1.2 Record Layer: Handshake Protocol: Client Hello
-                client.getOutputStream().write(new byte[]{
-                    (byte) 0x16, (byte) 0x03, (byte) 0x01, (byte) 0x00, (byte) 0xb9,
-                    (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0xb5, (byte) 0x03,
-                    (byte) 0x03, (byte) 0x5a, (byte) 0x31, (byte) 0xba, (byte) 0x44,
-                    (byte) 0x24, (byte) 0xfd, (byte) 0xf0, (byte) 0x56, (byte) 0x46,
-                    (byte) 0xea, (byte) 0xee, (byte) 0x1c, (byte) 0x62, (byte) 0x8f,
-                    (byte) 0x18, (byte) 0x04, (byte) 0xbd, (byte) 0x1c, (byte) 0xbc,
-                    (byte) 0xbf, (byte) 0x6d, (byte) 0x84, (byte) 0x12, (byte) 0xe9,
-                    (byte) 0x94, (byte) 0xf5, (byte) 0x1c, (byte) 0x15, (byte) 0x3e,
-                    (byte) 0x79, (byte) 0x01, (byte) 0xe2, (byte) 0x00, (byte) 0x00,
-                    (byte) 0x28, (byte) 0xc0, (byte) 0x2b, (byte) 0xc0, (byte) 0x2c,
-                    (byte) 0xc0, (byte) 0x2f, (byte) 0xc0, (byte) 0x30, (byte) 0x00,
-                    (byte) 0x9e, (byte) 0x00, (byte) 0x9f, (byte) 0xc0, (byte) 0x09,
-                    (byte) 0xc0, (byte) 0x0a, (byte) 0xc0, (byte) 0x13, (byte) 0xc0,
-                    (byte) 0x14, (byte) 0x00, (byte) 0x33, (byte) 0x00, (byte) 0x39,
-                    (byte) 0xc0, (byte) 0x07, (byte) 0xc0, (byte) 0x11, (byte) 0x00,
-                    (byte) 0x9c, (byte) 0x00, (byte) 0x9d, (byte) 0x00, (byte) 0x2f,
-                    (byte) 0x00, (byte) 0x35, (byte) 0x00, (byte) 0x05, (byte) 0x00,
-                    (byte) 0xff, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x64,
-                    (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x04, (byte) 0x03,
-                    (byte) 0x00, (byte) 0x01, (byte) 0x02, (byte) 0x00, (byte) 0x0a,
-                    (byte) 0x00, (byte) 0x34, (byte) 0x00, (byte) 0x32, (byte) 0x00,
-                    (byte) 0x0e, (byte) 0x00, (byte) 0x0d, (byte) 0x00, (byte) 0x19,
-                    (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x0c, (byte) 0x00,
-                    (byte) 0x18, (byte) 0x00, (byte) 0x09, (byte) 0x00, (byte) 0x0a,
-                    (byte) 0x00, (byte) 0x16, (byte) 0x00, (byte) 0x17, (byte) 0x00,
-                    (byte) 0x08, (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x07,
-                    (byte) 0x00, (byte) 0x14, (byte) 0x00, (byte) 0x15, (byte) 0x00,
-                    (byte) 0x04, (byte) 0x00, (byte) 0x05, (byte) 0x00, (byte) 0x12,
-                    (byte) 0x00, (byte) 0x13, (byte) 0x00, (byte) 0x01, (byte) 0x00,
-                    (byte) 0x02, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x0f,
-                    (byte) 0x00, (byte) 0x10, (byte) 0x00, (byte) 0x11, (byte) 0x00,
-                    (byte) 0x0d, (byte) 0x00, (byte) 0x20, (byte) 0x00, (byte) 0x1e,
-                    (byte) 0x06, (byte) 0x01, (byte) 0x06, (byte) 0x02, (byte) 0x06,
-                    (byte) 0x03, (byte) 0x05, (byte) 0x01, (byte) 0x05, (byte) 0x02,
-                    (byte) 0x05, (byte) 0x03, (byte) 0x04, (byte) 0x01, (byte) 0x04,
-                    (byte) 0x02, (byte) 0x04, (byte) 0x03, (byte) 0x03, (byte) 0x01,
-                    (byte) 0x03, (byte) 0x02, (byte) 0x03, (byte) 0x03, (byte) 0x02,
-                    (byte) 0x01, (byte) 0x02, (byte) 0x02, (byte) 0x02, (byte) 0x03,
-                });
-                // Wait until the server sends something.
-                byte[] scratch = new byte[8192];
-                @SuppressWarnings("unused")
-                int bytesRead = client.getInputStream().read(scratch);
-                // Write a bogus TLS alert:
-                // TLSv1.2 Record Layer: Alert (Level: Warning, Description:
-                // Protocol Version)
-                client.getOutputStream()
-                    .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
-                // TLSv1.2 Record Layer: Alert (Level: Warning, Description:
-                // Close Notify)
-                client.getOutputStream()
-                    .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
-                return null;
-            }
+        Future<Void> c = runAsync(() -> {
+            // Send bogus ClientHello:
+            // TLSv1.2 Record Layer: Handshake Protocol: Client Hello
+            client.getOutputStream().write(new byte[]{
+                (byte) 0x16, (byte) 0x03, (byte) 0x01, (byte) 0x00, (byte) 0xb9,
+                (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0xb5, (byte) 0x03,
+                (byte) 0x03, (byte) 0x5a, (byte) 0x31, (byte) 0xba, (byte) 0x44,
+                (byte) 0x24, (byte) 0xfd, (byte) 0xf0, (byte) 0x56, (byte) 0x46,
+                (byte) 0xea, (byte) 0xee, (byte) 0x1c, (byte) 0x62, (byte) 0x8f,
+                (byte) 0x18, (byte) 0x04, (byte) 0xbd, (byte) 0x1c, (byte) 0xbc,
+                (byte) 0xbf, (byte) 0x6d, (byte) 0x84, (byte) 0x12, (byte) 0xe9,
+                (byte) 0x94, (byte) 0xf5, (byte) 0x1c, (byte) 0x15, (byte) 0x3e,
+                (byte) 0x79, (byte) 0x01, (byte) 0xe2, (byte) 0x00, (byte) 0x00,
+                (byte) 0x28, (byte) 0xc0, (byte) 0x2b, (byte) 0xc0, (byte) 0x2c,
+                (byte) 0xc0, (byte) 0x2f, (byte) 0xc0, (byte) 0x30, (byte) 0x00,
+                (byte) 0x9e, (byte) 0x00, (byte) 0x9f, (byte) 0xc0, (byte) 0x09,
+                (byte) 0xc0, (byte) 0x0a, (byte) 0xc0, (byte) 0x13, (byte) 0xc0,
+                (byte) 0x14, (byte) 0x00, (byte) 0x33, (byte) 0x00, (byte) 0x39,
+                (byte) 0xc0, (byte) 0x07, (byte) 0xc0, (byte) 0x11, (byte) 0x00,
+                (byte) 0x9c, (byte) 0x00, (byte) 0x9d, (byte) 0x00, (byte) 0x2f,
+                (byte) 0x00, (byte) 0x35, (byte) 0x00, (byte) 0x05, (byte) 0x00,
+                (byte) 0xff, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x64,
+                (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x04, (byte) 0x03,
+                (byte) 0x00, (byte) 0x01, (byte) 0x02, (byte) 0x00, (byte) 0x0a,
+                (byte) 0x00, (byte) 0x34, (byte) 0x00, (byte) 0x32, (byte) 0x00,
+                (byte) 0x0e, (byte) 0x00, (byte) 0x0d, (byte) 0x00, (byte) 0x19,
+                (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x0c, (byte) 0x00,
+                (byte) 0x18, (byte) 0x00, (byte) 0x09, (byte) 0x00, (byte) 0x0a,
+                (byte) 0x00, (byte) 0x16, (byte) 0x00, (byte) 0x17, (byte) 0x00,
+                (byte) 0x08, (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x07,
+                (byte) 0x00, (byte) 0x14, (byte) 0x00, (byte) 0x15, (byte) 0x00,
+                (byte) 0x04, (byte) 0x00, (byte) 0x05, (byte) 0x00, (byte) 0x12,
+                (byte) 0x00, (byte) 0x13, (byte) 0x00, (byte) 0x01, (byte) 0x00,
+                (byte) 0x02, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x0f,
+                (byte) 0x00, (byte) 0x10, (byte) 0x00, (byte) 0x11, (byte) 0x00,
+                (byte) 0x0d, (byte) 0x00, (byte) 0x20, (byte) 0x00, (byte) 0x1e,
+                (byte) 0x06, (byte) 0x01, (byte) 0x06, (byte) 0x02, (byte) 0x06,
+                (byte) 0x03, (byte) 0x05, (byte) 0x01, (byte) 0x05, (byte) 0x02,
+                (byte) 0x05, (byte) 0x03, (byte) 0x04, (byte) 0x01, (byte) 0x04,
+                (byte) 0x02, (byte) 0x04, (byte) 0x03, (byte) 0x03, (byte) 0x01,
+                (byte) 0x03, (byte) 0x02, (byte) 0x03, (byte) 0x03, (byte) 0x02,
+                (byte) 0x01, (byte) 0x02, (byte) 0x02, (byte) 0x02, (byte) 0x03,
+            });
+            // Wait until the server sends something.
+            byte[] scratch = new byte[8192];
+            @SuppressWarnings("unused")
+            int bytesRead = client.getInputStream().read(scratch);
+            // Write a bogus TLS alert:
+            // TLSv1.2 Record Layer: Alert (Level: Warning, Description:
+            // Protocol Version)
+            client.getOutputStream()
+                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
+            // TLSv1.2 Record Layer: Alert (Level: Warning, Description:
+            // Close Notify)
+            client.getOutputStream()
+                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
+            return null;
         });
         c.get(5, TimeUnit.SECONDS);
         s.get(5, TimeUnit.SECONDS);
@@ -1941,14 +1830,81 @@ public class SSLSocketVersionCompatibilityTest {
                 .clientProtocol(clientVersion)
                 .serverProtocol(serverVersion)
                 .build();
+        try (SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket())
+        {
+            client.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
+            assertEquals(2, client.getEnabledProtocols().length);
+        }
+    }
+
+//  @TargetSdkVersion(35)
+    @Test
+    public void test_SSLSocket_SSLv3Unsupported_35() throws Exception {
+        assumeFalse(isTlsV1Filtered());
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
-        assertEquals(2, client.getEnabledProtocols().length);
+        assertThrows(IllegalArgumentException.class,
+                () -> client.setEnabledProtocols(new String[] {"SSLv3"}));
+        assertThrows(IllegalArgumentException.class,
+                () -> client.setEnabledProtocols(new String[] {"SSL"}));
+    }
+
+//  @TargetSdkVersion(34)
+    @Test
+    @Ignore("For platform CTS only")
+    public void test_SSLSocket_SSLv3Unsupported_34() throws Exception {
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
+        final SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        // For app compatibility, SSLv3 is stripped out when setting only.
+        client.setEnabledProtocols(new String[] {"SSLv3"});
+        assertEquals(0, client.getEnabledProtocols().length);
+        try {
+            client.setEnabledProtocols(new String[] {"SSL"});
+            fail("SSLSocket should not support SSL protocol");
+        } catch (IllegalArgumentException expected) {
+            // Ignored.
+        }
+    }
+
+//  @TargetSdkVersion(34)
+    @Test
+    @Ignore("For platform CTS only")
+    public void test_TLSv1Filtered_34() throws Exception {
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
+        final SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"});
+        assertEquals(1, client.getEnabledProtocols().length);
+        assertEquals("TLSv1.2", client.getEnabledProtocols()[0]);
+    }
+
+//  @TargetSdkVersion(35)
+    @Test
+    public void test_TLSv1Filtered_35() throws Exception {
+        assumeTrue(isTlsV1Filtered());
+        TestSSLContext context = new TestSSLContext.Builder()
+                .clientProtocol(clientVersion)
+                .serverProtocol(serverVersion)
+                .build();
+        final SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        assertThrows(IllegalArgumentException.class, () ->
+            client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}));
     }
 
     @Test
-    public void test_TLSv1Unsupported_notEnabled() throws Exception {
+    public void test_TLSv1Unsupported_notEnabled() {
         assumeTrue(!isTlsV1Supported());
         assertTrue(isTlsV1Deprecated());
     }
@@ -2128,7 +2084,7 @@ public class SSLSocketVersionCompatibilityTest {
             if ("TLSv1.2".equals(negotiatedVersion())) {
                 assertFalse(Arrays.equals(clientEkm, clientContextEkm));
             } else {
-                assertTrue(Arrays.equals(clientEkm, clientContextEkm));
+                assertArrayEquals(clientEkm, clientContextEkm);
             }
         } finally {
             pair.close();

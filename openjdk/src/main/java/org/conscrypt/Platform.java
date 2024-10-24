@@ -124,7 +124,7 @@ final public class Platform {
         prefix = new File(prefix).getName();
         IOException suppressed = null;
         for (int i = 0; i < 10000; i++) {
-            String tempName = String.format(Locale.US, "%s%d%04d%s", prefix, time, i, suffix);
+            String tempName = String.format(Locale.ROOT, "%s%d%04d%s", prefix, time, i, suffix);
             File tempFile = new File(directory, tempName);
             if (!tempName.equals(tempFile.getName())) {
                 // The given prefix or suffix contains path separators.
@@ -646,7 +646,7 @@ final public class Platform {
         }
 
         String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || !Boolean.valueOf(property.toLowerCase())) {
+        if (property == null || !Boolean.parseBoolean(property.toLowerCase(Locale.ROOT))) {
             return false;
         }
 
@@ -660,15 +660,14 @@ final public class Platform {
         for (String part : parts) {
             property = Security.getProperty(propertyName + ".*");
             if (property != null) {
-                enable = Boolean.valueOf(property.toLowerCase());
+                enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
             }
-
             propertyName.append(".").append(part);
         }
 
         property = Security.getProperty(propertyName.toString());
         if (property != null) {
-            enable = Boolean.valueOf(property.toLowerCase());
+            enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
         }
         return enable;
     }

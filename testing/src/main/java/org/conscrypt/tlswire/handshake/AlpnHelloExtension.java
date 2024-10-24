@@ -18,6 +18,7 @@ package org.conscrypt.tlswire.handshake;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.conscrypt.tlswire.util.IoUtils;
@@ -33,19 +34,16 @@ public class AlpnHelloExtension extends HelloExtension {
     protected void parseData() throws IOException {
         byte[] alpnListBytes = IoUtils.readTlsVariableLengthByteVector(
                 new DataInputStream(new ByteArrayInputStream(data)), 0xffff);
-        protocols = new ArrayList<String>();
+        protocols = new ArrayList<>();
         DataInputStream alpnList = new DataInputStream(new ByteArrayInputStream(alpnListBytes));
         while (alpnList.available() > 0) {
             byte[] alpnValue = IoUtils.readTlsVariableLengthByteVector(alpnList, 0xff);
-            protocols.add(new String(alpnValue, "US-ASCII"));
+            protocols.add(new String(alpnValue, StandardCharsets.US_ASCII));
         }
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("HelloExtension{type: elliptic_curves, protocols: ");
-        sb.append(protocols);
-        sb.append('}');
-        return sb.toString();
+        return "HelloExtension{type: elliptic_curves, protocols: " + protocols + '}';
     }
 }

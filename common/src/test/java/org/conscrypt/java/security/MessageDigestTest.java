@@ -20,9 +20,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.Provider;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
@@ -48,44 +48,38 @@ public final class MessageDigestTest {
     }
 
     @Test
-    public void test_getInstance() throws Exception {
+    public void test_getInstance() {
         ServiceTester.test("MessageDigest")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider provider, String algorithm) throws Exception {
-                    // MessageDigest.getInstance(String)
-                    MessageDigest md1 = MessageDigest.getInstance(algorithm);
-                    assertEquals(algorithm, md1.getAlgorithm());
-                    test_MessageDigest(md1);
+            .run((provider, algorithm) -> {
+                // MessageDigest.getInstance(String)
+                MessageDigest md1 = MessageDigest.getInstance(algorithm);
+                assertEquals(algorithm, md1.getAlgorithm());
+                test_MessageDigest(md1);
 
-                    // MessageDigest.getInstance(String, Provider)
-                    MessageDigest md2 = MessageDigest.getInstance(algorithm, provider);
-                    assertEquals(algorithm, md2.getAlgorithm());
-                    assertEquals(provider, md2.getProvider());
-                    test_MessageDigest(md2);
+                // MessageDigest.getInstance(String, Provider)
+                MessageDigest md2 = MessageDigest.getInstance(algorithm, provider);
+                assertEquals(algorithm, md2.getAlgorithm());
+                assertEquals(provider, md2.getProvider());
+                test_MessageDigest(md2);
 
-                    // MessageDigest.getInstance(String, String)
-                    MessageDigest md3 = MessageDigest.getInstance(algorithm, provider.getName());
-                    assertEquals(algorithm, md3.getAlgorithm());
-                    assertEquals(provider, md3.getProvider());
-                    test_MessageDigest(md3);
-                }
+                // MessageDigest.getInstance(String, String)
+                MessageDigest md3 = MessageDigest.getInstance(algorithm, provider.getName());
+                assertEquals(algorithm, md3.getAlgorithm());
+                assertEquals(provider, md3.getProvider());
+                test_MessageDigest(md3);
             });
     }
 
     private static final Map<String, Map<String, byte[]>> EXPECTATIONS
-            = new HashMap<String, Map<String, byte[]>>();
+            = new HashMap<>();
     private static void putExpectation(String algorithm, String inputName, byte[] expected) {
-        algorithm = algorithm.toUpperCase();
-        Map<String, byte[]> expectations = EXPECTATIONS.get(algorithm);
-        if (expectations == null) {
-            expectations = new HashMap<String, byte[]>();
-            EXPECTATIONS.put(algorithm, expectations);
-        }
+        algorithm = algorithm.toUpperCase(Locale.ROOT);
+        Map<String, byte[]> expectations =
+                EXPECTATIONS.computeIfAbsent(algorithm, k -> new HashMap<>());
         expectations.put(inputName, expected);
     }
     private static Map<String, byte[]> getExpectations(String algorithm) throws Exception {
-        algorithm = algorithm.toUpperCase();
+        algorithm = algorithm.toUpperCase(Locale.ROOT);
         Map<String, byte[]> expectations = EXPECTATIONS.get(algorithm);
         if (expectations == null) {
             throw new Exception("No expectations for MessageDigest." + algorithm);
@@ -240,7 +234,7 @@ public final class MessageDigestTest {
             if (inputName.equals(INPUT_EMPTY)) {
                 actual = md.digest();
             } else if (inputName.equals(INPUT_256MB)) {
-                byte[] mb = new byte[1 * 1024 * 1024];
+                byte[] mb = new byte[1024 * 1024];
                 for (int i = 0; i < 256; i++) {
                     md.update(mb);
                 }

@@ -33,6 +33,8 @@ import java.security.cert.X509CRL;
 import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
+import java.util.Locale;
+
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -127,7 +129,7 @@ public class X509CRLTest {
                     X509Certificate ca = (X509Certificate) cf.generateCertificate(
                             new ByteArrayInputStream(CA_CERT.getBytes(StandardCharsets.US_ASCII)));
 
-                    assertEquals("SHA256WITHRSA", crl.getSigAlgName().toUpperCase());
+                    assertEquals("SHA256WITHRSA", crl.getSigAlgName().toUpperCase(Locale.ROOT));
                     crl.verify(ca.getPublicKey());
                     try {
                         crl.verify(revoked.getPublicKey());

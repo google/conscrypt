@@ -18,7 +18,6 @@ package org.conscrypt.java.security.cert;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -26,7 +25,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
@@ -39,10 +38,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.TestUtils;
@@ -199,7 +198,7 @@ public class X509CertificateTest {
             + "V9IpdAD0vhWHXcQHAiB8HnkUaiGD8Hp0aHlfFJmaaLTxy54VXuYfMlJhXnXJFA==\n"
             + "-----END CERTIFICATE-----\n";
 
-    /**
+    /*
      * This is a certificate with many extensions filled it. It exists to test accessors correctly
      * report fields. It was constructed by hand, so the signature itself is invalid. Add more
      * fields as necessary with https://github.com/google/der-ascii.
@@ -371,8 +370,7 @@ public class X509CertificateTest {
             "0K8A7gKLY0jP8Zp+6rYBcpxc7cylWMbdlhFTHAGiKI+XeQ/9u+RPeocZsn5jGlDt\n" +
             "K3ftMoWFce+baNq/WcMzRj04AA==\n" +
             "-----END CERTIFICATE-----\n";
-    private static Date dateFromUTC(int year, int month, int day, int hour, int minute, int second)
-            throws Exception {
+    private static Date dateFromUTC(int year, int month, int day, int hour, int minute, int second) {
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         c.set(year, month, day, hour, minute, second);
         c.set(Calendar.MILLISECOND, 0);
@@ -383,15 +381,15 @@ public class X509CertificateTest {
             throws CertificateException {
         CertificateFactory cf = CertificateFactory.getInstance("X509", p);
         return (X509Certificate) cf.generateCertificate(
-                new ByteArrayInputStream(pem.getBytes(Charset.forName("US-ASCII"))));
+                new ByteArrayInputStream(pem.getBytes(StandardCharsets.US_ASCII)));
     }
 
     private static List<Pair<Integer, String>> normalizeGeneralNames(Collection<List<?>> names) {
         // Extract a more convenient type than Java's Collection<List<?>>.
-        List<Pair<Integer, String>> result = new ArrayList<Pair<Integer, String>>();
+        List<Pair<Integer, String>> result = new ArrayList<>();
         for (List<?> tuple : names) {
             assertEquals(2, tuple.size());
-            int type = ((Integer) tuple.get(0)).intValue();
+            int type = (Integer) tuple.get(0);
             // TODO(davidben): Most name types are expected to have a String value, but some use
             // byte[]. Update this logic when testing those name types. See
             // X509Certificate.getSubjectAlternativeNames().
@@ -401,21 +399,13 @@ public class X509CertificateTest {
         // Although there is a natural order (the order in the certificate), Java's API returns a
         // Collection, so there is no guarantee of the provider using a particular order. Normalize
         // the order before comparing.
-        Collections.sort(result, new Comparator<Pair<Integer, String>>() {
-            @Override
-            public int compare(Pair<Integer, String> a, Pair<Integer, String> b) {
-                int cmp = a.getFirst().compareTo(b.getFirst());
-                if (cmp != 0) {
-                    return cmp;
-                }
-                return a.getSecond().compareTo(b.getSecond());
-            }
-        });
+        result.sort(Comparator.comparingInt(
+                (Pair<Integer, String> a) -> a.getFirst()).thenComparing(Pair::getSecond));
         return result;
     }
 
     private static void assertGeneralNamesEqual(
-            Collection<List<?>> expected, Collection<List<?>> actual) throws Exception {
+            Collection<List<?>> expected, Collection<List<?>> actual) {
         assertEquals(normalizeGeneralNames(expected), normalizeGeneralNames(actual));
     }
 
@@ -425,24 +415,21 @@ public class X509CertificateTest {
     //
     // https://errorprone.info/bugpattern/UndefinedEquals
     @SuppressWarnings("UndefinedEquals")
-    private static void assertDatesEqual(Date expected, Date actual) throws Exception {
+    private static void assertDatesEqual(Date expected, Date actual) {
         assertEquals(expected, actual);
     }
 
     // See issue #539.
     @Test
-    public void testMismatchedAlgorithm() throws Exception {
+    public void testMismatchedAlgorithm() {
         ServiceTester.test("CertificateFactory")
             .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    try {
-                        X509Certificate c = certificateFromPEM(p, MISMATCHED_ALGORITHM_CERT);
-                        c.verify(c.getPublicKey());
-                        fail();
-                    } catch (CertificateException expected) {
-                    }
+            .run((p, algorithm) -> {
+                try {
+                    X509Certificate c = certificateFromPEM(p, MISMATCHED_ALGORITHM_CERT);
+                    c.verify(c.getPublicKey());
+                    fail();
+                } catch (CertificateException expected) {
                 }
             });
     }
@@ -451,53 +438,44 @@ public class X509CertificateTest {
      * Confirm that explicit EC params aren't accepted in certificates.
      */
     @Test
-    public void testExplicitEcParams() throws Exception {
+    public void testExplicitEcParams() {
         ServiceTester.test("CertificateFactory")
             .withAlgorithm("X509")
             // Bouncy Castle allows explicit EC params in certificates, even though they're
             // barred by RFC 5480
             .skipProvider("BC")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    try {
-                        X509Certificate c = certificateFromPEM(p, EC_EXPLICIT_KEY_CERT);
-                        c.verify(c.getPublicKey());
-                        fail();
-                    } catch (InvalidKeyException expected) {
-                        // TODO: Should we throw CertificateParsingException at parse time
-                        // instead of waiting for when the user accesses the key?
-                    } catch (CertificateParsingException expected) {
-                    }
-                }
-            });
-    }
-
-    @Test
-    public void testSigAlgName() throws Exception {
-        ServiceTester.test("CertificateFactory")
-            .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    X509Certificate c = certificateFromPEM(p, VALID_CERT);
-                    assertEquals("SHA256WITHRSA", c.getSigAlgName().toUpperCase());
+            .run((p, algorithm) -> {
+                try {
+                    X509Certificate c = certificateFromPEM(p, EC_EXPLICIT_KEY_CERT);
                     c.verify(c.getPublicKey());
+                    fail();
+                } catch (InvalidKeyException expected) {
+                    // TODO: Should we throw CertificateParsingException at parse time
+                    // instead of waiting for when the user accesses the key?
+                } catch (CertificateParsingException expected) {
                 }
             });
     }
 
     @Test
-    public void testUnknownSigAlgOID() throws Exception {
+    public void testSigAlgName() {
         ServiceTester.test("CertificateFactory")
             .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    X509Certificate c = certificateFromPEM(p, UNKNOWN_SIGNATURE_OID);
-                    assertEquals("1.2.840.113554.4.1.72585.2", c.getSigAlgOID());
-                    assertThrows(NoSuchAlgorithmException.class, () -> c.verify(c.getPublicKey()));
-                }
+            .run((p, algorithm) -> {
+                X509Certificate c = certificateFromPEM(p, VALID_CERT);
+                assertEquals("SHA256WITHRSA", c.getSigAlgName().toUpperCase(Locale.ROOT));
+                c.verify(c.getPublicKey());
+            });
+    }
+
+    @Test
+    public void testUnknownSigAlgOID() {
+        ServiceTester.test("CertificateFactory")
+            .withAlgorithm("X509")
+            .run((p, algorithm) -> {
+                X509Certificate c = certificateFromPEM(p, UNKNOWN_SIGNATURE_OID);
+                assertEquals("1.2.840.113554.4.1.72585.2", c.getSigAlgOID());
+                assertThrows(NoSuchAlgorithmException.class, () -> c.verify(c.getPublicKey()));
             });
     }
 
@@ -509,12 +487,9 @@ public class X509CertificateTest {
             .withAlgorithm("X509")
             .skipProvider("SUN")
             .skipProvider("BC")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    X509Certificate c = certificateFromPEM(p, MD5_SIGNATURE);
-                    assertThrows(NoSuchAlgorithmException.class, () -> c.verify(c.getPublicKey()));
-                }
+            .run((p, algorithm) -> {
+                X509Certificate c = certificateFromPEM(p, MD5_SIGNATURE);
+                assertThrows(NoSuchAlgorithmException.class, () -> c.verify(c.getPublicKey()));
             });
     }
 
@@ -526,234 +501,213 @@ public class X509CertificateTest {
         String invalidCert = VALID_CERT.substring(0, index) + "8" + VALID_CERT.substring(index + 1);
         ServiceTester.test("CertificateFactory")
             .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    X509Certificate c = certificateFromPEM(p, invalidCert);
-                    assertThrows(SignatureException.class, () -> c.verify(c.getPublicKey()));
-                }
+            .run((p, algorithm) -> {
+                X509Certificate c = certificateFromPEM(p, invalidCert);
+                assertThrows(SignatureException.class, () -> c.verify(c.getPublicKey()));
             });
     }
 
     @Test
-    public void testV1Cert() throws Exception {
+    public void testV1Cert() {
         ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
-        tester.run(new ServiceTester.Test() {
-            @Override
-            public void test(Provider p, String algorithm) throws Exception {
-                X509Certificate c = certificateFromPEM(p, X509V1_CERT);
+        tester.run((p, algorithm) -> {
+            X509Certificate c = certificateFromPEM(p, X509V1_CERT);
 
-                // Check basic certificate properties.
-                assertEquals(1, c.getVersion());
-                assertEquals(new BigInteger("d94c04da497dbfeb", 16), c.getSerialNumber());
-                assertDatesEqual(
-                        dateFromUTC(2014, Calendar.APRIL, 23, 23, 21, 57), c.getNotBefore());
-                assertDatesEqual(dateFromUTC(2014, Calendar.MAY, 23, 23, 21, 57), c.getNotAfter());
-                assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
-                assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
-                assertEquals("1.2.840.10045.4.1", c.getSigAlgOID());
-                String signatureHex = "3045022100f2a0355e513a36c382799bee27"
-                        + "50858e7006749557d2297400f4be15875dc4"
-                        + "0702207c1e79146a2183f07a7468795f1499"
-                        + "9a68b4f1cb9e155ee61f3252615e75c914";
-                assertArrayEquals(TestUtils.decodeHex(signatureHex), c.getSignature());
+            // Check basic certificate properties.
+            assertEquals(1, c.getVersion());
+            assertEquals(new BigInteger("d94c04da497dbfeb", 16), c.getSerialNumber());
+            assertDatesEqual(
+                    dateFromUTC(2014, Calendar.APRIL, 23, 23, 21, 57), c.getNotBefore());
+            assertDatesEqual(dateFromUTC(2014, Calendar.MAY, 23, 23, 21, 57), c.getNotAfter());
+            assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
+            assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
+            assertEquals("1.2.840.10045.4.1", c.getSigAlgOID());
+            String signatureHex = "3045022100f2a0355e513a36c382799bee27"
+                    + "50858e7006749557d2297400f4be15875dc4"
+                    + "0702207c1e79146a2183f07a7468795f1499"
+                    + "9a68b4f1cb9e155ee61f3252615e75c914";
+            assertArrayEquals(TestUtils.decodeHex(signatureHex), c.getSignature());
 
-                // ECDSA signature AlgorithmIdentifiers omit parameters.
-                assertNull(c.getSigAlgParams());
+            // ECDSA signature AlgorithmIdentifiers omit parameters.
+            assertNull(c.getSigAlgParams());
 
-                // The certificate does not have UIDs.
-                assertNull(c.getIssuerUniqueID());
-                assertNull(c.getSubjectUniqueID());
+            // The certificate does not have UIDs.
+            assertNull(c.getIssuerUniqueID());
+            assertNull(c.getSubjectUniqueID());
 
-                // The certificate does not have any extensions.
-                assertEquals(-1, c.getBasicConstraints());
-                assertNull(c.getExtendedKeyUsage());
-                assertNull(c.getIssuerAlternativeNames());
-                assertNull(c.getKeyUsage());
-                assertNull(c.getSubjectAlternativeNames());
-            }
+            // The certificate does not have any extensions.
+            assertEquals(-1, c.getBasicConstraints());
+            assertNull(c.getExtendedKeyUsage());
+            assertNull(c.getIssuerAlternativeNames());
+            assertNull(c.getKeyUsage());
+            assertNull(c.getSubjectAlternativeNames());
         });
     }
 
     @Test
-    public void testManyExtensions() throws Exception {
+    public void testManyExtensions() {
         ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
-        tester.run(new ServiceTester.Test() {
-            @Override
-            public void test(Provider p, String algorithm) throws Exception {
-                X509Certificate c = certificateFromPEM(p, MANY_EXTENSIONS);
+        tester.run((p, algorithm) -> {
+            X509Certificate c = certificateFromPEM(p, MANY_EXTENSIONS);
 
-                assertEquals(3, c.getVersion());
-                assertEquals(new BigInteger("b5b622b95a04a521", 16), c.getSerialNumber());
-                assertDatesEqual(dateFromUTC(2016, Calendar.JULY, 9, 4, 38, 9), c.getNotBefore());
-                assertDatesEqual(dateFromUTC(2016, Calendar.AUGUST, 8, 4, 38, 9), c.getNotAfter());
-                assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
-                assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
-                assertEquals("1.2.840.113549.1.1.11", c.getSigAlgOID());
-                String signatureHex = "3ec983af1202b61695ca077d9001f743e6ca"
-                        + "bb791fa0fc2d18be5b6462d5f04dc511042e"
-                        + "77b3589dac72397850c72c298a783e2f79d2"
-                        + "054dfbad8882b22670236fb5be48d427f2fc"
-                        + "c34dbabf5f7dab3a5f7df80f485854841378"
-                        + "fc85937ba623eda6250aed659c8c3c829263"
-                        + "fb181901e11865fac062be18efe88343d093"
-                        + "f56ee83f865365d19c357461983596c02c1d"
-                        + "ddb55ebc8ae9f0e636410cc1b216aedb38c5"
-                        + "ceec711ac61d6cbe88c7faffba7f024fd222"
-                        + "270ce174b09a543ca4fc4064fafe1362e855"
-                        + "df69329594c295b651bb4ee70b064eb639b0"
-                        + "ee39b4534dff2fa3b5485e0750b68a339b1b"
-                        + "fb5710b6a2c8274cf92ff069ebafd0c5ed23"
-                        + "8c679f50";
-                assertArrayEquals(TestUtils.decodeHex(signatureHex), c.getSignature());
+            assertEquals(3, c.getVersion());
+            assertEquals(new BigInteger("b5b622b95a04a521", 16), c.getSerialNumber());
+            assertDatesEqual(dateFromUTC(2016, Calendar.JULY, 9, 4, 38, 9), c.getNotBefore());
+            assertDatesEqual(dateFromUTC(2016, Calendar.AUGUST, 8, 4, 38, 9), c.getNotAfter());
+            assertEquals(new X500Principal("CN=Test Issuer"), c.getIssuerX500Principal());
+            assertEquals(new X500Principal("CN=Test Subject"), c.getSubjectX500Principal());
+            assertEquals("1.2.840.113549.1.1.11", c.getSigAlgOID());
+            String signatureHex = "3ec983af1202b61695ca077d9001f743e6ca"
+                    + "bb791fa0fc2d18be5b6462d5f04dc511042e"
+                    + "77b3589dac72397850c72c298a783e2f79d2"
+                    + "054dfbad8882b22670236fb5be48d427f2fc"
+                    + "c34dbabf5f7dab3a5f7df80f485854841378"
+                    + "fc85937ba623eda6250aed659c8c3c829263"
+                    + "fb181901e11865fac062be18efe88343d093"
+                    + "f56ee83f865365d19c357461983596c02c1d"
+                    + "ddb55ebc8ae9f0e636410cc1b216aedb38c5"
+                    + "ceec711ac61d6cbe88c7faffba7f024fd222"
+                    + "270ce174b09a543ca4fc4064fafe1362e855"
+                    + "df69329594c295b651bb4ee70b064eb639b0"
+                    + "ee39b4534dff2fa3b5485e0750b68a339b1b"
+                    + "fb5710b6a2c8274cf92ff069ebafd0c5ed23"
+                    + "8c679f50";
+            assertArrayEquals(TestUtils.decodeHex(signatureHex), c.getSignature());
 
-                // Although documented to only return null when there are no parameters, the SUN
-                // provider also returns null when the algorithm uses an explicit parameter with a
-                // value of ASN.1 NULL.
-                if (c.getSigAlgParams() != null) {
-                    assertArrayEquals(TestUtils.decodeHex("0500"), c.getSigAlgParams());
-                }
+            // Although documented to only return null when there are no parameters, the SUN
+            // provider also returns null when the algorithm uses an explicit parameter with a
+            // value of ASN.1 NULL.
+            if (c.getSigAlgParams() != null) {
+                assertArrayEquals(TestUtils.decodeHex("0500"), c.getSigAlgParams());
+            }
 
-                assertArrayEquals(new boolean[] {true, false, true, false}, c.getIssuerUniqueID());
-                assertArrayEquals(
-                        new boolean[] {false, true, false, true, false}, c.getSubjectUniqueID());
+            assertArrayEquals(new boolean[] {true, false, true, false}, c.getIssuerUniqueID());
+            assertArrayEquals(
+                    new boolean[] {false, true, false, true, false}, c.getSubjectUniqueID());
+            assertEquals(10, c.getBasicConstraints());
+            assertEquals(Arrays.asList("1.3.6.1.5.5.7.3.1", "1.2.840.113554.4.1.72585.2"),
+                    c.getExtendedKeyUsage());
+
+            // TODO(davidben): Test the other name types.
+            assertGeneralNamesEqual(
+                    Arrays.asList(Arrays.asList(1, "issuer@example.com"),
+                            Arrays.asList(2, "issuer.example.com"),
+                            Arrays.asList(4, "CN=Test Issuer"),
+                            Arrays.asList(6, "https://example.com/issuer"),
+                            // TODO(https://github.com/google/conscrypt/issues/938): Fix IPv6
+                            // handling and include it in this test.
+                            Arrays.asList(7, "127.0.0.1"),
+                            Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                    c.getIssuerAlternativeNames());
+            assertGeneralNamesEqual(
+                    Arrays.asList(Arrays.asList(1, "subject@example.com"),
+                            Arrays.asList(2, "subject.example.com"),
+                            Arrays.asList(4, "CN=Test Subject"),
+                            Arrays.asList(6, "https://example.com/subject"),
+                            // TODO(https://github.com/google/conscrypt/issues/938): Fix IPv6
+                            // handling and include it in this test.
+                            Arrays.asList(7, "127.0.0.1"),
+                            Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                    c.getSubjectAlternativeNames());
+
+            // Although the BIT STRING in the certificate only has three bits, getKeyUsage()
+            // rounds up to at least 9 bits.
+            assertArrayEquals(
+                    new boolean[] {true, false, true, false, false, false, false, false, false},
+                    c.getKeyUsage());
+        });
+    }
+
+    @Test
+    public void testBasicConstraints() {
+        ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
+        tester.run((p, algorithm) -> {
+            // Test some additional edge cases in getBasicConstraints() beyond that
+            // testManyExtensions() and testV1Cert() covered.
+
+            // If there is no pathLen constraint but the certificate is a CA,
+            // getBasicConstraints() returns Integer.MAX_VALUE.
+            X509Certificate c = certificateFromPEM(p, BASIC_CONSTRAINTS_NO_PATHLEN);
+            assertEquals(Integer.MAX_VALUE, c.getBasicConstraints());
+
+            // If there is a pathLen constraint of zero, getBasicConstraints() returns it.
+            c = certificateFromPEM(p, BASIC_CONSTRAINTS_PATHLEN_0);
+            assertEquals(0, c.getBasicConstraints());
+
+            // If there is basicConstraints extension indicating a leaf certficate,
+            // getBasicConstraints() returns -1. The accessor does not distinguish between no
+            // basicConstraints extension and a leaf one.
+            c = certificateFromPEM(p, BASIC_CONSTRAINTS_LEAF);
+            assertEquals(-1, c.getBasicConstraints());
+
+            // If some unrelated extension has a syntax error, and that syntax error does not
+            // fail when constructing the certificate, it should not interfere with
+            // getBasicConstraints().
+            try {
+                c = certificateFromPEM(p, BASIC_CONSTRAINTS_PATHLEN_10_BAD_SAN);
+            } catch (CertificateParsingException e) {
+                // The certificate has a syntax error, so it would also be valid for the
+                // provider to reject the certificate at construction. X.509 is an extensible
+                // format, so different implementations may notice errors at different points.
+                c = null;
+            }
+            if (c != null) {
                 assertEquals(10, c.getBasicConstraints());
-                assertEquals(Arrays.asList("1.3.6.1.5.5.7.3.1", "1.2.840.113554.4.1.72585.2"),
-                        c.getExtendedKeyUsage());
-
-                // TODO(davidben): Test the other name types.
-                assertGeneralNamesEqual(
-                        Arrays.<List<?>>asList(Arrays.asList(1, "issuer@example.com"),
-                                Arrays.asList(2, "issuer.example.com"),
-                                Arrays.asList(4, "CN=Test Issuer"),
-                                Arrays.asList(6, "https://example.com/issuer"),
-                                // TODO(https://github.com/google/conscrypt/issues/938): Fix IPv6
-                                // handling and include it in this test.
-                                Arrays.asList(7, "127.0.0.1"),
-                                Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
-                        c.getIssuerAlternativeNames());
-                assertGeneralNamesEqual(
-                        Arrays.<List<?>>asList(Arrays.asList(1, "subject@example.com"),
-                                Arrays.asList(2, "subject.example.com"),
-                                Arrays.asList(4, "CN=Test Subject"),
-                                Arrays.asList(6, "https://example.com/subject"),
-                                // TODO(https://github.com/google/conscrypt/issues/938): Fix IPv6
-                                // handling and include it in this test.
-                                Arrays.asList(7, "127.0.0.1"),
-                                Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
-                        c.getSubjectAlternativeNames());
-
-                // Although the BIT STRING in the certificate only has three bits, getKeyUsage()
-                // rounds up to at least 9 bits.
-                assertArrayEquals(
-                        new boolean[] {true, false, true, false, false, false, false, false, false},
-                        c.getKeyUsage());
             }
         });
     }
 
     @Test
-    public void testBasicConstraints() throws Exception {
+    public void testLargeKeyUsage() {
         ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
-        tester.run(new ServiceTester.Test() {
-            @Override
-            public void test(Provider p, String algorithm) throws Exception {
-                // Test some additional edge cases in getBasicConstraints() beyond that
-                // testManyExtensions() and testV1Cert() covered.
-
-                // If there is no pathLen constraint but the certificate is a CA,
-                // getBasicConstraints() returns Integer.MAX_VALUE.
-                X509Certificate c = certificateFromPEM(p, BASIC_CONSTRAINTS_NO_PATHLEN);
-                assertEquals(Integer.MAX_VALUE, c.getBasicConstraints());
-
-                // If there is a pathLen constraint of zero, getBasicConstraints() returns it.
-                c = certificateFromPEM(p, BASIC_CONSTRAINTS_PATHLEN_0);
-                assertEquals(0, c.getBasicConstraints());
-
-                // If there is basicConstraints extension indicating a leaf certficate,
-                // getBasicConstraints() returns -1. The accessor does not distinguish between no
-                // basicConstraints extension and a leaf one.
-                c = certificateFromPEM(p, BASIC_CONSTRAINTS_LEAF);
-                assertEquals(-1, c.getBasicConstraints());
-
-                // If some unrelated extension has a syntax error, and that syntax error does not
-                // fail when constructing the certificate, it should not interfere with
-                // getBasicConstraints().
-                try {
-                    c = certificateFromPEM(p, BASIC_CONSTRAINTS_PATHLEN_10_BAD_SAN);
-                } catch (CertificateParsingException e) {
-                    // The certificate has a syntax error, so it would also be valid for the
-                    // provider to reject the certificate at construction. X.509 is an extensible
-                    // format, so different implementations may notice errors at different points.
-                    c = null;
-                }
-                if (c != null) {
-                    assertEquals(10, c.getBasicConstraints());
-                }
-            }
+        tester.run((p, algorithm) -> {
+            X509Certificate c = certificateFromPEM(p, LARGE_KEY_USAGE);
+            assertArrayEquals(new boolean[] {true, false, true, false, false, false, false,
+                                      false, false, false, false},
+                    c.getKeyUsage());
         });
     }
 
     @Test
-    public void testLargeKeyUsage() throws Exception {
+    public void testSigAlgParams() {
         ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
-        tester.run(new ServiceTester.Test() {
-            @Override
-            public void test(Provider p, String algorithm) throws Exception {
-                X509Certificate c = certificateFromPEM(p, LARGE_KEY_USAGE);
-                assertArrayEquals(new boolean[] {true, false, true, false, false, false, false,
-                                          false, false, false, false},
-                        c.getKeyUsage());
+        tester.run((p, algorithm) -> {
+            X509Certificate c = certificateFromPEM(p, SIGALG_NO_PARAMETER);
+            assertNull(c.getSigAlgParams());
+
+            c = certificateFromPEM(p, SIGALG_NULL_PARAMETER);
+            // Although documented to only return null when there are no parameters, the SUN
+            // provider also returns null when the algorithm uses an explicit parameter with a
+            // value of ASN.1 NULL.
+            if (c.getSigAlgParams() != null) {
+                assertArrayEquals(TestUtils.decodeHex("0500"), c.getSigAlgParams());
             }
-        });
-    }
 
-    @Test
-    public void testSigAlgParams() throws Exception {
-        ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
-        tester.run(new ServiceTester.Test() {
-            @Override
-            public void test(Provider p, String algorithm) throws Exception {
-                X509Certificate c = certificateFromPEM(p, SIGALG_NO_PARAMETER);
-                assertNull(c.getSigAlgParams());
+            c = certificateFromPEM(p, SIGALG_STRING_PARAMETER);
+            assertArrayEquals(TestUtils.decodeHex("0c05706172616d"), c.getSigAlgParams());
 
-                c = certificateFromPEM(p, SIGALG_NULL_PARAMETER);
-                // Although documented to only return null when there are no parameters, the SUN
-                // provider also returns null when the algorithm uses an explicit parameter with a
-                // value of ASN.1 NULL.
-                if (c.getSigAlgParams() != null) {
-                    assertArrayEquals(TestUtils.decodeHex("0500"), c.getSigAlgParams());
-                }
+            c = certificateFromPEM(p, SIGALG_BOOLEAN_PARAMETER);
+            assertArrayEquals(TestUtils.decodeHex("0101ff"), c.getSigAlgParams());
 
-                c = certificateFromPEM(p, SIGALG_STRING_PARAMETER);
-                assertArrayEquals(TestUtils.decodeHex("0c05706172616d"), c.getSigAlgParams());
-
-                c = certificateFromPEM(p, SIGALG_BOOLEAN_PARAMETER);
-                assertArrayEquals(TestUtils.decodeHex("0101ff"), c.getSigAlgParams());
-
-                c = certificateFromPEM(p, SIGALG_SEQUENCE_PARAMETER);
-                assertArrayEquals(TestUtils.decodeHex("3000"), c.getSigAlgParams());
-            }
+            c = certificateFromPEM(p, SIGALG_SEQUENCE_PARAMETER);
+            assertArrayEquals(TestUtils.decodeHex("3000"), c.getSigAlgParams());
         });
     }
 
     // Ensure we don't reject certificates with UTCTIME fields with offsets for now: b/311260068
     @Test
-    public void utcTimeWithOffset() throws Exception {
+    public void utcTimeWithOffset() {
         ServiceTester tester = ServiceTester.test("CertificateFactory").withAlgorithm("X509");
         tester.skipProvider("SUN") // Sun and BC interpret the offset, Conscrypt just drops it...
                 .skipProvider("BC")
-                .run(new ServiceTester.Test() {
-            @Override
-            public void test(Provider p, String algorithm) throws Exception {
-                X509Certificate c = certificateFromPEM(p, UTCTIME_WITH_OFFSET);
-                assertDatesEqual(
-                        dateFromUTC(2014, Calendar.JULY, 4, 0, 0, 0),
-                        c.getNotBefore());
-                assertDatesEqual(
-                        dateFromUTC(2048, Calendar.AUGUST, 1, 10, 21, 23),
-                        c.getNotAfter());
-            }
-        });
+                .run((p, algorithm) -> {
+                    X509Certificate c = certificateFromPEM(p, UTCTIME_WITH_OFFSET);
+                    assertDatesEqual(
+                            dateFromUTC(2014, Calendar.JULY, 4, 0, 0, 0),
+                            c.getNotBefore());
+                    assertDatesEqual(
+                            dateFromUTC(2048, Calendar.AUGUST, 1, 10, 21, 23),
+                            c.getNotAfter());
+                });
     }
 }

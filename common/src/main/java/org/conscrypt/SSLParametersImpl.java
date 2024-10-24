@@ -35,7 +35,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
@@ -220,44 +219,44 @@ final class SSLParametersImpl implements Cloneable {
         return (SSLParametersImpl) result.clone();
     }
 
-    /**
+    /*
      * Returns the appropriate session context.
      */
     AbstractSessionContext getSessionContext() {
         return client_mode ? clientSessionContext : serverSessionContext;
     }
 
-    /**
-     * @return client session context
+    /*
+     * Returns the client session context.
      */
     ClientSessionContext getClientSessionContext() {
         return clientSessionContext;
     }
 
     /**
-     * @return X.509 key manager or {@code null} for none.
+     * Returns X.509 key manager or null for none.
      */
     X509KeyManager getX509KeyManager() {
         return x509KeyManager;
     }
 
-    /**
-     * @return Pre-Shared Key (PSK) key manager or {@code null} for none.
+    /*
+     * Returns Pre-Shared Key (PSK) key manager or null for none.
      */
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     PSKKeyManager getPSKKeyManager() {
         return pskKeyManager;
     }
 
-    /**
-     * @return X.509 trust manager or {@code null} for none.
+    /*
+     * Returns X.509 trust manager or null for none.
      */
     X509TrustManager getX509TrustManager() {
         return x509TrustManager;
     }
 
-    /**
-     * @return the names of enabled cipher suites
+    /*
+     * Returns the names of enabled cipher suites.
      */
     String[] getEnabledCipherSuites() {
         if (Arrays.asList(enabledProtocols).contains(NativeCrypto.SUPPORTED_PROTOCOL_TLSV1_3)) {
@@ -267,7 +266,7 @@ final class SSLParametersImpl implements Cloneable {
         return enabledCipherSuites.clone();
     }
 
-    /**
+    /*
      * Sets the enabled cipher suites after filtering through OpenSSL.
      */
     void setEnabledCipherSuites(String[] cipherSuites) {
@@ -279,16 +278,15 @@ final class SSLParametersImpl implements Cloneable {
                         NativeCrypto.SUPPORTED_TLS_1_3_CIPHER_SUITES_SET));
     }
 
-    /**
-     * @return the set of enabled protocols
+    /*
+     * Returns the set of enabled protocols.
      */
     String[] getEnabledProtocols() {
         return enabledProtocols.clone();
     }
 
-    /**
+    /*
      * Sets the list of available protocols for use in SSL connection.
-     * @throws IllegalArgumentException if {@code protocols == null}
      */
     void setEnabledProtocols(String[] protocols) {
         if (protocols == null) {
@@ -306,10 +304,8 @@ final class SSLParametersImpl implements Cloneable {
         enabledProtocols = NativeCrypto.checkEnabledProtocols(filteredProtocols).clone();
     }
 
-    /**
+    /*
      * Sets the list of ALPN protocols.
-     *
-     * @param protocols the list of ALPN protocols
      */
     void setApplicationProtocols(String[] protocols) {
         this.applicationProtocols = SSLUtils.encodeProtocols(protocols);
@@ -319,30 +315,29 @@ final class SSLParametersImpl implements Cloneable {
         return SSLUtils.decodeProtocols(applicationProtocols);
     }
 
-    /**
+    /*
      * Used for server-mode only. Sets or clears the application-provided ALPN protocol selector.
-     * If set, will override the protocol list provided by {@link #setApplicationProtocols(String[])}.
+     * If set, will override the protocol list provided by setApplicationProtocols(String[]).
      */
     void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter applicationProtocolSelector) {
         this.applicationProtocolSelector = applicationProtocolSelector;
     }
 
-    /**
+    /*
      * Returns the application protocol (ALPN) selector for this socket.
      */
     ApplicationProtocolSelectorAdapter getApplicationProtocolSelector() {
         return applicationProtocolSelector;
     }
 
-    /**
+    /*
      * Tunes the peer holding this parameters to work in client mode.
-     * @param   mode if the peer is configured to work in client mode
      */
     void setUseClientMode(boolean mode) {
         client_mode = mode;
     }
 
-    /**
+    /*
      * Returns the value indicating if the parameters configured to work
      * in client mode.
      */
@@ -350,8 +345,8 @@ final class SSLParametersImpl implements Cloneable {
         return client_mode;
     }
 
-    /**
-     * Tunes the peer holding this parameters to require client authentication
+    /*
+     * Tunes the peer holding this parameters to require client authentication.
      */
     void setNeedClientAuth(boolean need) {
         need_client_auth = need;
@@ -359,15 +354,15 @@ final class SSLParametersImpl implements Cloneable {
         want_client_auth = false;
     }
 
-    /**
+    /*
      * Returns the value indicating if the peer with this parameters tuned
-     * to require client authentication
+     * to require client authentication.
      */
     boolean getNeedClientAuth() {
         return need_client_auth;
     }
 
-    /**
+    /*
      * Tunes the peer holding this parameters to request client authentication
      */
     void setWantClientAuth(boolean want) {
@@ -376,7 +371,7 @@ final class SSLParametersImpl implements Cloneable {
         need_client_auth = false;
     }
 
-    /**
+    /*
      * Returns the value indicating if the peer with this parameters
      * tuned to request client authentication
      */
@@ -384,17 +379,17 @@ final class SSLParametersImpl implements Cloneable {
         return want_client_auth;
     }
 
-    /**
+    /*
      * Allows/disallows the peer holding this parameters to
-     * create new SSL session
+     * create new SSL session.
      */
     void setEnableSessionCreation(boolean flag) {
         enable_session_creation = flag;
     }
 
-    /**
+    /*
      * Returns the value indicating if the peer with this parameters
-     * allowed to cteate new SSL session
+     * allowed to cteate new SSL session.
      */
     boolean getEnableSessionCreation() {
         return enable_session_creation;
@@ -404,7 +399,7 @@ final class SSLParametersImpl implements Cloneable {
         this.useSessionTickets = useSessionTickets;
     }
 
-    /**
+    /*
      * Whether connections using this SSL connection should use the TLS
      * extension Server Name Indication (SNI).
      */
@@ -412,7 +407,7 @@ final class SSLParametersImpl implements Cloneable {
         useSni = flag;
     }
 
-    /**
+    /*
      * Returns whether connections using this SSL connection should use the TLS
      * extension Server Name Indication (SNI).
      */
@@ -420,21 +415,21 @@ final class SSLParametersImpl implements Cloneable {
         return useSni != null ? useSni : isSniEnabledByDefault();
     }
 
-    /**
+    /*
      * For testing only.
      */
     void setCTVerificationEnabled(boolean enabled) {
         ctVerificationEnabled = enabled;
     }
 
-    /**
+    /*
      * For testing only.
      */
     void setSCTExtension(byte[] extension) {
         sctExtension = extension;
     }
 
-    /**
+    /*
      * For testing only.
      */
     void setOCSPResponse(byte[] response) {
@@ -445,9 +440,9 @@ final class SSLParametersImpl implements Cloneable {
         return ocspResponse;
     }
 
-    /**
-     * This filters {@code obsoleteProtocol} from the list of {@code protocols}
-     * down to help with app compatibility.
+    /*
+     * Filters obsoleteProtocols from the list of protocols
+     * to help with app compatibility.
      */
     private static String[] filterFromProtocols(String[] protocols,
         List<String> obsoleteProtocols) {
@@ -455,7 +450,7 @@ final class SSLParametersImpl implements Cloneable {
             return EMPTY_STRING_ARRAY;
         }
 
-        ArrayList<String> newProtocols = new ArrayList<String>();
+        ArrayList<String> newProtocols = new ArrayList<>();
         for (String protocol : protocols) {
             if (!obsoleteProtocols.contains(protocol)) {
                 newProtocols.add(protocol);
@@ -468,7 +463,7 @@ final class SSLParametersImpl implements Cloneable {
         if (cipherSuites == null || cipherSuites.length == 0) {
             return cipherSuites;
         }
-        ArrayList<String> newCipherSuites = new ArrayList<String>(cipherSuites.length);
+        ArrayList<String> newCipherSuites = new ArrayList<>(cipherSuites.length);
         for (String cipherSuite : cipherSuites) {
             if (!toRemove.contains(cipherSuite)) {
                 newCipherSuites.add(cipherSuite);
@@ -479,7 +474,7 @@ final class SSLParametersImpl implements Cloneable {
 
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    /**
+    /*
      * Returns whether Server Name Indication (SNI) is enabled by default for
      * sockets. For more information on SNI, see RFC 6066 section 3.
      */
@@ -499,11 +494,11 @@ final class SSLParametersImpl implements Cloneable {
         }
     }
 
-    /**
+    /*
      * For abstracting the X509KeyManager calls between
-     * {@link X509KeyManager#chooseClientAlias(String[], java.security.Principal[], java.net.Socket)}
+     * X509KeyManager#chooseClientAlias(String[], java.security.Principal[], java.net.Socket)
      * and
-     * {@link X509ExtendedKeyManager#chooseEngineClientAlias(String[], java.security.Principal[], javax.net.ssl.SSLEngine)}
+     * X509ExtendedKeyManager#chooseEngineClientAlias(String[], java.security.Principal[], javax.net.ssl.SSLEngine)
      */
     interface AliasChooser {
         String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
@@ -512,9 +507,9 @@ final class SSLParametersImpl implements Cloneable {
         String chooseServerAlias(X509KeyManager keyManager, String keyType);
     }
 
-    /**
-     * For abstracting the {@code PSKKeyManager} calls between those taking an {@code SSLSocket} and
-     * those taking an {@code SSLEngine}.
+    /*
+     * For abstracting the PSKKeyManager calls between those taking an SSLSocket and
+     * those taking an SSLEngine.
      */
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     interface PSKCallbacks {
@@ -523,9 +518,9 @@ final class SSLParametersImpl implements Cloneable {
         SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity);
     }
 
-    /**
+    /*
      * Returns the clone of this object.
-     * @return the clone.
+     * TODO(prb): Shouldn't need to override this anymore.
      */
     @Override
     protected Object clone() {
@@ -570,10 +565,8 @@ final class SSLParametersImpl implements Cloneable {
         }
     }
 
-    /**
-     * Finds the first {@link X509KeyManager} element in the provided array.
-     *
-     * @return the first {@code X509KeyManager} or {@code null} if not found.
+    /*
+     * Returns the first X509KeyManager element in the provided array.
      */
     private static X509KeyManager findFirstX509KeyManager(KeyManager[] kms) {
         for (KeyManager km : kms) {
@@ -584,10 +577,8 @@ final class SSLParametersImpl implements Cloneable {
         return null;
     }
 
-    /**
-     * Finds the first {@link PSKKeyManager} element in the provided array.
-     *
-     * @return the first {@code PSKKeyManager} or {@code null} if not found.
+    /*
+     * Returns the first PSKKeyManager element in the provided array.
      */
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     private static PSKKeyManager findFirstPSKKeyManager(KeyManager[] kms) {
@@ -605,8 +596,8 @@ final class SSLParametersImpl implements Cloneable {
         return null;
     }
 
-    /**
-     * Gets the default X.509 trust manager.
+    /*
+     * Returns the default X.509 trust manager.
      */
     static X509TrustManager getDefaultX509TrustManager()
             throws KeyManagementException {
@@ -639,11 +630,8 @@ final class SSLParametersImpl implements Cloneable {
         }
     }
 
-    /**
-     * Finds the first {@link X509TrustManager} element in the provided array.
-     *
-     * @return the first {@code X509ExtendedTrustManager} or
-     *         {@code X509TrustManager} or {@code null} if not found.
+    /*
+     * Returns the first X509TrustManager element in the provided array.
      */
     private static X509TrustManager findFirstX509TrustManager(TrustManager[] tms) {
         for (TrustManager tm : tms) {
@@ -722,8 +710,8 @@ final class SSLParametersImpl implements Cloneable {
         }
     }
 
-    /**
-     * Check if SCT verification is enforced for a given hostname.
+    /*
+     * Checks whether SCT verification is enforced for a given hostname.
      */
     boolean isCTVerificationEnabled(String hostname) {
         if (hostname == null) {

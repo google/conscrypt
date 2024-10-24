@@ -27,7 +27,7 @@ package libcore.net;
  * permitted. See {@link #isCleartextTrafficPermitted()}.
  */
 public abstract class NetworkSecurityPolicy {
-    private static volatile NetworkSecurityPolicy instance = new DefaultNetworkSecurityPolicy();
+    private static volatile NetworkSecurityPolicy instance;
 
     public static NetworkSecurityPolicy getInstance() {
         return instance;

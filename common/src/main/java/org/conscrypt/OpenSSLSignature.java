@@ -166,6 +166,7 @@ public class OpenSSLSignature extends SignatureSpi {
 
     @Deprecated
     @Override
+    @SuppressWarnings("InlineMeSuggester")
     protected Object engineGetParameter(String param) throws InvalidParameterException {
         return null;
     }
@@ -453,9 +454,7 @@ public class OpenSSLSignature extends SignatureSpi {
                                 saltSizeBytes,
                                 TRAILER_FIELD_BC_ID));
                 return result;
-            } catch (NoSuchAlgorithmException e) {
-                throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
-            } catch (InvalidParameterSpecException e) {
+            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
                 throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
             }
         }

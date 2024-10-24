@@ -429,7 +429,7 @@ public class CertificateFactoryTest {
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CertificateException maybeExpected) {
-            assertFalse(cf.getProvider().getName().equals("BC"));
+            assertNotEquals("BC", cf.getProvider().getName());
         }
 
         try {
@@ -438,7 +438,7 @@ public class CertificateFactoryTest {
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CertificateException maybeExpected) {
-            assertFalse(cf.getProvider().getName().equals("BC"));
+            assertNotEquals("BC", cf.getProvider().getName());
         }
 
     }
@@ -486,7 +486,7 @@ public class CertificateFactoryTest {
 
     }
 
-    private void test_generateCertificate_InputStream_Empty(CertificateFactory cf) throws Exception {
+    private void test_generateCertificate_InputStream_Empty(CertificateFactory cf) {
         try {
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(new byte[0]));
             if (!"BC".equals(cf.getProvider().getName())) {
@@ -500,8 +500,7 @@ public class CertificateFactoryTest {
         }
     }
 
-    private void test_generateCertificate_InputStream_InvalidStart_Failure(CertificateFactory cf)
-            throws Exception {
+    private void test_generateCertificate_InputStream_InvalidStart_Failure(CertificateFactory cf) {
         try {
             Certificate c = cf.generateCertificate(new ByteArrayInputStream(
                     "-----BEGIN CERTIFICATE-----".getBytes(Charset.defaultCharset())));
@@ -538,7 +537,7 @@ public class CertificateFactoryTest {
 
         private long mMarked = 0;
 
-        private InputStream mStream;
+        private final InputStream mStream;
 
         public MeasuredInputStream(InputStream is) {
             mStream = is;
@@ -649,12 +648,12 @@ public class CertificateFactoryTest {
         KeyHolder cert2 = generateCertificate(false, cert1);
         KeyHolder cert3 = generateCertificate(false, cert2);
 
-        List<X509Certificate> certs = new ArrayList<X509Certificate>();
+        List<X509Certificate> certs = new ArrayList<>();
         certs.add(cert3.certificate);
         certs.add(cert2.certificate);
         certs.add(cert1.certificate);
 
-        List<X509Certificate> duplicatedCerts = new ArrayList<X509Certificate>(certs);
+        List<X509Certificate> duplicatedCerts = new ArrayList<>(certs);
         duplicatedCerts.add(cert2.certificate);
 
         Provider[] providers = Security.getProviders("CertificateFactory.X509");
@@ -794,7 +793,7 @@ public class CertificateFactoryTest {
         public PrivateKey privateKey;
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "JavaUtilDate"})
     private static KeyHolder generateCertificate(boolean isCa, KeyHolder issuer) throws Exception {
         Date startDate = new Date();
 
@@ -812,7 +811,7 @@ public class CertificateFactoryTest {
         PrivateKey caKey;
         if (issuer != null) {
             serial = issuer.certificate.getSerialNumber().add(BigInteger.ONE);
-            subjectPrincipal = new X500Principal("CN=Test Certificate Serial #" + serial.toString());
+            subjectPrincipal = new X500Principal("CN=Test Certificate Serial #" + serial);
             issuerPrincipal = issuer.certificate.getSubjectX500Principal();
             caKey = issuer.privateKey;
         } else {
@@ -924,7 +923,7 @@ public class CertificateFactoryTest {
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CRLException maybeExpected) {
-            assertFalse(cf.getProvider().getName().equals("BC"));
+            assertNotEquals("BC", cf.getProvider().getName());
         }
 
         try {
@@ -933,7 +932,7 @@ public class CertificateFactoryTest {
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CRLException maybeExpected) {
-            assertFalse(cf.getProvider().getName().equals("BC"));
+            assertNotEquals("BC", cf.getProvider().getName());
         }
 
     }

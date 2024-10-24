@@ -51,6 +51,7 @@ public abstract class AllocatedBuffer {
      * @deprecated this method is not used
      */
     @Deprecated
+    @SuppressWarnings("InlineMeSuggester")
     public AllocatedBuffer retain() {
         // Do nothing.
         return this;
