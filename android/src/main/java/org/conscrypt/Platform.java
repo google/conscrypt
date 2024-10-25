@@ -944,6 +944,8 @@ final public class Platform {
         return Source.SOURCE_GMS;
     }
 
+    // Only called from StatsLogImpl, so protected by build version check above.
+    @TargetApi(30)
     public static int[] getUids() {
         return new int[] {Os.getuid(), Binder.getCallingUid()};
     }
