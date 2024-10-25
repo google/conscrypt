@@ -36,12 +36,45 @@ import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
-import junit.framework.TestCase;
-import org.conscrypt.OpenSSLKey;
 
 public class LogStoreImplTest extends TestCase {
-    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
-    public void test_loadLogList() throws Exception {
+    static class FakeStatsLog implements StatsLog {
+        public ArrayList<LogStore.State> states = new ArrayList<LogStore.State>();
+
+        @Override
+        public void countTlsHandshake(
+                boolean success, String protocol, String cipherSuite, long duration) {}
+        @Override
+        public void updateCTLogListStatusChanged(LogStore logStore) {
+            states.add(logStore.getState());
+        }
+    }
+
+    Policy alwaysCompliantStorePolicy = new Policy() {
+        @Override
+        public boolean isLogStoreCompliant(LogStore store) {
+            return true;
+        }
+        @Override
+        public PolicyCompliance doesResultConformToPolicy(
+                VerificationResult result, X509Certificate leaf) {
+            return PolicyCompliance.COMPLY;
+        }
+    };
+
+    Policy neverCompliantStorePolicy = new Policy() {
+        @Override
+        public boolean isLogStoreCompliant(LogStore store) {
+            return false;
+        }
+        @Override
+        public PolicyCompliance doesResultConformToPolicy(
+                VerificationResult result, X509Certificate leaf) {
+            return PolicyCompliance.COMPLY;
+        }
+    };
+
+    public void test_loadValidLogList() throws Exception {
         // clang-format off
         String content = "" +
 "{" +
