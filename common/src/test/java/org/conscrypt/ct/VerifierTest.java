@@ -67,6 +67,26 @@ public class VerifierTest {
             }
 
             @Override
+            public int getMajorVersion() {
+                return 1;
+            }
+
+            @Override
+            public int getMinorVersion() {
+                return 2;
+            }
+
+            @Override
+            public int getCompatVersion() {
+                return 1;
+            }
+
+            @Override
+            public int getMinCompatVersionAvailable() {
+                return 1;
+            }
+
+            @Override
             public LogInfo getKnownLog(byte[] logId) {
                 if (Arrays.equals(logId, log.getID())) {
                     return log;
