@@ -316,7 +316,7 @@ public final class TestUtils {
                 if (index < 0) {
                     throw new IllegalStateException("No = found: line " + lineNumber);
                 }
-                String label = line.substring(0, index).trim().toLowerCase();
+                String label = line.substring(0, index).trim().toLowerCase(Locale.ROOT);
                 String value = line.substring(index + 1).trim();
                 if ("name".equals(label)) {
                     current = new TestVector();
@@ -662,7 +662,7 @@ public final class TestUtils {
     /**
      * Decodes the provided hexadecimal string into a byte array.  Odd-length inputs
      * are not allowed.
-     *
+     * <p>
      * Throws an {@code IllegalArgumentException} if the input is malformed.
      */
     public static byte[] decodeHex(String encoded) throws IllegalArgumentException {
@@ -673,7 +673,7 @@ public final class TestUtils {
      * Decodes the provided hexadecimal string into a byte array. If {@code allowSingleChar}
      * is {@code true} odd-length inputs are allowed and the first character is interpreted
      * as the lower bits of the first result byte.
-     *
+     * <p>
      * Throws an {@code IllegalArgumentException} if the input is malformed.
      */
     public static byte[] decodeHex(String encoded, boolean allowSingleChar) throws IllegalArgumentException {
@@ -683,7 +683,7 @@ public final class TestUtils {
     /**
      * Decodes the provided hexadecimal string into a byte array.  Odd-length inputs
      * are not allowed.
-     *
+     * <p>
      * Throws an {@code IllegalArgumentException} if the input is malformed.
      */
     public static byte[] decodeHex(char[] encoded) throws IllegalArgumentException {
@@ -694,7 +694,7 @@ public final class TestUtils {
      * Decodes the provided hexadecimal string into a byte array. If {@code allowSingleChar}
      * is {@code true} odd-length inputs are allowed and the first character is interpreted
      * as the lower bits of the first result byte.
-     *
+     * <p>
      * Throws an {@code IllegalArgumentException} if the input is malformed.
      */
     public static byte[] decodeHex(char[] encoded, boolean allowSingleChar) throws IllegalArgumentException {

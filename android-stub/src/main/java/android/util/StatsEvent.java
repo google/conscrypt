@@ -16,12 +16,8 @@
 
 package android.util;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused",  "DoNotCallSuggester"})
 public final class StatsEvent {
-    private StatsEvent(int atomId, StatsEvent.Buffer buffer, byte[] payload, int numBytes) {
-        throw new RuntimeException("Stub!");
-    }
-
     public static StatsEvent.Builder newBuilder() {
         throw new RuntimeException("Stub!");
     }
@@ -43,20 +39,10 @@ public final class StatsEvent {
     }
 
     private static final class Buffer {
-        private static StatsEvent.Buffer obtain() {
-            throw new RuntimeException("Stub!");
-        }
-
-        private Buffer() {
-            throw new RuntimeException("Stub!");
-        }
     }
 
+    @SuppressWarnings({"unused",  "DoNotCallSuggester"})
     public static final class Builder {
-        private Builder(StatsEvent.Buffer buffer) {
-            throw new RuntimeException("Stub!");
-        }
-
         public StatsEvent.Builder setAtomId(int atomId) {
             throw new RuntimeException("Stub!");
         }
@@ -89,10 +75,6 @@ public final class StatsEvent {
             throw new RuntimeException("Stub!");
         }
 
-        private void writeByteArray(byte[] value, byte typeId) {
-            throw new RuntimeException("Stub!");
-        }
-
         public StatsEvent.Builder writeAttributionChain(int[] uids, String[] tags) {
             throw new RuntimeException("Stub!");
         }
@@ -110,18 +92,6 @@ public final class StatsEvent {
         }
 
         public StatsEvent build() {
-            throw new RuntimeException("Stub!");
-        }
-
-        private void writeTypeId(byte typeId) {
-            throw new RuntimeException("Stub!");
-        }
-
-        private void writeAnnotationCount() {
-            throw new RuntimeException("Stub!");
-        }
-
-        private static byte[] stringToBytes(String value) {
             throw new RuntimeException("Stub!");
         }
     }

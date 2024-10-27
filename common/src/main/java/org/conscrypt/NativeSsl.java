@@ -27,9 +27,7 @@ import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
@@ -133,7 +131,7 @@ final class NativeSsl {
         if (label == null) {
             throw new NullPointerException("Label is null");
         }
-        byte[] labelBytes = label.getBytes(Charset.forName("US-ASCII"));
+        byte[] labelBytes = label.getBytes(StandardCharsets.US_ASCII);
         return NativeCrypto.SSL_export_keying_material(ssl, this, labelBytes, context, length);
     }
 
@@ -141,8 +139,8 @@ final class NativeSsl {
         return NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, this);
     }
 
-    /**
-     * @see NativeCrypto.SSLHandshakeCallbacks#clientPSKKeyRequested(String, byte[], byte[])
+    /*
+     * See NativeCrypto.SSLHandshakeCallbacks#clientPSKKeyRequested(String, byte[], byte[]).
      */
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     int clientPSKKeyRequested(String identityHint, byte[] identityBytesOut, byte[] key) {
@@ -160,11 +158,7 @@ final class NativeSsl {
         } else if (identity.isEmpty()) {
             identityBytes = EmptyArray.BYTE;
         } else {
-            try {
-                identityBytes = identity.getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException("UTF-8 encoding not supported", e);
-            }
+            identityBytes = identity.getBytes(StandardCharsets.UTF_8);
         }
         if (identityBytes.length + 1 > identityBytesOut.length) {
             // Insufficient space in the output buffer
@@ -187,8 +181,8 @@ final class NativeSsl {
         return secretKeyBytes.length;
     }
 
-    /**
-     * @see NativeCrypto.SSLHandshakeCallbacks#serverPSKKeyRequested(String, String, byte[])
+    /*
+     * See NativeCrypto.SSLHandshakeCallbacks#serverPSKKeyRequested(String, String, byte[]).
      */
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
     int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
@@ -638,8 +632,8 @@ final class NativeSsl {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    protected final void finalize() throws Throwable {
+    @SuppressWarnings("Finalize")
+    protected void finalize() throws Throwable {
         try {
             close();
         } finally {

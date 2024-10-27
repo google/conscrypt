@@ -18,6 +18,7 @@ package org.conscrypt.java.security;
 
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -40,11 +41,11 @@ public class SignatureHelper extends TestHelper<KeyPair> {
     public void test(PrivateKey encryptKey, PublicKey decryptKey) throws Exception {
         Signature signature = Signature.getInstance(algorithmName);
         signature.initSign(encryptKey);
-        signature.update(plainData.getBytes("UTF-8"));
+        signature.update(plainData.getBytes(StandardCharsets.UTF_8));
         byte[] signed = signature.sign();
 
         signature.initVerify(decryptKey);
-        signature.update(plainData.getBytes("UTF-8"));
+        signature.update(plainData.getBytes(StandardCharsets.UTF_8));
         assertTrue("signature could not be verified", signature.verify(signed));
     }
 }

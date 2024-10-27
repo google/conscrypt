@@ -74,7 +74,7 @@ class HostProperties {
          * Returns the value to use when building filenames for this OS.
          */
         public String getFileComponent() {
-            return name().toLowerCase();
+            return name().toLowerCase(Locale.ROOT);
         }
     }
 
@@ -104,7 +104,7 @@ class HostProperties {
          * Returns the value to use when building filenames for this architecture.
          */
         public String getFileComponent() {
-            return name().toLowerCase();
+            return name().toLowerCase(Locale.ROOT);
         }
     }
 
@@ -193,10 +193,10 @@ class HostProperties {
     }
 
     private static String normalize(String value) {
-        return value.toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
+        return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "");
     }
 
-    /**
+    /*
      * Normalizes the os.name value into the value used by the Maven os plugin
      * (https://github.com/trustin/os-maven-plugin). This plugin is used to generate
      * platform-specific
@@ -241,7 +241,7 @@ class HostProperties {
         return OperatingSystem.UNKNOWN;
     }
 
-    /**
+    /*
      * Normalizes the os.arch value into the value used by the Maven os plugin
      * (https://github.com/trustin/os-maven-plugin). This plugin is used to generate
      * platform-specific

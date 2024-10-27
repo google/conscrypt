@@ -26,6 +26,7 @@ import java.net.Socket;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -108,6 +109,7 @@ public class VeryBasicHttpServer {
         }
     }
 
+    @SuppressWarnings("StringSplitter") // It's close enough for government work.
     private Request readRequest(Socket socket) throws Exception {
         Request request = new Request();
         request.outputStream = socket.getOutputStream();

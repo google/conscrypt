@@ -32,7 +32,7 @@ public class HelloExtension {
     public static final int TYPE_PADDING = 21;
     public static final int TYPE_SESSION_TICKET = 35;
     public static final int TYPE_RENEGOTIATION_INFO = 65281;
-    private static final Map<Integer, String> TYPE_TO_NAME = new HashMap<Integer, String>();
+    private static final Map<Integer, String> TYPE_TO_NAME = new HashMap<>();
     static {
         TYPE_TO_NAME.put(TYPE_SERVER_NAME, "server_name");
         TYPE_TO_NAME.put(1, "max_fragment_length");
@@ -91,10 +91,9 @@ public class HelloExtension {
         result.parseData();
         return result;
     }
-    /**
-     * @throws IOException
-     */
+
     protected void parseData() throws IOException {}
+
     @Override
     public String toString() {
         return "HelloExtension{type: " + name + ", data: " + new BigInteger(1, data).toString(16)

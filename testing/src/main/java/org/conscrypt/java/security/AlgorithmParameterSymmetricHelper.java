@@ -16,11 +16,11 @@
 
 package org.conscrypt.java.security;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
 
+import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.Key;
-import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 
@@ -55,11 +55,11 @@ public class AlgorithmParameterSymmetricHelper extends TestHelper<AlgorithmParam
 
         Cipher cipher = Cipher.getInstance(transformation);
         cipher.init(Cipher.ENCRYPT_MODE, key, parameters);
-        byte[] bs = cipher.doFinal(plainData.getBytes("UTF-8"));
+        byte[] bs = cipher.doFinal(plainData.getBytes(StandardCharsets.UTF_8));
 
         cipher.init(Cipher.DECRYPT_MODE, key, parameters);
         byte[] decrypted = cipher.doFinal(bs);
 
-        assertTrue(Arrays.equals(plainData.getBytes("UTF-8"), decrypted));
+        assertArrayEquals(plainData.getBytes(StandardCharsets.UTF_8), decrypted);
     }
 }

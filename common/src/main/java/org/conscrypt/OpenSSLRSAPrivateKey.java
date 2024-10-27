@@ -123,7 +123,7 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     }
 
     static OpenSSLKey getInstance(RSAPrivateKey rsaPrivateKey) throws InvalidKeyException {
-        /**
+        /*
          * If the key is not encodable (PKCS11-like key), then wrap it and use
          * JNI upcalls to satisfy requests.
          */

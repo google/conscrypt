@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -33,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
@@ -41,7 +39,6 @@ import javax.net.ssl.SSLSocketFactory;
 import org.conscrypt.TestUtils;
 import org.conscrypt.VeryBasicHttpServer;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -190,11 +187,7 @@ public class HttpsURLConnectionTest {
             }
             return null;
         });
-        try {
-            future.get(2 * timeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            fail("HttpsURLConnection connection timeout failed.");
-        }
+        future.get(2 * timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
     @Test

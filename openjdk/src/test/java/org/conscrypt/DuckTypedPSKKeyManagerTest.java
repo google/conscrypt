@@ -20,6 +20,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Arrays;
 import javax.crypto.SecretKey;
@@ -139,7 +140,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         assertSame(identityHint, mockInvocationHandler.lastInvokedMethodArgs[0]);
         assertSame(mSSLEngine, mockInvocationHandler.lastInvokedMethodArgs[1]);
 
-        SecretKey key = new SecretKeySpec("arbitrary".getBytes("UTF-8"), "RAW");
+        SecretKey key = new SecretKeySpec("arbitrary".getBytes(StandardCharsets.UTF_8), "RAW");
         mockInvocationHandler.returnValue = key;
         assertSame(key, pskKeyManager.getKey(identityHint, identity, mSSLSocket));
         assertEquals("getKey", mockInvocationHandler.lastInvokedMethod.getName());

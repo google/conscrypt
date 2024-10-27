@@ -18,6 +18,8 @@ package org.conscrypt;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+
 import junit.framework.TestCase;
 
 public class OpenSSLKeyTest extends TestCase {
@@ -83,7 +85,7 @@ public class OpenSSLKeyTest extends TestCase {
         "8872822c7f2832dafa0fe10d9aba22310849e978e51c8aa9da7bc1c07511d883", 16);
 
     public void test_fromPublicKeyPemInputStream() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PUBLIC_KEY.getBytes("UTF-8"));
+        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PUBLIC_KEY.getBytes(StandardCharsets.UTF_8));
         OpenSSLKey key = OpenSSLKey.fromPublicKeyPemInputStream(is);
         OpenSSLRSAPublicKey publicKey = (OpenSSLRSAPublicKey)key.getPublicKey();
         assertEquals(RSA_MODULUS, publicKey.getModulus());
@@ -91,7 +93,7 @@ public class OpenSSLKeyTest extends TestCase {
     }
 
     public void test_fromPrivateKeyPemInputStream() throws Exception {
-        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PRIVATE_KEY.getBytes("UTF-8"));
+        ByteArrayInputStream is = new ByteArrayInputStream(RSA_PRIVATE_KEY.getBytes(StandardCharsets.UTF_8));
         OpenSSLKey key = OpenSSLKey.fromPrivateKeyPemInputStream(is);
         OpenSSLRSAPrivateKey privateKey = (OpenSSLRSAPrivateKey)key.getPrivateKey();
         assertEquals(RSA_MODULUS, privateKey.getModulus());

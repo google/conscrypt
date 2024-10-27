@@ -16,7 +16,7 @@
 
 package org.conscrypt.java.security;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -26,6 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,13 +59,8 @@ public class CpuFeatures {
                         nativeCrypto.getDeclaredMethod("EVP_has_aes_hardware");
                 EVP_has_aes_hardware.setAccessible(true);
                 return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
-            } catch (NoSuchMethodException ignored) {
-                // Ignored
-            } catch (SecurityException ignored) {
-                // Ignored
-            } catch (IllegalAccessException ignored) {
-                // Ignored
-            } catch (IllegalArgumentException ignored) {
+            } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException |
+                     SecurityException ignored) {
                 // Ignored
             } catch (InvocationTargetException e) {
                 throw new IllegalArgumentException(e);
@@ -86,13 +82,12 @@ public class CpuFeatures {
         return null;
     }
 
+    @SuppressWarnings("DefaultCharset")
     private static String getFieldFromCpuinfo(String field) {
         try {
-            @SuppressWarnings("DefaultCharset")
-            BufferedReader br = new BufferedReader(new FileReader("/proc/cpuinfo"));
-            Pattern p = Pattern.compile(field + "\\s*:\\s*(.*)");
 
-            try {
+            try (BufferedReader br = new BufferedReader(new FileReader("/proc/cpuinfo"))) {
+                Pattern p = Pattern.compile(field + "\\s*:\\s*(.*)");
                 String line;
                 while ((line = br.readLine()) != null) {
                     Matcher m = p.matcher(line);
@@ -100,8 +95,6 @@ public class CpuFeatures {
                         return m.group(1);
                     }
                 }
-            } finally {
-                br.close();
             }
         } catch (IOException ignored) {
             // Ignored.
@@ -124,13 +117,13 @@ public class CpuFeatures {
             Process proc = Runtime.getRuntime().exec("sysctl -a");
             if (proc.waitFor() == 0) {
                 BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(proc.getInputStream(), UTF_8));
+                        new BufferedReader(new InputStreamReader(proc.getInputStream(), US_ASCII));
 
                 final String linePrefix = "machdep.cpu.features:";
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    line = line.toLowerCase();
+                    line = line.toLowerCase(Locale.ROOT);
                     if (line.startsWith(linePrefix)) {
                         // Strip the line prefix from the results.
                         output.append(line.substring(linePrefix.length())).append(' ');

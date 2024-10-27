@@ -84,7 +84,7 @@ import org.conscrypt.javax.net.ssl.TestTrustManager;
 /**
  * TestKeyStore is a convenience class for other tests that
  * want a canned KeyStore with a variety of key pairs.
- *
+ * <p>
  * Creating a key store is relatively slow, so a singleton instance is
  * accessible via TestKeyStore.get().
  */
@@ -382,13 +382,13 @@ public final class TestKeyStore {
         private PrivateKeyEntry privateEntry;
         private PrivateKeyEntry signer;
         private Certificate rootCa;
-        private final List<KeyPurposeId> extendedKeyUsages = new ArrayList<KeyPurposeId>();
-        private final List<Boolean> criticalExtendedKeyUsages = new ArrayList<Boolean>();
-        private final List<GeneralName> subjectAltNames = new ArrayList<GeneralName>();
+        private final List<KeyPurposeId> extendedKeyUsages = new ArrayList<>();
+        private final List<Boolean> criticalExtendedKeyUsages = new ArrayList<>();
+        private final List<GeneralName> subjectAltNames = new ArrayList<>();
         private final List<GeneralSubtree> permittedNameConstraints =
-                new ArrayList<GeneralSubtree>();
+                new ArrayList<>();
         private final List<GeneralSubtree> excludedNameConstraints =
-                new ArrayList<GeneralSubtree>();
+                new ArrayList<>();
         // Generated randomly if not set
         private BigInteger certificateSerialNumber = null;
 
@@ -549,12 +549,12 @@ public final class TestKeyStore {
          * private alias name. The X509Certificate will be stored on the
          * public alias name and have the given subject distinguished
          * name.
-         *
+         * <p>
          * If a CA is provided, it will be used to sign the generated
          * certificate and OCSP responses. Otherwise, the certificate
          * will be self signed. The certificate will be valid for one
          * day before and one day after the time of creation.
-         *
+         * <p>
          * Based on:
          * org.bouncycastle.jce.provider.test.SigTest
          * org.bouncycastle.jce.provider.test.CertTest
@@ -588,7 +588,6 @@ public final class TestKeyStore {
             if (publicAlias == null && privateAlias == null) {
                 // don't want anything apparently
                 privateKey = null;
-                publicKey = null;
                 x509c = null;
             } else {
                 if (privateEntry == null) {
@@ -617,11 +616,8 @@ public final class TestKeyStore {
                     KeyPairGenerator kpg = KeyPairGenerator.getInstance(keyAlgorithm);
                     if (spec != null) {
                         kpg.initialize(spec);
-                    } else if (keySize != -1) {
-                        kpg.initialize(keySize);
                     } else {
-                        throw new AssertionError(
-                                "Must either have set algorithm parameters or key size!");
+                        kpg.initialize(keySize);
                     }
 
                     KeyPair kp = kpg.generateKeyPair();
@@ -674,14 +670,15 @@ public final class TestKeyStore {
         try {
             X500Principal principal = new X500Principal(subject);
             return createCertificate(publicKey, privateKey, principal, principal, 0, true,
-                    new ArrayList<KeyPurposeId>(), new ArrayList<Boolean>(),
-                    new ArrayList<GeneralName>(), new ArrayList<GeneralSubtree>(),
-                    new ArrayList<GeneralSubtree>(), null /* serialNumber, generated randomly */);
+                    new ArrayList<>(), new ArrayList<>(),
+                    new ArrayList<>(), new ArrayList<>(),
+                    new ArrayList<>(), null /* serialNumber, generated randomly */);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    @SuppressWarnings("JavaUtilDate")
     private static X509Certificate createCertificate(PublicKey publicKey, PrivateKey privateKey,
             X500Principal subject, X500Principal issuer, int keyUsage, boolean ca,
             List<KeyPurposeId> extendedKeyUsages, List<Boolean> criticalExtendedKeyUsages,
@@ -744,10 +741,8 @@ public final class TestKeyStore {
         if (!permittedNameConstraints.isEmpty() || !excludedNameConstraints.isEmpty()) {
             x509cg.addExtension(Extension.nameConstraints, true,
                     new NameConstraints(
-                            permittedNameConstraints.toArray(
-                                    new GeneralSubtree[permittedNameConstraints.size()]),
-                            excludedNameConstraints.toArray(
-                                    new GeneralSubtree[excludedNameConstraints.size()])));
+                            permittedNameConstraints.toArray(new GeneralSubtree[0]),
+                            excludedNameConstraints.toArray(new GeneralSubtree[0])));
         }
 
         X509CertificateHolder x509holder =
@@ -796,7 +791,7 @@ public final class TestKeyStore {
         if (index == -1) {
             return algorithm;
         }
-        return algorithm.substring(index + 1, algorithm.length());
+        return algorithm.substring(index + 1);
     }
 
     /**
@@ -920,6 +915,7 @@ public final class TestKeyStore {
         return rootCertificate(keyStore, algorithm);
     }
 
+    @SuppressWarnings("JavaUtilDate")
     private static OCSPResp generateOCSPResponse(PrivateKeyEntry server, PrivateKeyEntry issuer,
             CertificateStatus status) throws CertificateException {
         try {
@@ -949,7 +945,8 @@ public final class TestKeyStore {
         }
     }
 
-    public static byte[] getOCSPResponseForGood(PrivateKeyEntry server, PrivateKeyEntry issuer)
+    @SuppressWarnings({"JavaUtilDate", "unused"}) // TODO(prb): Use this.
+    private static byte[] getOCSPResponseForGood(PrivateKeyEntry server, PrivateKeyEntry issuer)
             throws CertificateException {
         try {
             return generateOCSPResponse(server, issuer, CertificateStatus.GOOD).getEncoded();
@@ -958,7 +955,8 @@ public final class TestKeyStore {
         }
     }
 
-    public static byte[] getOCSPResponseForRevoked(PrivateKeyEntry server, PrivateKeyEntry issuer)
+    @SuppressWarnings({"JavaUtilDate", "unused"}) // TODO(prb): Use this.
+    private static byte[] getOCSPResponseForRevoked(PrivateKeyEntry server, PrivateKeyEntry issuer)
             throws CertificateException {
         try {
             return generateOCSPResponse(
@@ -974,6 +972,7 @@ public final class TestKeyStore {
      * the given algorithm. Throws IllegalStateException if there are
      * are more or less than one.
      */
+    @SuppressWarnings("JavaUtilDate")
     public static X509Certificate rootCertificate(KeyStore keyStore, String algorithm) {
         try {
             X509Certificate found = null;
@@ -1022,11 +1021,7 @@ public final class TestKeyStore {
     public static KeyStore.Entry entryByAlias(KeyStore keyStore, String alias) {
         try {
             return keyStore.getEntry(alias, null);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (UnrecoverableEntryException e) {
-            throw new RuntimeException(e);
-        } catch (KeyStoreException e) {
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableEntryException e) {
             throw new RuntimeException(e);
         }
     }

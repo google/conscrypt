@@ -16,6 +16,7 @@
 
 package dalvik.system;
 
+@SuppressWarnings("DoNotCallSuggester")
 public class CloseGuard {
     private CloseGuard() {}
 

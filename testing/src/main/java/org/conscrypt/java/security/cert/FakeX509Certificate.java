@@ -25,20 +25,17 @@ import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Set;
 
+@SuppressWarnings("serial")
 public class FakeX509Certificate extends X509Certificate {
     @Override
-    public void checkValidity()
-            throws CertificateExpiredException, CertificateNotYetValidException {}
+    public void checkValidity() {}
 
     @Override
-    public void checkValidity(Date date)
-            throws CertificateExpiredException, CertificateNotYetValidException {}
+    public void checkValidity(Date date) {}
 
     @Override
     public int getBasicConstraints() {
@@ -61,11 +58,13 @@ public class FakeX509Certificate extends X509Certificate {
     }
 
     @Override
+    @SuppressWarnings("JavaUtilDate")
     public Date getNotAfter() {
         return new Date(System.currentTimeMillis());
     }
 
     @Override
+    @SuppressWarnings("JavaUtilDate")
     public Date getNotBefore() {
         return new Date(System.currentTimeMillis() - 1000);
     }
@@ -100,7 +99,8 @@ public class FakeX509Certificate extends X509Certificate {
         return new MockPrincipal();
     }
 
-    class MockPrincipal implements Principal {
+    static class MockPrincipal implements Principal {
+        @Override
         public String getName() {
             return null;
         }
@@ -111,7 +111,7 @@ public class FakeX509Certificate extends X509Certificate {
     }
 
     @Override
-    public byte[] getTBSCertificate() throws CertificateEncodingException {
+    public byte[] getTBSCertificate() {
         return null;
     }
 
@@ -132,7 +132,7 @@ public class FakeX509Certificate extends X509Certificate {
 
     @Override
     public String toString() {
-        return null;
+        return "null";
     }
 
     @Override
