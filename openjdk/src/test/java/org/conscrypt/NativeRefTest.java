@@ -16,9 +16,15 @@
 
 package org.conscrypt;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.fail;
 
-public class NativeRefTest extends TestCase {
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+@RunWith(JUnit4.class)
+public class NativeRefTest {
+    @Test
     public void test_zeroContextThrowsNullPointException() {
         try {
             new NativeRef(0) {
