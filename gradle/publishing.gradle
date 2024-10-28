@@ -2,6 +2,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 def isSnapshot = project.version.contains('SNAPSHOT')
+def isReleaseVersion = !isSnapshot
 
 publishing {
     publications {
@@ -58,7 +59,7 @@ publishing {
 }
 
 signing {
-    required false
+    required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
     sign publishing.publications.maven
 }
 
@@ -69,4 +70,8 @@ signMavenPublication.doFirst {
             signJar(it.file.absolutePath)
         }
    }
+}
+
+tasks.withType(Sign) {
+    onlyIf { isReleaseVersion } 
 }
