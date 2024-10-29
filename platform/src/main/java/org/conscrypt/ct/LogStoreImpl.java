@@ -54,13 +54,15 @@ public class LogStoreImpl implements LogStore {
     private static final Logger logger = Logger.getLogger(LogStoreImpl.class.getName());
     private static final String BASE_PATH = "misc/keychain/ct";
     private static final int COMPAT_VERSION = 1;
+    private static final String CURRENT = "current";
     private static final String LOG_LIST_FILENAME = "log_list.json";
     private static final Path DEFAULT_LOG_LIST;
 
     static {
         String androidData = System.getenv("ANDROID_DATA");
         String compatVersion = String.format("v%d", COMPAT_VERSION);
-        DEFAULT_LOG_LIST = Paths.get(androidData, BASE_PATH, compatVersion, LOG_LIST_FILENAME);
+        DEFAULT_LOG_LIST =
+                Paths.get(androidData, BASE_PATH, compatVersion, CURRENT, LOG_LIST_FILENAME);
     }
 
     private final Path logList;
