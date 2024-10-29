@@ -16,6 +16,12 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -30,34 +36,36 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import junit.framework.TestCase;
 
-public class DuckTypedPSKKeyManagerTest extends TestCase {
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+@RunWith(JUnit4.class)
+public class DuckTypedPSKKeyManagerTest {
     private SSLSocket mSSLSocket;
     private SSLEngine mSSLEngine;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
         SSLContext sslContext = SSLContext.getDefault();
         SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
         mSSLSocket = (SSLSocket) sslSocketFactory.createSocket();
         mSSLEngine = sslContext.createSSLEngine();
     }
 
-    @Override
-    protected void tearDown() throws Exception {
-        try {
-            if (mSSLSocket != null) {
-                try {
-                    mSSLSocket.close();
-                } catch (Exception ignored) {}
-            }
-        } finally {
-            super.tearDown();
+    @After
+    public void tearDown() throws Exception {
+        if (mSSLSocket != null) {
+            try {
+                mSSLSocket.close();
+            } catch (Exception ignored) {}
         }
     }
 
+    @Test
     @SuppressWarnings("deprecation")
     public void testDuckTypingFailsWhenOneMethodMissing() throws Exception {
         try {
@@ -66,6 +74,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         } catch (NoSuchMethodException expected) {}
     }
 
+    @Test
     @SuppressWarnings("deprecation")
     public void testDuckTypingFailsWhenOneMethodReturnTypeIncompatible() throws Exception {
         try {
@@ -75,12 +84,14 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         } catch (NoSuchMethodException expected) {}
     }
 
+    @Test
     @SuppressWarnings("deprecation")
     public void testDuckTypingSucceedsWhenAllMethodsPresentWithExactReturnTypes() throws Exception {
         assertNotNull(DuckTypedPSKKeyManager.getInstance(
                 new KeyManagerOfferingAllPSKKeyManagerMethodsWithExactReturnTypes()));
     }
 
+    @Test
     @SuppressWarnings("deprecation")
     public void testDuckTypingSucceedsWhenAllMethodsPresentWithDifferentButCompatibleReturnTypes()
             throws Exception {
@@ -88,6 +99,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
                 new KeyManagerOfferingAllPSKKeyManagerMethodsWithCompatibleReturnTypes()));
     }
 
+    @Test
     public void testMethodInvocationDelegation() throws Exception {
         // IMPLEMENTATION NOTE: We create a DuckTypedPSKKeyManager wrapping a Reflection Proxy,
         // invoke each method of the PSKKeyManager interface on the DuckTypedPSKKeyManager instance,
@@ -162,6 +174,7 @@ public class DuckTypedPSKKeyManagerTest extends TestCase {
         assertSame(mSSLEngine, mockInvocationHandler.lastInvokedMethodArgs[2]);
     }
 
+    @Test
     public void testMethodInvocationDelegationWithDifferentButCompatibleReturnType()
             throws Exception {
         // Check that nothing blows up when we invoke getKey which is declared to return
