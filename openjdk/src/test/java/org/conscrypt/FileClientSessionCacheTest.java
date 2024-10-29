@@ -16,13 +16,20 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
-import junit.framework.TestCase;
 import org.conscrypt.javax.net.ssl.FakeSSLSession;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class FileClientSessionCacheTest extends TestCase {
+@RunWith(JUnit4.class)
+public class FileClientSessionCacheTest {
 
+    @Test
     public void testMaxSize() throws IOException, InterruptedException {
         String tmpDir = System.getProperty("java.io.tmpdir");
         if (tmpDir == null) {
