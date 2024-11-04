@@ -172,10 +172,7 @@ jobs:
 
       - name: Test with Gradle
         shell: bash
-        run: ./gradlew test -PcheckErrorQueue
-
-      - name: Other checks with Gradle
-        shell: bash
+        timeout-minutes: 15
         run: ./gradlew check -PcheckErrorQueue
 
       - name: Publish to local Maven repo
