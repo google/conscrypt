@@ -177,6 +177,11 @@ processResources {
     dependsOn generateProperties
 }
 
+sourcesJar {
+    dependsOn generateProperties
+    dependsOn ':conscrypt-constants:runGen'
+}
+
 tasks.register("platformJar", Jar) {
     from sourceSets.platform.output
 }
