@@ -206,6 +206,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Linux environment
+        run: |
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+          sudo dpkg --add-architecture i386
+          sudo add-apt-repository ppa:openjdk-r/ppa
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends \
+            gcc-multilib \
+            g++-multilib \
+            ninja-build \
+            openjdk-11-jre-headless
+
       - name: Set runner-specific environment variables
         shell: bash
         run: |
