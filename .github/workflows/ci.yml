@@ -224,15 +224,24 @@ jobs:
           cd "$BORINGSSL_HOME"
           git checkout --progress --force -B master
 
-      - name: Make fake BoringSSL directories
-        shell: bash
+      - name: Build BoringSSL 64-bit Linux
         run: |
-          # TODO: remove this when the check is only performed when building.
-          # BoringSSL is not needed during the UberJAR build, but the
-          # assertion to check happens regardless of whether the project
-          # needs it.
-          mkdir -p "${{ runner.temp }}/boringssl/build64"
-          mkdir -p "${{ runner.temp }}/boringssl/include"
+          mkdir -p "$BORINGSSL_HOME/build64"
+          pushd "$BORINGSSL_HOME/build64"
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -GNinja ..
+          ninja
+          popd
+
+      # TODO(prb) remove build dependency above and go back to this.
+      # - name: Make fake BoringSSL directories
+      #   shell: bash
+      #   run: |
+      #     # TODO: remove this when the check is only performed when building.
+      #     # BoringSSL is not needed during the UberJAR build, but the
+      #     # assertion to check happens regardless of whether the project
+      #     # needs it.
+      #     mkdir -p "${{ runner.temp }}/boringssl/build64"
+      #     mkdir -p "${{ runner.temp }}/boringssl/include"
 
       - name: Download Maven repository for Linux
         uses: actions/download-artifact@v4
