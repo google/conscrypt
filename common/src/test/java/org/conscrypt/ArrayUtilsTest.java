@@ -101,21 +101,13 @@ public class ArrayUtilsTest {
         assertFalse(ArrayUtils.startsWith(data, bytes("One")));
         assertTrue(ArrayUtils.startsWith(data, bytes("")));
     }
-
     @Test
     public void reverse() {
         assertArrayEquals(new byte[0], ArrayUtils.reverse(new byte[0]));
         assertArrayEquals(bytes("fedcba"), ArrayUtils.reverse(bytes("abcdef")));
     }
 
-    @Test
-    public void haltAndCatchFire() throws InterruptedException {
-        while(true) {
-            Thread.sleep(1000);
-        }
-    }
-
-    static byte[] bytes(String string) {
+ static byte[] bytes(String string) {
         return string.getBytes(StandardCharsets.UTF_8);
     }
 }
