@@ -101,8 +101,33 @@ cd $CONSCRYPT_HOME
 ./gradlew :conscrypt-openjdk:testJar --console=plain
 test -f "$TESTJAR" || die "Test jar not built."
 
+# SIGTERM handler, e.g. for when tests hang and time out.
+# Send SIGQUIT to test process to get thread dump, give it
+# a few seconds to complete and then kill it.
+dump_threads() {
+    echo "Generating stack dump."
+    ps -fp "$TESTPID"
+    kill -QUIT "$TESTPID"
+    sleep 3
+    kill -KILL "$TESTPID"
+    exit 1
+}
+
 echo "Running tests."
 java $JAVADEBUG -jar "$JUNITJAR" execute -cp "${UBERJAR}:${TESTJAR}" \
-	 -n='org.conscrypt.ConscryptOpenJdkSuite' \
-	 --scan-classpath --reports-dir=. \
-	 --fail-if-no-tests $VERBOSE
+     -n='org.conscrypt.ConscryptOpenJdkSuite' \
+     --scan-classpath --reports-dir=. \
+     --fail-if-no-tests $VERBOSE &
+
+case $(uname -s) in
+    Darwin|Linux)
+        trap dump_threads SIGTERM SIGINT
+        ;;
+    *)
+        # TODO: Probably won't work on Windows but thread dumps
+        # work there already.
+        ;;
+esac
+
+TESTPID=$!
+wait "$TESTPID"
