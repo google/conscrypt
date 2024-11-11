@@ -218,6 +218,12 @@ jobs:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
 
+      - name: Checkout BoringSSL master branch
+        shell: bash
+        run: |
+          cd "$BORINGSSL_HOME"
+          git checkout --progress --force -B master
+
       - name: Make fake BoringSSL directories
         shell: bash
         run: |
