@@ -1,12 +1,14 @@
 description = 'Conscrypt: OpenJdk UberJAR'
 
+Directory buildTop = layout.buildDirectory.get()
 ext {
     buildUberJar = Boolean.parseBoolean(System.getProperty('org.conscrypt.openjdk.buildUberJar', 'false'))
     uberJarClassifiers = (System.getProperty('org.conscrypt.openjdk.uberJarClassifiers',
             'osx-x86_64,osx-aarch_64,linux-x86_64,windows-x86_64')).split(',')
-    classesDir = "${buildDir}/classes"
-    resourcesDir = "${buildDir}/resources"
-    sourcesDir = "${buildDir}/sources"
+    classesDir = buildTop.dir('classes')
+    resourcesDir = buildTop.dir('resources')
+    sourcesDir = buildTop.dir('sources')
+    javadocDir = buildTop.dir('docs/javadoc')
 }
 
 if (buildUberJar) {
@@ -20,6 +22,7 @@ if (buildUberJar) {
     jar {
         from classesDir
         from resourcesDir
+        from javadocDir
     }
 
     sourcesJar {
@@ -68,15 +71,28 @@ if (buildUberJar) {
     }
 
     def copySources = tasks.register("copySources", Copy) {
-        dependsOn ":conscrypt-openjdk:sourcesJar"
-        from {
-            project(":conscrypt-openjdk").sourceSets.main.java
-        }
+        dependsOn copyJavadocs
+        dependsOn ":conscrypt-constants:runGen"
+        from project(":conscrypt-openjdk").sourceSets.main.java
         into file(sourcesDir)
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
     tasks.named("sourcesJar").configure {
         dependsOn copySources
+    }
+
+    def copyJavadocs = tasks.register("copyJavadocs", Copy) {
+        dependsOn ':conscrypt-openjdk:javadoc'
+        from project(':conscrypt-openjdk').layout.buildDirectory
+        include('docs/**/*')
+        into layout.buildDirectory
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+    tasks.named('javadocJar').configure {
+        dependsOn copyJavadocs
+    }
+    tasks.named('jar').configure {
+        dependsOn copyJavadocs
     }
 
     // Note that this assumes that the version of BoringSSL for each
