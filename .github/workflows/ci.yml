@@ -347,7 +347,29 @@ jobs:
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
-          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar${{ matrix.separator }}$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests
+          # SIGTERM handler, e.g. for when tests hang and time out.
+          # Send SIGQUIT to test process to get thread dump, give it
+          # a few seconds to complete and then kill it.
+          dump_threads() {
+            echo "Generating stack dump."
+            ps -fp "$TESTPID"
+            kill -QUIT "$TESTPID"
+            sleep 3
+            kill -KILL "$TESTPID"
+            exit 1
+          }
+          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar${{ matrix.separator }}$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests &
+          case $(uname -s) in
+            Darwin|Linux)
+              trap dump_threads SIGTERM SIGINT
+              ;;
+            *)
+              # TODO: Probably won't work on Windows but thread dumps
+              # work there already.
+              ;;
+          esac
+          TESTPID=$!
+          wait "$TESTPID"
 
       - name: Archive test results
         if: ${{ always() }}
