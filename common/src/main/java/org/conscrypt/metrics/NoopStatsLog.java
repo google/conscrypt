@@ -21,12 +21,17 @@ import org.conscrypt.ct.PolicyCompliance;
 import org.conscrypt.ct.VerificationResult;
 
 @Internal
-public interface StatsLog {
-    public void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration);
+public class NoopStatsLog implements StatsLog {
+    private static final StatsLog INSTANCE = new NoopStatsLog();
+    public static StatsLog getInstance() {
+        return INSTANCE;
+    }
 
-    public void updateCTLogListStatusChanged(LogStore logStore);
+    public void countTlsHandshake(
+            boolean success, String protocol, String cipherSuite, long duration) {}
+
+    public void updateCTLogListStatusChanged(LogStore logStore) {}
 
     public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
-            PolicyCompliance compliance, int VerificationReason);
+            PolicyCompliance compliance, int VerificationReason) {}
 }

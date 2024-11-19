@@ -154,7 +154,7 @@ public class LogStoreImpl implements LogStore {
             if (state == State.LOADED && policy != null) {
                 state = policy.isLogStoreCompliant(this) ? State.COMPLIANT : State.NON_COMPLIANT;
             }
-            if (state != previousState && metrics != null) {
+            if (state != previousState) {
                 metrics.updateCTLogListStatusChanged(this);
             }
             return state == State.COMPLIANT;

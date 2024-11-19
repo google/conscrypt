@@ -18,6 +18,8 @@ package org.conscrypt.metrics;
 import org.conscrypt.Internal;
 import org.conscrypt.Platform;
 import org.conscrypt.ct.LogStore;
+import org.conscrypt.ct.PolicyCompliance;
+import org.conscrypt.ct.VerificationResult;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -46,7 +48,7 @@ public final class StatsLogImpl implements StatsLog {
     /**
      * TlsHandshakeReported tls_handshake_reported
      * Usage: StatsLog.write(StatsLog.TLS_HANDSHAKE_REPORTED, boolean success, int protocol, int
-     * cipher_suite, int handshake_duration_millis, int source, int[] uid);<br>
+     * cipher_suite, int handshake_duration_millis, int source, int[] uid);
      */
     public static final int TLS_HANDSHAKE_REPORTED = 317;
 
@@ -54,9 +56,45 @@ public final class StatsLogImpl implements StatsLog {
      * CertificateTransparencyLogListStateChanged certificate_transparency_log_list_state_changed
      * Usage: StatsLog.write(StatsLog.CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED, int status,
      * int loaded_compat_version, int min_compat_version_available, int major_version, int
-     * minor_version);<br>
+     * minor_version);
      */
     public static final int CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED = 934;
+
+    /**
+     * CertificateTransparencyVerificationReported certificate_transparency_verification_reported
+     * Usage: StatsLog.write(StatsLog.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED,
+     * int result, int reason, int policy_compatibility_version, int
+     * major_version, int minor_version, int num_cert_scts, int num_ocsp_scts,
+     * int num_tls_scts);
+     */
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED = 989;
+
+    // clang-format off
+
+    // Values for CertificateTransparencyLogListStateChanged.status
+    public static final int CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_UNKNOWN = 0;
+    public static final int CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_SUCCESS = 1;
+    public static final int CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_NOT_FOUND = 2;
+    public static final int CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_PARSING_FAILED = 3;
+    public static final int CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_EXPIRED = 4;
+
+    // Values for CertificateTransparencyVerificationReported.result
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_UNKNOWN = 0;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_SUCCESS = 1;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_GENERIC_FAILURE = 2;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAILURE_NO_SCTS_FOUND = 3;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAILURE_SCTS_NOT_COMPLIANT = 4;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_NO_LOG_LIST_AVAILABLE = 5;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_LOG_LIST_NOT_COMPLIANT = 6;
+
+    // Values for CertificateTransparencyVerificationReported.reason
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_UNKNOWN = 0;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_DEVICE_WIDE_ENABLED = 1;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_SDK_TARGET_DEFAULT_ENABLED = 2;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_NSCONFIG_APP_OPT_IN = 3;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_NSCONFIG_DOMAIN_OPT_IN = 4;
+
+    // clang-format on
 
     private static final ExecutorService e = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override
@@ -89,29 +127,20 @@ public final class StatsLogImpl implements StatsLog {
     }
 
     private static int logStoreStateToMetricsState(LogStore.State state) {
-        /* These constants must match the atom LogListStatus
-         * from frameworks/proto_logging/stats/atoms/conscrypt/conscrypt_extension_atoms.proto
-         */
-        final int METRIC_UNKNOWN = 0;
-        final int METRIC_SUCCESS = 1;
-        final int METRIC_NOT_FOUND = 2;
-        final int METRIC_PARSING_FAILED = 3;
-        final int METRIC_EXPIRED = 4;
-
         switch (state) {
             case UNINITIALIZED:
             case LOADED:
-                return METRIC_UNKNOWN;
+                return CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_UNKNOWN;
             case NOT_FOUND:
-                return METRIC_NOT_FOUND;
+                return CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_NOT_FOUND;
             case MALFORMED:
-                return METRIC_PARSING_FAILED;
+                return CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_PARSING_FAILED;
             case COMPLIANT:
-                return METRIC_SUCCESS;
+                return CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_SUCCESS;
             case NON_COMPLIANT:
-                return METRIC_EXPIRED;
+                return CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_EXPIRED;
         }
-        return METRIC_UNKNOWN;
+        return CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED__STATUS__STATUS_UNKNOWN;
     }
 
     @Override
@@ -120,6 +149,39 @@ public final class StatsLogImpl implements StatsLog {
         write(CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED, state, logStore.getCompatVersion(),
                 logStore.getMinCompatVersionAvailable(), logStore.getMajorVersion(),
                 logStore.getMinorVersion());
+    }
+
+    private static int policyComplianceToMetrics(
+            VerificationResult result, PolicyCompliance compliance) {
+        if (compliance == PolicyCompliance.COMPLY) {
+            return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_SUCCESS;
+        } else if (result.getValidSCTs().size() == 0) {
+            return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAILURE_NO_SCTS_FOUND;
+        } else if (compliance == PolicyCompliance.NOT_ENOUGH_SCTS
+                || compliance == PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS) {
+            return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAILURE_SCTS_NOT_COMPLIANT;
+        }
+        return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_UNKNOWN;
+    }
+
+    @Override
+    public void reportCTVerificationResult(LogStore store, VerificationResult result,
+            PolicyCompliance compliance, int verificationReason) {
+        if (store.getState() == LogStore.State.NOT_FOUND
+                || store.getState() == LogStore.State.MALFORMED) {
+            write(CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED,
+                    CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_NO_LOG_LIST_AVAILABLE,
+                    verificationReason, 0, 0, 0, 0, 0, 0);
+        } else if (store.getState() == LogStore.State.NON_COMPLIANT) {
+            write(CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED,
+                    CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_LOG_LIST_NOT_COMPLIANT,
+                    verificationReason, 0, 0, 0, 0, 0, 0);
+        } else if (store.getState() == LogStore.State.COMPLIANT) {
+            int comp = policyComplianceToMetrics(result, compliance);
+            write(CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED, comp, verificationReason,
+                    store.getCompatVersion(), store.getMajorVersion(), store.getMinorVersion(),
+                    result.numCertSCTs(), result.numOCSPSCTs(), result.numTlsSCTs());
+        }
     }
 
     private void write(int atomId, boolean success, int protocol, int cipherSuite, int duration,
@@ -140,6 +202,28 @@ public final class StatsLogImpl implements StatsLog {
             public void run() {
                 ConscryptStatsLog.write(atomId, status, loadedCompatVersion,
                         minCompatVersionAvailable, majorVersion, minorVersion);
+            }
+        });
+    }
+
+    private void write(int atomId, int verificationResult, int verificationReason,
+            int policyCompatVersion, int majorVersion, int minorVersion, int numEmbeddedScts,
+            int numOcspScts, int numTlsScts) {
+        e.execute(new Runnable() {
+            @Override
+            public void run() {
+                ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
+                builder.setAtomId(atomId);
+                builder.writeInt(verificationResult);
+                builder.writeInt(verificationReason);
+                builder.writeInt(policyCompatVersion);
+                builder.writeInt(majorVersion);
+                builder.writeInt(minorVersion);
+                builder.writeInt(numEmbeddedScts);
+                builder.writeInt(numOcspScts);
+                builder.writeInt(numTlsScts);
+                builder.usePooledBuffer();
+                ReflexiveStatsLog.write(builder.build());
             }
         });
     }
