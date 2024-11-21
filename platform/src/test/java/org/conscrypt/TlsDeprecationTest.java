@@ -37,11 +37,9 @@ import static org.junit.Assume.assumeFalse;
 
 @RunWith(JUnit4.class)
 public class TlsDeprecationTest {
-    @Rule
-    public final TestRule switchTargetSdkVersionRule = SwitchTargetSdkVersionRule.getInstance();
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    @TargetSdkVersion(36)
     public void test_SSLSocket_SSLv3Unsupported_36() throws Exception {
         assertFalse(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
@@ -52,7 +50,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void test_SSLSocket_SSLv3Unsupported_34() throws Exception {
         assertTrue(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
@@ -65,7 +63,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void test_TLSv1Filtered_34() throws Exception {
         assertTrue(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
@@ -77,7 +75,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void test_TLSv1FilteredEmpty_34() throws Exception {
         assertTrue(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
@@ -88,7 +86,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    @TargetSdkVersion(36)
     public void test_TLSv1Filtered_36() throws Exception {
         assertFalse(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
@@ -99,7 +97,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void testInitializeDeprecatedEnabled_34() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(true, true);
         assertTrue(TestUtils.isTlsV1Deprecated());
@@ -108,7 +106,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    @TargetSdkVersion(36)
     public void testInitializeDeprecatedEnabled_36() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(true, true);
         assertTrue(TestUtils.isTlsV1Deprecated());
@@ -117,7 +115,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void testInitializeDeprecatedDisabled_34() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(true, false);
         assertTrue(TestUtils.isTlsV1Deprecated());
@@ -126,7 +124,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    @TargetSdkVersion(36)
     public void testInitializeDeprecatedDisabled_36() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(true, false);
         assertTrue(TestUtils.isTlsV1Deprecated());
@@ -135,7 +133,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void testInitializeUndeprecatedEnabled_34() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(false, true);
         assertFalse(TestUtils.isTlsV1Deprecated());
@@ -144,7 +142,7 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    @TargetSdkVersion(36)
     public void testInitializeUndeprecatedEnabled_36() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(false, true);
         assertFalse(TestUtils.isTlsV1Deprecated());
@@ -153,13 +151,13 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    @TargetSdkVersion(34)
     public void testInitializeUndeprecatedDisabled_34() {
         assertThrows(RuntimeException.class, () -> TestUtils.getConscryptProvider(false, false));
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    @TargetSdkVersion(36)
     public void testInitializeUndeprecatedDisabled_36() {
         assertThrows(RuntimeException.class, () -> TestUtils.getConscryptProvider(false, false));
     }
