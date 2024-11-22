@@ -518,13 +518,32 @@ public final class OpenSSLProvider extends Provider {
         put("CertificateFactory.X509", PREFIX + "OpenSSLX509CertificateFactory");
         put("Alg.Alias.CertificateFactory.X.509", "X509");
 
-        /* === HPKE - Conscrypt internal only === */
+        /* === HPKE === */
+        String baseClass = classExists("android.crypto.hpke.HpkeSpi")
+                ? PREFIX + "AndroidHpkeSpi"
+                : PREFIX + "HpkeImpl";
+
         put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
-            PREFIX + "HpkeImpl$X25519_AES_128");
+                baseClass + "$X25519_AES_128");
+        put("Alg.Alias.ConscryptHpke.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_128_GCM",
+                "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM");
         put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM",
-            PREFIX + "HpkeImpl$X25519_AES_256");
+                baseClass + "$X25519_AES_256");
+        put("Alg.Alias.ConscryptHpke.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_AES_256_GCM",
+                "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM");
         put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305",
-            PREFIX + "HpkeImpl$X25519_CHACHA20");
+                baseClass + "$X25519_CHACHA20");
+        put("Alg.Alias.ConscryptHpke.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_GhpkeCHACHA20POLY1305",
+                "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305");
+    }
+
+    private boolean classExists(String classname) {
+        try {
+            Class.forName(classname);
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+        return true;
     }
 
     private void putMacImplClass(String algorithm, String className) {
