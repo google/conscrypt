@@ -13,5 +13,15 @@ BasedOnStyle: Google
 ColumnLimit: 100
 IndentWidth: 4
 ContinuationIndentWidth: 8
-...
-
+JavaImportGroups:
+- android
+- androidx
+- com.android
+- dalvik
+- libcore
+- com
+- junit
+- net
+- org
+- java
+- javax
