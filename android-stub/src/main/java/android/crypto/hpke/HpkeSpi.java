@@ -38,12 +38,16 @@ public interface HpkeSpi {
     /**
      * Initialises an HPKE SPI in one of the sender modes described in RFC 9180.
      * <p>
+     * If {@code senderKey} is supplied then Asymmetric Key Authentication will be used,
+     * (MODE_AUTH)
+     * <p>
      * If {@code psk} and {@code psk_id} are supplied then Pre-Shared Key Authentication
-     * will be used.
+     * will be used (MODE_PSK).
      * <p>
-     * If {@code senderKey} is supplied then Asymmetric Key Authentication will be used.
+     * If all of {@code senderKey}, {@code psk} and {@code psk_id} are supplied then both
+     * Key and PSK authentication will be used (MODE_PSK_AUTH).
      * <p>
-     * If neither is supplied then "base" mode (no sender authentication) will be used.
+     * If neither is supplied then no sender authentication will be used (MODE_BASE).
      * <p>
      * Note that only base mode is currently supported on Android.
      * <p>
@@ -57,7 +61,7 @@ public interface HpkeSpi {
      * @param psk pre-shared key, for PSK auth modes only, else null
      * @param psk_id pre-shared key ID, for PSK auth modes only, else null
      * @throws InvalidKeyException if recipientKey is null or an unsupported key format
-     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
     void engineInitSender(
@@ -75,12 +79,16 @@ public interface HpkeSpi {
      * This mode provides absolutely no security and should only be used for testing
      * purposes.
      * <p>
+     * If {@code senderKey} is supplied then Asymmetric Key Authentication will be used,
+     * (MODE_AUTH)
+     * <p>
      * If {@code psk} and {@code psk_id} are supplied then Pre-Shared Key Authentication
-     * will be used.
+     * will be used (MODE_PSK).
      * <p>
-     * If {@code senderKey} is supplied then Asymmetric Key Authentication will be used.
+     * If all of {@code senderKey}, {@code psk} and {@code psk_id} are supplied then both
+     * Key and PSK authentication will be used (MODE_AUTH_PSK).
      * <p>
-     * If neither is supplied then "base" mode (no sender authentication) will be used.
+     * If neither is supplied then no sender authentication will be used (MODE_BASE).
      * <p>
      * Note that only base mode is currently supported on Android.
      * <p>
@@ -94,11 +102,11 @@ public interface HpkeSpi {
      * @param senderKey private key of the sender, for symmetric auth modes only, else null
      * @param psk pre-shared key, for PSK auth modes only, else null
      * @param psk_id pre-shared key ID, for PSK auth modes only, else null
-     * @param sKe Predetermined random seed, should only be usesd  for validation against
+     * @param sKe Predetermined random seed, should only be used for validation against
      *            known test vectors
      * @throws InvalidKeyException if recipientKey is null or an unsupported key format or senderKey
      *            is an unsupported key format
-     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
     void engineInitSenderWithSeed(
@@ -111,14 +119,18 @@ public interface HpkeSpi {
             throws InvalidKeyException;
 
     /**
-     * Initialises an HPKE SPI in one of the sender modes described in RFC 9180.
+     * Initialises an HPKE SPI in one of the recipient modes described in RFC 9180.
+     * <p>
+     * If {@code senderKey} is supplied then Asymmetric Key Authentication will be used,
+     * (MODE_AUTH)
      * <p>
      * If {@code psk} and {@code psk_id} are supplied then Pre-Shared Key Authentication
-     * will be used.
+     * will be used (MODE_PSK).
      * <p>
-     * If {@code senderKey} is supplied then Asymmetric Key Authentication will be used.
+     * If all of {@code senderKey}, {@code psk} and {@code psk_id} are supplied then both
+     * Key and PSK authentication will be used (MODE_AUTH_PSK).
      * <p>
-     * If neither is supplied then "base" mode (no sender authentication) will be used.
+     * If neither is supplied then no sender authentication will be used (MODE_BASE).
      * <p>
      * Note that only base mode is currently supported on Android.
      * <p>
@@ -134,7 +146,7 @@ public interface HpkeSpi {
      * @param psk_id pre-shared key ID, for PSK auth modes only, else null
      * @throws InvalidKeyException if recipientKey is null or an unsupported key format or senderKey
      *         is an unsupported key format
-     * @throws UnsupportedOperationException if mode is not a supported HPKE mode
+     * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
     void engineInitRecipient(

@@ -16,8 +16,6 @@
 
 package org.conscrypt;
 
-import android.crypto.hpke.HpkeSpi;
-
 import libcore.util.NonNull;
 import libcore.util.Nullable;
 
@@ -30,7 +28,7 @@ import java.security.PublicKey;
  * Delegating wrapper for HpkeImpl that inherits the Android platform's SPI
  * as well as Conscrypt's own.
  */
-public class AndroidHpkeSpi implements HpkeSpi, org.conscrypt.HpkeSpi {
+public class AndroidHpkeSpi implements android.crypto.hpke.HpkeSpi, org.conscrypt.HpkeSpi {
     private final org.conscrypt.HpkeSpi delegate;
 
     public AndroidHpkeSpi(org.conscrypt.HpkeSpi delegate) {
