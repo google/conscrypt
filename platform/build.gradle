@@ -1,13 +1,3 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath(libs.android.tools)
-    }
-}
-
 description = 'Conscrypt: Android Platform'
 
 ext {
