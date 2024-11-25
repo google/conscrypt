@@ -1,5 +1,5 @@
 [versions]
-android-tools = "7.4.2"
+agp = "7.4.2"
 bnd = "6.4.0"
 bouncycastle = "1.67"
 caliper = "1.0-beta-2"
@@ -18,6 +18,7 @@ shadow = "7.1.2"
 task-tree = "3.0.0"
 
 [plugins]
+android-library = { id = "com.android.library", version.ref = "agp" }
 bnd = { id = "biz.aQute.bnd.builder", version.ref = "bnd" }
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 grgit = { id = "org.ajoberstar.grgit", version.ref = "grgit" }
@@ -28,7 +29,6 @@ task-tree = { id = "com.dorongold.task-tree", version.ref = "task-tree" }
 
 [libraries]
 # Android tooling
-android-tools = { module = "com.android.tools.build:gradle", version.ref = "android-tools" }
 caliper = { module = "com.google.caliper:caliper", version.ref = "caliper" }
 
 # Bouncycastle

@@ -1,20 +1,9 @@
 import org.ajoberstar.grgit.Grgit
 import org.gradle.util.VersionNumber
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        // This must be applied in the root project otherwise each subproject will
-        // have it in a different ClassLoader.
-        classpath libs.android.tools
-    }
-}
-
 plugins {
     alias libs.plugins.bnd apply false
+    alias libs.plugins.android.library apply false
     alias libs.plugins.errorprone
     alias libs.plugins.grgit
     alias libs.plugins.osdetector

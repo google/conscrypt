@@ -1,9 +1,33 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 rootProject.name = "conscrypt"
-include ":conscrypt-android"
-include ":conscrypt-android-platform"
+if (System.env.ANDROID_HOME && file(System.env.ANDROID_HOME).exists()) {
+    include ":conscrypt-android"
+    include ":conscrypt-android-platform"
+    include ":conscrypt-benchmark-android"
+
+    project(':conscrypt-android').projectDir = "$rootDir/android" as File
+    project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
+    project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
+} else {
+    logger.warn('Android SDK has not been detected. Skipping Android projects.')
+}
+
 include ":conscrypt-android-stub"
 include ":conscrypt-api-doclet"
-include ":conscrypt-benchmark-android"
 include ":conscrypt-benchmark-base"
 include ":conscrypt-benchmark-graphs"
 include ":conscrypt-benchmark-jmh"
@@ -13,11 +37,8 @@ include ":conscrypt-openjdk"
 include ":conscrypt-openjdk-uber"
 include ":conscrypt-testing"
 
-project(':conscrypt-android').projectDir = "$rootDir/android" as File
-project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
 project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File
 project(':conscrypt-api-doclet').projectDir = "$rootDir/api-doclet" as File
-project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
 project(':conscrypt-benchmark-base').projectDir = "$rootDir/benchmark-base" as File
 project(':conscrypt-benchmark-graphs').projectDir = "$rootDir/benchmark-graphs" as File
 project(':conscrypt-benchmark-jmh').projectDir = "$rootDir/benchmark-jmh" as File
