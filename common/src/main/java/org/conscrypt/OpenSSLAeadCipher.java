@@ -228,7 +228,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     @Override
     protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException,
             IllegalBlockSizeException, BadPaddingException {
-    if (!ENABLE_BYTEBUFFER_OPTIMIZATIONS) {
+        if (!ENABLE_BYTEBUFFER_OPTIMIZATIONS) {
             return super.engineDoFinal(input, output);
         }
         if (input == null || output == null) {
@@ -306,7 +306,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
-            BadPaddingException {
+        BadPaddingException {
         // Because the EVP_AEAD updateInternal processes input but doesn't create any output
         // (and thus can't check the output buffer), we need to add this check 
         // to ensure that updateInternal is never called if the
