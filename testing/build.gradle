@@ -13,12 +13,7 @@ sourceSets {
 }
 
 dependencies {
-    // Only compile against these. Other modules will embed the generated
-    // constants directly. The stubs libraries should not end up in the
-    // final build.
-    compileOnly project(':conscrypt-constants'),
-                project(':conscrypt-libcore-stub'),
-                project(':conscrypt-android-stub')
+    compileOnly project(':conscrypt-constants')
 
     implementation libs.bouncycastle.apis,
             libs.bouncycastle.provider,

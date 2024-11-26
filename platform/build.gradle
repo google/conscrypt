@@ -1,11 +1,5 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath(libs.android.tools)
-    }
+plugins {
+    alias(libs.plugins.android.library)
 }
 
 description = 'Conscrypt: Android Platform'
@@ -20,103 +14,91 @@ ext {
     androidTargetSdkVersion = 26
 }
 
-if (androidSdkInstalled) {
-    apply plugin: 'com.android.library'
+android {
+    namespace "org.conscrypt"
+    compileSdkVersion androidTargetSdkVersion
 
-    android {
-        namespace "org.conscrypt"
-        compileSdkVersion androidTargetSdkVersion
-
-        compileOptions {
-            sourceCompatibility androidMinJavaVersion;
-            targetCompatibility androidMinJavaVersion
-        }
-
-        defaultConfig {
-            minSdkVersion androidMinSdkVersion
-            targetSdkVersion androidTargetSdkVersion
-            versionCode androidVersionCode
-            versionName androidVersionName
-
-            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-            consumerProguardFiles 'proguard-rules.pro'
-
-            externalNativeBuild {
-                cmake {
-                    arguments '-DANDROID=True',
-                            '-DANDROID_STL=c++_static',
-                            "-DBORINGSSL_HOME=$boringsslHome"
-                    cFlags '-fvisibility=hidden',
-                            '-DBORINGSSL_SHARED_LIBRARY',
-                            '-DBORINGSSL_IMPLEMENTATION',
-                            '-DOPENSSL_SMALL',
-                            '-D_XOPEN_SOURCE=700',
-                            '-Wno-unused-parameter'
-                }
-            }
-            ndk {
-                abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
-            }
-        }
-        buildTypes {
-            release {
-                minifyEnabled false
-                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            }
-        }
-        sourceSets {
-            main {
-                java {
-                    srcDirs = [
-                            "${rootDir}/common/src/main/java",
-                            "src/main/java",
-                    ]
-                    excludes = [ 'org/conscrypt/Platform.java' ]
-                }
-            }
-        }
-        lintOptions {
-            lintConfig file('lint.xml')
-        }
+    compileOptions {
+        sourceCompatibility androidMinJavaVersion;
+        targetCompatibility androidMinJavaVersion
     }
 
-    configurations {
-        publicApiDocs
-    }
+    defaultConfig {
+        minSdkVersion androidMinSdkVersion
+        targetSdkVersion androidTargetSdkVersion
+        versionCode androidVersionCode
+        versionName androidVersionName
 
-    dependencies {
-        implementation project(path: ':conscrypt-openjdk', configuration: 'platform')
-        publicApiDocs project(':conscrypt-api-doclet')
-        androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
-            exclude module: 'support-annotations'
-            exclude module: 'support-v4'
-            exclude module: 'support-v13'
-            exclude module: 'recyclerview-v7'
-            exclude module: 'appcompat-v7'
-            exclude module: 'design'
-        })
-        testCompileOnly project(':conscrypt-android-stub'),
-                        project(':conscrypt-libcore-stub')
-        testImplementation project(path: ":conscrypt-testing", configuration: "shadow"),
-                           libs.junit
-        compileOnly project(':conscrypt-android-stub'),
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        consumerProguardFiles 'proguard-rules.pro'
+
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID=True',
+                        '-DANDROID_STL=c++_static',
+                        "-DBORINGSSL_HOME=$boringsslHome"
+                cFlags '-fvisibility=hidden',
+                        '-DBORINGSSL_SHARED_LIBRARY',
+                        '-DBORINGSSL_IMPLEMENTATION',
+                        '-DOPENSSL_SMALL',
+                        '-D_XOPEN_SOURCE=700',
+                        '-Wno-unused-parameter'
+            }
+        }
+        ndk {
+            abiFilters 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    sourceSets {
+        main {
+            java {
+                srcDirs = [
+                        "${rootDir}/common/src/main/java",
+                        "src/main/java",
+                ]
+                excludes = [ 'org/conscrypt/Platform.java' ]
+            }
+        }
+    }
+    lintOptions {
+        lintConfig file('lint.xml')
+    }
+}
+
+configurations {
+    publicApiDocs
+}
+
+dependencies {
+    implementation project(path: ':conscrypt-openjdk', configuration: 'platform')
+    publicApiDocs project(':conscrypt-api-doclet')
+    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
+        exclude module: 'support-annotations'
+        exclude module: 'support-v4'
+        exclude module: 'support-v13'
+        exclude module: 'recyclerview-v7'
+        exclude module: 'appcompat-v7'
+        exclude module: 'design'
+    })
+    testCompileOnly project(':conscrypt-android-stub'),
                     project(':conscrypt-libcore-stub')
+    testImplementation project(path: ":conscrypt-testing", configuration: "shadow"),
+                       libs.junit
+    compileOnly project(':conscrypt-android-stub'),
+                project(':conscrypt-libcore-stub')
 
-        // Adds the constants module as a dependency so that we can include its generated source
-        compileOnly project(':conscrypt-constants')
-    }
+    // Adds the constants module as a dependency so that we can include its generated source
+    compileOnly project(':conscrypt-constants')
+}
 
-    // Disable running the tests.
-    tasks.withType(Test).configureEach {
-        enabled = false
-    }
-
-} else {
-    logger.warn('Android SDK has not been detected. The Android Platform module will not be built.')
-
-    // Disable all tasks
-    tasks.configureEach {
-        it.enabled = false
-    }
+// Disable running the tests.
+tasks.withType(Test).configureEach {
+    enabled = false
 }
