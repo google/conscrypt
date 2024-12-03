@@ -1,28 +1,49 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 rootProject.name = "conscrypt"
-include ":conscrypt-android"
-include ":conscrypt-android-platform"
-include ":conscrypt-android-stub"
+if (System.env.ANDROID_HOME && file(System.env.ANDROID_HOME).exists()) {
+    include ":conscrypt-android"
+    include ":conscrypt-android-platform"
+    include ":conscrypt-android-stub"
+    include ":conscrypt-benchmark-android"
+    include ":conscrypt-libcore-stub"
+
+    project(':conscrypt-android').projectDir = "$rootDir/android" as File
+    project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
+    project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File
+    project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
+    project(':conscrypt-libcore-stub').projectDir = "$rootDir/libcore-stub" as File
+} else {
+    logger.warn('Android SDK has not been detected. Skipping Android projects.')
+}
+
 include ":conscrypt-api-doclet"
-include ":conscrypt-benchmark-android"
 include ":conscrypt-benchmark-base"
 include ":conscrypt-benchmark-graphs"
 include ":conscrypt-benchmark-jmh"
 include ":conscrypt-constants"
-include ":conscrypt-libcore-stub"
 include ":conscrypt-openjdk"
 include ":conscrypt-openjdk-uber"
 include ":conscrypt-testing"
 
-project(':conscrypt-android').projectDir = "$rootDir/android" as File
-project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
-project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File
 project(':conscrypt-api-doclet').projectDir = "$rootDir/api-doclet" as File
-project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
 project(':conscrypt-benchmark-base').projectDir = "$rootDir/benchmark-base" as File
 project(':conscrypt-benchmark-graphs').projectDir = "$rootDir/benchmark-graphs" as File
 project(':conscrypt-benchmark-jmh').projectDir = "$rootDir/benchmark-jmh" as File
 project(':conscrypt-constants').projectDir = "$rootDir/constants" as File
-project(':conscrypt-libcore-stub').projectDir = "$rootDir/libcore-stub" as File
 project(':conscrypt-openjdk').projectDir = "$rootDir/openjdk" as File
 project(':conscrypt-openjdk-uber').projectDir = "$rootDir/openjdk-uber" as File
 project(':conscrypt-testing').projectDir = "$rootDir/testing" as File

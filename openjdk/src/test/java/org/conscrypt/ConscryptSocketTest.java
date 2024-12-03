@@ -731,18 +731,28 @@ public class ConscryptSocketTest {
     @Test
     public void dataFlows() throws Exception {
         final TestConnection connection =
-                new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+                new TestConnection(new X509Certificate[]{cert, ca}, certKey);
         connection.doHandshakeSuccess();
+        // Max app data size that will fit in a single TLS record.
+        int maxDataSize = connection.client.getSession().getApplicationBufferSize();
 
-        // Basic data flow assurance.  Send random buffers in each direction, each less than 16K
-        // so should fit in a single TLS packet.  50% chance of sending in each direction on
-        // each iteration to randomize the flow.
+        // Zero sized reads and writes. InputStream.read() allows zero size reads
+        // to succeed even when no data is available.
+        sendData(connection.client, connection.server, randomBuffer(0));
+        sendData(connection.server, connection.client, randomBuffer(0));
+
+        // Completely full record.
+        sendData(connection.client, connection.server, randomBuffer(maxDataSize));
+        sendData(connection.server, connection.client, randomBuffer(maxDataSize));
+
+        // Random workout. Send random sized buffers in each direction, 50% chance of sending in
+        // each direction  on each iteration to randomize the flow.
         for (int i = 0; i < 50; i++) {
             if (random.nextBoolean()) {
-                sendData(connection.client, connection.server, randomBuffer());
+                sendData(connection.client, connection.server, randomSizeBuffer(maxDataSize));
             }
             if (random.nextBoolean()) {
-                sendData(connection.server, connection.client, randomBuffer());
+                sendData(connection.server, connection.client, randomSizeBuffer(maxDataSize));
             }
         }
     }
@@ -751,16 +761,20 @@ public class ConscryptSocketTest {
             throws Exception {
         final byte[] received = new byte[data.length];
 
-        Future<Integer> readFuture = executor.submit(
-                () -> destination.getInputStream().read(received));
-
         source.getOutputStream().write(data);
-        assertEquals(data.length, (int) readFuture.get());
+        assertEquals(data.length, destination.getInputStream().read(received));
         assertArrayEquals(data, received);
     }
 
-    private byte[] randomBuffer() {
-        byte[] buffer = new byte[random.nextInt(16 * 1024)];
+    // Returns a random sized buffer containing random data.
+    // Zero and maxSize are valid possible sizes for the returned buffer.
+    private byte[] randomSizeBuffer(int maxSize) {
+        return randomBuffer(random.nextInt(maxSize + 1));
+    }
+
+    // Returns a buffer of random data of the size requested.
+    private byte[] randomBuffer(int size) {
+        byte[] buffer = new byte[size];
         random.nextBytes(buffer);
         return buffer;
     }
