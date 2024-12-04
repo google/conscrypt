@@ -125,41 +125,35 @@ public final class CipherBasicsTest {
             throws GeneralSecurityException {
         switch (callPattern) {
             case DO_FINAL: {
-                byte[] output = cipher.doFinal(input);
-                return output;
+                return cipher.doFinal(input);
             }
             case DO_FINAL_WITH_OFFSET: {
                 byte[] inputCopy = new byte[input.length + 100];
                 int inputOffset = 42;
                 System.arraycopy(input, 0, inputCopy, inputOffset, input.length);
-                byte[] output = cipher.doFinal(inputCopy, inputOffset, input.length);
-                return output;
+                return cipher.doFinal(inputCopy, inputOffset, input.length);
             }
             case UPDATE_DO_FINAL: {
                 byte[] output1 = cipher.update(input);
                 byte[] output2 = cipher.doFinal();
-                byte[] output = concatArrays(output1, output2);
-                return output;
+                return concatArrays(output1, output2);
             }
             case MULTIPLE_UPDATE_DO_FINAL: {
-                // Split the input into input1 and input2.
                 int input1Length = input.length / 2;
-                byte[] input1 = Arrays.copyOf(input, input1Length);
-                byte[] input2 = Arrays.copyOfRange(input, input1Length, input.length);
-                byte[] output1 = cipher.update(input1);
-                byte[] output2 = cipher.update(input2);
+                int input2Length = input.length - input1Length;
+                byte[] output1 = cipher.update(input, /*inputOffset= */ 0, input1Length);
+                int input2Offset = input1Length;
+                byte[] output2 = cipher.update(input, input2Offset, input2Length);
                 byte[] output3 = cipher.update(new byte[0]);
                 byte[] output4 = cipher.doFinal();
-                byte[] output = concatArrays(output1, output2, output3, output4);
-                return output;
+                return concatArrays(output1, output2, output3, output4);
             }
             case UPDATE_DO_FINAL_WITH_OUTPUT_ARRAY: {
                 byte[] output1 = cipher.update(input);
                 byte[] output2 = new byte[expectedOutputLength - output1.length];
                 int written = cipher.doFinal(output2, /*outputOffset= */ 0);
                 assertEquals(expectedOutputLength - output1.length, written);
-                byte[] output = concatArrays(output1, output2);
-                return output;
+                return concatArrays(output1, output2);
             }
             case UPDATE_DO_FINAL_WITH_OUTPUT_ARRAY_AND_OFFSET: {
                 byte[] output1 = cipher.update(input);
@@ -168,8 +162,7 @@ public final class CipherBasicsTest {
                 int written = cipher.doFinal(output2WithOffset, outputOffset);
                 assertEquals(expectedOutputLength - output1.length, written);
                 byte[] output2 = Arrays.copyOfRange(output2WithOffset, outputOffset, outputOffset + written);
-                byte[] output = concatArrays(output1, output2);
-                return output;
+                return concatArrays(output1, output2);
             }
             case DO_FINAL_WITH_INPUT_OUTPUT_ARRAY: {
                 byte[] output = new byte[expectedOutputLength];
@@ -188,18 +181,16 @@ public final class CipherBasicsTest {
                 return Arrays.copyOfRange(outputWithOffset, outputOffset, outputOffset + written);
             }
             case UPDATE_DO_FINAL_WITH_INPUT_OUTPUT_ARRAY: {
-                // Split the input into input1 and input2.
                 int input1Length = input.length / 2;
-                byte[] input1 = Arrays.copyOf(input, input1Length);
-                byte[] input2 = Arrays.copyOfRange(input, input1Length, input.length);
-                byte[] output1 = cipher.update(input1);
-                int output1Length = (output1 == null) ? 0 : output1.length;
-                int output2Length = expectedOutputLength - output1Length;
-                byte[] output2 = new byte[output2Length];
-                int written = cipher.doFinal(
-                    input2, /* inputOffset= */ 0, input2.length, output2);
-                assertEquals(output2Length, written);
-                return concatArrays(output1, output2);
+                byte[] output = new byte[expectedOutputLength];
+                int written1 = cipher.update(input, /*inputOffset= */ 0, input1Length, output);
+                int input2Offset = input1Length;
+                int input2Length = input.length - input1Length;
+                int outputOffset = written1;
+                int written2 = cipher.doFinal(
+                    input, input2Offset, input2Length, output, outputOffset);
+                assertEquals(expectedOutputLength, written1 + written2);
+                return output;
             }
         }
         throw new IllegalArgumentException("Unsupported CallPattern: " + callPattern);
