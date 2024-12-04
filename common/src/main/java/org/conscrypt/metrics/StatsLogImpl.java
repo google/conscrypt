@@ -85,7 +85,7 @@ public final class StatsLogImpl implements StatsLog {
         CipherSuite suite = CipherSuite.forName(cipherSuite);
 
         write(TLS_HANDSHAKE_REPORTED, success, proto.getId(), suite.getId(), (int) duration,
-                Platform.getStatsSource().ordinal(), Platform.getUids());
+                Platform.getStatsSource(), Platform.getUids());
     }
 
     private static int logStoreStateToMetricsState(LogStore.State state) {
@@ -123,14 +123,12 @@ public final class StatsLogImpl implements StatsLog {
     }
 
     private void write(int atomId, boolean success, int protocol, int cipherSuite, int duration,
-            int source, int[] uids) {
+            org.conscrypt.metrics.Source source, int[] uids) {
         e.execute(new Runnable() {
             @Override
             public void run() {
-                ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
+                ConscryptStatsLog.write(
                         atomId, success, protocol, cipherSuite, duration, source, uids);
-
-                ReflexiveStatsLog.write(event);
             }
         });
     }
@@ -140,15 +138,8 @@ public final class StatsLogImpl implements StatsLog {
         e.execute(new Runnable() {
             @Override
             public void run() {
-                ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
-                builder.setAtomId(atomId);
-                builder.writeInt(status);
-                builder.writeInt(loadedCompatVersion);
-                builder.writeInt(minCompatVersionAvailable);
-                builder.writeInt(majorVersion);
-                builder.writeInt(minorVersion);
-                builder.usePooledBuffer();
-                ReflexiveStatsLog.write(builder.build());
+                ConscryptStatsLog.write(atomId, status, loadedCompatVersion,
+                        minCompatVersionAvailable, majorVersion, minorVersion);
             }
         });
     }
