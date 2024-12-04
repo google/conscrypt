@@ -20,6 +20,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Arrays;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
@@ -127,7 +128,6 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         return outputOffset - intialOutputOffset;
     }
 
-    @Override
     int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
             throws IllegalBlockSizeException, BadPaddingException, ShortBufferException {
         /* Remember this so we can tell how many characters were written. */
@@ -161,6 +161,64 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         reset();
 
         return outputOffset - initialOutputOffset;
+    }
+
+    @Override
+    protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
+            throws IllegalBlockSizeException, BadPaddingException {
+        final int maximumLen = getOutputSizeForFinal(inputLen);
+        /* Assume that we'll output exactly on a byte boundary. */
+        final byte[] output = new byte[maximumLen];
+
+        int bytesWritten;
+        if (inputLen > 0) {
+            try {
+                bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+            } catch (ShortBufferException e) {
+                /* This should not happen since we sized our own buffer. */
+                throw new RuntimeException("our calculated buffer was too small", e);
+            }
+        } else {
+            bytesWritten = 0;
+        }
+
+        try {
+            bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
+        } catch (ShortBufferException e) {
+            /* This should not happen since we sized our own buffer. */
+            throw new RuntimeException("our calculated buffer was too small", e);
+        }
+
+        if (bytesWritten == output.length) {
+            return output;
+        } else if (bytesWritten == 0) {
+            return EmptyArray.BYTE;
+        } else {
+            return Arrays.copyOfRange(output, 0, bytesWritten);
+        }
+    }
+
+    @Override
+    protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
+            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
+            BadPaddingException {
+        if (output == null) {
+            throw new NullPointerException("output == null");
+        }
+
+        int maximumLen = getOutputSizeForFinal(inputLen);
+
+        final int bytesWritten;
+        if (inputLen > 0) {
+            bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
+                    maximumLen);
+            outputOffset += bytesWritten;
+            maximumLen -= bytesWritten;
+        } else {
+            bytesWritten = 0;
+        }
+
+        return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
     }
 
     @Override

@@ -152,16 +152,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
             byte[] output, int outputOffset, int maximumLen) throws ShortBufferException;
 
     /**
-     * API-specific implementation of the final block. The {@code maximumLen}
-     * will be the maximum length of the possible output as returned by
-     * {@link #getOutputSizeForFinal(int)}. The return value must be the number
-     * of bytes processed and placed into {@code output}. On error, an exception
-     * must be thrown.
-     */
-    abstract int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
-            throws IllegalBlockSizeException, BadPaddingException, ShortBufferException;
-
-    /**
      * Returns the standard name for the particular algorithm.
      */
     abstract String getBaseCipherName();
@@ -347,64 +337,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
             int outputOffset) throws ShortBufferException {
         final int maximumLen = getOutputSizeForUpdate(inputLen);
         return updateInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
-    }
-
-    @Override
-    protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
-            throws IllegalBlockSizeException, BadPaddingException {
-        final int maximumLen = getOutputSizeForFinal(inputLen);
-        /* Assume that we'll output exactly on a byte boundary. */
-        final byte[] output = new byte[maximumLen];
-
-        int bytesWritten;
-        if (inputLen > 0) {
-            try {
-                bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
-            } catch (ShortBufferException e) {
-                /* This should not happen since we sized our own buffer. */
-                throw new RuntimeException("our calculated buffer was too small", e);
-            }
-        } else {
-            bytesWritten = 0;
-        }
-
-        try {
-            bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
-        } catch (ShortBufferException e) {
-            /* This should not happen since we sized our own buffer. */
-            throw new RuntimeException("our calculated buffer was too small", e);
-        }
-
-        if (bytesWritten == output.length) {
-            return output;
-        } else if (bytesWritten == 0) {
-            return EmptyArray.BYTE;
-        } else {
-            return Arrays.copyOfRange(output, 0, bytesWritten);
-        }
-    }
-
-    @Override
-    protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
-            BadPaddingException {
-        if (output == null) {
-            throw new NullPointerException("output == null");
-        }
-
-        int maximumLen = getOutputSizeForFinal(inputLen);
-
-        final int bytesWritten;
-        if (inputLen > 0) {
-            bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
-                    maximumLen);
-            outputOffset += bytesWritten;
-            maximumLen -= bytesWritten;
-        } else {
-            bytesWritten = 0;
-        }
-
-        return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
     }
 
     @Override
