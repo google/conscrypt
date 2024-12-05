@@ -27,8 +27,8 @@ import android.util.Log;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.Policy;
+import org.conscrypt.NativeCrypto;
+import org.conscrypt.ct.CertificateTransparency;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
 import org.conscrypt.metrics.StatsLogImpl;
@@ -69,7 +69,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.NativeCrypto;
 
 /**
  * Platform-specific methods for unbundled Android.
@@ -899,11 +898,7 @@ final public class Platform {
         return null;
     }
 
-    static LogStore newDefaultLogStore() {
-        return null;
-    }
-
-    static Policy newDefaultPolicy() {
+    static CertificateTransparency newDefaultCertificateTransparency() {
         return null;
     }
 
