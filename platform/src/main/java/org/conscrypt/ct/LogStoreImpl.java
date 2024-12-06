@@ -74,16 +74,17 @@ public class LogStoreImpl implements LogStore {
     private long timestamp;
     private Map<ByteArray, LogInfo> logs;
 
-    public LogStoreImpl() {
-        this(DEFAULT_LOG_LIST);
+    public LogStoreImpl(Policy policy) {
+        this(policy, DEFAULT_LOG_LIST);
     }
 
-    public LogStoreImpl(Path logList) {
-        this(logList, Platform.getStatsLog());
+    public LogStoreImpl(Policy policy, Path logList) {
+        this(policy, logList, Platform.getStatsLog());
     }
 
-    public LogStoreImpl(Path logList, StatsLog metrics) {
+    public LogStoreImpl(Policy policy, Path logList, StatsLog metrics) {
         this.state = State.UNINITIALIZED;
+        this.policy = policy;
         this.logList = logList;
         this.metrics = metrics;
     }
@@ -123,11 +124,6 @@ public class LogStoreImpl implements LogStore {
     @Override
     public int getMinCompatVersionAvailable() {
         return getCompatVersion();
-    }
-
-    @Override
-    public void setPolicy(Policy policy) {
-        this.policy = policy;
     }
 
     @Override

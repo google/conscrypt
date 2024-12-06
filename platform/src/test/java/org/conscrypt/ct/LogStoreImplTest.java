@@ -154,8 +154,7 @@ public class LogStoreImplTest {
 
         FakeStatsLog metrics = new FakeStatsLog();
         File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
-        store.setPolicy(alwaysCompliantStorePolicy);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
         assertNull("A null logId should return null", store.getKnownLog(null));
 
@@ -186,8 +185,7 @@ public class LogStoreImplTest {
         FakeStatsLog metrics = new FakeStatsLog();
         String content = "}}";
         File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
-        store.setPolicy(alwaysCompliantStorePolicy);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
         assertEquals(
                 "The log state should be malformed", store.getState(), LogStore.State.MALFORMED);
@@ -200,8 +198,7 @@ public class LogStoreImplTest {
     public void test_loadMissingLogList() throws Exception {
         FakeStatsLog metrics = new FakeStatsLog();
         File logList = new File("does_not_exist");
-        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
-        store.setPolicy(alwaysCompliantStorePolicy);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
         assertEquals(
                 "The log state should be not found", store.getState(), LogStore.State.NOT_FOUND);
