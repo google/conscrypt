@@ -27,6 +27,27 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+  clang_format_check:
+    # Only run on pull requests.
+    if: ${{ startsWith(github.ref, 'refs/pull/') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get git-clang-format
+        # Uses the most recent clang-format on Ubuntu.
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends clang-format
+
+      - name: Run git-clang-format against source branch
+        run: |
+          git clang-format --style=file --diff origin/$GITHUB_BASE_REF '*.c' '*.h' '*.cc' '*.cpp' '*.java'
+
   build:
     needs: boringssl_clone
 
