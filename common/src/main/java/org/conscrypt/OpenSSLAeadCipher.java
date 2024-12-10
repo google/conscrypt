@@ -241,7 +241,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             throw new IllegalArgumentException("Cannot write to Read Only ByteBuffer");
         }
         if (bufCount != 0) {
-            return super.engineDoFinal(input, output); // traditional case
+            return super.engineDoFinal(input, output);// traditional case
         }
         int bytesWritten;
         if (!input.isDirect()) {
@@ -276,19 +276,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         final byte[] output = new byte[maximumLen];
 
         int bytesWritten;
-        if (inputLen > 0) {
-            try {
-                bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
-            } catch (ShortBufferException e) {
-                /* This should not happen since we sized our own buffer. */
-                throw new RuntimeException("our calculated buffer was too small", e);
-            }
-        } else {
-            bytesWritten = 0;
-        }
-
         try {
-            bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
+            bytesWritten = doFinalInternal(input, inputOffset, inputLen, output, 0);
         } catch (ShortBufferException e) {
             /* This should not happen since we sized our own buffer. */
             throw new RuntimeException("our calculated buffer was too small", e);
@@ -299,46 +288,24 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         } else if (bytesWritten == 0) {
             return EmptyArray.BYTE;
         } else {
-            return Arrays.copyOfRange(output, 0, bytesWritten);
+            return Arrays.copyOf(output, bytesWritten);
         }
     }
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
-        BadPaddingException {
-        // Because the EVP_AEAD updateInternal processes input but doesn't create any output
-        // (and thus can't check the output buffer), we need to add this check 
-        // to ensure that updateInternal is never called if the
-        // output buffer isn't large enough.
-        if (output != null) {
-            if (getOutputSizeForFinal(inputLen) > output.length - outputOffset) {
-                throw new ShortBufferWithoutStackTraceException("Insufficient output space");
-            }
-        }
+            BadPaddingException {
         if (output == null) {
             throw new NullPointerException("output == null");
         }
-
-        int maximumLen = getOutputSizeForFinal(inputLen);
-
-        final int bytesWritten;
-        if (inputLen > 0) {
-            bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
-                    maximumLen);
-            outputOffset += bytesWritten;
-            maximumLen -= bytesWritten;
-        } else {
-            bytesWritten = 0;
+        if (getOutputSizeForFinal(inputLen) > output.length - outputOffset) {
+            throw new ShortBufferWithoutStackTraceException("Insufficient output space");
         }
-
-        return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
+        return doFinalInternal(input, inputOffset, inputLen, output, outputOffset);
     }
 
-    @Override
-    int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, int maximumLen) throws ShortBufferException {
-        checkInitialization();
+    void appendToBuf(byte[] input, int inputOffset, int inputLen) {
         if (buf == null) {
             throw new IllegalStateException("Cipher not initialized");
         }
@@ -349,6 +316,13 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             System.arraycopy(input, inputOffset, buf, this.bufCount, inputLen);
             this.bufCount += inputLen;
         }
+    }
+
+    @Override
+    int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
+            int outputOffset, int maximumLen) throws ShortBufferException {
+        checkInitialization();
+        appendToBuf(input, inputOffset, inputLen);
         return 0;
     }
 
@@ -402,17 +376,39 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return bytesWritten;
     }
 
-    int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
+    int doFinalInternal(byte[] input, int inputOffset, int inputLen,
+            byte[] output, int outputOffset)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         checkInitialization();
+
+        byte[] in;
+        int inOffset;
+        int inLen;
+        if (bufCount > 0) {
+            if (inputLen > 0) {
+                appendToBuf(input, inputOffset, inputLen);
+            }
+            in = buf;
+            inOffset = 0;
+            inLen = bufCount;
+        } else {
+            if (inputLen == 0) {
+                in = EmptyArray.BYTE; // input can be null when inputLen == 0
+            } else {
+                in = input;
+            }
+            inOffset = inputOffset;
+            inLen = inputLen;
+        }
+
         final int bytesWritten;
         try {
             if (isEncrypting()) {
                 bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(evpAead, encodedKey,
-                        tagLengthInBytes, output, outputOffset, iv, buf, 0, bufCount, aad);
+                        tagLengthInBytes, output, outputOffset, iv, in, inOffset, inLen, aad);
             } else {
                 bytesWritten = NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey,
-                        tagLengthInBytes, output, outputOffset, iv, buf, 0, bufCount, aad);
+                        tagLengthInBytes, output, outputOffset, iv, in, inOffset, inLen, aad);
             }
         } catch (BadPaddingException e) {
             throwAEADBadTagExceptionIfAvailable(e.getMessage(), e.getCause());
@@ -480,3 +476,4 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     abstract long getEVP_AEAD(int keyLength) throws InvalidKeyException;
 
 }
+
