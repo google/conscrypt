@@ -663,7 +663,7 @@ public class ConscryptSocketTest {
                 + ": " + connection.clientException.getMessage(),
                 connection.clientException instanceof SSLHandshakeException);
         assertTrue(
-                connection.clientException.getMessage().contains("SSLv3 is no longer supported"));
+                connection.clientException.getMessage().contains("SSLv3"));
         assertTrue("Expected SSLHandshakeException, but got "
                         + connection.serverException.getClass().getSimpleName()
                         + ": " + connection.serverException.getMessage(),

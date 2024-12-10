@@ -160,6 +160,8 @@ public final class Conscrypt {
         private String name = Platform.getDefaultProviderName();
         private boolean provideTrustManager = Platform.provideTrustManagerByDefault();
         private String defaultTlsProtocol = NativeCrypto.SUPPORTED_PROTOCOL_TLSV1_3;
+        private boolean deprecatedTlsV1 = true;
+        private boolean enabledTlsV1 = false;
 
         private ProviderBuilder() {}
 
@@ -200,8 +202,21 @@ public final class Conscrypt {
             return this;
         }
 
+        /** Specifies whether TLS v1.0 and 1.1 should be deprecated */
+        public ProviderBuilder isTlsV1Deprecated(boolean deprecatedTlsV1) {
+            this.deprecatedTlsV1 = deprecatedTlsV1;
+            return this;
+        }
+
+        /** Specifies whether TLS v1.0 and 1.1 should be enabled */
+        public ProviderBuilder isTlsV1Enabled(boolean enabledTlsV1) {
+            this.enabledTlsV1 = enabledTlsV1;
+            return this;
+        }
+
         public Provider build() {
-            return new OpenSSLProvider(name, provideTrustManager, defaultTlsProtocol);
+            return new OpenSSLProvider(name, provideTrustManager,
+                defaultTlsProtocol, deprecatedTlsV1, enabledTlsV1);
         }
     }
 

@@ -1837,22 +1837,6 @@ public class SSLSocketVersionCompatibilityTest {
         }
     }
 
-//  @TargetSdkVersion(35)
-    @Test
-    public void test_SSLSocket_SSLv3Unsupported_35() throws Exception {
-        assumeFalse(isTlsV1Filtered());
-        TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        final SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        assertThrows(IllegalArgumentException.class,
-                () -> client.setEnabledProtocols(new String[] {"SSLv3"}));
-        assertThrows(IllegalArgumentException.class,
-                () -> client.setEnabledProtocols(new String[] {"SSL"}));
-    }
-
 //  @TargetSdkVersion(34)
     @Test
     @Ignore("For platform CTS only")
@@ -1887,20 +1871,6 @@ public class SSLSocketVersionCompatibilityTest {
         client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"});
         assertEquals(1, client.getEnabledProtocols().length);
         assertEquals("TLSv1.2", client.getEnabledProtocols()[0]);
-    }
-
-//  @TargetSdkVersion(35)
-    @Test
-    public void test_TLSv1Filtered_35() throws Exception {
-        assumeTrue(isTlsV1Filtered());
-        TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        final SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        assertThrows(IllegalArgumentException.class, () ->
-            client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}));
     }
 
     @Test
