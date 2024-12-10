@@ -241,7 +241,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             throw new IllegalArgumentException("Cannot write to Read Only ByteBuffer");
         }
         if (bufCount != 0) {
-            return super.engineDoFinal(input, output);// traditional case
+            return super.engineDoFinal(input, output); // traditional case
         }
         int bytesWritten;
         if (!input.isDirect()) {
@@ -269,19 +269,70 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     @Override
+    protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
+            throws IllegalBlockSizeException, BadPaddingException {
+        final int maximumLen = getOutputSizeForFinal(inputLen);
+        /* Assume that we'll output exactly on a byte boundary. */
+        final byte[] output = new byte[maximumLen];
+
+        int bytesWritten;
+        if (inputLen > 0) {
+            try {
+                bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+            } catch (ShortBufferException e) {
+                /* This should not happen since we sized our own buffer. */
+                throw new RuntimeException("our calculated buffer was too small", e);
+            }
+        } else {
+            bytesWritten = 0;
+        }
+
+        try {
+            bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
+        } catch (ShortBufferException e) {
+            /* This should not happen since we sized our own buffer. */
+            throw new RuntimeException("our calculated buffer was too small", e);
+        }
+
+        if (bytesWritten == output.length) {
+            return output;
+        } else if (bytesWritten == 0) {
+            return EmptyArray.BYTE;
+        } else {
+            return Arrays.copyOfRange(output, 0, bytesWritten);
+        }
+    }
+
+    @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
             int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
         BadPaddingException {
         // Because the EVP_AEAD updateInternal processes input but doesn't create any output
-        // (and thus can't check the output buffer), we need to add this check before the
-        // superclass' processing to ensure that updateInternal is never called if the
+        // (and thus can't check the output buffer), we need to add this check 
+        // to ensure that updateInternal is never called if the
         // output buffer isn't large enough.
         if (output != null) {
             if (getOutputSizeForFinal(inputLen) > output.length - outputOffset) {
                 throw new ShortBufferWithoutStackTraceException("Insufficient output space");
             }
         }
-        return super.engineDoFinal(input, inputOffset, inputLen, output, outputOffset);
+        if (output == null) {
+            throw new NullPointerException("output == null");
+        }
+
+        int maximumLen = getOutputSizeForFinal(inputLen);
+
+        final int bytesWritten;
+        if (inputLen > 0) {
+            bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
+                    maximumLen);
+            outputOffset += bytesWritten;
+            maximumLen -= bytesWritten;
+        } else {
+            bytesWritten = 0;
+        }
+
+        return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
     }
 
     @Override
@@ -351,7 +402,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return bytesWritten;
     }
 
-    @Override
     int doFinalInternal(byte[] output, int outputOffset, int maximumLen)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         checkInitialization();
