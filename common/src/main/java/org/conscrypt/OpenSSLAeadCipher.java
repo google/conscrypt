@@ -241,7 +241,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             throw new IllegalArgumentException("Cannot write to Read Only ByteBuffer");
         }
         if (bufCount != 0) {
-            return super.engineDoFinal(input, output);// traditional case
+            return super.engineDoFinal(input, output); // traditional case
         }
         int bytesWritten;
         if (!input.isDirect()) {
