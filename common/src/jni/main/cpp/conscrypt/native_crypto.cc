@@ -10912,7 +10912,7 @@ static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_identities(
         jbyteArray serverIdentityArray, jint serverIdentityLen, jbyteArray clientIdentityArray,
         jint clientIdentityLen) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_identities(%p, %p, %d, %p, %d, %p, %d, %d)",
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_identities(%p, %p, %d, %p, %d, %p, %d)",
               sslCredential, context, contextLen, serverIdentityArray, serverIdentityLen,
               clientIdentityArray, clientIdentityLen);
     return;
