@@ -1080,6 +1080,61 @@ public class SSLSocketTest {
         assertArrayEquals(ping, buffer);
     }
 
+    @Test
+    public void testSpake() {
+        byte[] password = "password".getBytes();
+        byte[] context = "osmosis_test".getBytes();
+        Socket plainSocketC;
+        Socket plainSocketS;
+        InetAddress hostC = TestUtils.getLoopbackAddress();
+        InetAddress hostS = TestUtils.getLoopbackAddress();
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("SPAKE2+");
+        tmf.init(null);
+
+        SpakeClientKeyManagerParameters kmfParamsClient = new SpakeClientKeyManagerParameters.Builder
+            .setClientPassword(password)
+            .setContext(context)
+            .build();
+
+        KeyManagerFactory kmfClient = KeyManagerFactory.getInstance("SPAKE2+");
+        kmfClient.init(kmfParamsClient);
+
+        SSLContext contextClient = SSLContext.getInstance("TlsV1.3");
+        contextClient.init(kmfClient.getKeyManagers(), tmf.getTrustMananagers(), null);
+
+        SocketFactory sfClient = contextClient.getSocketFactory();
+
+        SSLSocket sslSocketClient = sfClient.createSocket(plainSocketC, hostC, 0, true);
+
+        SpakeServerKeyManagerParameters kmfParamsServer = new SpakeServerKeyManagerParameters.Builder
+            .setServerPassword(password)
+            .setContext(context)
+            .build();
+
+        KeyManagerFactory kmfServer = KeyManagerFactory.getInstance("SPAKE2+");
+        kmfServer.init(kmfParamsServer);
+
+        SSLContext contextServer = SSLContext.getInstance("TlsV1.3");
+        contextServer.init(kmfServer.getKeyManagers(), tmf.getTrustMananagers, null);
+
+        SocketFactory sfServer = contextServer.getSocketFactory();
+        SSLSocket sslSocketServer = sfServer.createSocket(plainSocketS, hostS, 1, true);
+        sslSocketServer.setUseClientMode(false);
+      Future<Void> s = runAsync(() -> {
+            sslSocketServer.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            sslSocketClient.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        sslSocketServer.close();
+        sslSocketClient.close();
+    }
+
     private void socketClose(Socket socket) {
         try {
             socket.close();

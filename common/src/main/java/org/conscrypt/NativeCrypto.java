@@ -639,6 +639,34 @@ public final class NativeCrypto {
 
     static native int X509_supported_extension(long x509ExtensionRef);
 
+    // --- SPAKE ---------------------------------------------------------------
+
+    static native Object[] SPAKE2PLUS_register(
+        byte[] pwArray, int pwLen, byte[] idProverArray,
+        int idProverLen, byte[] idVerifierArray, int idVerifierLen);
+
+    static native Object SSL_CREDENTIAL_new_SPAKE2PLUSV1();
+
+    static native void SSL_CREDENTIAL_set1_PAKE_identities(
+            Object sslCredential,
+            byte[] context,
+            int contextLen,
+            byte[] serverIdentityArray,
+            int serverIdentityLen,
+            byte[] clientIdentityArray,
+            int clientIdentityLen);
+
+    static native void SSL_CREDENTIAL_set1_PAKE_client_password_record(
+            Object sslCredential, byte[] password, int passwordLen);
+
+    static native void SSL_CREDENTIAL_set1_PAKE_server_password_record(
+            Object sslCredential,
+            byte[] password,
+            int passwordLen,
+            byte[] registration,
+            int registrationLen);
+
+    static native int SSL_CTX_add1_credential(Object sslCtx, Object sslCredential);
     // --- ASN1_TIME -----------------------------------------------------------
 
     static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal) throws ParsingException;
@@ -961,6 +989,11 @@ public final class NativeCrypto {
             "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
             "TLS_PSK_WITH_AES_128_CBC_SHA",
             "TLS_PSK_WITH_AES_256_CBC_SHA",
+    };
+
+    /** TLS-SPAKE */
+    static final String[] DEFAULT_SPAKE_CIPHER_SUITES = new String[] {
+            "TLS1_3_NAMED_PAKE_SPAKE2PLUSV1",
     };
 
     static String[] getSupportedCipherSuites() {

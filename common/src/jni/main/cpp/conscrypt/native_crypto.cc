@@ -530,8 +530,7 @@ static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, co
 
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
             conscrypt::jniutil::cryptoUpcallsClass,
-            conscrypt::jniutil::cryptoUpcallsClass_rawSignMethod,
-            privateKey, messageArray.get()));
+            conscrypt::jniutil::cryptoUpcallsClass_rawSignMethod, privateKey, messageArray.get()));
 }
 
 static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
@@ -558,10 +557,9 @@ static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, j
     }
 
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(
-                conscrypt::jniutil::cryptoUpcallsClass,
-                conscrypt::jniutil::cryptoUpcallsClass_rsaSignMethod,
-                privateKey, padding, messageArray.get()));
+            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass,
+                                        conscrypt::jniutil::cryptoUpcallsClass_rsaSignMethod,
+                                        privateKey, padding, messageArray.get()));
 }
 
 // rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
@@ -592,10 +590,9 @@ static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint
     }
 
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(
-                conscrypt::jniutil::cryptoUpcallsClass,
-                conscrypt::jniutil::cryptoUpcallsClass_rsaDecryptMethod,
-                privateKey, padding, ciphertextArray.get()));
+            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass,
+                                        conscrypt::jniutil::cryptoUpcallsClass_rsaDecryptMethod,
+                                        privateKey, padding, ciphertextArray.get()));
 }
 
 // *********************************************
@@ -7266,7 +7263,7 @@ static void info_callback(const SSL* ssl, int type, int value) {
 
     JNI_TRACE("ssl=%p info_callback calling onSSLStateChange", ssl);
     env->CallVoidMethod(sslHandshakeCallbacks,
-        conscrypt::jniutil::sslHandshakeCallbacks_onSSLStateChange, type, value);
+                        conscrypt::jniutil::sslHandshakeCallbacks_onSSLStateChange, type, value);
 
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p info_callback exception", ssl);
@@ -10889,6 +10886,62 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
         return nullptr;
     }
     return key_bytes;
+}
+
+#define SPAKE2PLUS_PW_VERIFIER_SIZE 32
+#define SPAKE2PLUS_REGISTRATION_RECORD_SIZE 65
+
+static jobjectArray NativeCrypto_SPAKE2PLUS_register(JNIEnv* env, jclass, jbyteArray pwArray,
+                                                     jint pwLen, jbyteArray idProverArray,
+                                                     jint idProverLen, jbyteArray idVerifierArray,
+                                                     jint idVerifierLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SPAKE2PLUS_register(%p, %d, %p, %d, %p, %d)", pwArray, pwLen, idProverArray,
+              idProverLen, idVerifierArray, idVerifierLen);
+    return {};
+}
+
+static jobject NativeCrypto_SSL_CREDENTIAL_new_SPAKE2PLUSV1(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_new_SPAKE2PLUSV1");
+    return nullptr;
+}
+
+static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_identities(
+        JNIEnv* env, jclass, jobject sslCredential, jbyteArray context, jint contextLen,
+        jbyteArray serverIdentityArray, jint serverIdentityLen, jbyteArray clientIdentityArray,
+        jint clientIdentityLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_identities(%p, %p, %d, %p, %d, %p, %d, %d)",
+              sslCredential, context, contextLen, serverIdentityArray, serverIdentityLen,
+              clientIdentityArray, clientIdentityLen);
+    return;
+}
+
+static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_client_password_record(JNIEnv* env, jclass,
+                                                                         jobject sslCredential,
+                                                                         jbyteArray password,
+                                                                         jint passwordLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_client_password_record(%p, %p, %d)", sslCredential,
+              password, passwordLen);
+    return;
+}
+
+static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_server_password_record(
+        JNIEnv* env, jclass, jobject sslCredential, jbyteArray password, jint passwordLen,
+        jbyteArray registration, jint registrationLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_server_password_record(%p, %p, %d, %p, %d)",
+              sslCredential, password, passwordLen, registration, registrationLen);
+    return;
+}
+
+static void NativeCrypto_SSL_CTX_add1_credential(JNIEnv* env, jclass, jobject sslCtx,
+                                                 jobject sslCredential) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CTX_add1_credential(%p, %p)", sslCtx, sslCredential);
+    return;
 }
 
 // TESTING METHODS BEGIN
