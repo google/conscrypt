@@ -60,6 +60,7 @@ final class NativeSsl {
     private X509Certificate[] localCertificates;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private volatile long ssl;
+    private final boolean isSpake;
 
     private NativeSsl(long ssl, SSLParametersImpl parameters,
             SSLHandshakeCallbacks handshakeCallbacks, AliasChooser aliasChooser,
@@ -69,6 +70,10 @@ final class NativeSsl {
         this.handshakeCallbacks = handshakeCallbacks;
         this.aliasChooser = aliasChooser;
         this.pskCallbacks = pskCallbacks;
+        if (parameters.isSpake()) {
+            initSpake();
+            this.isSpake = true;
+        }
     }
 
     static NativeSsl newInstance(SSLParametersImpl parameters,
@@ -84,6 +89,30 @@ final class NativeSsl {
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    void initSpake() {
+        SpakeKeyManager spakeKeyManager = parameters.getSpakeKeyManager();
+        byte[] context = spakeKeyManager.getContext();
+        byte[] pwArray = spakeKeyManager.getPassword();
+        byte[] idProverArray = spakeKeyManager.getIdentityProver();
+        byte[] idVerifierArray = spakeKeyManager.getIdentityVerifier();
+        Object[] result = NativeCrypto.SPAKE2PLUS_register(pwArray, pwArray.length, idProverArray,
+        idProverArray.length, idVerifierArray, idVerifierArray.length);
+        byte[] registration = (byte[]) result[2];
+        long ctx = NativeCrypto.SSL_CTX_new();
+        Object credential = NativeCrypto.SSL_CREDENTIAL_new_SPAKE2PLUSV1();
+        NativeCrypto.SSL_CREDENTIAL_set1_PAKE_identities(credential,
+        context, context.length, idProverArray, idProverArray.length,
+        idVerifierArray, idVerifierArray.length);
+        if (isClient()) {
+            NativeCrypto.SSL_CREDENTIAL_set1_PAKE_client_password_record(credential,
+                pwArray, pwArray.length);
+        } else {
+            NativeCrypto.SSL_CREDENTIAL_set1_PAKE_server_password_record(credential,
+                pwArray, pwArray.length, registration, registration.length);
+        }
+        NativeCrypto.SSL_CTX_add1_credential(ctx, credential);
     }
 
     void offerToResumeSession(long sslSessionNativePointer) throws SSLException {
@@ -349,7 +378,9 @@ final class NativeSsl {
         // with TLSv1 and SSLv3).
         NativeCrypto.SSL_set_mode(ssl, this, SSL_MODE_CBC_RECORD_SPLITTING);
 
-        setCertificateValidation();
+        if (!isSpake) {
+          setCertificateValidation();
+        }
         setTlsChannelId(channelIdPrivateKey);
     }
 
