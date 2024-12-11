@@ -11422,6 +11422,12 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
+        CONSCRYPT_NATIVE_METHOD(SPAKE2PLUS_register, "([BI[BJ[BJ)[[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CREDENTIAL_new_SPAKE2PLUSV1, "()J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CREDENTIAL_set1_PAKE_identities, "(J[BI[BJ[BJ)J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CREDENTIAL_set1_PAKE_client_password_record, "(J[BI)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CREDENTIAL_set1_PAKE_server_password_record, "(J[BI[BI)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_add1_credential, "(JJ)V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),
