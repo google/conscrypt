@@ -10891,6 +10891,265 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     return key_bytes;
 }
 
+#define SPAKE2PLUS_PW_VERIFIER_SIZE 32
+#define SPAKE2PLUS_REGISTRATION_RECORD_SIZE 65
+
+static jobjectArray NativeCrypto_SPAKE2PLUS_register(JNIEnv* env, jclass, jbyteArray pwArray,
+                                                     jint pwLen, jbyteArray idProverArray,
+                                                     jlong idProverLen, jbyteArray idVerifierArray,
+                                                     jlong idVerifierLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SPAKE2PLUS_register(%p, %d, %p, %ld, %p, %ld)", pwArray, pwLen, idProverArray,
+              idProverLen, idVerifierArray, idVerifierLen);
+
+    if (pwArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "pw == null");
+        return {};
+    }
+
+    if (idProverArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "idProver == null");
+        return {};
+    }
+
+    if (idVerifierArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "idVerifier == null");
+        return {};
+    }
+
+    ScopedByteArrayRO pw_bytes(env, pwArray);
+    if (pw_bytes.get() == nullptr) {
+        return {};
+    }
+
+    ScopedByteArrayRO id_prover_bytes(env, idProverArray);
+    if (id_prover_bytes.get() == nullptr) {
+        return {};
+    }
+
+    ScopedByteArrayRO id_verifier_bytes(env, idVerifierArray);
+    if (id_verifier_bytes.get() == nullptr) {
+        return {};
+    }
+
+    ScopedByteArrayRO peer_public_key(env, pwArray);
+
+    uint8_t pwVerifierW0[SPAKE2PLUS_PW_VERIFIER_SIZE];
+    uint8_t pwVerifierW1[SPAKE2PLUS_PW_VERIFIER_SIZE];
+    uint8_t registrationRecord[SPAKE2PLUS_REGISTRATION_RECORD_SIZE];
+
+    if (!SPAKE2PLUS_register(
+                /* out_pw_verifier_w0= */ pwVerifierW0,
+                /* out_pw_verifier_w1= */ pwVerifierW1,
+                /* out_registration_record= */ registrationRecord,
+                /* pw= */ pw_bytes,
+                /* pw_len= */ pwLen,
+                /* id_prover= */ id_prover_bytes,
+                /* id_prover_len= */ idProverLen,
+                /* id_verifier= */ id_verifier_bytes,
+                /* id_verifier_len= */ idVerifierLen)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SPAKE2PLUS_register");
+        return {};
+    }
+
+    ScopedLocalRef<jbyteArray> pwArray0(
+            env, env->NewByteArray(static_cast<jsize>(SPAKE2PLUS_PW_VERIFIER_SIZE)));
+    if (pwArray0.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW encBytes0(env, pwArray0.get());
+    if (encBytes0.get() == nullptr) {
+        return {};
+    }
+    memcpy(encBytes0.get(), reinterpret_cast<const jbyte*>(pwVerifierW0),
+           SPAKE2PLUS_PW_VERIFIER_SIZE);
+
+    ScopedLocalRef<jbyteArray> pwArray1(
+            env, env->NewByteArray(static_cast<jsize>(SPAKE2PLUS_PW_VERIFIER_SIZE)));
+    if (pwArray1.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW encBytes1(env, pwArray1.get());
+    if (encBytes1.get() == nullptr) {
+        return {};
+    }
+    memcpy(encBytes1.get(), reinterpret_cast<const jbyte*>(pwVerifierW1),
+           SPAKE2PLUS_PW_VERIFIER_SIZE);
+
+    ScopedLocalRef<jbyteArray> registrationRecordArray(
+            env, env->NewByteArray(static_cast<jsize>(SPAKE2PLUS_REGISTRATION_RECORD_SIZE)));
+    if (registrationRecordArray.get() == nullptr) {
+        return {};
+    }
+    ScopedByteArrayRW registrationRecordBytes(env, registrationRecordArray.get());
+    if (registrationRecordBytes.get() == nullptr) {
+        return {};
+    }
+    memcpy(registrationRecordBytes.get(), reinterpret_cast<const jbyte*>(registrationRecord),
+           SPAKE2PLUS_REGISTRATION_RECORD_SIZE);
+
+    ScopedLocalRef<jobjectArray> result(
+            env, env->NewObjectArray(3, conscrypt::jniutil::objectClass, nullptr));
+
+    env->SetObjectArrayElement(result.get(), 0, pwArray0.release());
+    env->SetObjectArrayElement(result.get(), 1, pwArray1.release());
+    env->SetObjectArrayElement(result.get(), 2, registrationRecordArray.release());
+
+    return result.release();
+}
+
+static jobject NativeCrypto_SSL_CREDENTIAL_new_SPAKE2PLUSV1(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_new_SPAKE2PLUSV1");
+    SSL_CREDENTIAL* creds = SSL_CREDENTIAL_new_SPAKE2PLUSV1();
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "SSL_CREDENTIAL_new_SPAKE2PLUSV1 failed");
+        return nullptr;
+    }
+    return reinterpret_cast<jobject>(creds);
+}
+
+static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_identities(
+        JNIEnv* env, jclass, jobject sslCredential, jbyteArray context, jlong contextLen,
+        jbyteArray serverIdentityArray, jlong serverIdentityLen, jbyteArray clientIdentityArray,
+        jlong clientIdentityLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_identities(%p, %p, %jd, %jd, %p, %jd, %p, %jd)",
+              sslCredential, context, contextLen, serverIdentityArray, serverIdentityLen,
+              clientIdentityArray, clientIdentityLen);
+
+    SSL_CREDENTIAL* creds = reinterpret_cast<SSL_CREDENTIAL*>(sslCredential);
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "sslCredential cannot be null");
+        return;
+    }
+    if (context == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "context cannot be null");
+        return;
+    }
+    if (serverIdentityArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "serverIdentityArray cannot be null");
+        return;
+    }
+    if (clientIdentityArray == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "clientIdentityArray cannot be null");
+        return;
+    }
+
+    ScopedByteArrayRO context_bytes(env, context);
+    if (context_bytes.get() == nullptr) {
+        return;
+    }
+
+    ScopedByteArrayRO server_identity_bytes(env, serverIdentityArray);
+    if (server_identity_bytes.get() == nullptr) {
+        return;
+    }
+
+    ScopedByteArrayRO client_identity_bytes(env, clientIdentityArray);
+    if (client_identity_bytes.get() == nullptr) {
+        return;
+    }
+
+    int ret = SSL_CREDENTIAL_set1_PAKE_identities(
+            creds, reinterpret_cast<const uint8_t*>(context_bytes.get()), contextLen,
+            reinterpret_cast<const uint8_t*>(client_identity_bytes.get()), clientIdentityLen,
+            reinterpret_cast<const uint8_t*>(server_identity_bytes.get()), serverIdentityLen);
+
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "SSL_CREDENTIAL_set1_PAKE_identities failed");
+    }
+}
+
+static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_client_password_record(JNIEnv* env, jclass,
+                                                                         jobject sslCredential,
+                                                                         jbyteArray password,
+                                                                         jlong passwordLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_client_password_record(%p, %p, %ld)", sslCredential,
+              password, passwordLen);
+    SSL_CREDENTIAL* creds = reinterpret_cast<SSL_CREDENTIAL*>(sslCredential);
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "sslCredential cannot be null");
+        return;
+    }
+    if (password == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "password cannot be null");
+        return;
+    }
+
+    ScopedByteArrayRO password_bytes(env, password);
+    if (password_bytes.get() == nullptr) {
+        return;
+    }
+
+    int ret = SSL_CREDENTIAL_set1_PAKE_client_password_record(
+            creds, reinterpret_cast<const uint8_t*>(password_bytes.get()), passwordLen);
+    if (ret != 1) {
+        conscrypt::jniutil::throwNullPointerException(
+                env, "SSL_CREDENTIAL_set1_PAKE_client_password_record failed");
+    }
+}
+
+static void NativeCrypto_SSL_CREDENTIAL_set1_PAKE_server_password_record(
+        JNIEnv* env, jclass, jobject sslCredential, jbyteArray password, jlong passwordLen,
+        jbyteArray registration, jlong registrationLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CREDENTIAL_set1_PAKE_server_password_record(%p, %p, %ld, %p, %ld)",
+              sslCredential, password, passwordLen, registration, registrationLen);
+    SSL_CREDENTIAL* creds = reinterpret_cast<SSL_CREDENTIAL*>(sslCredential);
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "sslCredential cannot be null");
+        return;
+    }
+    if (password == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "password cannot be null");
+        return;
+    }
+    if (registration == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "registration cannot be null");
+        return;
+    }
+
+    ScopedByteArrayRO password_bytes(env, password);
+    if (password_bytes.get() == nullptr) {
+        return;
+    }
+
+    ScopedByteArrayRO registration_bytes(env, registration);
+    if (registration_bytes.get() == nullptr) {
+        return;
+    }
+
+    int ret = SSL_CREDENTIAL_set1_PAKE_server_password_record(
+            creds, reinterpret_cast<const uint8_t*>(password_bytes.get()), passwordLen,
+            reinterpret_cast<const uint8_t*>(registration_bytes.get()), registrationLen);
+    if (ret != 1) {
+        conscrypt::jniutil::throwNullPointerException(
+                env, "SSL_CREDENTIAL_set1_PAKE_server_password_record failed");
+    }
+}
+
+static void NativeCrypto_SSL_CTX_add1_credential(JNIEnv* env, jclass, jobject sslCtx,
+                                                 jobject sslCredential) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CTX_add1_credential(%p, %p)", sslCtx, sslCredential);
+    SSL_CTX* ctx = reinterpret_cast<SSL_CTX*>(sslCtx);
+    if (ctx == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "sslCtx cannot be null");
+    }
+    SSL_CREDENTIAL* creds = reinterpret_cast<SSL_CREDENTIAL*>(sslCredential);
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "sslCredential cannot be null");
+    }
+    int ret = SSL_CTX_add1_credential(ctx, creds);
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_CTX_add1_credential failed");
+    }
+}
+
 // TESTING METHODS BEGIN
 
 static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray outputJavaBytes) {
