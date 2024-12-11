@@ -540,6 +540,7 @@ public final class OpenSSLProvider extends Provider {
         if (Platform.isSpake2Supported()) {
             put("TrustManagerFactory.SPAKE2+", "SpakeTrustManagerFactory");
             put("KeyManagerFactory.SPAKE2+", "SpakeKeyManagerFactory");
+        }
     }
 
     private boolean classExists(String classname) {
