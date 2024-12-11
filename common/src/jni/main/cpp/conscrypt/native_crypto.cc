@@ -530,8 +530,7 @@ static jbyteArray ecSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, co
 
     return reinterpret_cast<jbyteArray>(env->CallStaticObjectMethod(
             conscrypt::jniutil::cryptoUpcallsClass,
-            conscrypt::jniutil::cryptoUpcallsClass_rawSignMethod,
-            privateKey, messageArray.get()));
+            conscrypt::jniutil::cryptoUpcallsClass_rawSignMethod, privateKey, messageArray.get()));
 }
 
 static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, jint padding,
@@ -558,10 +557,9 @@ static jbyteArray rsaSignDigestWithPrivateKey(JNIEnv* env, jobject privateKey, j
     }
 
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(
-                conscrypt::jniutil::cryptoUpcallsClass,
-                conscrypt::jniutil::cryptoUpcallsClass_rsaSignMethod,
-                privateKey, padding, messageArray.get()));
+            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass,
+                                        conscrypt::jniutil::cryptoUpcallsClass_rsaSignMethod,
+                                        privateKey, padding, messageArray.get()));
 }
 
 // rsaDecryptWithPrivateKey uses privateKey to decrypt |ciphertext_len| bytes
@@ -592,10 +590,9 @@ static jbyteArray rsaDecryptWithPrivateKey(JNIEnv* env, jobject privateKey, jint
     }
 
     return reinterpret_cast<jbyteArray>(
-            env->CallStaticObjectMethod(
-                conscrypt::jniutil::cryptoUpcallsClass,
-                conscrypt::jniutil::cryptoUpcallsClass_rsaDecryptMethod,
-                privateKey, padding, ciphertextArray.get()));
+            env->CallStaticObjectMethod(conscrypt::jniutil::cryptoUpcallsClass,
+                                        conscrypt::jniutil::cryptoUpcallsClass_rsaDecryptMethod,
+                                        privateKey, padding, ciphertextArray.get()));
 }
 
 // *********************************************
@@ -7266,7 +7263,7 @@ static void info_callback(const SSL* ssl, int type, int value) {
 
     JNI_TRACE("ssl=%p info_callback calling onSSLStateChange", ssl);
     env->CallVoidMethod(sslHandshakeCallbacks,
-        conscrypt::jniutil::sslHandshakeCallbacks_onSSLStateChange, type, value);
+                        conscrypt::jniutil::sslHandshakeCallbacks_onSSLStateChange, type, value);
 
     if (env->ExceptionCheck()) {
         JNI_TRACE("ssl=%p info_callback exception", ssl);
@@ -10891,6 +10888,24 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     return key_bytes;
 }
 
+
+#define SPAKE2PLUS_PW_VERIFIER_SIZE 32
+#define SPAKE2PLUS_REGISTRATION_RECORD_SIZE 65
+
+static void NativeCrypto_SSL_CTX_set_spake_credential(
+        JNIEnv* env, jclass, jobject sslCtx, jbyteArray context, jint contextLen,
+        jbyteArray pwArray, jint pwLen, jbyteArray idProverArray, jint idProverLen,
+        jbyteArray idVerifierArray, jint idVerifierLen, jboolean isClient) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE(
+            "SSL_CTX_set_spake_credential(%p, %p, %d, %p, %d, %p, %d, %p, "
+            "%d, %d)",
+            sslCtx, context, contextLen, pwArray, pwLen, idProverArray, idProverLen,
+            idVerifierArray, idVerifierLen, isClient);
+
+    return;
+}
+
 // TESTING METHODS BEGIN
 
 static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray outputJavaBytes) {
@@ -11369,6 +11384,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "(J[BI[BI[BI[BIZ)V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

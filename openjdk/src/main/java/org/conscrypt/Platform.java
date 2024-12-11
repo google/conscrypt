@@ -849,4 +849,8 @@ final public class Platform {
     public static boolean isTlsV1Supported() {
         return true;
     }
+
+    public static boolean isSpake2Supported() {
+        return false;
+    }
 }

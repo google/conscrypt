@@ -485,10 +485,6 @@ public class SSLSocketTest {
                         // By the point of the handshake where we're validating certificates,
                         // the hostname is known and the cipher suite should be agreed
                         assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
-
-                        // The negotiated cipher suite should be one of the enabled ones, but
-                        // BoringSSL may have reordered them based on things like hardware support,
-                        // so we don't know which one may have been negotiated.
                         String sessionSuite = session.getCipherSuite();
                         List<String> enabledSuites =
                             Arrays.asList(referenceClientSocket.getEnabledCipherSuites());
@@ -1078,6 +1074,27 @@ public class SSLSocketTest {
         InputStream serverStream = pair.server.getInputStream();
         assertEquals(4, serverStream.read(buffer));
         assertArrayEquals(ping, buffer);
+    }
+
+    @Test
+    public void testSpake() {
+        byte[] password = "password".getBytes();
+        byte[] context = "osmosis_test".getBytes();
+        Socket plainSocketC;
+        Socket plainSocketS;
+        InetAddress hostC = TestUtils.getLoopbackAddress();
+        InetAddress hostS = TestUtils.getLoopbackAddress();
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("SPAKE2+");
+        assertThrows(NoSuchAlgorithmException.class, () -> tmf.init(null));
+
+        SpakeClientKeyManagerParameters kmfParamsClient = new SpakeClientKeyManagerParameters.Builder
+            .setClientPassword(password)
+            .setContext(context)
+            .build();
+
+        KeyManagerFactory kmfClient = KeyManagerFactory.getInstance("SPAKE2+");
+        assertThrows(NoSuchAlgorithmException.class, () -> kmfClient.init(kmfParamsClient));
     }
 
     private void socketClose(Socket socket) {

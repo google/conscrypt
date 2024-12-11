@@ -60,6 +60,7 @@ final class NativeSsl {
     private X509Certificate[] localCertificates;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private volatile long ssl;
+    private final boolean isSpake;
 
     private NativeSsl(long ssl, SSLParametersImpl parameters,
             SSLHandshakeCallbacks handshakeCallbacks, AliasChooser aliasChooser,
@@ -84,6 +85,19 @@ final class NativeSsl {
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    void initSpake() {
+        SpakeKeyManager spakeKeyManager = parameters.getSpakeKeyManager();
+        byte[] context = spakeKeyManager.getContext();
+        byte[] pwArray = spakeKeyManager.getPassword();
+        byte[] idProverArray = spakeKeyManager.getIdProver();
+        byte[] idVerifierArray = spakeKeyManager.getIdVerifier();
+
+        long sslCtx = NativeCrypto.SSL_CTX_new();
+        NativeCrypto.SSL_CTX_set_spake_credential(
+            sslCtx, context, context.length, pwArray, pwArray.length, idProverArray,
+            idProverArray.length, idVerifierArray, idVerifierArray.length, isClient());
     }
 
     void offerToResumeSession(long sslSessionNativePointer) throws SSLException {
@@ -273,6 +287,11 @@ final class NativeSsl {
     }
 
     void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
+        this.isSpake = parameters.isSpake();
+        if (this.isSpake) {
+            initSpake();
+        }
+
         boolean enableSessionCreation = parameters.getEnableSessionCreation();
         if (!enableSessionCreation) {
             NativeCrypto.SSL_set_session_creation_enabled(ssl, this, false);
@@ -349,7 +368,9 @@ final class NativeSsl {
         // with TLSv1 and SSLv3).
         NativeCrypto.SSL_set_mode(ssl, this, SSL_MODE_CBC_RECORD_SPLITTING);
 
-        setCertificateValidation();
+        if (!isSpake) {
+          setCertificateValidation();
+        }
         setTlsChannelId(channelIdPrivateKey);
     }
 

@@ -566,6 +566,10 @@ final public class Platform {
         return false;
     }
 
+    public static boolean isSpake2Supported() {
+        return true;
+    }
+
     static Object getTargetSdkVersion() {
         try {
             Class<?> vmRuntime = Class.forName("dalvik.system.VMRuntime");
