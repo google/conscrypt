@@ -436,12 +436,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return 0;
     }
 
-    @Override
-    int getOutputSizeForFinal(int inputLen) {
-        return bufCount + inputLen
-                + (isEncrypting() ? NativeCrypto.EVP_AEAD_max_overhead(evpAead) : 0);
-    }
-
     // Intentionally missing Override to compile on old versions of Android
     @SuppressWarnings("MissingOverride")
     protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
