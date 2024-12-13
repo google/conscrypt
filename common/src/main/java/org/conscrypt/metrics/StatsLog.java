@@ -28,5 +28,5 @@ public interface StatsLog {
     public void updateCTLogListStatusChanged(LogStore logStore);
 
     public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
-            PolicyCompliance compliance, int VerificationReason);
+            PolicyCompliance compliance, CertificateTransparencyVerificationReason reason);
 }

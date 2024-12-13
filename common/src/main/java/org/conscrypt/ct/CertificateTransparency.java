@@ -18,6 +18,7 @@ package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
 import org.conscrypt.Platform;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.StatsLog;
 
 import java.security.cert.CertificateException;
@@ -53,7 +54,7 @@ public class CertificateTransparency {
         return Platform.isCTVerificationRequired(host);
     }
 
-    public int reasonCTVerificationRequired(String host) {
+    public CertificateTransparencyVerificationReason reasonCTVerificationRequired(String host) {
         return Platform.reasonCTVerificationRequired(host);
     }
 

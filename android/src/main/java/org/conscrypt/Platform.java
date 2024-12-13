@@ -29,6 +29,7 @@ import dalvik.system.CloseGuard;
 
 import org.conscrypt.NativeCrypto;
 import org.conscrypt.ct.CertificateTransparency;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
 import org.conscrypt.metrics.StatsLogImpl;
@@ -872,8 +873,9 @@ final public class Platform {
         return enable;
     }
 
-    public static int reasonCTVerificationRequired(String hostname) {
-        return StatsLogImpl.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_UNKNOWN;
+    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
+            String hostname) {
+        return CertificateTransparencyVerificationReason.UNKNOWN;
     }
 
     static boolean supportsConscryptCertStore() {

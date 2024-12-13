@@ -36,6 +36,7 @@ import org.conscrypt.ct.LogStoreImpl;
 import org.conscrypt.ct.Policy;
 import org.conscrypt.ct.PolicyImpl;
 import org.conscrypt.flags.Flags;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.OptionalMethod;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
@@ -491,16 +492,15 @@ final public class Platform {
         return false;
     }
 
-    public static int reasonCTVerificationRequired(String hostname) {
+    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
+            String hostname) {
         if (NetworkSecurityPolicy.getInstance().isCertificateTransparencyVerificationRequired("")) {
-            return StatsLogImpl
-                    .CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_NSCONFIG_APP_OPT_IN;
+            return CertificateTransparencyVerificationReason.APP_OPT_IN;
         } else if (NetworkSecurityPolicy.getInstance()
                            .isCertificateTransparencyVerificationRequired(hostname)) {
-            return StatsLogImpl
-                    .CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_NSCONFIG_DOMAIN_OPT_IN;
+            return CertificateTransparencyVerificationReason.DOMAIN_OPT_IN;
         }
-        return StatsLogImpl.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_UNKNOWN;
+        return CertificateTransparencyVerificationReason.UNKNOWN;
     }
 
     static boolean supportsConscryptCertStore() {

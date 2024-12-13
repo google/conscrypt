@@ -38,6 +38,7 @@ import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
 
 import org.conscrypt.NativeCrypto;
 import org.conscrypt.ct.CertificateTransparency;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.NoopStatsLog;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
@@ -682,8 +683,9 @@ final public class Platform {
         return enable;
     }
 
-    public static int reasonCTVerificationRequired(String hostname) {
-        return StatsLogImpl.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_UNKNOWN;
+    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
+            String hostname) {
+        return CertificateTransparencyVerificationReason.UNKNOWN;
     }
 
     static boolean supportsConscryptCertStore() {
@@ -836,7 +838,7 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     public static Source getStatsSource() {
-        return null;
+        return Source.SOURCE_UNKNOWN;
     }
 
     @SuppressWarnings("unused")
