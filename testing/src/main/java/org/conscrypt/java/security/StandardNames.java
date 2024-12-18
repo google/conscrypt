@@ -243,7 +243,6 @@ public final class StandardNames {
         addOpenSsl("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA");
         addOpenSsl("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
         addOpenSsl("TLS_RSA_WITH_AES_128_CBC_SHA");
-        addOpenSsl("SSL_RSA_WITH_3DES_EDE_CBC_SHA");
 
         // TLSv1.2 cipher suites
         addOpenSsl("TLS_RSA_WITH_AES_128_GCM_SHA256");

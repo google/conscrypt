@@ -234,22 +234,31 @@ public final class TestUtils {
         }
     }
 
-    public static Provider getConscryptProvider() {
+    public static Provider getConscryptProvider(boolean isTlsV1Deprecated,
+            boolean isTlsV1Enabled) {
         try {
             String defaultName = (String) conscryptClass("Platform")
                 .getDeclaredMethod("getDefaultProviderName")
                 .invoke(null);
-            Constructor<?> c = conscryptClass("OpenSSLProvider")
-                .getDeclaredConstructor(String.class, Boolean.TYPE, String.class);
+            Constructor<?> c =
+                    conscryptClass("OpenSSLProvider")
+                            .getDeclaredConstructor(String.class, Boolean.TYPE,
+                                String.class, Boolean.TYPE, Boolean.TYPE);
 
             if (!isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
-                return (Provider) c.newInstance(defaultName, false, "TLSv1.3");
+                return (Provider) c.newInstance(defaultName, false, "TLSv1.3",
+                    isTlsV1Deprecated, isTlsV1Enabled);
             } else {
-                return (Provider) c.newInstance(defaultName, true, "TLSv1.3");
+                return (Provider) c.newInstance(defaultName, true, "TLSv1.3",
+                    isTlsV1Deprecated, isTlsV1Enabled);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Provider getConscryptProvider() {
+        return getConscryptProvider(true, false);
     }
 
     public static synchronized void installConscryptAsDefaultProvider() {

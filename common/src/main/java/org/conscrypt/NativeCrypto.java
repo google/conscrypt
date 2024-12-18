@@ -863,10 +863,8 @@ public final class NativeCrypto {
         if (loadError == null) {
             // If loadError is not null, it means the native code was not loaded, so
             // get_cipher_names will throw UnsatisfiedLinkError. Populate the list of supported
-            // ciphers with BoringSSL's default, and also explicitly include 3DES.
-            // https://boringssl-review.googlesource.com/c/boringssl/+/59425 will remove 3DES
-            // from BoringSSL's default, but Conscrypt isn't quite ready to remove it yet.
-            String[] allCipherSuites = get_cipher_names("ALL:3DES");
+            // ciphers with BoringSSL's default.
+            String[] allCipherSuites = get_cipher_names("ALL");
 
             // get_cipher_names returns an array where even indices are the standard name and odd
             // indices are the OpenSSL name.
@@ -1025,29 +1023,48 @@ public final class NativeCrypto {
 
     static native void set_SSL_psk_server_callback_enabled(long ssl, NativeSsl ssl_holder, boolean enabled);
 
-    private static final String[] ENABLED_PROTOCOLS_TLSV1 = Platform.isTlsV1Deprecated()
-            ? new String[0]
-            : new String[] {
-                DEPRECATED_PROTOCOL_TLSV1,
-                DEPRECATED_PROTOCOL_TLSV1_1,
+    public static void setTlsV1DeprecationStatus(boolean deprecated, boolean supported) {
+        if (deprecated) {
+            TLSV12_PROTOCOLS = new String[] {
+                SUPPORTED_PROTOCOL_TLSV1_2,
             };
-
-    private static final String[] SUPPORTED_PROTOCOLS_TLSV1 = Platform.isTlsV1Supported()
-            ? new String[] {
+            TLSV13_PROTOCOLS = new String[] {
+                SUPPORTED_PROTOCOL_TLSV1_2,
+                SUPPORTED_PROTOCOL_TLSV1_3,
+            };
+        } else {
+            TLSV12_PROTOCOLS = new String[] {
                 DEPRECATED_PROTOCOL_TLSV1,
                 DEPRECATED_PROTOCOL_TLSV1_1,
-            } : new String[0];
+                SUPPORTED_PROTOCOL_TLSV1_2,
+            };
+            TLSV13_PROTOCOLS = new String[] {
+                DEPRECATED_PROTOCOL_TLSV1,
+                DEPRECATED_PROTOCOL_TLSV1_1,
+                SUPPORTED_PROTOCOL_TLSV1_2,
+                SUPPORTED_PROTOCOL_TLSV1_3,
+            };
+        }
+        if (supported) {
+            SUPPORTED_PROTOCOLS = new String[] {
+                DEPRECATED_PROTOCOL_TLSV1,
+                DEPRECATED_PROTOCOL_TLSV1_1,
+                SUPPORTED_PROTOCOL_TLSV1_2,
+                SUPPORTED_PROTOCOL_TLSV1_3,
+            };
+        } else {
+            SUPPORTED_PROTOCOLS = new String[] {
+                SUPPORTED_PROTOCOL_TLSV1_2,
+                SUPPORTED_PROTOCOL_TLSV1_3,
+            };
+        }
+    }
 
     /** Protocols to enable by default when "TLSv1.3" is requested. */
-    static final String[] TLSV13_PROTOCOLS = ArrayUtils.concatValues(
-            ENABLED_PROTOCOLS_TLSV1,
-            SUPPORTED_PROTOCOL_TLSV1_2,
-            SUPPORTED_PROTOCOL_TLSV1_3);
+    static String[] TLSV13_PROTOCOLS;
 
     /** Protocols to enable by default when "TLSv1.2" is requested. */
-    static final String[] TLSV12_PROTOCOLS = ArrayUtils.concatValues(
-            ENABLED_PROTOCOLS_TLSV1,
-            SUPPORTED_PROTOCOL_TLSV1_2);
+    static String[] TLSV12_PROTOCOLS;
 
     /** Protocols to enable by default when "TLSv1.1" is requested. */
     static final String[] TLSV11_PROTOCOLS = new String[] {
@@ -1059,20 +1076,12 @@ public final class NativeCrypto {
     /** Protocols to enable by default when "TLSv1" is requested. */
     static final String[] TLSV1_PROTOCOLS = TLSV11_PROTOCOLS;
 
-    static final String[] DEFAULT_PROTOCOLS = TLSV13_PROTOCOLS;
-
     // If we ever get a new protocol go look for tests which are skipped using
     // assumeTlsV11Enabled()
-    private static final String[] SUPPORTED_PROTOCOLS = ArrayUtils.concatValues(
-            SUPPORTED_PROTOCOLS_TLSV1,
-            SUPPORTED_PROTOCOL_TLSV1_2,
-            SUPPORTED_PROTOCOL_TLSV1_3);
+    private static String[] SUPPORTED_PROTOCOLS;
 
     public static String[] getDefaultProtocols() {
-        if (Platform.isTlsV1Deprecated()) {
-          return DEFAULT_PROTOCOLS.clone();
-        }
-        return SUPPORTED_PROTOCOLS.clone();
+        return TLSV13_PROTOCOLS.clone();
     }
 
     static String[] getSupportedProtocols() {
