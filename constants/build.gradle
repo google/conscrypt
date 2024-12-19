@@ -36,6 +36,7 @@ model {
             binaries.all {
                 if (toolChain in VisualCpp) {
                     cppCompiler.define "WIN32_LEAN_AND_MEAN"
+                    cppCompiler.args "/std:c++17"
                 } else if (toolChain in Clang || toolChain in Gcc) {
                     cppCompiler.args "-std=c++17"
                 }
