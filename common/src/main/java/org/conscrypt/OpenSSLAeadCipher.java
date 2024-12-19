@@ -392,7 +392,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             inOffset = 0;
             inLen = bufCount;
         } else {
-            if (inputLen == 0) {
+            if (inputLen == 0 && input == null) {
                 in = EmptyArray.BYTE; // input can be null when inputLen == 0
             } else {
                 in = input;
