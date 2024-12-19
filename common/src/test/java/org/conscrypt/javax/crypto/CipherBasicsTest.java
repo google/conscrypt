@@ -150,17 +150,19 @@ public final class CipherBasicsTest {
             }
             case UPDATE_DO_FINAL_WITH_OUTPUT_ARRAY: {
                 byte[] output1 = cipher.update(input);
-                byte[] output2 = new byte[expectedOutputLength - output1.length];
+                int output1Length = (output1 == null) ? 0 : output1.length;
+                byte[] output2 = new byte[expectedOutputLength - output1Length];
                 int written = cipher.doFinal(output2, /*outputOffset= */ 0);
-                assertEquals(expectedOutputLength - output1.length, written);
+                assertEquals(expectedOutputLength - output1Length, written);
                 return concatArrays(output1, output2);
             }
             case UPDATE_DO_FINAL_WITH_OUTPUT_ARRAY_AND_OFFSET: {
                 byte[] output1 = cipher.update(input);
+                int output1Length = (output1 == null) ? 0 : output1.length;
                 byte[] output2WithOffset = new byte[expectedOutputLength + 100];
                 int outputOffset = 42;
                 int written = cipher.doFinal(output2WithOffset, outputOffset);
-                assertEquals(expectedOutputLength - output1.length, written);
+                assertEquals(expectedOutputLength - output1Length, written);
                 byte[] output2 = Arrays.copyOfRange(output2WithOffset, outputOffset, outputOffset + written);
                 return concatArrays(output1, output2);
             }
@@ -281,6 +283,22 @@ public final class CipherBasicsTest {
         }
     }
 
+    private static AlgorithmParameterSpec modifiedParams(AlgorithmParameterSpec params) {
+        if (params instanceof IvParameterSpec) {
+            IvParameterSpec ivSpec = (IvParameterSpec) params;
+            byte[] iv = ivSpec.getIV();
+            iv[0] = (byte) (iv[0] ^ 1);
+            return new IvParameterSpec(iv);
+        } else if (params instanceof GCMParameterSpec) {
+            GCMParameterSpec gcmSpec = (GCMParameterSpec) params;
+            byte[] iv = gcmSpec.getIV();
+            iv[0] = (byte) (iv[0] ^ 1);
+            return new GCMParameterSpec(gcmSpec.getTLen(), iv);
+        } else {
+            throw new IllegalArgumentException("Unsupported AlgorithmParameterSpec: " + params);
+        }
+    }
+
     static final byte[] EMPTY_AAD = new byte[0];
 
     public void arrayBasedAssessment(Cipher cipher, byte[] aad, byte[] tag, byte[] plaintext,
@@ -291,6 +309,10 @@ public final class CipherBasicsTest {
         System.arraycopy(tag, 0, combinedCiphertext, ciphertext.length, tag.length);
 
         for (CallPattern callPattern: CallPattern.values()) {
+            // We first initialize the cipher with a modified IV to make sure that we don't trigger
+            // an IV reuse check.
+            cipher.init(Cipher.ENCRYPT_MODE, key, modifiedParams(params));
+
             cipher.init(Cipher.ENCRYPT_MODE, key, params);
             if (aad.length > 0) {
                 cipher.updateAAD(aad);
@@ -393,6 +415,12 @@ public final class CipherBasicsTest {
                     } catch (InvalidAlgorithmParameterException e) {
                         // Some providers may not support all tag lengths or nonce lengths,
                         // that's allowed
+                        if (e.getMessage().contains("IV must not be re-used")) {
+                            throw new AssertionError(
+                                "The same IV was used twice and therefore some tests did not run." +
+                                "Provider = " + p.getName() + ", algorithm = " + transformation,
+                                e);
+                        }
                     }
                 }
             }
@@ -402,6 +430,10 @@ public final class CipherBasicsTest {
     public void sharedBufferBasedAssessment(Cipher cipher, byte[] aad, byte[] tag, byte[] _plaintext,
                                       byte[] _ciphertext, Key key, AlgorithmParameterSpec params,
                                       String transformation, Provider p) throws Exception {
+        // We first initialize the cipher with a modified IV to make sure that we don't trigger
+        // an IV reuse check.
+        cipher.init(Cipher.ENCRYPT_MODE, key, modifiedParams(params));
+
         cipher.init(Cipher.ENCRYPT_MODE, key, params);
         if (aad.length > 0) {
             cipher.updateAAD(aad);
@@ -452,6 +484,10 @@ public final class CipherBasicsTest {
     public void bufferBasedAssessment(Cipher cipher, byte[] aad, byte[] tag, byte[] _plaintext,
                                            byte[] _ciphertext, Key key, AlgorithmParameterSpec params,
                                            String transformation, Provider p, boolean inBoolDirect, boolean outBoolDirect) throws Exception {
+        // We first initialize the cipher with a modified IV to make sure that we don't trigger
+        // an IV reuse check.
+        cipher.init(Cipher.ENCRYPT_MODE, key, modifiedParams(params));
+
         cipher.init(Cipher.ENCRYPT_MODE, key, params);
         if (aad.length > 0) {
             cipher.updateAAD(aad);
