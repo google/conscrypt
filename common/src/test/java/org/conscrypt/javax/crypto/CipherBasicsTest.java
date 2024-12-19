@@ -283,7 +283,7 @@ public final class CipherBasicsTest {
         }
     }
 
-    private static AlgorithmParameterSpec modifedParams(AlgorithmParameterSpec params) {
+    private static AlgorithmParameterSpec modifiedParams(AlgorithmParameterSpec params) {
         if (params instanceof IvParameterSpec) {
             IvParameterSpec ivSpec = (IvParameterSpec) params;
             byte[] iv = ivSpec.getIV();
@@ -311,7 +311,7 @@ public final class CipherBasicsTest {
         for (CallPattern callPattern: CallPattern.values()) {
             // We first initialize the cipher with a modified IV to make sure that we don't trigger
             // an IV reuse check.
-            cipher.init(Cipher.ENCRYPT_MODE, key, modifedParams(params));
+            cipher.init(Cipher.ENCRYPT_MODE, key, modifiedParams(params));
 
             cipher.init(Cipher.ENCRYPT_MODE, key, params);
             if (aad.length > 0) {
@@ -432,7 +432,7 @@ public final class CipherBasicsTest {
                                       String transformation, Provider p) throws Exception {
         // We first initialize the cipher with a modified IV to make sure that we don't trigger
         // an IV reuse check.
-        cipher.init(Cipher.ENCRYPT_MODE, key, modifedParams(params));
+        cipher.init(Cipher.ENCRYPT_MODE, key, modifiedParams(params));
 
         cipher.init(Cipher.ENCRYPT_MODE, key, params);
         if (aad.length > 0) {
@@ -486,7 +486,7 @@ public final class CipherBasicsTest {
                                            String transformation, Provider p, boolean inBoolDirect, boolean outBoolDirect) throws Exception {
         // We first initialize the cipher with a modified IV to make sure that we don't trigger
         // an IV reuse check.
-        cipher.init(Cipher.ENCRYPT_MODE, key, modifedParams(params));
+        cipher.init(Cipher.ENCRYPT_MODE, key, modifiedParams(params));
 
         cipher.init(Cipher.ENCRYPT_MODE, key, params);
         if (aad.length > 0) {
