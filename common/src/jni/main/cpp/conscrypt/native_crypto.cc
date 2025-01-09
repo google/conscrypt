@@ -2793,7 +2793,7 @@ static jlong evpDigestSignVerifyInit(JNIEnv* env,
     }
     JNI_TRACE("%s(%p, %p, %p) <- ptr", jniName, mdCtx, md, pkey);
 
-    if (md == nullptr) {
+    if (md == nullptr && (EVP_PKEY_id(pkey) != EVP_PKEY_ED25519)) {
         JNI_TRACE("ctx=%p %s => md == null", mdCtx, jniName);
         conscrypt::jniutil::throwNullPointerException(env, "md == null");
         return 0;
