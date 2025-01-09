@@ -43,6 +43,18 @@ import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 
+import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+import org.conscrypt.io.IoUtils;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -77,22 +89,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
-import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
-import org.conscrypt.io.IoUtils;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class NativeCryptoTest {
@@ -2718,7 +2720,6 @@ public class NativeCryptoTest {
             // Expected.
         }
     }
-
 
     @Test
     public void test_ED25519_keypair_works() throws Exception {
