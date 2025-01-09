@@ -2565,6 +2565,42 @@ static void NativeCrypto_X25519_keypair(JNIEnv* env, jclass, jbyteArray outPubli
     JNI_TRACE("X25519_keypair(%p, %p) => success", outPublicArray, outPrivateArray);
 }
 
+static void NativeCrypto_ED25519_keypair(JNIEnv* env, jclass, jbyteArray outPublicArray,
+                                         jbyteArray outPrivateArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("ED25519_keypair(%p, %p)", outPublicArray, outPrivateArray);
+
+    ScopedByteArrayRW outPublic(env, outPublicArray);
+    if (outPublic.get() == nullptr) {
+        JNI_TRACE("ED25519_keypair(%p, %p) can't get output public key buffer", outPublicArray,
+                  outPrivateArray);
+        return;
+    }
+
+    ScopedByteArrayRW outPrivate(env, outPrivateArray);
+    if (outPrivate.get() == nullptr) {
+        JNI_TRACE("ED25519_keypair(%p, %p) can't get output private key buffer", outPublicArray,
+                  outPrivateArray);
+        return;
+    }
+
+    if (outPublic.size() != ED25519_PUBLIC_KEY_LEN) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Output public key array length != 32");
+        return;
+    }
+
+    if (outPrivate.size() != ED25519_PRIVATE_KEY_LEN) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Output private key array length != 64");
+        return;
+    }
+
+    ED25519_keypair(reinterpret_cast<uint8_t*>(outPublic.get()),
+                    reinterpret_cast<uint8_t*>(outPrivate.get()));
+    JNI_TRACE("ED25519_keypair(%p, %p) => success", outPublicArray, outPrivateArray);
+}
+
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE_MD("EVP_MD_CTX_create()");
@@ -2763,7 +2799,7 @@ static jlong evpDigestSignVerifyInit(JNIEnv* env,
     }
     JNI_TRACE("%s(%p, %p, %p) <- ptr", jniName, mdCtx, md, pkey);
 
-    if (md == nullptr) {
+    if (md == nullptr && (EVP_PKEY_id(pkey) != EVP_PKEY_ED25519)) {
         JNI_TRACE("ctx=%p %s => md == null", mdCtx, jniName);
         conscrypt::jniutil::throwNullPointerException(env, "md == null");
         return 0;
@@ -3034,6 +3070,146 @@ static jboolean NativeCrypto_EVP_DigestVerifyFinal(JNIEnv* env, jclass, jobject 
     ERR_clear_error();
 
     JNI_TRACE("EVP_DigestVerifyFinal(%p) => %d", mdCtx, result);
+    return result;
+}
+
+static jbyteArray NativeCrypto_EVP_DigestSign(JNIEnv* env, jclass,
+                                              jobject evpMdCtxRef,
+                                              jbyteArray inJavaBytes,
+                                              jint inOffset, jint inLength) {
+  CHECK_ERROR_QUEUE_ON_RETURN;
+
+  EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
+  JNI_TRACE_MD("%s(%p, %p, %d, %d)", "EVP_DigestSign", mdCtx, inJavaBytes,
+               inOffset, inLength);
+
+  if (mdCtx == nullptr) {
+    return nullptr;
+  }
+
+  if (inJavaBytes == nullptr) {
+    conscrypt::jniutil::throwNullPointerException(env, "inBytes");
+    return nullptr;
+  }
+
+  size_t array_size = static_cast<size_t>(env->GetArrayLength(inJavaBytes));
+  if (ARRAY_CHUNK_INVALID(array_size, inOffset, inLength)) {
+    conscrypt::jniutil::throwException(
+        env, "java/lang/ArrayIndexOutOfBoundsException", "inBytes");
+    return nullptr;
+  }
+
+  jint in_offset = inOffset;
+  jint in_size = inLength;
+
+  jbyte* array_elements = env->GetByteArrayElements(inJavaBytes, nullptr);
+  if (array_elements == nullptr) {
+    conscrypt::jniutil::throwOutOfMemory(
+        env, "Unable to obtain elements of inBytes");
+    return nullptr;
+  }
+  const unsigned char* buf =
+      reinterpret_cast<const unsigned char*>(array_elements);
+  const unsigned char* inStart = buf + in_offset;
+  size_t inLen = static_cast<size_t>(in_size);
+
+  size_t maxLen;
+  if (EVP_DigestSign(mdCtx, nullptr, &maxLen, inStart, inLen) != 1) {
+    JNI_TRACE("ctx=%p EVP_DigestSign => threw exception", mdCtx);
+    conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_DigestSign");
+    return nullptr;
+  }
+
+  std::unique_ptr<unsigned char[]> buffer(new unsigned char[maxLen]);
+  if (buffer.get() == nullptr) {
+    conscrypt::jniutil::throwOutOfMemory(env,
+                                         "Unable to allocate signature buffer");
+    return nullptr;
+  }
+  size_t actualLen(maxLen);
+  if (EVP_DigestSign(mdCtx, buffer.get(), &actualLen, inStart, inLen) != 1) {
+    JNI_TRACE("ctx=%p EVP_DigestSign => threw exception", mdCtx);
+    conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_DigestSign");
+    return nullptr;
+  }
+  if (actualLen > maxLen) {
+    JNI_TRACE("ctx=%p EVP_DigestSign => signature too long: %zd vs %zd", mdCtx,
+              actualLen, maxLen);
+    conscrypt::jniutil::throwRuntimeException(
+        env, "EVP_DigestSign signature too long");
+    return nullptr;
+  }
+
+  ScopedLocalRef<jbyteArray> sigJavaBytes(
+      env, env->NewByteArray(static_cast<jint>(actualLen)));
+  if (sigJavaBytes.get() == nullptr) {
+    conscrypt::jniutil::throwOutOfMemory(env,
+                                         "Failed to allocate signature byte[]");
+    return nullptr;
+  }
+  env->SetByteArrayRegion(sigJavaBytes.get(), 0, static_cast<jint>(actualLen),
+                          reinterpret_cast<jbyte*>(buffer.get()));
+
+  JNI_TRACE("EVP_DigestSign(%p) => %p", mdCtx, sigJavaBytes.get());
+  return sigJavaBytes.release();
+}
+
+static jboolean NativeCrypto_EVP_DigestVerify(JNIEnv* env, jclass, jobject evpMdCtxRef,
+                                                   jbyteArray signature, jint sigOffset, jint sigLen,
+                                             jbyteArray data, jint dataOffset, jint dataLen) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
+    JNI_TRACE("EVP_DigestVerify(%p)", mdCtx);
+
+    if (mdCtx == nullptr) {
+        return 0;
+    }
+
+    ScopedByteArrayRO sigBytes(env, signature);
+    if (sigBytes.get() == nullptr) {
+        return 0;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(sigBytes, sigOffset, sigLen)) {
+        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
+                                           "signature");
+        return 0;
+    }
+
+    ScopedByteArrayRO dataBytes(env, data);
+    if (dataBytes.get() == nullptr) {
+        return 0;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(dataBytes, dataOffset, dataLen)) {
+        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
+                                           "data");
+        return 0;
+    }
+
+    const unsigned char* sigBuf = reinterpret_cast<const unsigned char*>(sigBytes.get());
+    const unsigned char* dataBuf = reinterpret_cast<const unsigned char*>(dataBytes.get());
+    int err = EVP_DigestVerify(mdCtx, sigBuf + sigOffset, static_cast<size_t>(sigLen),
+                               dataBuf + dataOffset, static_cast<size_t>(dataLen));
+    jboolean result;
+    if (err == 1) {
+        // Signature verified
+        result = 1;
+    } else if (err == 0) {
+        // Signature did not verify
+        result = 0;
+    } else {
+        // Error while verifying signature
+        JNI_TRACE("ctx=%p EVP_DigestVerify => threw exception", mdCtx);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_DigestVerify");
+        return 0;
+    }
+
+    // If the signature did not verify, BoringSSL error queue contains an error (BAD_SIGNATURE).
+    // Clear the error queue to prevent its state from affecting future operations.
+    ERR_clear_error();
+
+    JNI_TRACE("EVP_DigestVerify(%p) => %d", mdCtx, result);
     return result;
 }
 
@@ -11122,6 +11298,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ECDSA_verify, "([B[B" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(X25519, "([B[B[B)Z"),
         CONSCRYPT_NATIVE_METHOD(X25519_keypair, "([B[B)V"),
+        CONSCRYPT_NATIVE_METHOD(ED25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_create, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_destroy, "(J)V"),
@@ -11140,6 +11317,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_DigestVerifyUpdate, "(" REF_EVP_MD_CTX "[BII)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_DigestVerifyUpdateDirect, "(" REF_EVP_MD_CTX "JI)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_DigestVerifyFinal, "(" REF_EVP_MD_CTX "[BII)Z"),
+        CONSCRYPT_NATIVE_METHOD(EVP_DigestSign, "(" REF_EVP_MD_CTX "[BII)[B"),
+        CONSCRYPT_NATIVE_METHOD(EVP_DigestVerify, "(" REF_EVP_MD_CTX "[BII[BII)Z"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_encrypt_init, "(" REF_EVP_PKEY ")J"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_encrypt, "(" REF_EVP_PKEY_CTX "[BI[BII)I"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_decrypt_init, "(" REF_EVP_PKEY ")J"),

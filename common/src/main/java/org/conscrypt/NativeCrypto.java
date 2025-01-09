@@ -212,6 +212,8 @@ public final class NativeCrypto {
 
     static native void X25519_keypair(byte[] outPublicKey, byte[] outPrivateKey);
 
+    static native void ED25519_keypair(byte[] outPublicKey, byte[] outPrivateKey);
+
     // --- Message digest functions --------------
 
     // These return const references
@@ -263,6 +265,12 @@ public final class NativeCrypto {
 
     static native boolean EVP_DigestVerifyFinal(NativeRef.EVP_MD_CTX ctx, byte[] signature,
             int offset, int length) throws IndexOutOfBoundsException;
+
+    static native byte[] EVP_DigestSign(
+            NativeRef.EVP_MD_CTX ctx, byte[] buffer, int offset, int length);
+
+    static native boolean EVP_DigestVerify(NativeRef.EVP_MD_CTX ctx, byte[] sigBuffer,
+            int sigOffset, int sigLen, byte[] dataBuffer, int dataOffset, int dataLen);
 
     static native long EVP_PKEY_encrypt_init(NativeRef.EVP_PKEY pkey) throws InvalidKeyException;
 

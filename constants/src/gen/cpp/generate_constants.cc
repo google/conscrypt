@@ -55,6 +55,7 @@ int main(int /* argc */, char ** /* argv */) {
 
   CONST(EVP_PKEY_RSA);
   CONST(EVP_PKEY_EC);
+  CONST(EVP_PKEY_ED25519);
 
   CONST(RSA_PKCS1_PADDING);
   CONST(RSA_NO_PADDING);
