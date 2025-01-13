@@ -2585,14 +2585,14 @@ static void NativeCrypto_ED25519_keypair(JNIEnv* env, jclass, jbyteArray outPubl
     }
 
     if (outPublic.size() != ED25519_PUBLIC_KEY_LEN) {
-        conscrypt::jniutil::throwIllegalArgumentException(
-            env, "Output public key array length != 32");
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "Output public key array length != 32");
         return;
     }
 
     if (outPrivate.size() != ED25519_PRIVATE_KEY_LEN) {
-        conscrypt::jniutil::throwIllegalArgumentException(
-            env, "Output private key array length != 64");
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "Output private key array length != 64");
         return;
     }
 
