@@ -28,6 +28,7 @@ import java.security.PublicKey;
  * Delegating wrapper for HpkeImpl that inherits the Android platform's SPI
  * as well as Conscrypt's own.
  */
+@SuppressWarnings("NewApi")
 public class AndroidHpkeSpi implements android.crypto.hpke.HpkeSpi, org.conscrypt.HpkeSpi {
     private final org.conscrypt.HpkeSpi delegate;
 
