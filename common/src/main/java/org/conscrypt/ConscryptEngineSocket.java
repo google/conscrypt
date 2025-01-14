@@ -110,7 +110,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     private static ConscryptEngine newEngine(
             SSLParametersImpl sslParameters, final ConscryptEngineSocket socket) {
         SSLParametersImpl modifiedParams;
-        if (Platform.supportsX509ExtendedTrustManager()) {
+        if (sslParameters.isSpake()) {
+            modifiedParams = sslParameters.cloneWithSpake();
+        } else if (Platform.supportsX509ExtendedTrustManager()) {
             modifiedParams = sslParameters.cloneWithTrustManager(
                 getDelegatingTrustManager(sslParameters.getX509TrustManager(), socket));
         } else {

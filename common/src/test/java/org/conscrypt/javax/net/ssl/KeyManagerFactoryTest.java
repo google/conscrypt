@@ -50,6 +50,7 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import org.conscrypt.KeyManagerFactoryImpl;
 import org.conscrypt.TestUtils;
+import org.conscrypt.PakeKeyManagerFactory;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Before;
@@ -104,6 +105,10 @@ public class KeyManagerFactoryTest {
         assertNotNull(kmf);
         assertNotNull(kmf.getAlgorithm());
         assertNotNull(kmf.getProvider());
+
+        if (kmf.getAlgorithm() == "PAKE") {
+            return;
+        }
 
         // before init
         try {
