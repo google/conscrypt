@@ -498,10 +498,6 @@ public class SSLSocketTest {
                         // By the point of the handshake where we're validating certificates,
                         // the hostname is known and the cipher suite should be agreed
                         assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
-
-                        // The negotiated cipher suite should be one of the enabled ones, but
-                        // BoringSSL may have reordered them based on things like hardware support,
-                        // so we don't know which one may have been negotiated.
                         String sessionSuite = session.getCipherSuite();
                         List<String> enabledSuites =
                             Arrays.asList(referenceClientSocket.getEnabledCipherSuites());
@@ -1306,3 +1302,4 @@ public class SSLSocketTest {
         }
     }
 }
+

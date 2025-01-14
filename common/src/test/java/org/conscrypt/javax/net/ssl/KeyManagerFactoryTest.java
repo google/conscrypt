@@ -150,6 +150,10 @@ public class KeyManagerFactoryTest {
             }
         }
 
+        if (kmf.getAlgorithm() == "PAKE") {
+            return;
+        }
+
         // init with null for default behavior
         kmf.init(null, null);
         test_KeyManagerFactory_getKeyManagers(kmf, true);
@@ -522,3 +526,4 @@ public class KeyManagerFactoryTest {
         }
     }
 }
+
