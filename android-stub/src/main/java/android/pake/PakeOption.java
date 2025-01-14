@@ -39,7 +39,9 @@ public final class PakeOption {
      *
      * @return The algorithm of the PAKE algorithm.
      */
-    public @NonNull String getAlgorithm();
+    public @NonNull String getAlgorithm() {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * Returns the message component with the given key.
@@ -48,7 +50,9 @@ public final class PakeOption {
      * @return The component data, or {@code null} if no component with the given
      *         key exists.
      */
-    public @Nullable byte[] getMessageComponent(@NonNull String key);
+    public @Nullable byte[] getMessageComponent(@NonNull String key) {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * A builder for creating {@link PakeOption} instances.
@@ -62,7 +66,9 @@ public final class PakeOption {
          * @param algorithm The algorithm of the PAKE algorithm.
          * @throws InvalidParameterException If the algorithm is invalid.
          */
-        public Builder(@NonNull String algorithm);
+        public Builder(@NonNull String algorithm) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Adds a message component.
@@ -72,7 +78,9 @@ public final class PakeOption {
          * @return This builder.
          * @throws InvalidParameterException If the key is invalid.
          */
-        public @NonNull Builder addMessageComponent(@NonNull String key, @Nullable byte[] value);
+        public @NonNull Builder addMessageComponent(@NonNull String key, @Nullable byte[] value) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Builds a new {@link PakeOption} instance.
@@ -83,6 +91,8 @@ public final class PakeOption {
          * @return A new {@link PakeOption} instance.
          * @throws InvalidParameterException If the message components are invalid.
          */
-        public @NonNull PakeOption build();
+        public @NonNull PakeOption build() {
+            throw new RuntimeException("Stub!");
+        }
     }
 }

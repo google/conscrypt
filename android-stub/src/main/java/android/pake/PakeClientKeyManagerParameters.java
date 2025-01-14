@@ -47,21 +47,27 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
      *
      * @return The client identifier.
      */
-    public @Nullable byte[] getClientId();
+    public @Nullable byte[] getClientId() {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * Returns the server identifier.
      *
      * @return The server identifier.
      */
-    public @Nullable byte[] getServerId();
+    public @Nullable byte[] getServerId() {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * Returns a copy of the list of available PAKE options.
      *
      * @return A copy of the list of available PAKE options.
      */
-    public @NonNull List<PakeOption> getOptions();
+    public @NonNull List<PakeOption> getOptions() {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * A builder for creating {@link PakeClientKeyManagerParameters} instances.
@@ -75,7 +81,9 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
          * @param clientId The ID of the client involved in the PAKE exchange.
          * @return This builder.
          */
-        public @NonNull Builder setClientId(@Nullable byte[] clientId);
+        public @NonNull Builder setClientId(@Nullable byte[] clientId) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Sets the ID of the server involved in the PAKE exchange.
@@ -83,7 +91,9 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
          * @param serverId The ID of the server involved in the PAKE exchange.
          * @return This builder.
          */
-        public @NonNull Builder setServerId(@Nullable byte[] serverId);
+        public @NonNull Builder setServerId(@Nullable byte[] serverId) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Adds a PAKE option.
@@ -92,7 +102,9 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
          * @return This builder.
          * @throws InvalidParameterException If an option with the same algorithm already exists.
          */
-        public @NonNull Builder addOption(@NonNull PakeOption option);
+        public @NonNull Builder addOption(@NonNull PakeOption option) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Builds a new {@link PakeClientKeyManagerParameters} instance.
@@ -100,6 +112,8 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
          * @return A new {@link PakeClientKeyManagerParameters} instance.
          * @throws InvalidParameterException If no PAKE options are provided.
          */
-        public @NonNull PakeClientKeyManagerParameters build();
+        public @NonNull PakeClientKeyManagerParameters build() {
+            throw new RuntimeException("Stub!");
+        }
     }
 }

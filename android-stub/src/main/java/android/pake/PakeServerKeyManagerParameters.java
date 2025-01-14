@@ -50,7 +50,9 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
      *
      * @return The known links.
      */
-    public @NonNull Set<Link> getLinks();
+    public @NonNull Set<Link> getLinks() {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * Returns an unmodifiable list of PAKE options for the given {@link Link}.
@@ -59,7 +61,9 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
      *             {@link #getLinks}.
      * @return An unmodifiable list of PAKE options for the given link.
      */
-    public @NonNull List<PakeOption> getOptions(@NonNull Link link);
+    public @NonNull List<PakeOption> getOptions(@NonNull Link link) {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * Returns an unmodifiable list of PAKE options for the given client-server pair.
@@ -69,7 +73,9 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
      * @return An unmodifiable list of PAKE options for the given link.
      */
     public @NonNull List<PakeOption> getOptions(
-            @Nullable byte[] clientId, @Nullable byte[] serverId);
+            @Nullable byte[] clientId, @Nullable byte[] serverId) {
+        throw new RuntimeException("Stub!");
+    }
 
     /**
      * A PAKE link class combining the client and server IDs.
@@ -83,25 +89,37 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          * @param clientId The client identifier for the link.
          * @param serverId The server identifier for the link.
          */
-        private Link(@Nullable byte[] clientId, @Nullable byte[] serverId);
+        private Link(@Nullable byte[] clientId, @Nullable byte[] serverId) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Returns the client identifier for the link.
          *
          * @return The client identifier for the link.
          */
-        public @Nullable byte[] getClientId();
+        public @Nullable byte[] getClientId() {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Returns the server identifier for the link.
          *
          * @return The server identifier for the link.
          */
-        public @Nullable byte[] getServerId();
+        public @Nullable byte[] getServerId() {
+            throw new RuntimeException("Stub!");
+        }
 
-        @Override public boolean equals(Object o);
+        @Override
+        public boolean equals(Object o) {
+            throw new RuntimeException("Stub!");
+        }
 
-        @Override public int hashCode();
+        @Override
+        public int hashCode() {
+            throw new RuntimeException("Stub!");
+        }
     }
 
     /**
@@ -121,7 +139,9 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          * @throws InvalidParameterException If the provided options are invalid.
          */
         public @NonNull Builder setOptions(@Nullable byte[] clientId, @Nullable byte[] serverId,
-                @NonNull List<PakeOption> options);
+                @NonNull List<PakeOption> options) {
+            throw new RuntimeException("Stub!");
+        }
 
         /**
          * Builds a new {@link PakeServerKeyManagerParameters} instance.
@@ -129,6 +149,8 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          * @return A new {@link PakeServerKeyManagerParameters} instance.
          * @throws InvalidParameterException If no links are provided.
          */
-        public @NonNull PakeServerKeyManagerParameters build();
+        public @NonNull PakeServerKeyManagerParameters build() {
+            throw new RuntimeException("Stub!");
+        }
     }
 }
