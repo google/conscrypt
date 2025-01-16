@@ -302,11 +302,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 case STATE_READY_HANDSHAKE_CUT_THROUGH:
                     if (handshakeStartedMillis > 0) {
                         StatsLog statsLog = Platform.getStatsLog();
-                        if (statsLog != null) {
-                            statsLog.countTlsHandshake(true, engine.getSession().getProtocol(),
-                                    engine.getSession().getCipherSuite(),
-                                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
-                        }
+                        statsLog.countTlsHandshake(true, engine.getSession().getProtocol(),
+                                engine.getSession().getCipherSuite(),
+                                Platform.getMillisSinceBoot() - handshakeStartedMillis);
                         handshakeStartedMillis = 0;
                     }
                     notify = true;
@@ -319,12 +317,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 case STATE_CLOSED:
                     if (handshakeStartedMillis > 0) {
                         StatsLog statsLog = Platform.getStatsLog();
-                        if (statsLog != null) {
-                            // Handshake was in progress and so must have failed.
-                            statsLog.countTlsHandshake(false, "TLS_PROTO_FAILED",
-                                    "TLS_CIPHER_FAILED",
-                                    Platform.getMillisSinceBoot() - handshakeStartedMillis);
-                        }
+                        // Handshake was in progress and so must have failed.
+                        statsLog.countTlsHandshake(false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED",
+                                Platform.getMillisSinceBoot() - handshakeStartedMillis);
                         handshakeStartedMillis = 0;
                     }
                     notify = true;

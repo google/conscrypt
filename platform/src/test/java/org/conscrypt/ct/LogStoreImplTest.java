@@ -16,14 +16,17 @@
 
 package org.conscrypt.ct;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.conscrypt.OpenSSLKey;
-import org.conscrypt.metrics.StatsLog;
+import org.conscrypt.metrics.NoopStatsLog;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -38,18 +41,11 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 @RunWith(JUnit4.class)
 public class LogStoreImplTest {
-    static class FakeStatsLog implements StatsLog {
+    static class FakeStatsLog extends NoopStatsLog {
         public ArrayList<LogStore.State> states = new ArrayList<LogStore.State>();
 
-        @Override
-        public void countTlsHandshake(
-                boolean success, String protocol, String cipherSuite, long duration) {}
         @Override
         public void updateCTLogListStatusChanged(LogStore logStore) {
             states.add(logStore.getState());
@@ -154,8 +150,7 @@ public class LogStoreImplTest {
 
         FakeStatsLog metrics = new FakeStatsLog();
         File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
-        store.setPolicy(alwaysCompliantStorePolicy);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
         assertNull("A null logId should return null", store.getKnownLog(null));
 
@@ -186,8 +181,7 @@ public class LogStoreImplTest {
         FakeStatsLog metrics = new FakeStatsLog();
         String content = "}}";
         File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
-        store.setPolicy(alwaysCompliantStorePolicy);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
         assertEquals(
                 "The log state should be malformed", store.getState(), LogStore.State.MALFORMED);
@@ -200,8 +194,7 @@ public class LogStoreImplTest {
     public void test_loadMissingLogList() throws Exception {
         FakeStatsLog metrics = new FakeStatsLog();
         File logList = new File("does_not_exist");
-        LogStore store = new LogStoreImpl(logList.toPath(), metrics);
-        store.setPolicy(alwaysCompliantStorePolicy);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
         assertEquals(
                 "The log state should be not found", store.getState(), LogStore.State.NOT_FOUND);

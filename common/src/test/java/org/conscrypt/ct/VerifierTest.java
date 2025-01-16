@@ -54,9 +54,6 @@ public class VerifierTest {
                                     .build();
         LogStore store = new LogStore() {
             @Override
-            public void setPolicy(Policy policy) {}
-
-            @Override
             public State getState() {
                 return LogStore.State.COMPLIANT;
             }

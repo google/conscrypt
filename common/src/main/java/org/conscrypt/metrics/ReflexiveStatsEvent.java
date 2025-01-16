@@ -56,6 +56,8 @@ public class ReflexiveStatsEvent {
         return new ReflexiveStatsEvent.Builder();
     }
 
+    /* Used by older CTS test */
+    @Deprecated
     public static ReflexiveStatsEvent buildEvent(int atomId, boolean success, int protocol,
             int cipherSuite, int duration, int source, int[] uids) {
         ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
@@ -65,15 +67,15 @@ public class ReflexiveStatsEvent {
         builder.writeInt(cipherSuite);
         builder.writeInt(duration);
         builder.writeInt(source);
-        if (sdkVersionBiggerThan32) {
-          builder.writeIntArray(uids);
-        }
+        builder.writeIntArray(uids);
         builder.usePooledBuffer();
         return builder.build();
     }
 
-    public static ReflexiveStatsEvent buildEvent(int atomId, boolean success, int protocol,
-            int cipherSuite, int duration, int source) {
+    /* Used by older CTS test */
+    @Deprecated
+    public static ReflexiveStatsEvent buildEvent(
+            int atomId, boolean success, int protocol, int cipherSuite, int duration, int source) {
         ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
         builder.setAtomId(atomId);
         builder.writeBoolean(success);
@@ -84,7 +86,6 @@ public class ReflexiveStatsEvent {
         builder.usePooledBuffer();
         return builder.build();
     }
-
 
     static Object getSdkVersion() {
         try {
@@ -150,7 +151,9 @@ public class ReflexiveStatsEvent {
         }
 
         public Builder writeIntArray(final int[] values) {
-            writeIntArray.invoke(this.builder, values);
+            if (sdkVersionBiggerThan32) {
+                writeIntArray.invoke(this.builder, values);
+            }
             return this;
         }
 
