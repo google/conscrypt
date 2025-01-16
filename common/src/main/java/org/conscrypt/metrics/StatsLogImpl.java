@@ -49,7 +49,7 @@ public final class StatsLogImpl implements StatsLog {
     private static final ExecutorService e = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
+            Thread thread = new Thread(r, "ConscryptStatsLog");
             thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {

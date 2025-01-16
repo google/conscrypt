@@ -592,6 +592,10 @@ final public class Platform {
         return ENABLED_TLS_V1;
     }
 
+    public static boolean isPakeSupported() {
+        return true;
+    }
+
     static Object getTargetSdkVersion() {
         try {
             Class<?> vmRuntimeClass = Class.forName("dalvik.system.VMRuntime");
