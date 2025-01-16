@@ -74,16 +74,17 @@ public class LogStoreImpl implements LogStore {
     private long timestamp;
     private Map<ByteArray, LogInfo> logs;
 
-    public LogStoreImpl() {
-        this(DEFAULT_LOG_LIST);
+    public LogStoreImpl(Policy policy) {
+        this(policy, DEFAULT_LOG_LIST);
     }
 
-    public LogStoreImpl(Path logList) {
-        this(logList, Platform.getStatsLog());
+    public LogStoreImpl(Policy policy, Path logList) {
+        this(policy, logList, Platform.getStatsLog());
     }
 
-    public LogStoreImpl(Path logList, StatsLog metrics) {
+    public LogStoreImpl(Policy policy, Path logList, StatsLog metrics) {
         this.state = State.UNINITIALIZED;
+        this.policy = policy;
         this.logList = logList;
         this.metrics = metrics;
     }
@@ -126,11 +127,6 @@ public class LogStoreImpl implements LogStore {
     }
 
     @Override
-    public void setPolicy(Policy policy) {
-        this.policy = policy;
-    }
-
-    @Override
     public LogInfo getKnownLog(byte[] logId) {
         if (logId == null) {
             return null;
@@ -158,7 +154,7 @@ public class LogStoreImpl implements LogStore {
             if (state == State.LOADED && policy != null) {
                 state = policy.isLogStoreCompliant(this) ? State.COMPLIANT : State.NON_COMPLIANT;
             }
-            if (state != previousState && metrics != null) {
+            if (state != previousState) {
                 metrics.updateCTLogListStatusChanged(this);
             }
             return state == State.COMPLIANT;

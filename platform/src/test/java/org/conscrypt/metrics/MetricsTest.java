@@ -48,8 +48,16 @@ public class MetricsTest {
                                                  .writeIntArray(new int[] {0}) // uids
                                                  .usePooledBuffer()
                                                  .build();
-            reflexiveStatsEvent = ReflexiveStatsEvent.buildEvent(
-                TLS_HANDSHAKE_REPORTED, false, 1, 2, 100, 3, new int[] {0});
+            ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder()
+                                                          .setAtomId(TLS_HANDSHAKE_REPORTED)
+                                                          .writeBoolean(false)
+                                                          .writeInt(1) // protocol
+                                                          .writeInt(2) // cipher suite
+                                                          .writeInt(100) // duration
+                                                          .writeInt(3) // source
+                                                          .writeIntArray(new int[] {0}); // uids
+            builder.usePooledBuffer();
+            reflexiveStatsEvent = builder.build();
         } else {
             frameworkStatsEvent = StatsEvent.newBuilder()
                                                  .setAtomId(TLS_HANDSHAKE_REPORTED)
@@ -60,8 +68,15 @@ public class MetricsTest {
                                                  .writeInt(3) // source
                                                  .usePooledBuffer()
                                                  .build();
-            reflexiveStatsEvent = ReflexiveStatsEvent.buildEvent(
-                TLS_HANDSHAKE_REPORTED, false, 1, 2, 100, 3);
+            ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder()
+                                                          .setAtomId(TLS_HANDSHAKE_REPORTED)
+                                                          .writeBoolean(false)
+                                                          .writeInt(1) // protocol
+                                                          .writeInt(2) // cipher suite
+                                                          .writeInt(100) // duration
+                                                          .writeInt(3); // source
+            builder.usePooledBuffer();
+            reflexiveStatsEvent = builder.build();
         }
 
         StatsEvent constructedEvent = (StatsEvent) reflexiveStatsEvent.getStatsEvent();
