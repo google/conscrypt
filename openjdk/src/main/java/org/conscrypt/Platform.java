@@ -861,4 +861,8 @@ final public class Platform {
     public static boolean isTlsV1Supported() {
         return ENABLED_TLS_V1;
     }
+
+    public static boolean isPakeSupported() {
+        return false;
+    }
 }

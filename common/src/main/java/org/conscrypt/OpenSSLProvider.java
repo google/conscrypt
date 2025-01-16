@@ -547,6 +547,12 @@ public final class OpenSSLProvider extends Provider {
                 baseClass + "$X25519_CHACHA20");
         put("Alg.Alias.ConscryptHpke.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_GhpkeCHACHA20POLY1305",
                 "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305");
+
+        /* === PAKE === */
+        if (Platform.isPakeSupported()) {
+            put("TrustManagerFactory.PAKE", PREFIX + "PakeTrustManagerFactory");
+            put("KeyManagerFactory.PAKE", PREFIX + "PakeKeyManagerFactory");
+        }
     }
 
     private boolean classExists(String classname) {
