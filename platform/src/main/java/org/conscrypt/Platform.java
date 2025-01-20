@@ -25,26 +25,18 @@ import android.system.StructTimeval;
 
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
-import dalvik.system.VMRuntime;
 
 import libcore.net.NetworkSecurityPolicy;
 
-import org.conscrypt.NativeCrypto;
 import org.conscrypt.ct.CertificateTransparency;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.LogStoreImpl;
-import org.conscrypt.ct.Policy;
-import org.conscrypt.ct.PolicyImpl;
 import org.conscrypt.flags.Flags;
 import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
-import org.conscrypt.metrics.OptionalMethod;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
 import org.conscrypt.metrics.StatsLogImpl;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.lang.System;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -57,7 +49,6 @@ import java.security.AlgorithmParameters;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;

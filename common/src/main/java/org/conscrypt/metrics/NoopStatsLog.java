@@ -20,6 +20,9 @@ import org.conscrypt.ct.LogStore;
 import org.conscrypt.ct.PolicyCompliance;
 import org.conscrypt.ct.VerificationResult;
 
+/**
+ * Noop class for stats logging
+ */
 @Internal
 public class NoopStatsLog implements StatsLog {
     private static final StatsLog INSTANCE = new NoopStatsLog();

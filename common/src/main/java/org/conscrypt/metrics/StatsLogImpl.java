@@ -37,13 +37,13 @@ import org.conscrypt.ct.PolicyCompliance;
 import org.conscrypt.ct.VerificationResult;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * Implements logging for Conscrypt metrics.
+ */
 @Internal
 public final class StatsLogImpl implements StatsLog {
     private static final ExecutorService e = Executors.newSingleThreadExecutor(new ThreadFactory() {

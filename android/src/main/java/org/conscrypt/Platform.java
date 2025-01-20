@@ -27,7 +27,6 @@ import android.util.Log;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 
-import org.conscrypt.NativeCrypto;
 import org.conscrypt.ct.CertificateTransparency;
 import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.NoopStatsLog;
@@ -50,7 +49,6 @@ import java.security.AlgorithmParameters;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;

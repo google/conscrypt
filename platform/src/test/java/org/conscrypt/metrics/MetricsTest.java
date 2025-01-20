@@ -19,11 +19,11 @@ package org.conscrypt.metrics;
 import static org.junit.Assert.assertEquals;
 
 import android.util.StatsEvent;
+
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.conscrypt.metrics.OptionalMethod;
 
 @RunWith(JUnit4.class)
 public class MetricsTest {
