@@ -19,11 +19,11 @@ package org.conscrypt.javax.net.ssl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.conscrypt.KeyManagerFactoryImpl;
-import org.conscrypt.PakeKeyManagerFactory;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
