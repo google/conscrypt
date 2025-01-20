@@ -26,19 +26,34 @@ import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
 import static org.conscrypt.NativeConstants.TLS1_1_VERSION;
 import static org.conscrypt.NativeConstants.TLS1_2_VERSION;
 import static org.conscrypt.NativeConstants.TLS1_VERSION;
+import static org.conscrypt.TestUtils.decodeHex;
 import static org.conscrypt.TestUtils.isWindows;
 import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
+
+import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+import org.conscrypt.io.IoUtils;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -74,22 +89,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
-import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
-import org.conscrypt.io.IoUtils;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class NativeCryptoTest {
@@ -2714,6 +2719,79 @@ public class NativeCryptoTest {
         } catch (RuntimeException expected) {
             // Expected.
         }
+    }
+
+    @Test
+    public void test_ED25519_keypair_works() throws Exception {
+        byte[] publicKeyBytes = new byte[32];
+        byte[] privateKeyBytes = new byte[64];
+        NativeCrypto.ED25519_keypair(publicKeyBytes, privateKeyBytes);
+
+        byte[] publicKeyBytes2 = new byte[32];
+        byte[] privateKeyBytes2 = new byte[64];
+        NativeCrypto.ED25519_keypair(publicKeyBytes2, privateKeyBytes2);
+
+        // keys must be random
+        assertNotEquals(publicKeyBytes, publicKeyBytes2);
+        assertNotEquals(privateKeyBytes, privateKeyBytes2);
+    }
+
+    @Test
+    public void test_ED25519_keypair_32BytePrivateKey_throws() throws Exception {
+        byte[] publicKeyBytes = new byte[32];
+        byte[] privateKeyBytes = new byte[32];
+        assertThrows(IllegalArgumentException.class,
+                () -> NativeCrypto.ED25519_keypair(publicKeyBytes, privateKeyBytes));
+    }
+
+    @Test
+    public void test_EVP_DigestSign_Ed25519_works() throws Exception {
+        // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
+        // PKCS#8 encoding for Ed25519 is defined in https://datatracker.ietf.org/doc/html/rfc8410
+        byte[] pkcs8EncodedPrivateKey = decodeHex(
+                // PKCS#8 header
+                "302e020100300506032b657004220420"
+                // raw private key
+                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+        byte[] data = decodeHex("");
+        byte[] expectedSig =
+                decodeHex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490155"
+                        + "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b");
+
+        NativeRef.EVP_PKEY privateKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_parse_private_key(pkcs8EncodedPrivateKey));
+
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeCrypto.EVP_DigestSignInit(ctx, 0, privateKey);
+        byte[] sig = NativeCrypto.EVP_DigestSign(ctx, data, 0, data.length);
+
+        assertArrayEquals(expectedSig, sig);
+    }
+
+    @Test
+    public void test_EVP_DigestVerify_Ed25519_works() throws Exception {
+        // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
+        // X.509 encoding for Ed25519 is defined in https://datatracker.ietf.org/doc/html/rfc8410
+        byte[] x509EncodedPublicKey = decodeHex(
+                // X.509 header
+                "302a300506032b6570032100"
+                // raw public key
+                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
+        byte[] data = decodeHex("");
+        byte[] sig = decodeHex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490155"
+                + "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b");
+
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeRef.EVP_PKEY publicKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_parse_public_key(x509EncodedPublicKey));
+
+        NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+        boolean result =
+                NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
+
+        assertTrue(result);
     }
 
     @Test(expected = NullPointerException.class)
