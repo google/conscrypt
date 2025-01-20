@@ -416,10 +416,11 @@ public final class CipherBasicsTest {
                         // Some providers may not support all tag lengths or nonce lengths,
                         // that's allowed
                         if (e.getMessage().contains("IV must not be re-used")) {
-                            throw new AssertionError(
-                                "The same IV was used twice and therefore some tests did not run." +
-                                "Provider = " + p.getName() + ", algorithm = " + transformation,
-                                e);
+                            throw new AssertionError("The same IV was used twice and therefore "
+                                                     + "some tests did not run."
+                                            + "Provider = " + p.getName()
+                                            + ", algorithm = " + transformation,
+                                    e);
                         }
                     }
                 }
