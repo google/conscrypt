@@ -417,7 +417,7 @@ public final class CipherBasicsTest {
                         // that's allowed
                         if (e.getMessage().contains("IV must not be re-used")) {
                             throw new AssertionError("The same IV was used twice and therefore "
-                                                     + "some tests did not run."
+                                            + "some tests did not run."
                                             + "Provider = " + p.getName()
                                             + ", algorithm = " + transformation,
                                     e);
