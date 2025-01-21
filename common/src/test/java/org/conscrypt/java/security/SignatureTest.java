@@ -83,44 +83,45 @@ public class SignatureTest {
 
     @Test
     public void test_getInstance() throws Exception {
-        ServiceTester.test("Signature")
-            // Do not test AndroidKeyStore's Signature. It needs an AndroidKeyStore-specific key.
-            // It's OKish not to test AndroidKeyStore's Signature here because it's tested
-            // by cts/tests/test/keystore.
-            .skipProvider("AndroidKeyStore")
-            .skipProvider("AndroidKeyStoreBCWorkaround")
-            // The SunMSCAPI is very strange, including only supporting its own keys,
-            // so don't test it.
-            .skipProvider("SunMSCAPI")
-            // SunPKCS11-NSS has a problem where failed verifications can leave the
-            // operation open, which results in future init() calls to throw an exception.
-            // This appears to be a problem in the underlying library (see
-            // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
-            // the same.
-            .skipProvider("SunPKCS11-NSS")
-            // We don't have code to generate key pairs for these yet.
-            .skipAlgorithm("Ed448")
-            .skipAlgorithm("EdDSA")
-            .skipAlgorithm("HSS/LMS")
-            .run((provider, algorithm) -> {
-                KeyPair kp = keyPair(algorithm);
-                // Signature.getInstance(String)
-                Signature sig1 = Signature.getInstance(algorithm);
-                assertEquals(algorithm, sig1.getAlgorithm());
-                test_Signature(sig1, kp);
+        ServiceTester
+                .test("Signature")
+                // Do not test AndroidKeyStore's Signature. It needs an AndroidKeyStore-specific
+                // key. It's OKish not to test AndroidKeyStore's Signature here because it's tested
+                // by cts/tests/test/keystore.
+                .skipProvider("AndroidKeyStore")
+                .skipProvider("AndroidKeyStoreBCWorkaround")
+                // The SunMSCAPI is very strange, including only supporting its own keys,
+                // so don't test it.
+                .skipProvider("SunMSCAPI")
+                // SunPKCS11-NSS has a problem where failed verifications can leave the
+                // operation open, which results in future init() calls to throw an exception.
+                // This appears to be a problem in the underlying library (see
+                // https://bugs.openjdk.java.net/browse/JDK-8044554), but skip verifying it all
+                // the same.
+                .skipProvider("SunPKCS11-NSS")
+                // We don't have code to generate key pairs for these yet.
+                .skipAlgorithm("Ed448")
+                .skipAlgorithm("EdDSA")
+                .skipAlgorithm("HSS/LMS")
+                .run((provider, algorithm) -> {
+                    KeyPair kp = keyPair(algorithm);
+                    // Signature.getInstance(String)
+                    Signature sig1 = Signature.getInstance(algorithm);
+                    assertEquals(algorithm, sig1.getAlgorithm());
+                    test_Signature(sig1, kp);
 
-                // Signature.getInstance(String, Provider)
-                Signature sig2 = Signature.getInstance(algorithm, provider);
-                assertEquals(algorithm, sig2.getAlgorithm());
-                assertEquals(provider, sig2.getProvider());
-                test_Signature(sig2, kp);
+                    // Signature.getInstance(String, Provider)
+                    Signature sig2 = Signature.getInstance(algorithm, provider);
+                    assertEquals(algorithm, sig2.getAlgorithm());
+                    assertEquals(provider, sig2.getProvider());
+                    test_Signature(sig2, kp);
 
-                // Signature.getInstance(String, String)
-                Signature sig3 = Signature.getInstance(algorithm, provider.getName());
-                assertEquals(algorithm, sig3.getAlgorithm());
-                assertEquals(provider, sig3.getProvider());
-                test_Signature(sig3, kp);
-            });
+                    // Signature.getInstance(String, String)
+                    Signature sig3 = Signature.getInstance(algorithm, provider.getName());
+                    assertEquals(algorithm, sig3.getAlgorithm());
+                    assertEquals(provider, sig3.getProvider());
+                    test_Signature(sig3, kp);
+                });
     }
 
     private final Map<String, KeyPair> keypairAlgorithmToInstance
