@@ -24,15 +24,14 @@ import java.util.Arrays;
 /** An OpenSSL EdDSA private key. */
 public class OpenSslEdDsaPrivateKey implements PrivateKey {
     private static final long serialVersionUID = -3136201500221850916L;
-    private static final byte[] pkcs8Preamble =
-      new byte[] {
-        0x30, 0x2e, // Sequence: 46 bytes
-        0x02, 0x01, 0x00, // Integer: 0 (version)
-        0x30, 0x05, // Sequence: 5 bytes
-        0x06, 0x03, 0x2b, 0x65, 0x70, // OID: 1.3.101.112 (EdDSA)
-        0x04, 0x22, 0x04, 0x20, // Octet string: 32 bytes
-        // Key bytes follow directly
-      };
+    private static final byte[] pkcs8Preamble = new byte[] {
+            0x30, 0x2e, // Sequence: 46 bytes
+            0x02, 0x01, 0x00, // Integer: 0 (version)
+            0x30, 0x05, // Sequence: 5 bytes
+            0x06, 0x03, 0x2b, 0x65, 0x70, // OID: 1.3.101.112 (EdDSA)
+            0x04, 0x22, 0x04, 0x20, // Octet string: 32 bytes
+            // Key bytes follow directly
+    };
 
     // BoringSSL uses a 64-byte private key. But this key here is only
     // the 32-byte seed, as defined in RFC 8032.
@@ -80,7 +79,7 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey {
         if (privateKeyBytes == null) {
             throw new IllegalStateException("key is destroyed");
         }
-    return ArrayUtils.concat(pkcs8Preamble, privateKeyBytes);
+        return ArrayUtils.concat(pkcs8Preamble, privateKeyBytes);
     }
 
     byte[] getRaw() {
@@ -105,7 +104,8 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (this == o)
+            return true;
         if (!(o instanceof OpenSslEdDsaPrivateKey)) {
             return false;
         }

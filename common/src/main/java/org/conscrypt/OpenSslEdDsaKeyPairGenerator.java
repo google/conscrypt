@@ -45,9 +45,8 @@ public final class OpenSslEdDsaKeyPairGenerator extends KeyPairGenerator {
         // BoringSSL uses a 64-byte private key. We only need the seed, which is the first 32 bytes.
         byte[] privateKeySeed = Arrays.copyOf(privateKeyBytes, 32);
 
-        return new KeyPair(
-            new OpenSslEdDsaPublicKey(publicKeyBytes),
-            new OpenSslEdDsaPrivateKey(privateKeySeed));
+        return new KeyPair(new OpenSslEdDsaPublicKey(publicKeyBytes),
+                new OpenSslEdDsaPrivateKey(privateKeySeed));
     }
 
     @Override

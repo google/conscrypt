@@ -32,8 +32,7 @@ import java.security.spec.X509EncodedKeySpec;
 /** An implementation of a {@link KeyFactorySpi} for EdDSA keys based on BoringSSL. */
 @Internal
 public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
-
-  public OpenSslEdDsaKeyFactory() {}
+    public OpenSslEdDsaKeyFactory() {}
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
@@ -41,10 +40,10 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
         if (keySpec instanceof EncodedKeySpec) {
-      return new OpenSslEdDsaPublicKey((EncodedKeySpec) keySpec);
+            return new OpenSslEdDsaPublicKey((EncodedKeySpec) keySpec);
         }
-    throw new InvalidKeySpecException(
-        "Must use X509EncodedKeySpec or Raw EncodedKeySpec; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Must use X509EncodedKeySpec or Raw EncodedKeySpec; was "
+                + keySpec.getClass().getName());
     }
 
     @Override
@@ -55,8 +54,8 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslEdDsaPrivateKey((EncodedKeySpec) keySpec);
         }
-    throw new InvalidKeySpecException(
-        "Must use PKCS8EncodedKeySpec or Raw EncodedKeySpec; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Must use PKCS8EncodedKeySpec or Raw EncodedKeySpec; was "
+                + keySpec.getClass().getName());
     }
 
     @Override
@@ -115,8 +114,8 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
             }
             return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                 IllegalAccessException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
+                | IllegalAccessException e) {
             throw new InvalidKeySpecException(
                     "Can't process KeySpec class " + keySpecClass.getName(), e);
         }
@@ -150,8 +149,8 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeyException(e);
             }
         } else {
-            throw new InvalidKeyException("Key must be XEC public or private key; was "
-                    + key.getClass().getName());
+            throw new InvalidKeyException(
+                    "Key must be XEC public or private key; was " + key.getClass().getName());
         }
     }
 }

@@ -29,7 +29,6 @@ import java.security.SignatureSpi;
  */
 @Internal
 public class OpenSslSignatureEdDsa extends SignatureSpi {
-
     private NativeRef.EVP_MD_CTX ctx;
 
     /**
@@ -92,7 +91,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
     }
 
     @Override
-    @SuppressWarnings("deprecation")  // We are required to implement this method.
+    @SuppressWarnings("deprecation") // We are required to implement this method.
     protected void engineSetParameter(String param, Object value) {}
 
     @Override

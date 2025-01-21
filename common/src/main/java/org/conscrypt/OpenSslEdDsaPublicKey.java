@@ -25,14 +25,13 @@ import java.util.Arrays;
 public class OpenSslEdDsaPublicKey implements PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
-    private static final byte[] X509_PREAMBLE =
-        new byte[] {
+    private static final byte[] X509_PREAMBLE = new byte[] {
             0x30, 0x2a, // Sequence: 42 bytes
             0x30, 0x05, // Sequence: 5 bytes
             0x06, 0x03, 0x2b, 0x65, 0x70, // OID: 1.3.101.112 (id-EdDSA)
             0x03, 0x21, 0x00, // Bit string: 256 bits
             // Key bytes follow directly
-        };
+    };
 
     static final int ED25519_PUBLIC_KEY_SIZE_BYTES = 32;
 
