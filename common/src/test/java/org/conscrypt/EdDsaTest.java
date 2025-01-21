@@ -139,9 +139,9 @@ public class EdDsaTest {
     }
 
     @Test
-    public void generateKeyPairWithSunEc_useWithConscrypt_works() throws Exception {
+    public void generateKeyPairWithDefaultProvider_useWithConscrypt_works() throws Exception {
         // generate key pair with default provider
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", "SunEC");
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519");
         KeyPair keyPair = keyGen.generateKeyPair();
 
         byte[] message = new byte[123];
@@ -155,17 +155,17 @@ public class EdDsaTest {
     }
 
     @Test
-    public void keygenWithConscrypt_useWithSunEc_fails() throws Exception {
+    public void keygenWithConscrypt_useWithDefaultProvider_fails() throws Exception {
         // generate key pair with conscrypt
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        // This fails because the SunEC implementation expects the key to implement
+        // This fails because the default provider expects the key to implement
         // the EdECPrivateKey and EdECPublicKey interfaces, which we don't yet implement.
         assertThrows(InvalidKeyException.class,
-                () -> Signature.getInstance("Ed25519", "SunEC").initSign(keyPair.getPrivate()));
+                () -> Signature.getInstance("Ed25519").initSign(keyPair.getPrivate()));
         assertThrows(InvalidKeyException.class,
-                () -> Signature.getInstance("Ed25519", "SunEC").initVerify(keyPair.getPublic()));
+                () -> Signature.getInstance("Ed25519").initVerify(keyPair.getPublic()));
     }
 
     @Test
