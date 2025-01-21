@@ -137,10 +137,10 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
                             context, password, null, null, null, idProver, idVerifier, false)};
                 }
                 byte[] w0 = option.getMessageComponent("w0");
-                byte[] registrationRecord = option.getMessageComponent("registrationRecord");
-                if (w0 != null && registrationRecord != null) {
-                    return new KeyManager[] {new Spake2PlusKeyManager(context, null, w0, null,
-                            registrationRecord, idProver, idVerifier, false)};
+                byte[] l = option.getMessageComponent("L");
+                if (w0 != null && l != null) {
+                    return new KeyManager[] {new Spake2PlusKeyManager(
+                            context, null, w0, null, l, idProver, idVerifier, false)};
                 }
                 break;
             }
