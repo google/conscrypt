@@ -152,7 +152,7 @@ public class KeyManagerFactoryTest {
 
         if (kmf.getAlgorithm().equals("PAKE")) {
             assertThrows(KeyStoreException.class, () -> kmf.init(null, null));
-            return;  // Functional testing is in PakeKeyManagerFactoryTest
+            return; // Functional testing is in PakeKeyManagerFactoryTest
         }
 
         // init with null for default behavior
