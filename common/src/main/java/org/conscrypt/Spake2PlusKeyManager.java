@@ -27,26 +27,26 @@ import javax.net.ssl.SSLEngine;
  */
 @Internal
 public class Spake2PlusKeyManager implements KeyManager {
-    private final byte[] context;
-    private final byte[] password;
-    private final byte[] w0;
-    private final byte[] w1;
-    private final byte[] registrationRecord;
-    private final byte[] idProver;
-    private final byte[] idVerifier;
-    private final boolean isClient;
+  private final byte[] context;
+  private final byte[] password;
+  private final byte[] w0;
+  private final byte[] w1;
+  private final byte[] l;
+  private final byte[] idProver;
+  private final byte[] idVerifier;
+  private final boolean isClient;
 
-    Spake2PlusKeyManager(byte[] context, byte[] password, byte[] w0, byte[] w1,
-            byte[] registrationRecord, byte[] idProver, byte[] idVerifier, boolean isClient) {
-        this.context = context;
-        this.password = password;
-        this.w0 = w0;
-        this.w1 = w1;
-        this.registrationRecord = registrationRecord;
-        this.idProver = idProver;
-        this.idVerifier = idVerifier;
-        this.isClient = isClient;
-    }
+  Spake2PlusKeyManager(byte[] context, byte[] password, byte[] w0, byte[] w1, byte[] l,
+          byte[] idProver, byte[] idVerifier, boolean isClient) {
+      this.context = context;
+      this.password = password;
+      this.w0 = w0;
+      this.w1 = w1;
+      this.l = l;
+      this.idProver = idProver;
+      this.idVerifier = idVerifier;
+      this.isClient = isClient;
+  }
 
     public String chooseEngineAlias(String keyType, Principal[] issuers, SSLEngine engine) {
         throw new UnsupportedOperationException("Not implemented");
@@ -64,17 +64,17 @@ public class Spake2PlusKeyManager implements KeyManager {
         return password;
     }
 
-    public byte[] getw0() {
-        return w0;
-    }
+  public byte[] getW0() {
+      return w0;
+  }
 
-    public byte[] getw1() {
-        return w1;
-    }
+  public byte[] getW1() {
+      return w1;
+  }
 
-    public byte[] getRegistrationRecord() {
-        return registrationRecord;
-    }
+  public byte[] getL() {
+      return l;
+  }
 
     public byte[] getIdProver() {
         return idProver;
@@ -84,7 +84,7 @@ public class Spake2PlusKeyManager implements KeyManager {
         return idVerifier;
     }
 
-    public boolean isClient() {
-        return isClient;
-    }
+  public boolean isClient() {
+    return isClient;
+  }
 }
