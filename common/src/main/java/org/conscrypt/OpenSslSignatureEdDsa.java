@@ -46,7 +46,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
     /**
      * buffer to hold value to be signed or verified.
      */
-    private Buffer buffer = new Buffer();
+    private final Buffer buffer = new Buffer();
 
     public OpenSslSignatureEdDsa() {}
 

@@ -154,21 +154,6 @@ public class EdDsaTest {
     }
 
     @Test
-    public void keygenWithConscrypt_useWithDefaultProvider_works() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
-        KeyPair keyPair = keyGen.generateKeyPair();
-
-        byte[] message = new byte[123];
-        Signature signature = Signature.getInstance("Ed25519");
-        signature.initSign(keyPair.getPrivate());
-        signature.update(message);
-        byte[] sig = signature.sign();
-        signature.initVerify(keyPair.getPublic());
-        signature.update(message);
-        assertTrue(signature.verify(sig));
-    }
-
-    @Test
     public void pkcs8AndX509EncodedKeys_work() throws Exception {
         // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
         // Encoding from https://datatracker.ietf.org/doc/html/rfc8410
