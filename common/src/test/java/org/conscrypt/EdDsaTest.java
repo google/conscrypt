@@ -140,7 +140,6 @@ public class EdDsaTest {
 
     @Test
     public void generateKeyPairWithDefaultProvider_useWithConscrypt_works() throws Exception {
-        // generate key pair with default provider
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519");
         KeyPair keyPair = keyGen.generateKeyPair();
 
@@ -155,17 +154,18 @@ public class EdDsaTest {
     }
 
     @Test
-    public void keygenWithConscrypt_useWithDefaultProvider_fails() throws Exception {
-        // generate key pair with conscrypt
+    public void keygenWithConscrypt_useWithDefaultProvider_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        // This fails because the default provider expects the key to implement
-        // the EdECPrivateKey and EdECPublicKey interfaces, which we don't yet implement.
-        assertThrows(InvalidKeyException.class,
-                () -> Signature.getInstance("Ed25519").initSign(keyPair.getPrivate()));
-        assertThrows(InvalidKeyException.class,
-                () -> Signature.getInstance("Ed25519").initVerify(keyPair.getPublic()));
+        byte[] message = new byte[123];
+        Signature signature = Signature.getInstance("Ed25519");
+        signature.initSign(keyPair.getPrivate());
+        signature.update(message);
+        byte[] sig = signature.sign();
+        signature.initVerify(keyPair.getPublic());
+        signature.update(message);
+        assertTrue(signature.verify(sig));
     }
 
     @Test
