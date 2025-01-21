@@ -100,7 +100,6 @@ public class SignatureTest {
             .skipProvider("SunPKCS11-NSS")
             // We don't have code to generate key pairs for these yet.
             .skipAlgorithm("Ed448")
-            .skipAlgorithm("Ed25519")
             .skipAlgorithm("EdDSA")
             .skipAlgorithm("HSS/LMS")
             .run((provider, algorithm) -> {
@@ -146,6 +145,8 @@ public class SignatureTest {
                 || sigAlgorithmUpperCase.endsWith("RSA/PSS")
                 || sigAlgorithmUpperCase.endsWith("RSASSA-PSS")) {
             kpAlgorithm = "RSA";
+        } else if (sigAlgorithmUpperCase.equals("ED25519")) {
+            kpAlgorithm = "ED25519";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "
                                 + sigAlgorithm);
@@ -153,7 +154,14 @@ public class SignatureTest {
 
         KeyPair kp = keypairAlgorithmToInstance.get(kpAlgorithm);
         if (kp == null) {
-            KeyPairGenerator kpg = KeyPairGenerator.getInstance(kpAlgorithm);
+            KeyPairGenerator kpg;
+            if (kpAlgorithm.equals("ED25519")) {
+                // We use SunEC to generate Ed25519 keys because Conscrypt's Ed25519 keys
+                // are not yet implement the EdECPublicKey and EdECPrivateKey interfaces.
+                kpg = KeyPairGenerator.getInstance(kpAlgorithm, "SunEC");
+            } else {
+                kpg = KeyPairGenerator.getInstance(kpAlgorithm);
+            }
             if (kpAlgorithm.equals("DSA")) {
                 kpg.initialize(1024);
             }
