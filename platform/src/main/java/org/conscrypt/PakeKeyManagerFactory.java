@@ -70,7 +70,9 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
         if (clientParams != null || serverParams != null) {
             throw new IllegalStateException("PakeKeyManagerFactory is already initialized");
         }
-        requireNonNull(spec);
+        if (spec == null) {
+            throw new InvalidAlgorithmParameterException("ManagerFactoryParameters cannot be null");
+        }
         if (spec instanceof PakeClientKeyManagerParameters) {
             clientParams = (PakeClientKeyManagerParameters) spec;
         } else if (spec instanceof PakeServerKeyManagerParameters) {
@@ -137,10 +139,10 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
                             context, password, null, null, null, idProver, idVerifier, false)};
                 }
                 byte[] w0 = option.getMessageComponent("w0");
-                byte[] registrationRecord = option.getMessageComponent("registrationRecord");
-                if (w0 != null && registrationRecord != null) {
-                    return new KeyManager[] {new Spake2PlusKeyManager(context, null, w0, null,
-                            registrationRecord, idProver, idVerifier, false)};
+                byte[] l = option.getMessageComponent("L");
+                if (w0 != null && l != null) {
+                    return new KeyManager[] {new Spake2PlusKeyManager(
+                            context, null, w0, null, l, idProver, idVerifier, false)};
                 }
                 break;
             }
