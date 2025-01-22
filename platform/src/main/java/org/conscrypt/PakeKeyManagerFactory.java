@@ -70,7 +70,9 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
         if (clientParams != null || serverParams != null) {
             throw new IllegalStateException("PakeKeyManagerFactory is already initialized");
         }
-        requireNonNull(spec);
+        if (spec == null) {
+            throw new InvalidAlgorithmParameterException("ManagerFactoryParameters cannot be null");
+        }
         if (spec instanceof PakeClientKeyManagerParameters) {
             clientParams = (PakeClientKeyManagerParameters) spec;
         } else if (spec instanceof PakeServerKeyManagerParameters) {
