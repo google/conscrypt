@@ -30,19 +30,15 @@ import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_TRANSPARENCY_V
 import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_UNKNOWN;
 import static org.conscrypt.metrics.ConscryptStatsLog.TLS_HANDSHAKE_REPORTED;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import org.conscrypt.Internal;
 import org.conscrypt.Platform;
 import org.conscrypt.ct.LogStore;
 import org.conscrypt.ct.PolicyCompliance;
 import org.conscrypt.ct.VerificationResult;
-
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Implements logging for Conscrypt metrics.

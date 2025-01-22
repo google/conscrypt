@@ -19,19 +19,9 @@ package org.conscrypt.ct;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.conscrypt.ByteArray;
-import org.conscrypt.Internal;
-import org.conscrypt.OpenSSLKey;
-import org.conscrypt.Platform;
-import org.conscrypt.metrics.StatsLog;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -48,6 +38,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.conscrypt.ByteArray;
+import org.conscrypt.Internal;
+import org.conscrypt.OpenSSLKey;
+import org.conscrypt.Platform;
+import org.conscrypt.metrics.StatsLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 @Internal
 public class LogStoreImpl implements LogStore {

@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,24 +25,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import org.conscrypt.TestUtils;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.conscrypt.tlswire.TlsTester;
-import org.conscrypt.tlswire.handshake.CipherSuite;
-import org.conscrypt.tlswire.handshake.ClientHello;
-import org.conscrypt.tlswire.handshake.CompressionMethod;
-import org.conscrypt.tlswire.handshake.EllipticCurve;
-import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
-import org.conscrypt.tlswire.handshake.HelloExtension;
-import org.conscrypt.tlswire.util.TlsProtocolVersion;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -65,23 +48,33 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
-
+import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.tlswire.TlsTester;
+import org.conscrypt.tlswire.handshake.CipherSuite;
+import org.conscrypt.tlswire.handshake.ClientHello;
+import org.conscrypt.tlswire.handshake.CompressionMethod;
+import org.conscrypt.tlswire.handshake.EllipticCurve;
+import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
+import org.conscrypt.tlswire.handshake.HelloExtension;
+import org.conscrypt.tlswire.util.TlsProtocolVersion;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
 import tests.util.Pair;

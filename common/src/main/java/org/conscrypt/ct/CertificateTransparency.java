@@ -16,15 +16,14 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.Internal;
-import org.conscrypt.Platform;
-import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
-import org.conscrypt.metrics.StatsLog;
-
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Objects;
+import org.conscrypt.Internal;
+import org.conscrypt.Platform;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
+import org.conscrypt.metrics.StatsLog;
 
 /**
  * Certificate Transparency subsystem. The implementation contains references

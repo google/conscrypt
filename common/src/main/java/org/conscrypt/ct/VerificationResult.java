@@ -16,12 +16,12 @@
 
 package org.conscrypt.ct;
 
-import org.conscrypt.Internal;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
+import org.conscrypt.Internal;
+
 
 /**
  * Container for verified SignedCertificateTimestamp.
