@@ -243,23 +243,23 @@ public class TrustManagerFactoryTest {
         keyStore.setCertificateEntry("alias", chain[1]);
 
         ServiceTester.test("TrustManagerFactory")
-            .skipAlgorithm("PAKE")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-                    tmf.init(keyStore);
-                    TrustManager[] trustManagers = tmf.getTrustManagers();
-                    for (TrustManager trustManager : trustManagers) {
-                        if (!(trustManager instanceof X509TrustManager)) {
-                            continue;
+                .skipAlgorithm("PAKE")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
+                        tmf.init(keyStore);
+                        TrustManager[] trustManagers = tmf.getTrustManagers();
+                        for (TrustManager trustManager : trustManagers) {
+                            if (!(trustManager instanceof X509TrustManager)) {
+                                continue;
+                            }
+                            X509TrustManager tm = (X509TrustManager) trustManager;
+                            tm.checkClientTrusted(chain, "RSA");
+                            tm.checkServerTrusted(chain, "RSA");
                         }
-                        X509TrustManager tm = (X509TrustManager) trustManager;
-                        tm.checkClientTrusted(chain, "RSA");
-                        tm.checkServerTrusted(chain, "RSA");
                     }
-                }
-            });
+                });
     }
 
     @Test
