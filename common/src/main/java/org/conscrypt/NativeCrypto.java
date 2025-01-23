@@ -1223,7 +1223,7 @@ public final class NativeCrypto {
             }
             // Not sure if we need to do this for SPAKE, but the SPAKE cipher suite
             // not registered at the moment.
-            if (DEFAULT_SPAKE_CIPHER_SUITES[0] == cipherSuites[i]) {
+            if (DEFAULT_SPAKE_CIPHER_SUITES[0].equals(cipherSuites[i])) {
                 continue;
             }
 
