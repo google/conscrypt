@@ -247,7 +247,7 @@ public class TrustManagerFactoryTest {
                 @Override
                 public void test(Provider p, String algorithm) throws Exception {
                     TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-                    if (tmf.getAlgorithm() == "PAKE") {
+                    if (tmf.getAlgorithm().equals("PAKE")) {
                         return;
                     }
                     tmf.init(keyStore);
