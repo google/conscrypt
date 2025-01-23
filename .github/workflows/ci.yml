@@ -116,11 +116,11 @@ jobs:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
 
-      - name: Checkout BoringSSL master branch
+      - name: Checkout BoringSSL main branch
         shell: bash
         run: |
           cd "$BORINGSSL_HOME"
-          git checkout --progress --force -B master
+          git checkout --progress --force -B main
 
       - name: Build BoringSSL x86 and ARM MacOS
         if: runner.os == 'macOS'
@@ -248,11 +248,11 @@ jobs:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
 
-      - name: Checkout BoringSSL master branch
+      - name: Checkout BoringSSL main branch
         shell: bash
         run: |
           cd "$BORINGSSL_HOME"
-          git checkout --progress --force -B master
+          git checkout --progress --force -B main
 
       - name: Build BoringSSL 64-bit Linux
         run: |
