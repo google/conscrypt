@@ -212,6 +212,10 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyPairGenerator.1.3.101.110", "XDH");
         put("Alg.Alias.KeyPairGenerator.X25519", "XDH");
 
+        put("KeyPairGenerator.EdDSA", PREFIX + "OpenSslEdDsaKeyPairGenerator");
+        put("Alg.Alias.KeyPairGenerator.1.3.101.112", "EdDSA");
+        put("Alg.Alias.KeyPairGenerator.Ed25519", "EdDSA");
+
         /* == KeyFactory == */
         put("KeyFactory.RSA", PREFIX + "OpenSSLRSAKeyFactory");
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
@@ -225,6 +229,10 @@ public final class OpenSSLProvider extends Provider {
         put("KeyFactory.XDH", PREFIX + "OpenSSLXDHKeyFactory");
         put("Alg.Alias.KeyFactory.1.3.101.110", "XDH");
         put("Alg.Alias.KeyFactory.X25519", "XDH");
+
+        put("KeyFactory.EdDSA", PREFIX + "OpenSslEdDsaKeyFactory");
+        put("Alg.Alias.KeyFactory.1.3.101.112", "EdDSA");
+        put("Alg.Alias.KeyFactory.Ed25519", "EdDSA");
 
         /* == SecretKeyFactory == */
         put("SecretKeyFactory.DESEDE", PREFIX + "DESEDESecretKeyFactory");
@@ -347,6 +355,10 @@ public final class OpenSSLProvider extends Provider {
 
         putSignatureImplClass("SHA512withRSA/PSS", "OpenSSLSignature$SHA512RSAPSS");
         put("Alg.Alias.Signature.SHA512withRSAandMGF1", "SHA512withRSA/PSS");
+
+        putSignatureImplClass("EdDSA", "OpenSslSignatureEdDsa");
+        put("Alg.Alias.Signature.1.3.101.112", "EdDSA");
+        put("Alg.Alias.Signature.Ed25519", "EdDSA");
 
         /* === SecureRandom === */
         /*
