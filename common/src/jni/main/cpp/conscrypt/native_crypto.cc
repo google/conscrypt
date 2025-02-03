@@ -42,8 +42,8 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
-#include <openssl/mldsa.h>
 #include <openssl/hpke.h>
+#include <openssl/mldsa.h>
 #include <openssl/pkcs7.h>
 #include <openssl/pkcs8.h>
 #include <openssl/rand.h>
