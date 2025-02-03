@@ -2504,9 +2504,8 @@ static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jbyt
     return static_cast<jint>(result);
 }
 
-
 static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
-                                    jbyteArray privateKeySeed) {
+                                                            jbyteArray privateKeySeed) {
     CHECK_ERROR_QUEUE_ON_RETURN;
 
     ScopedByteArrayRO seedArray(env, privateKeySeed);
@@ -2517,16 +2516,14 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
 
     MLDSA65_private_key privateKey;
     if (!MLDSA65_private_key_from_seed(
-            &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()),
-            seedArray.size())) {
+                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
         JNI_TRACE("MLDSA65_private_key_from_seed failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_private_key_from_seed");
         return nullptr;
     }
 
     MLDSA65_public_key publicKey;
-    if (!MLDSA65_public_from_private(&publicKey,
-                                    &privateKey)) {
+    if (!MLDSA65_public_from_private(&publicKey, &privateKey)) {
         JNI_TRACE("MLDSA65_public_from_private failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_public_from_private");
         return nullptr;
@@ -2535,18 +2532,16 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
     CBB cbb;
     size_t size;
     uint8_t public_key_bytes[MLDSA65_SIGNATURE_BYTES];
-    if (!CBB_init_fixed(&cbb,
-                        public_key_bytes,
-                        MLDSA65_PUBLIC_KEY_BYTES) ||
-        !MLDSA65_marshal_public_key(&cbb, &publicKey) ||
-        !CBB_finish(&cbb, nullptr, &size) || size != MLDSA65_PUBLIC_KEY_BYTES) {
+    if (!CBB_init_fixed(&cbb, public_key_bytes, MLDSA65_PUBLIC_KEY_BYTES) ||
+        !MLDSA65_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
+        size != MLDSA65_PUBLIC_KEY_BYTES) {
         JNI_TRACE("Failed to serialize ML-DSA public key.");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Failed to serialize ML-DSA public key.");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_marshal_public_key");
         return nullptr;
     }
 
     ScopedLocalRef<jbyteArray> publicKeyRef(
-        env, env->NewByteArray(static_cast<jsize>(MLDSA65_PUBLIC_KEY_BYTES)));
+            env, env->NewByteArray(static_cast<jsize>(MLDSA65_PUBLIC_KEY_BYTES)));
     if (publicKeyRef.get() == nullptr) {
         return nullptr;
     }
@@ -2560,7 +2555,7 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
 }
 
 static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data,
-                                    jbyteArray privateKeySeed) {
+                                            jbyteArray privateKeySeed) {
     CHECK_ERROR_QUEUE_ON_RETURN;
 
     ScopedByteArrayRO seedArray(env, privateKeySeed);
@@ -2571,8 +2566,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
 
     MLDSA65_private_key privateKey;
     if (!MLDSA65_private_key_from_seed(
-            &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()),
-            seedArray.size())) {
+                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
         JNI_TRACE("MLDSA65_private_key_from_seed failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_private_key_from_seed");
         return nullptr;
@@ -2584,16 +2578,15 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
     }
 
     uint8_t result[MLDSA65_SIGNATURE_BYTES];
-    if (!MLDSA65_sign(result, &privateKey,
-                     reinterpret_cast<const unsigned char*>(dataArray.get()),
-                     dataArray.size(), /* context */ NULL, /* context_len */ 0)) {
+    if (!MLDSA65_sign(result, &privateKey, reinterpret_cast<const unsigned char*>(dataArray.get()),
+                      dataArray.size(), /* context */ NULL, /* context_len */ 0)) {
         JNI_TRACE("MLDSA65_sign failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_sign");
         return nullptr;
     }
 
     ScopedLocalRef<jbyteArray> resultRef(
-        env, env->NewByteArray(static_cast<jsize>(MLDSA65_SIGNATURE_BYTES)));
+            env, env->NewByteArray(static_cast<jsize>(MLDSA65_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
         return nullptr;
     }
@@ -2607,7 +2600,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
 }
 
 static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jbyteArray sig,
-                                    jbyteArray publicKey) {
+                                        jbyteArray publicKey) {
     CHECK_ERROR_QUEUE_ON_RETURN;
 
     ScopedByteArrayRO publicKeyArray(env, publicKey);
@@ -2617,8 +2610,7 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jb
     }
 
     CBS cbs;
-    CBS_init(&cbs, reinterpret_cast<const uint8_t *>(publicKeyArray.get()),
-            publicKeyArray.size());
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(publicKeyArray.get()), publicKeyArray.size());
     MLDSA65_public_key pubkey;
     if (!MLDSA65_parse_public_key(&pubkey, &cbs)) {
         JNI_TRACE("MLDSA65_parse_public_key failed");
@@ -2636,11 +2628,9 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jb
     }
 
     int result =
-        MLDSA65_verify(&pubkey,
-                     reinterpret_cast<const unsigned char*>(sigArray.get()),
-                     sigArray.size(),
-                     reinterpret_cast<const unsigned char*>(dataArray.get()),
-                     dataArray.size(), /*context=*/ NULL, /*context_len=*/ 0);
+            MLDSA65_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
+                           sigArray.size(), reinterpret_cast<const unsigned char*>(dataArray.get()),
+                           dataArray.size(), /*context=*/NULL, /*context_len=*/0);
 
     JNI_TRACE("MLDSA65_verify(%p, %p, %p) => %d", publicKey, sig, data, result);
     return static_cast<jint>(result);
