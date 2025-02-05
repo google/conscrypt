@@ -993,6 +993,8 @@ public final class NativeCrypto {
 
     static native long SSL_CTX_set_timeout(long ssl_ctx, AbstractSessionContext holder, long seconds);
 
+    static native void SSL_CREDENTIAL_free(long sslCredentialNativePointer);
+
     static native long SSL_new(long ssl_ctx, AbstractSessionContext holder) throws SSLException;
 
     static native void SSL_enable_tls_channel_id(long ssl, NativeSsl ssl_holder) throws SSLException;

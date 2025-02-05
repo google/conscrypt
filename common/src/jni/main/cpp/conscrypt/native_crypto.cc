@@ -11193,6 +11193,29 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     return key_bytes;
 }
 
+static SSL_CREDENTIAL* to_SSL_CREDENTIAL(JNIEnv* env, jlong ssl_credential_address, bool throwIfNull) {
+    SSL_CREDENTIAL* ssl_credential =
+            reinterpret_cast<SSL_CREDENTIAL*>(static_cast<uintptr_t>(ssl_credential_address));
+    if ((ssl_credential == nullptr) && throwIfNull) {
+        JNI_TRACE("ssl_credential == null");
+        conscrypt::jniutil::throwNullPointerException(env, "ssl_credential == null");
+    }
+    return ssl_credential;
+}
+
+/**
+ * Frees the SSL session.
+ */
+static void NativeCrypto_SSL_CREDENTIAL_free(JNIEnv* env, jclass, jlong ssl_credential_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_CREDENTIAL* ssl_credential = to_SSL_CREDENTIAL(env, ssl_credential_address, true);
+    JNI_TRACE("ssl_credential=%p NativeCrypto_SSL_CREDENTIAL_free", ssl_credential);
+    if (ssl_credential == nullptr) {
+        return;
+    }
+    SSL_CREDENTIAL_free(ssl_credential);
+}
+
 // TESTING METHODS BEGIN
 
 static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray outputJavaBytes) {
@@ -11679,6 +11702,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CREDENTIAL_free, "(J)V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),
