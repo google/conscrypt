@@ -11193,7 +11193,8 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     return key_bytes;
 }
 
-static SSL_CREDENTIAL* to_SSL_CREDENTIAL(JNIEnv* env, jlong ssl_credential_address, bool throwIfNull) {
+static SSL_CREDENTIAL* to_SSL_CREDENTIAL(JNIEnv* env, jlong ssl_credential_address,
+                                         bool throwIfNull) {
     SSL_CREDENTIAL* ssl_credential =
             reinterpret_cast<SSL_CREDENTIAL*>(static_cast<uintptr_t>(ssl_credential_address));
     if ((ssl_credential == nullptr) && throwIfNull) {
