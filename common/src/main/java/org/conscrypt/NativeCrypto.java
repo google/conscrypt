@@ -69,6 +69,7 @@ public final class NativeCrypto {
             error = t;
         }
         loadError = error;
+        setTlsV1DeprecationStatus(Platform.isTlsV1Deprecated(), Platform.isTlsV1Supported());
     }
 
     private native static void clinit();
