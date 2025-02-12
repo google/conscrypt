@@ -207,6 +207,14 @@ public final class NativeCrypto {
 
     static native int ECDSA_verify(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
 
+    // --- MLDSA65 --------------------------------------------------------------
+
+    static native byte[] MLDSA65_public_key_from_seed(byte[] privateKeySeed);
+
+    static native byte[] MLDSA65_sign(byte[] data, byte[] privateKeySeed);
+
+    static native int MLDSA65_verify(byte[] data, byte[] sig, byte[] publicKey);
+
     // --- Curve25519 --------------
 
     static native boolean X25519(byte[] out, byte[] privateKey, byte[] publicKey) throws InvalidKeyException;
@@ -1224,7 +1232,7 @@ public final class NativeCrypto {
             }
             // Not sure if we need to do this for SPAKE, but the SPAKE cipher suite
             // not registered at the moment.
-            if (DEFAULT_SPAKE_CIPHER_SUITES[0] == cipherSuites[i]) {
+            if (DEFAULT_SPAKE_CIPHER_SUITES[0].equals(cipherSuites[i])) {
                 continue;
             }
 

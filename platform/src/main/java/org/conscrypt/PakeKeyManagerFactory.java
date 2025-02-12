@@ -45,7 +45,6 @@ import javax.net.ssl.ManagerFactoryParameters;
 /**
  * PakeKeyManagerFactory implementation.
  * @see KeyManagerFactorySpi
- * @hide This class is not part of the Android public SDK API
  */
 @Internal
 public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
