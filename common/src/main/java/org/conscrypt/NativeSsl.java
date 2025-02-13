@@ -96,9 +96,6 @@ final class NativeSsl {
         byte[] idProverArray = spakeKeyManager.getIdProver();
         byte[] idVerifierArray = spakeKeyManager.getIdVerifier();
         byte[] pwArray = spakeKeyManager.getPassword();
-        byte[] w0Array = spakeKeyManager.getW0();
-        byte[] w1Array = spakeKeyManager.getW1();
-        byte[] lArray = spakeKeyManager.getL();
         boolean isClient = spakeKeyManager.isClient();
 
         // TODO: uncomment this once the native code is ready.
@@ -107,14 +104,6 @@ final class NativeSsl {
             NativeCrypto.SSL_CTX_set_spake_credential(
                 context, pwArray, idProverArray,
                 idVerifierArray, isClient, this);
-        } else if (isClient && w0Array != null && w1Array != null) {
-            NativeCrypto.SSL_CTX_set_spake_credential_client(
-                context, w0Array, w1Array,
-                idProverArray, idVerifierArray, this);
-        } else if (!isClient && w0Array != null && lArray != null) {
-            NativeCrypto.SSL_CTX_set_spake_credential_server(
-                context, w0Array, lArray,
-                idProverArray, idVerifierArray, this);
         }
         */
     }
