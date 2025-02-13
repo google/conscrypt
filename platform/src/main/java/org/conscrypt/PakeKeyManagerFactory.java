@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2024 The Android Open Source Project
  *
@@ -107,8 +108,8 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
             byte[] context = option.getMessageComponent("context");
             byte[] password = option.getMessageComponent("password");
             if (password != null) {
-                return new KeyManager[] {new Spake2PlusKeyManager(
-                        context, password, idProver, idVerifier, true)};
+                return new KeyManager[] {
+                        new Spake2PlusKeyManager(context, password, idProver, idVerifier, true)};
             }
             break;
         }
