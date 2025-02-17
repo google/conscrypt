@@ -102,6 +102,8 @@ public class SignatureTest {
                 // We don't have code to generate key pairs for these yet.
                 .skipAlgorithm("Ed448")
                 .skipAlgorithm("EdDSA")
+                // ML-DSA is skipped because it doesn't yet support getFormat() and getEncoded().
+            	.skipAlgorithm("ML-DSA")
                 .skipAlgorithm("HSS/LMS")
                 .run((provider, algorithm) -> {
                     KeyPair kp = keyPair(algorithm);
@@ -148,6 +150,8 @@ public class SignatureTest {
             kpAlgorithm = "RSA";
         } else if (sigAlgorithmUpperCase.equals("ED25519")) {
             kpAlgorithm = "ED25519";
+        } else if (sigAlgorithmUpperCase.equals("ML-DSA")) {
+            kpAlgorithm = "ML-DSA";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "
                                 + sigAlgorithm);
