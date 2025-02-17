@@ -11207,7 +11207,7 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
                                                       jboolean is_client, jlong ssl_ctx_address,
                                                       CONSCRYPT_UNUSED jobject ssl_holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %lld)", context, pw_array,
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %ld)", context, pw_array,
               id_prover_array, id_verifier_array, is_client, ssl_ctx_address);
 
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
