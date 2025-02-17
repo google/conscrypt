@@ -24,12 +24,11 @@ import java.security.SignatureException;
 import java.security.SignatureSpi;
 
 /**
- * Implements the JDK Signature interface needed for Ed25519 signature generation and verification
+ * Implements the JDK Signature interface needed for ML-DSA signature generation and verification
  * using BoringSSL.
  */
 @Internal
 public class OpenSslSignatureMlDsa extends SignatureSpi {
-
     /**
      * The current OpenSSL key we're operating on.
      */

@@ -21,8 +21,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
 /**
- * An implementation of {@link KeyPairGenerator} for XDH keys which uses BoringSSL to perform all
- * the operations. This only supports ML-DSA keys.
+ * An implementation of {@link KeyPairGenerator} for ML-DSA keys which uses BoringSSL to perform all
+ * the operations.
  */
 @Internal
 public final class OpenSslMlDsaKeyPairGenerator extends KeyPairGenerator {
@@ -45,7 +45,7 @@ public final class OpenSslMlDsaKeyPairGenerator extends KeyPairGenerator {
         NativeCrypto.RAND_bytes(privateKeyBytes);
         byte[] publicKeyBytes = NativeCrypto.MLDSA65_public_key_from_seed(privateKeyBytes);
 
-        return new KeyPair(
-                new OpenSslMlDsaPublicKey(publicKeyBytes), new OpenSslMlDsaPrivateKey(privateKeyBytes));
+        return new KeyPair(new OpenSslMlDsaPublicKey(publicKeyBytes),
+                new OpenSslMlDsaPrivateKey(privateKeyBytes));
     }
 }

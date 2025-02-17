@@ -32,8 +32,7 @@ import java.security.spec.X509EncodedKeySpec;
 /** An implementation of a {@link KeyFactorySpi} for MLDSA keys based on BoringSSL. */
 @Internal
 public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
-
-  public OpenSslMlDsaKeyFactory() {}
+    public OpenSslMlDsaKeyFactory() {}
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
@@ -44,7 +43,7 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             return new OpenSslMlDsaPublicKey((EncodedKeySpec) keySpec);
         }
         throw new InvalidKeySpecException(
-            "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
     }
 
     @Override
@@ -56,7 +55,7 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             return new OpenSslMlDsaPrivateKey((EncodedKeySpec) keySpec);
         }
         throw new InvalidKeySpecException(
-            "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
     }
 
     @Override
@@ -74,14 +73,16 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (key instanceof OpenSslMlDsaPublicKey) {
             OpenSslMlDsaPublicKey conscryptKey = (OpenSslMlDsaPublicKey) key;
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException("X509EncodedKeySpec is currently not supported");
+                throw new UnsupportedOperationException(
+                        "X509EncodedKeySpec is currently not supported");
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                  return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         } else if (key instanceof OpenSslMlDsaPrivateKey) {
             OpenSslMlDsaPrivateKey conscryptKey = (OpenSslMlDsaPrivateKey) key;
             if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException("PKCS8EncodedKeySpec is currently not supported");
+                throw new UnsupportedOperationException(
+                        "PKCS8EncodedKeySpec is currently not supported");
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return makeRawKeySpec(conscryptKey.getSeed(), keySpec);
             }
@@ -100,8 +101,8 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
             }
             return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                 IllegalAccessException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
+                | IllegalAccessException e) {
             throw new InvalidKeySpecException(
                     "Can't process KeySpec class " + keySpecClass.getName(), e);
         }
@@ -116,6 +117,6 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             return key;
         }
         throw new InvalidKeyException(
-            "Key must be OpenSslMlDsaPublicKey or OpenSslMlDsaPrivateKey");
-  }
+                "Key must be OpenSslMlDsaPublicKey or OpenSslMlDsaPrivateKey");
+    }
 }

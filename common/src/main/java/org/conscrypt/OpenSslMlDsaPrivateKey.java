@@ -23,10 +23,9 @@ import java.util.Arrays;
 
 /** An OpenSSL ML-DSA private key. */
 public class OpenSslMlDsaPrivateKey implements PrivateKey {
-
     private byte[] seed;
 
-  public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
+    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
         if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
             seed = encoded;
