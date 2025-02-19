@@ -39,7 +39,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.util.Arrays;
-import java.util.HexFormat;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
