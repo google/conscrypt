@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 import android.net.ssl.PakeClientKeyManagerParameters;
 import android.net.ssl.PakeOption;
 import android.net.ssl.PakeServerKeyManagerParameters;
-import android.util.Pair;
 
 import org.conscrypt.Spake2PlusKeyManager;
 import org.junit.Rule;

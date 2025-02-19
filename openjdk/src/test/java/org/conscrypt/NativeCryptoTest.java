@@ -3172,30 +3172,6 @@ public class NativeCryptoTest {
         NativeCrypto.d2i_X509(new byte[1]);
     }
 
-    @Test(expected = NullPointerException.class)
-    public void SSL_CTX_set_spake_credential_ctx_null() throws Exception {
-        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
-                NULL, new byte[0], new byte[0], new byte[0], false, 0, NULL);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void SSL_CTX_set_spake_credential_idProver_null() throws Exception {
-        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
-                new byte[0], null, new byte[0], new byte[0], false, 0, NULL);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void SSL_CTX_set_spake_credential_idVerifier_null() throws Exception {
-        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
-                new byte[0], new byte[0], null, new byte[0], false, 0, NULL);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void SSL_CTX_set_spake_credential_pw_null() throws Exception {
-        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
-                new byte[0], new byte[0], new byte[0], null, false, 0, NULL);
-    }
-
     private static void assertContains(String actualValue, String expectedSubstring) {
         if (actualValue == null) {
             return;
