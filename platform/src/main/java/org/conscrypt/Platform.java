@@ -611,4 +611,20 @@ final public class Platform {
             throw new RuntimeException(e);
         }
     }
+
+    public static boolean isSdkGreater(int sdk) {
+        try {
+            Class<?> vmRuntimeClass = Class.forName("dalvik.system.VMRuntime");
+            Method getRuntimeMethod = vmRuntimeClass.getDeclaredMethod("getRuntime");
+            Method getSdkVersionMethod = vmRuntimeClass.getDeclaredMethod("getSdkVersion");
+            Object vmRuntime = getRuntimeMethod.invoke(null);
+            Object sdkVersion = getSdkVersionMethod.invoke(vmRuntime);
+            return (sdkVersion != null) && ((int) sdkVersion > sdk);
+        } catch (IllegalAccessException | NullPointerException | InvocationTargetException
+                | NoSuchMethodException e) {
+            return false;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
