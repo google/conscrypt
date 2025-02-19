@@ -107,14 +107,8 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
             byte[] context = option.getMessageComponent("context");
             byte[] password = option.getMessageComponent("password");
             if (password != null) {
-                return new KeyManager[] {new Spake2PlusKeyManager(
-                        context, password, null, null, null, idProver, idVerifier, true)};
-            }
-            byte[] w0 = option.getMessageComponent("w0");
-            byte[] w1 = option.getMessageComponent("w1");
-            if (w0 != null && w1 != null) {
-                return new KeyManager[] {new Spake2PlusKeyManager(
-                        context, null, w0, w1, null, idProver, idVerifier, true)};
+                return new KeyManager[] {
+                        new Spake2PlusKeyManager(context, password, idProver, idVerifier, true)};
             }
             break;
         }
@@ -135,13 +129,7 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
                 byte[] password = option.getMessageComponent("password");
                 if (password != null) {
                     return new KeyManager[] {new Spake2PlusKeyManager(
-                            context, password, null, null, null, idProver, idVerifier, false)};
-                }
-                byte[] w0 = option.getMessageComponent("w0");
-                byte[] l = option.getMessageComponent("L");
-                if (w0 != null && l != null) {
-                    return new KeyManager[] {new Spake2PlusKeyManager(
-                            context, null, w0, null, l, idProver, idVerifier, false)};
+                            context, password, idProver, idVerifier, false)};
                 }
                 break;
             }
