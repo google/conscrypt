@@ -43,8 +43,6 @@ import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 
-import androidx.test.uiautomator.By;
-
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.conscrypt.io.IoUtils;
