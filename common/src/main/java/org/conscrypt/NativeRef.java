@@ -173,15 +173,4 @@ abstract class NativeRef {
             NativeCrypto.SSL_SESSION_free(context);
         }
     }
-
-    static final class SSL_CREDENTIAL extends NativeRef {
-        SSL_CREDENTIAL(long nativePointer) {
-            super(nativePointer);
-        }
-
-        @Override
-        void doFree(long context) {
-            NativeCrypto.SSL_CREDENTIAL_free(context);
-        }
-    }
 }
