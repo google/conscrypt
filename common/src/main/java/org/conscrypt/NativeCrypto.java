@@ -664,7 +664,7 @@ public final class NativeCrypto {
      */
     static native void SSL_CTX_set_spake_credential(byte[] context, byte[] pw_array,
             byte[] id_prover_array, byte[] id_verifier_array, boolean is_client, long ssl_ctx,
-            SSLParametersImpl ssl_holder) throws IOException;
+            AbstractSessionContext holder) throws SSLException;
 
     // --- ASN1_TIME -----------------------------------------------------------
 

@@ -129,7 +129,6 @@ final class SSLParametersImpl implements Cloneable {
             throws KeyManagementException {
         this.serverSessionContext = serverSessionContext;
         this.clientSessionContext = clientSessionContext;
-
         // initialize key managers
         if (kms == null) {
             x509KeyManager = getDefaultX509KeyManager();
@@ -189,6 +188,10 @@ final class SSLParametersImpl implements Cloneable {
 
         // We ignore the SecureRandom passed in by the caller. The native code below
         // directly accesses /dev/urandom, which makes it irrelevant.
+
+        if (isSpake()) {
+            initSpake();
+        }
     }
 
     // Copy constructor for the purposes of changing the final fields
@@ -232,6 +235,17 @@ final class SSLParametersImpl implements Cloneable {
         this.channelIdEnabled = sslParams.channelIdEnabled;
     }
 
+    /**
+     * Initializes the SSL credential for the Spake.
+     */
+    void initSpake() throws KeyManagementException {
+        try {
+            getSessionContext().initSpake(this);
+        } catch (Exception e) {
+            throw new KeyManagementException("Spake initialization failed " + e.getMessage());
+        }
+    }
+
     static SSLParametersImpl getDefault() throws KeyManagementException {
         SSLParametersImpl result = defaultParameters;
         if (result == null) {
@@ -258,6 +272,13 @@ final class SSLParametersImpl implements Cloneable {
      */
     ClientSessionContext getClientSessionContext() {
         return clientSessionContext;
+    }
+
+    /*
+     * Returns the server session context.
+     */
+    ServerSessionContext getServerSessionContext() {
+        return serverSessionContext;
     }
 
     /**
@@ -742,9 +763,6 @@ final class SSLParametersImpl implements Cloneable {
 
     private static String[] getDefaultCipherSuites(boolean x509CipherSuitesNeeded,
             boolean pskCipherSuitesNeeded, boolean spake2PlusCipherSuitesNeeded) {
-        if (spake2PlusCipherSuitesNeeded) {
-            return NativeCrypto.DEFAULT_SPAKE_CIPHER_SUITES;
-        }
         if (x509CipherSuitesNeeded) {
             // X.509 based cipher suites need to be listed.
             if (pskCipherSuitesNeeded) {

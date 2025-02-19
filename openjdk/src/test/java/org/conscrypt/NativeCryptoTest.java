@@ -43,6 +43,8 @@ import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.when;
 
+import androidx.test.uiautomator.By;
+
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.conscrypt.io.IoUtils;
@@ -130,13 +132,15 @@ public class NativeCryptoTest {
             m_Platform_getFileDescriptor.setAccessible(true);
         }
 
-        PrivateKeyEntry serverPrivateKeyEntry = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
+        PrivateKeyEntry serverPrivateKeyEntry =
+                TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         SERVER_PRIVATE_KEY = OpenSSLKey.fromPrivateKey(serverPrivateKeyEntry.getPrivateKey());
         SERVER_CERTIFICATES_HOLDER = encodeCertificateList(serverPrivateKeyEntry.getCertificateChain());
         SERVER_CERTIFICATE_REFS = getCertificateReferences(SERVER_CERTIFICATES_HOLDER);
         ENCODED_SERVER_CERTIFICATES = getEncodedCertificates(SERVER_CERTIFICATES_HOLDER);
 
-        PrivateKeyEntry clientPrivateKeyEntry = TestKeyStore.getClientCertificate().getPrivateKey("RSA", "RSA");
+        PrivateKeyEntry clientPrivateKeyEntry =
+                TestKeyStore.getClientCertificate().getPrivateKey("RSA", "RSA");
         CLIENT_PRIVATE_KEY = OpenSSLKey.fromPrivateKey(clientPrivateKeyEntry.getPrivateKey());
         CLIENT_CERTIFICATES_HOLDER = encodeCertificateList(clientPrivateKeyEntry.getCertificateChain());
         CLIENT_CERTIFICATE_REFS = getCertificateReferences(CLIENT_CERTIFICATES_HOLDER);
@@ -3166,6 +3170,30 @@ public class NativeCryptoTest {
     @Test(expected = ParsingException.class)
     public void d2i_X509_InvalidFailure() throws Exception {
         NativeCrypto.d2i_X509(new byte[1]);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void SSL_CTX_set_spake_credential_ctx_null() throws Exception {
+        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
+                NULL, new byte[0], new byte[0], new byte[0], false, 0, NULL);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void SSL_CTX_set_spake_credential_idProver_null() throws Exception {
+        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
+                new byte[0], null, new byte[0], new byte[0], false, 0, NULL);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void SSL_CTX_set_spake_credential_idVerifier_null() throws Exception {
+        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
+                new byte[0], new byte[0], null, new byte[0], false, 0, NULL);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void SSL_CTX_set_spake_credential_pw_null() throws Exception {
+        NativeCrypto.NativeCrypto_SSL_CTX_set_spake_credential(
+                new byte[0], new byte[0], new byte[0], null, false, 0, NULL);
     }
 
     private static void assertContains(String actualValue, String expectedSubstring) {

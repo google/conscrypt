@@ -11205,7 +11205,7 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
                                                       jbyteArray id_prover_array,
                                                       jbyteArray id_verifier_array,
                                                       jboolean is_client, jlong ssl_ctx_address,
-                                                      CONSCRYPT_UNUSED jobject ssl_holder) {
+                                                      CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %ld)", context, pw_array,
               id_prover_array, id_verifier_array, is_client, ssl_ctx_address);
@@ -11269,8 +11269,9 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
         return;
     }
 
+    bssl::UniquePtr<SSL_CREDENTIAL> creds;
     if (is_client) {
-        bssl::UniquePtr<SSL_CREDENTIAL> creds(SSL_CREDENTIAL_new_spake2plusv1_client(
+        bssl::UniquePtr<SSL_CREDENTIAL> creds_client(SSL_CREDENTIAL_new_spake2plusv1_client(
                 /* context= */ reinterpret_cast<const uint8_t*>(context_bytes.get()),
                 /* context_len= */ context_bytes.size(),
                 /* client_identity= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
@@ -11282,22 +11283,9 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
                 /* w0_len= */ sizeof(pw_verifier_w0),
                 /* w1= */ pw_verifier_w1,
                 /* w1_len= */ sizeof(pw_verifier_w1)));
-        if (creds == nullptr) {
-            conscrypt::jniutil::throwSSLExceptionStr(
-                    env, "SSL_CREDENTIAL_new_spake2plusv1_client failed");
-            return;
-        }
-        ret = SSL_CTX_add1_credential(ssl_ctx, creds.get());
-        if (ret != 1) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
-                                                                 "SSL_CTX_add1_credential failed");
-            return;
-        }
-        JNI_TRACE("SSL_CTX_set_spake_credential (client) (%p, %p, %p, %p, %d, %p) => %p", context,
-                  pw_array, id_prover_array, id_verifier_array, is_client, ssl_ctx, creds.get());
-        return;
+        creds = std::move(creds_client);
     } else {
-        bssl::UniquePtr<SSL_CREDENTIAL> creds(SSL_CREDENTIAL_new_spake2plusv1_server(
+        bssl::UniquePtr<SSL_CREDENTIAL> creds_server(SSL_CREDENTIAL_new_spake2plusv1_server(
                 /* context= */ reinterpret_cast<const uint8_t*>(context_bytes.get()),
                 /* context_len= */ context_bytes.size(),
                 /* client_identity= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
@@ -11309,21 +11297,20 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
                 /* w0_len= */ sizeof(pw_verifier_w0),
                 /* registration_record= */ registration_record,
                 /* registration_record_len= */ sizeof(registration_record)));
-        if (creds == nullptr) {
-            conscrypt::jniutil::throwSSLExceptionStr(
-                    env, "SSL_CREDENTIAL_new_spake2plusv1_server failed");
-            return;
-        }
-        ret = SSL_CTX_add1_credential(ssl_ctx, creds.get());
-        if (ret != 1) {
-            conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
-                                                                 "SSL_CTX_add1_credential failed");
-            return;
-        }
-        JNI_TRACE("SSL_CTX_set_spake_credential (server) (%p, %p, %p, %p, %d, %p) => %p", context,
-                  pw_array, id_prover_array, id_verifier_array, is_client, ssl_ctx, creds.get());
+        creds = std::move(creds_server);
+    }
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "SSL_CREDENTIAL_new_spake2plusv1 failed");
         return;
     }
+    ret = SSL_CTX_add1_credential(ssl_ctx, creds.get());
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_CTX_add1_credential failed");
+        return;
+    }
+    JNI_TRACE("SSL_CTX_set_spake_credential (%p, %p, %p, %p, %d, %p) => %p", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, ssl_ctx, creds.get());
+    return;
 }
 
 // TESTING METHODS BEGIN
@@ -11494,7 +11481,6 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_X509 "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509Certificate;"
 #define REF_X509_CRL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CRL;"
 #define REF_SSL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl;"
-#define REF_SSL_PARAMETERS "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/SSLParametersImpl;"
 #define REF_SSL_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/AbstractSessionContext;"
 static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(clinit, "()V"),
@@ -11813,8 +11799,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
-        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential,
-                                "([B[B[B[BZJ" REF_SSL_PARAMETERS ")V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "([B[B[B[BZJ" REF_SSL_CTX ")V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),
