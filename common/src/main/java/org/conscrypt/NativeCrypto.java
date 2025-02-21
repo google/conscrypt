@@ -656,6 +656,16 @@ public final class NativeCrypto {
 
     static native int X509_supported_extension(long x509ExtensionRef);
 
+    // --- SPAKE ---------------------------------------------------------------
+
+    /**
+     * Sets the SPAKE credential for the given SSL context using a password.
+     * Used for both client and server.
+     */
+    static native void SSL_CTX_set_spake_credential(byte[] context, byte[] pw_array,
+            byte[] id_prover_array, byte[] id_verifier_array, boolean is_client, long ssl_ctx,
+            AbstractSessionContext holder) throws SSLException;
+
     // --- ASN1_TIME -----------------------------------------------------------
 
     static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal) throws ParsingException;

@@ -11193,6 +11193,126 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     return key_bytes;
 }
 
+/**
+ * SPAKE2+ support
+ */
+
+#define SPAKE2PLUS_PW_VERIFIER_SIZE 32
+#define SPAKE2PLUS_REGISTRATION_RECORD_SIZE 65
+
+static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyteArray context,
+                                                      jbyteArray pw_array,
+                                                      jbyteArray id_prover_array,
+                                                      jbyteArray id_verifier_array,
+                                                      jboolean is_client, jlong ssl_ctx_address,
+                                                      CONSCRYPT_UNUSED jobject holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %ld)", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, ssl_ctx_address);
+
+    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %p)", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, ssl_ctx);
+
+    if (context == nullptr || pw_array == nullptr || id_prover_array == nullptr ||
+        id_verifier_array == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Input parameters cannot be null");
+        return;
+    }
+
+    ScopedByteArrayRO context_bytes(env, context);
+    if (context_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for context");
+        return;
+    }
+
+    ScopedByteArrayRO pw_bytes(env, pw_array);
+    if (pw_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for pw_array");
+        return;
+    }
+
+    ScopedByteArrayRO id_prover_bytes(env, id_prover_array);
+    if (id_prover_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for id_prover_array");
+        return;
+    }
+
+    ScopedByteArrayRO id_verifier_bytes(env, id_verifier_array);
+    if (id_verifier_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env,
+                                             "Unable to allocate buffer for id_verifier_array");
+        return;
+    }
+
+    uint8_t pw_verifier_w0[SPAKE2PLUS_PW_VERIFIER_SIZE];
+    uint8_t pw_verifier_w1[SPAKE2PLUS_PW_VERIFIER_SIZE];
+    uint8_t registration_record[SPAKE2PLUS_REGISTRATION_RECORD_SIZE];
+    int ret = SSL_spake2plusv1_register(
+            /* out_pw_verifier_w0= */ pw_verifier_w0,
+            /* out_pw_verifier_w1= */ pw_verifier_w1,
+            /* out_registration_record= */ registration_record,
+            /* pw= */ reinterpret_cast<const uint8_t*>(pw_bytes.get()),
+            /* pw_len= */ pw_bytes.size(),
+            /* id_prover= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
+            /* id_prover_len= */ id_prover_bytes.size(),
+            /* id_verifier= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
+            /* id_verifier_len= */ id_verifier_bytes.size());
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
+                                                             "SSL_spake2plusv1_register failed");
+        return;
+    }
+
+    bssl::UniquePtr<SSL_CREDENTIAL> creds;
+    if (is_client) {
+        bssl::UniquePtr<SSL_CREDENTIAL> creds_client(SSL_CREDENTIAL_new_spake2plusv1_client(
+                /* context= */ reinterpret_cast<const uint8_t*>(context_bytes.get()),
+                /* context_len= */ context_bytes.size(),
+                /* client_identity= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
+                /* client_identity_len= */ id_prover_bytes.size(),
+                /* server_identity= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
+                /* server_identity_len= */ id_verifier_bytes.size(),
+                /* attempts= */ 1,
+                /* w0= */ pw_verifier_w0,
+                /* w0_len= */ sizeof(pw_verifier_w0),
+                /* w1= */ pw_verifier_w1,
+                /* w1_len= */ sizeof(pw_verifier_w1)));
+        creds = std::move(creds_client);
+    } else {
+        bssl::UniquePtr<SSL_CREDENTIAL> creds_server(SSL_CREDENTIAL_new_spake2plusv1_server(
+                /* context= */ reinterpret_cast<const uint8_t*>(context_bytes.get()),
+                /* context_len= */ context_bytes.size(),
+                /* client_identity= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
+                /* client_identity_len= */ id_prover_bytes.size(),
+                /* server_identity= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
+                /* server_identity_len= */ id_verifier_bytes.size(),
+                /* attempts= */ 1,
+                /* w0= */ pw_verifier_w0,
+                /* w0_len= */ sizeof(pw_verifier_w0),
+                /* registration_record= */ registration_record,
+                /* registration_record_len= */ sizeof(registration_record)));
+        creds = std::move(creds_server);
+    }
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "SSL_CREDENTIAL_new_spake2plusv1 failed");
+        return;
+    }
+    ret = SSL_CTX_add1_credential(ssl_ctx, creds.get());
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_CTX_add1_credential failed");
+        return;
+    }
+    JNI_TRACE("SSL_CTX_set_spake_credential (%p, %p, %p, %p, %d, %p) => %p", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, ssl_ctx, creds.get());
+    return;
+}
+
 // TESTING METHODS BEGIN
 
 static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray outputJavaBytes) {
@@ -11679,6 +11799,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "([B[B[B[BZJ" REF_SSL_CTX ")V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

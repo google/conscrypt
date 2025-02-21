@@ -977,8 +977,11 @@ final public class Platform {
     public static boolean isTlsV1Supported() {
         return ENABLED_TLS_V1;
     }
-
     public static boolean isPakeSupported() {
         return false;
+    }
+
+    public static boolean isSdkGreater(int sdk) {
+        return Build.VERSION.SDK_INT > sdk;
     }
 }
