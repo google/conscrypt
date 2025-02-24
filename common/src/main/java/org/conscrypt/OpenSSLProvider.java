@@ -216,6 +216,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyPairGenerator.1.3.101.112", "EdDSA");
         put("Alg.Alias.KeyPairGenerator.Ed25519", "EdDSA");
 
+        put("KeyPairGenerator.ML-DSA", PREFIX + "OpenSslMlDsaKeyPairGenerator");
+        put("Alg.Alias.KeyPairGenerator.ML-DSA-65", "ML-DSA");
+
         /* == KeyFactory == */
         put("KeyFactory.RSA", PREFIX + "OpenSSLRSAKeyFactory");
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
@@ -233,6 +236,9 @@ public final class OpenSSLProvider extends Provider {
         put("KeyFactory.EdDSA", PREFIX + "OpenSslEdDsaKeyFactory");
         put("Alg.Alias.KeyFactory.1.3.101.112", "EdDSA");
         put("Alg.Alias.KeyFactory.Ed25519", "EdDSA");
+
+        put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory");
+        put("Alg.Alias.KeyFactory.ML-DSA-65", "ML-DSA");
 
         /* == SecretKeyFactory == */
         put("SecretKeyFactory.DESEDE", PREFIX + "DESEDESecretKeyFactory");
@@ -359,6 +365,9 @@ public final class OpenSSLProvider extends Provider {
         putSignatureImplClass("EdDSA", "OpenSslSignatureEdDsa");
         put("Alg.Alias.Signature.1.3.101.112", "EdDSA");
         put("Alg.Alias.Signature.Ed25519", "EdDSA");
+
+        putSignatureImplClass("ML-DSA", "OpenSslSignatureMlDsa");
+        put("Alg.Alias.Signature.ML-DSA-65", "ML-DSA");
 
         /* === SecureRandom === */
         /*
