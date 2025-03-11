@@ -32,14 +32,16 @@ public class Spake2PlusKeyManager implements KeyManager {
     private final byte[] idProver;
     private final byte[] idVerifier;
     private final boolean isClient;
+    private final int handshakeLimit;
 
-    Spake2PlusKeyManager(
-            byte[] context, byte[] password, byte[] idProver, byte[] idVerifier, boolean isClient) {
+    Spake2PlusKeyManager(byte[] context, byte[] password, byte[] idProver, byte[] idVerifier,
+            boolean isClient, int handshakeLimit) {
         this.context = context == null ? new byte[0] : context;
         this.password = password;
         this.idProver = idProver == null ? new byte[0] : idProver;
         this.idVerifier = idVerifier == null ? new byte[0] : idVerifier;
         this.isClient = isClient;
+        this.handshakeLimit = handshakeLimit;
     }
 
     public String chooseEngineAlias(String keyType, Principal[] issuers, SSLEngine engine) {
@@ -68,5 +70,9 @@ public class Spake2PlusKeyManager implements KeyManager {
 
     public boolean isClient() {
         return isClient;
+    }
+
+    public int getHandshakeLimit() {
+        return handshakeLimit;
     }
 }

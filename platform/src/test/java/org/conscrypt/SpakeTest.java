@@ -99,6 +99,45 @@ public class SpakeTest {
         return Pair.of(contextClient, contextServer);
     }
 
+    private SSLContext createClientContext(PakeClientKeyManagerParameters clientParams)
+            throws Exception {
+        InetAddress hostC = TestUtils.getLoopbackAddress();
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("PAKE");
+        tmf.init((ManagerFactoryParameters) null);
+
+        KeyManagerFactory kmfClient = KeyManagerFactory.getInstance("PAKE");
+        kmfClient.init(clientParams);
+        KeyManager[] keyManagersClient = kmfClient.getKeyManagers();
+        assertTrue(keyManagersClient.length == 1);
+        assertTrue(keyManagersClient[0] instanceof Spake2PlusKeyManager);
+        Spake2PlusKeyManager spake2PlusKeyManagerClient =
+                (Spake2PlusKeyManager) keyManagersClient[0];
+        assertTrue(spake2PlusKeyManagerClient.isClient());
+        SSLContext contextClient = SSLContext.getInstance("TlsV1.3");
+        contextClient.init(keyManagersClient, tmf.getTrustManagers(), null);
+        return contextClient;
+    }
+
+    private SSLContext createServerContext(PakeServerKeyManagerParameters serverParams)
+            throws Exception {
+        InetAddress hostS = TestUtils.getLoopbackAddress();
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("PAKE");
+        tmf.init((ManagerFactoryParameters) null);
+        KeyManagerFactory kmfServer = KeyManagerFactory.getInstance("PAKE");
+        kmfServer.init(serverParams);
+        KeyManager[] keyManagersServer = kmfServer.getKeyManagers();
+        assertTrue(keyManagersServer.length == 1);
+        assertTrue(keyManagersServer[0] instanceof Spake2PlusKeyManager);
+        Spake2PlusKeyManager spakeKeyManagerServer = (Spake2PlusKeyManager) keyManagersServer[0];
+        assertFalse(spakeKeyManagerServer.isClient());
+
+        SSLContext contextServer = SSLContext.getInstance("TlsV1.3");
+        contextServer.init(keyManagersServer, tmf.getTrustManagers(), null);
+        return contextServer;
+    }
+
     private Pair<SSLSocket, SSLSocket> createSockets(Pair<SSLContext, SSLContext> contexts)
             throws Exception {
         InetAddress hostC = TestUtils.getLoopbackAddress();
@@ -199,6 +238,125 @@ public class SpakeTest {
             sendData(sockets);
             closeSockets(sockets);
         }
+    }
+
+    @Test
+    public void testSpake2PlusPasswordHandshakeServerLimit() throws Exception {
+        byte[] password = new byte[] {1, 2, 3};
+        byte[] password2 = new byte[] {4, 5, 6};
+
+        PakeOption option = new PakeOption.Builder("SPAKE2PLUS_PRERELEASE")
+                                    .addMessageComponent("password", password)
+                                    .addMessageComponent("server-handshake-limit", new byte[] {16})
+                                    .addMessageComponent("client-handshake-limit", new byte[] {24})
+                                    .build();
+        PakeOption option2 = new PakeOption.Builder("SPAKE2PLUS_PRERELEASE")
+                                     .addMessageComponent("password", password2)
+                                     .addMessageComponent("server-handshake-limit", new byte[] {16})
+                                     .addMessageComponent("client-handshake-limit", new byte[] {24})
+                                     .build();
+
+        // Client uses wrong password first
+        PakeClientKeyManagerParameters kmfParamsClient =
+                new PakeClientKeyManagerParameters.Builder()
+                        .setClientId(CLIENT_ID.clone())
+                        .setServerId(SERVER_ID.clone())
+                        .addOption(option2)
+                        .build();
+
+        PakeServerKeyManagerParameters kmfParamsServer =
+                new PakeServerKeyManagerParameters.Builder()
+                        .setOptions(CLIENT_ID.clone(), SERVER_ID.clone(), Arrays.asList(option))
+                        .build();
+
+        Pair<SSLContext, SSLContext> failingContexts =
+                createContexts(kmfParamsClient, kmfParamsServer);
+
+        // Server handshake limit is 16, so it is ok if 15 connections fail.
+        for (int i = 0; i < 15; i++) {
+            Pair<SSLSocket, SSLSocket> sockets;
+            sockets = createSockets(failingContexts);
+            assertThrows(SSLHandshakeException.class, () -> connectSockets(sockets));
+        }
+
+        // 16th connection should succeed (but requires a new client)
+        kmfParamsClient = new PakeClientKeyManagerParameters.Builder()
+                                  .setClientId(CLIENT_ID.clone())
+                                  .setServerId(SERVER_ID.clone())
+                                  .addOption(option)
+                                  .build();
+        SSLContext workingClientContext = createClientContext(kmfParamsClient);
+        Pair<SSLContext, SSLContext> workingContexts =
+                Pair.of(workingClientContext, failingContexts.getSecond());
+        Pair<SSLSocket, SSLSocket> workingSockets1 = createSockets(workingContexts);
+        connectSockets(workingSockets1);
+        sendData(workingSockets1);
+        closeSockets(workingSockets1);
+
+        // After one more failure, all connections should fail.
+        Pair<SSLSocket, SSLSocket> failingSockets = createSockets(failingContexts);
+        assertThrows(SSLHandshakeException.class, () -> connectSockets(failingSockets));
+        Pair<SSLSocket, SSLSocket> workingSockets2 = createSockets(workingContexts);
+        assertThrows(SSLHandshakeException.class, () -> connectSockets(workingSockets2));
+    }
+
+    @Test
+    public void testSpake2PlusPasswordHandshakeClientLimit() throws Exception {
+        byte[] password = new byte[] {1, 2, 3};
+        byte[] password2 = new byte[] {4, 5, 6};
+
+        PakeOption option = new PakeOption.Builder("SPAKE2PLUS_PRERELEASE")
+                                    .addMessageComponent("password", password)
+                                    .addMessageComponent("server-handshake-limit", new byte[] {24})
+                                    .addMessageComponent("client-handshake-limit", new byte[] {16})
+                                    .build();
+        PakeOption option2 = new PakeOption.Builder("SPAKE2PLUS_PRERELEASE")
+                                     .addMessageComponent("password", password2)
+                                     .addMessageComponent("server-handshake-limit", new byte[] {24})
+                                     .addMessageComponent("client-handshake-limit", new byte[] {16})
+                                     .build();
+
+        PakeClientKeyManagerParameters kmfParamsClient =
+                new PakeClientKeyManagerParameters.Builder()
+                        .setClientId(CLIENT_ID.clone())
+                        .setServerId(SERVER_ID.clone())
+                        .addOption(option)
+                        .build();
+
+        // Server uses wrong password first
+        PakeServerKeyManagerParameters kmfParamsServer =
+                new PakeServerKeyManagerParameters.Builder()
+                        .setOptions(CLIENT_ID.clone(), SERVER_ID.clone(), Arrays.asList(option2))
+                        .build();
+
+        Pair<SSLContext, SSLContext> failingContexts =
+                createContexts(kmfParamsClient, kmfParamsServer);
+
+        // Server handshake limit is 16, so it is ok if 15 connections fail.
+        for (int i = 0; i < 15; i++) {
+            Pair<SSLSocket, SSLSocket> sockets;
+            sockets = createSockets(failingContexts);
+            assertThrows(SSLHandshakeException.class, () -> connectSockets(sockets));
+        }
+
+        // 16th connection should succeed (but requires a new server)
+        kmfParamsServer =
+                new PakeServerKeyManagerParameters.Builder()
+                        .setOptions(CLIENT_ID.clone(), SERVER_ID.clone(), Arrays.asList(option))
+                        .build();
+        SSLContext workingServerContext = createServerContext(kmfParamsServer);
+        Pair<SSLContext, SSLContext> workingContexts =
+                Pair.of(failingContexts.getFirst(), workingServerContext);
+        Pair<SSLSocket, SSLSocket> workingSockets1 = createSockets(workingContexts);
+        connectSockets(workingSockets1);
+        sendData(workingSockets1);
+        closeSockets(workingSockets1);
+
+        // After one more failure, all connections should fail.
+        Pair<SSLSocket, SSLSocket> failingSockets = createSockets(failingContexts);
+        assertThrows(SSLHandshakeException.class, () -> connectSockets(failingSockets));
+        Pair<SSLSocket, SSLSocket> workingSockets2 = createSockets(workingContexts);
+        assertThrows(SSLHandshakeException.class, () -> connectSockets(workingSockets2));
     }
 
     @Test
