@@ -3263,11 +3263,11 @@ public class NativeCryptoTest {
 
         byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
         assertThrows(RuntimeException.class,
-        	() -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooShort));
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooShort));
 
         byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
         assertThrows(RuntimeException.class,
-        	() -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooLong));
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooLong));
 
         byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
         assertThrows(RuntimeException.class,
