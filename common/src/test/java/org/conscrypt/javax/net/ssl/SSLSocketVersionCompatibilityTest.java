@@ -37,9 +37,6 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeTrue;
 
-import libcore.junit.util.SwitchTargetSdkVersionRule;
-import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
-
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
