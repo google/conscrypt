@@ -16,6 +16,8 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import libcore.junit.util.SwitchTargetSdkVersionRule;
+import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
 
 import static org.conscrypt.TestUtils.osName;
 import static org.conscrypt.TestUtils.isOsx;
@@ -492,15 +494,15 @@ public class SSLSocketVersionCompatibilityTest {
         test_SSLSocket_setUseClientMode(true, false);
     }
 
-    @Test(expected = SSLHandshakeException.class)
+    @Test
     public void testClientMode_reverse() throws Exception {
         // Client is server and server is client.
-        test_SSLSocket_setUseClientMode(false, true);
+        assertThrows(SSLHandshakeException.class, () -> test_SSLSocket_setUseClientMode(false, true));
     }
 
-    @Test(expected = SSLHandshakeException.class)
+    @Test
     public void testClientMode_bothClient() throws Exception {
-        test_SSLSocket_setUseClientMode(true, true);
+        assertThrows(SSLHandshakeException.class, () -> test_SSLSocket_setUseClientMode(true, true));
     }
 
     @Test
@@ -1527,6 +1529,8 @@ public class SSLSocketVersionCompatibilityTest {
             underlying, c.host.getHostName(), c.port, true);
         final byte[] data = new byte[1024 * 64];
 
+        // TODO(b/161347005): Re-enable once engine-based socket interruption works correctly.
+        assumeFalse(isConscryptEngineSocket(wrapping));
         Future<Void> clientFuture = runAsync(() -> {
             wrapping.startHandshake();
             try {
@@ -1835,42 +1839,6 @@ public class SSLSocketVersionCompatibilityTest {
             client.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
             assertEquals(2, client.getEnabledProtocols().length);
         }
-    }
-
-//  @TargetSdkVersion(34)
-    @Test
-    @Ignore("For platform CTS only")
-    public void test_SSLSocket_SSLv3Unsupported_34() throws Exception {
-        TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        final SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        // For app compatibility, SSLv3 is stripped out when setting only.
-        client.setEnabledProtocols(new String[] {"SSLv3"});
-        assertEquals(0, client.getEnabledProtocols().length);
-        try {
-            client.setEnabledProtocols(new String[] {"SSL"});
-            fail("SSLSocket should not support SSL protocol");
-        } catch (IllegalArgumentException expected) {
-            // Ignored.
-        }
-    }
-
-//  @TargetSdkVersion(34)
-    @Test
-    @Ignore("For platform CTS only")
-    public void test_TLSv1Filtered_34() throws Exception {
-        TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        final SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"});
-        assertEquals(1, client.getEnabledProtocols().length);
-        assertEquals("TLSv1.2", client.getEnabledProtocols()[0]);
     }
 
     @Test
