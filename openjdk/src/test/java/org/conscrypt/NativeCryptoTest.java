@@ -3226,8 +3226,8 @@ public class NativeCryptoTest {
     public void EVP_PKEY_CTX_set_rsa_mgf1_md_NullMdCtx() throws Exception {
         long pkeyCtx = getRawPkeyCtxForEncrypt();
         NativeRef.EVP_PKEY_CTX holder = new NativeRef.EVP_PKEY_CTX(pkeyCtx);
-        NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx, NULL);
-        assertNull(holder);
+        assertThrows(NullPointerException.class,
+                () -> NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx, NULL));
     }
 
     @Test
@@ -3240,8 +3240,8 @@ public class NativeCryptoTest {
     public void EVP_PKEY_CTX_set_rsa_oaep_md_NullMdCtx() throws Exception {
         long pkeyCtx = getRawPkeyCtxForEncrypt();
         NativeRef.EVP_PKEY_CTX holder = new NativeRef.EVP_PKEY_CTX(pkeyCtx);
-        NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx, NULL);
-        assertNull(holder);
+        assertThrows(NullPointerException.class,
+                () -> NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx, NULL));
     }
 
     @Test
