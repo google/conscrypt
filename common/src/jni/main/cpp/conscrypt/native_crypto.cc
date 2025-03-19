@@ -48,6 +48,7 @@
 #include <openssl/pkcs8.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <openssl/slhdsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
@@ -2634,6 +2635,129 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jb
                            dataArray.size(), /*context=*/NULL, /*context_len=*/0);
 
     JNI_TRACE("MLDSA65_verify(%p, %p, %p) => %d", publicKey, sig, data, result);
+    return static_cast<jint>(result);
+}
+
+static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
+                                                       jbyteArray outPublicArray,
+                                                       jbyteArray outPrivateArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p)", outPublicArray, outPrivateArray);
+
+    ScopedByteArrayRW outPublic(env, outPublicArray);
+    if (outPublic.get() == nullptr) {
+        JNI_TRACE(
+                "SLHDSA_SHA2_128S_generate_key(%p, %p) can't get output public key "
+                "buffer",
+                outPublicArray, outPrivateArray);
+        return;
+    }
+
+    ScopedByteArrayRW outPrivate(env, outPrivateArray);
+    if (outPrivate.get() == nullptr) {
+        JNI_TRACE(
+                "SLHDSA_SHA2_128S_generate_key(%p, %p) can't get output private key "
+                "buffer",
+                outPublicArray, outPrivateArray);
+        return;
+    }
+
+    if (outPublic.size() != SLHDSA_SHA2_128S_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "Output public key array length != 32");
+        return;
+    }
+
+    if (outPrivate.size() != SLHDSA_SHA2_128S_PRIVATE_KEY_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "Output private key array length != 64");
+        return;
+    }
+
+    SLHDSA_SHA2_128S_generate_key(reinterpret_cast<uint8_t*>(outPublic.get()),
+                                  reinterpret_cast<uint8_t*>(outPrivate.get()));
+    JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p) => success", outPublicArray, outPrivateArray);
+}
+
+static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteArray data,
+                                                     jbyteArray privateKey) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO privateKeyArray(env, privateKey);
+    if (privateKeyArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_sign => privateKey == null");
+        return nullptr;
+    }
+
+    if (privateKeyArray.size() != SLHDSA_SHA2_128S_PRIVATE_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Private key array length != 64");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO dataArray(env, data);
+    if (dataArray.get() == nullptr) {
+        return nullptr;
+    }
+
+    uint8_t result[SLHDSA_SHA2_128S_SIGNATURE_BYTES];
+    if (!SLHDSA_SHA2_128S_sign(result,
+                               reinterpret_cast<const unsigned char*>(privateKeyArray.get()),
+                               reinterpret_cast<const unsigned char*>(dataArray.get()),
+                               dataArray.size(), /* context */ NULL, /* context_len */ 0)) {
+        JNI_TRACE("SLHDSA_SHA2_128S_sign failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SLHDSA_SHA2_128S_sign");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> resultRef(
+            env, env->NewByteArray(static_cast<jsize>(SLHDSA_SHA2_128S_SIGNATURE_BYTES)));
+    if (resultRef.get() == nullptr) {
+        return nullptr;
+    }
+
+    ScopedByteArrayRW resultArray(env, resultRef.get());
+    if (resultArray.get() == nullptr) {
+        return nullptr;
+    }
+    memcpy(resultArray.get(), result, SLHDSA_SHA2_128S_SIGNATURE_BYTES);
+    return resultRef.release();
+}
+
+static jint NativeCrypto_SLHDSA_SHA2_128S_verify(JNIEnv* env, jclass, jbyteArray data,
+                                                 jbyteArray sig, jbyteArray publicKey) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO publicKeyArray(env, publicKey);
+    if (publicKeyArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_verify => publicKey == null");
+        return -1;
+    }
+
+    if (publicKeyArray.size() != SLHDSA_SHA2_128S_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Public key array length != 32");
+        return -1;
+    }
+
+    ScopedByteArrayRO dataArray(env, data);
+    if (dataArray.get() == nullptr) {
+        return -1;
+    }
+
+    ScopedByteArrayRO sigArray(env, sig);
+    if (sigArray.get() == nullptr) {
+        return -1;
+    }
+
+    int result = SLHDSA_SHA2_128S_verify(
+            reinterpret_cast<const unsigned char*>(sigArray.get()), sigArray.size(),
+            reinterpret_cast<const unsigned char*>(publicKeyArray.get()),
+            reinterpret_cast<const unsigned char*>(dataArray.get()), dataArray.size(),
+            /*context=*/NULL, /*context_len=*/0);
+
+    JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_verify(%p, %p, %p) => %d", publicKey, sig, data,
+              result);
     return static_cast<jint>(result);
 }
 
@@ -11545,6 +11669,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(MLDSA65_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLDSA65_sign, "([B[B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLDSA65_verify, "([B[B[B)I"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_generate_key, "([B[B)V"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_sign, "([B[B)[B"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_verify, "([B[B[B)I"),
         CONSCRYPT_NATIVE_METHOD(X25519, "([B[B[B)Z"),
         CONSCRYPT_NATIVE_METHOD(X25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(ED25519_keypair, "([B[B)V"),

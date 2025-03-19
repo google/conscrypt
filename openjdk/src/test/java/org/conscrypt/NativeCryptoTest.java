@@ -3232,4 +3232,58 @@ public class NativeCryptoTest {
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
         assertEquals(-1, NativeCrypto.MLDSA65_verify(data, signature, publicKeyTooLong));
     }
+
+    @Test
+    public void test_slhdsa_sha2_128s_works() throws Exception {
+        byte[] publicKey = new byte[32];
+        byte[] privateKey = new byte[64];
+        NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKey, privateKey);
+
+        byte[] data = decodeHex("AB");
+
+        byte[] signature = NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKey);
+        assertEquals(7856, signature.length);
+
+        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(data, signature, publicKey);
+        assertEquals(1, result);
+
+        byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, signatureTooShort, publicKey));
+
+        byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, signatureTooLong, publicKey));
+
+        byte[] modifiedSignature = signature.clone();
+        modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, modifiedSignature, publicKey));
+
+        byte[] modifiedData = data.clone();
+        modifiedData[0] = (byte) (modifiedData[0] ^ 0x01);
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(modifiedData, signature, publicKey));
+
+        byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooShort));
+
+        byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooLong));
+
+        byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, signature, publicKeyTooShort));
+
+        byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, signature, publicKeyTooLong));
+
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKey, privateKeyTooShort));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyTooShort, privateKey));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKey, privateKeyTooLong));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyTooLong, privateKey));
+    }
 }

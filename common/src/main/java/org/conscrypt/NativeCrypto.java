@@ -215,6 +215,14 @@ public final class NativeCrypto {
 
     static native int MLDSA65_verify(byte[] data, byte[] sig, byte[] publicKey);
 
+    // --- SLHDSA_SHA2_128S --------------------------------------------------------------
+
+    static native void SLHDSA_SHA2_128S_generate_key(byte[] outPublicKey, byte[] outPrivateKey);
+
+    static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, byte[] privateKey);
+
+    static native int SLHDSA_SHA2_128S_verify(byte[] data, byte[] sig, byte[] publicKey);
+
     // --- Curve25519 --------------
 
     static native boolean X25519(byte[] out, byte[] privateKey, byte[] publicKey) throws InvalidKeyException;
