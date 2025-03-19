@@ -20,14 +20,16 @@ import static org.conscrypt.TestUtils.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLUtilsTest {
@@ -41,24 +43,29 @@ public class SSLUtilsTest {
         assertArrayEquals(expected, actual);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void emptyProtocolShouldThrow() {
-        SSLUtils.encodeProtocols(new String[] {""});
+        assertThrows(
+                IllegalArgumentException.class, () -> SSLUtils.encodeProtocols(new String[] {""}));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void longProtocolShouldThrow() {
-        SSLUtils.encodeProtocols(new String[] {new String(newValidProtocol(256), UTF_8)});
+        assertThrows(IllegalArgumentException.class,
+                ()
+                        -> SSLUtils.encodeProtocols(
+                                new String[] {new String(newValidProtocol(256), UTF_8)}));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void protocolWithInvalidCharacterShouldThrow() {
-        SSLUtils.encodeProtocols(new String[] {"This is a bad character: €"});
+        assertThrows(IllegalArgumentException.class,
+                () -> SSLUtils.encodeProtocols(new String[] {"This is a bad character: €"}));
     }
 
     @Test
     public void encodeProtocolsShouldSucceed() {
-        byte[][] protocols = new byte[][]{
+        byte[][] protocols = new byte[][] {
                 "protocol-1".getBytes(UTF_8),
                 "protocol-2".getBytes(UTF_8),
                 "protocol-3".getBytes(UTF_8),
@@ -68,9 +75,9 @@ public class SSLUtilsTest {
         assertArrayEquals(expected, actual);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void decodeNullProtocolsShouldThrow() {
-        SSLUtils.decodeProtocols(null);
+        assertThrows(NullPointerException.class, () -> SSLUtils.decodeProtocols(null));
     }
 
     @Test

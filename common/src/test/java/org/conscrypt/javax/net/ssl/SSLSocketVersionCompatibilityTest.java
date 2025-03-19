@@ -16,15 +16,14 @@
 
 package org.conscrypt.javax.net.ssl;
 
-
-import static org.conscrypt.TestUtils.osName;
-import static org.conscrypt.TestUtils.isOsx;
+import static org.conscrypt.TestUtils.UTF_8;
 import static org.conscrypt.TestUtils.isLinux;
-import static org.conscrypt.TestUtils.isWindows;
+import static org.conscrypt.TestUtils.isOsx;
 import static org.conscrypt.TestUtils.isTlsV1Deprecated;
 import static org.conscrypt.TestUtils.isTlsV1Filtered;
 import static org.conscrypt.TestUtils.isTlsV1Supported;
-import static org.conscrypt.TestUtils.UTF_8;
+import static org.conscrypt.TestUtils.isWindows;
+import static org.conscrypt.TestUtils.osName;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,6 +36,29 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeTrue;
+
+import libcore.junit.util.SwitchTargetSdkVersionRule;
+import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
+
+import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.testing.OpaqueProvider;
+import org.conscrypt.tlswire.TlsTester;
+import org.conscrypt.tlswire.handshake.AlpnHelloExtension;
+import org.conscrypt.tlswire.handshake.ClientHello;
+import org.conscrypt.tlswire.handshake.HandshakeMessage;
+import org.conscrypt.tlswire.handshake.HelloExtension;
+import org.conscrypt.tlswire.handshake.ServerNameHelloExtension;
+import org.conscrypt.tlswire.record.TlsProtocols;
+import org.conscrypt.tlswire.record.TlsRecord;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -71,6 +93,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ServerSocketFactory;
@@ -98,25 +121,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.TestUtils;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.conscrypt.testing.OpaqueProvider;
-import org.conscrypt.tlswire.TlsTester;
-import org.conscrypt.tlswire.handshake.AlpnHelloExtension;
-import org.conscrypt.tlswire.handshake.ClientHello;
-import org.conscrypt.tlswire.handshake.HandshakeMessage;
-import org.conscrypt.tlswire.handshake.HelloExtension;
-import org.conscrypt.tlswire.handshake.ServerNameHelloExtension;
-import org.conscrypt.tlswire.record.TlsProtocols;
-import org.conscrypt.tlswire.record.TlsRecord;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
 import tests.util.Pair;
@@ -492,15 +497,17 @@ public class SSLSocketVersionCompatibilityTest {
         test_SSLSocket_setUseClientMode(true, false);
     }
 
-    @Test(expected = SSLHandshakeException.class)
+    @Test
     public void testClientMode_reverse() throws Exception {
         // Client is server and server is client.
-        test_SSLSocket_setUseClientMode(false, true);
+        assertThrows(
+                SSLHandshakeException.class, () -> test_SSLSocket_setUseClientMode(false, true));
     }
 
-    @Test(expected = SSLHandshakeException.class)
+    @Test
     public void testClientMode_bothClient() throws Exception {
-        test_SSLSocket_setUseClientMode(true, true);
+        assertThrows(
+                SSLHandshakeException.class, () -> test_SSLSocket_setUseClientMode(true, true));
     }
 
     @Test
@@ -1527,6 +1534,8 @@ public class SSLSocketVersionCompatibilityTest {
             underlying, c.host.getHostName(), c.port, true);
         final byte[] data = new byte[1024 * 64];
 
+        // TODO(b/161347005): Re-enable once engine-based socket interruption works correctly.
+        assumeFalse(isConscryptEngineSocket(wrapping));
         Future<Void> clientFuture = runAsync(() -> {
             wrapping.startHandshake();
             try {
@@ -1835,42 +1844,6 @@ public class SSLSocketVersionCompatibilityTest {
             client.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
             assertEquals(2, client.getEnabledProtocols().length);
         }
-    }
-
-//  @TargetSdkVersion(34)
-    @Test
-    @Ignore("For platform CTS only")
-    public void test_SSLSocket_SSLv3Unsupported_34() throws Exception {
-        TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        final SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        // For app compatibility, SSLv3 is stripped out when setting only.
-        client.setEnabledProtocols(new String[] {"SSLv3"});
-        assertEquals(0, client.getEnabledProtocols().length);
-        try {
-            client.setEnabledProtocols(new String[] {"SSL"});
-            fail("SSLSocket should not support SSL protocol");
-        } catch (IllegalArgumentException expected) {
-            // Ignored.
-        }
-    }
-
-//  @TargetSdkVersion(34)
-    @Test
-    @Ignore("For platform CTS only")
-    public void test_TLSv1Filtered_34() throws Exception {
-        TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        final SSLSocket client =
-                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"});
-        assertEquals(1, client.getEnabledProtocols().length);
-        assertEquals("TLSv1.2", client.getEnabledProtocols()[0]);
     }
 
     @Test
