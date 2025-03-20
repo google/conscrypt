@@ -11324,20 +11324,18 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
 #define SPAKE2PLUS_PW_VERIFIER_SIZE 32
 #define SPAKE2PLUS_REGISTRATION_RECORD_SIZE 65
 
-static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyteArray context,
-                                                      jbyteArray pw_array,
-                                                      jbyteArray id_prover_array,
-                                                      jbyteArray id_verifier_array,
-                                                      jboolean is_client, jlong ssl_ctx_address,
-                                                      CONSCRYPT_UNUSED jobject holder) {
+static void NativeCrypto_SSL_CTX_set_spake_credential(
+        JNIEnv* env, jclass, jbyteArray context, jbyteArray pw_array, jbyteArray id_prover_array,
+        jbyteArray id_verifier_array, jboolean is_client, jint handshake_limit,
+        jlong ssl_ctx_address, CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %ld)", context, pw_array,
-              id_prover_array, id_verifier_array, is_client, ssl_ctx_address);
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %d, %ld)", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx_address);
 
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
 
-    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %p)", context, pw_array,
-              id_prover_array, id_verifier_array, is_client, ssl_ctx);
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %d, %p)", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx);
 
     if (context == nullptr || pw_array == nullptr || id_prover_array == nullptr ||
         id_verifier_array == nullptr) {
@@ -11402,7 +11400,7 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
                 /* client_identity_len= */ id_prover_bytes.size(),
                 /* server_identity= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
                 /* server_identity_len= */ id_verifier_bytes.size(),
-                /* attempts= */ 1,
+                /* attempts= */ handshake_limit,
                 /* w0= */ pw_verifier_w0,
                 /* w0_len= */ sizeof(pw_verifier_w0),
                 /* w1= */ pw_verifier_w1,
@@ -11416,7 +11414,7 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
                 /* client_identity_len= */ id_prover_bytes.size(),
                 /* server_identity= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
                 /* server_identity_len= */ id_verifier_bytes.size(),
-                /* attempts= */ 1,
+                /* attempts= */ handshake_limit,
                 /* w0= */ pw_verifier_w0,
                 /* w0_len= */ sizeof(pw_verifier_w0),
                 /* registration_record= */ registration_record,
@@ -11432,8 +11430,8 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(JNIEnv* env, jclass, jbyte
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_CTX_add1_credential failed");
         return;
     }
-    JNI_TRACE("SSL_CTX_set_spake_credential (%p, %p, %p, %p, %d, %p) => %p", context, pw_array,
-              id_prover_array, id_verifier_array, is_client, ssl_ctx, creds.get());
+    JNI_TRACE("SSL_CTX_set_spake_credential (%p, %p, %p, %p, %d, %d, %p) => %p", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx, creds.get());
     return;
 }
 
@@ -11926,7 +11924,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
-        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "([B[B[B[BZJ" REF_SSL_CTX ")V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "([B[B[B[BZIJ" REF_SSL_CTX ")V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

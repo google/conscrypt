@@ -671,8 +671,8 @@ public final class NativeCrypto {
      * Used for both client and server.
      */
     static native void SSL_CTX_set_spake_credential(byte[] context, byte[] pw_array,
-            byte[] id_prover_array, byte[] id_verifier_array, boolean is_client, long ssl_ctx,
-            AbstractSessionContext holder) throws SSLException;
+            byte[] id_prover_array, byte[] id_verifier_array, boolean is_client,
+            int handshake_limit, long ssl_ctx, AbstractSessionContext holder) throws SSLException;
 
     // --- ASN1_TIME -----------------------------------------------------------
 
