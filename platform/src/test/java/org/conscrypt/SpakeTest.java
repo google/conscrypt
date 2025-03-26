@@ -37,6 +37,7 @@ import org.junit.runners.JUnit4;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.InvalidParameterException;
 import java.security.KeyManagementException;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
@@ -518,6 +519,37 @@ public class SpakeTest {
 
         assertThrows(
                 KeyManagementException.class, () -> sslContext.init(null, trustManagers, null));
+    }
+
+    @Test
+    public void testSpake2WithoutTls13Invalid() throws Exception {
+        byte[] password = new byte[] {1, 2, 3};
+
+        PakeOption option = new PakeOption.Builder("SPAKE2PLUS_PRERELEASE")
+                                    .addMessageComponent("password", password)
+                                    .build();
+
+        PakeClientKeyManagerParameters kmfParamsClient =
+                new PakeClientKeyManagerParameters.Builder()
+                        .setClientId(CLIENT_ID.clone())
+                        .setServerId(SERVER_ID.clone())
+                        .addOption(option)
+                        .build();
+
+        PakeServerKeyManagerParameters kmfParamsServer =
+                new PakeServerKeyManagerParameters.Builder()
+                        .setOptions(CLIENT_ID.clone(), SERVER_ID.clone(), Arrays.asList(option))
+                        .build();
+
+        Pair<SSLContext, SSLContext> contexts = createContexts(kmfParamsClient, kmfParamsServer);
+        Pair<SSLSocket, SSLSocket> sockets = createSockets(contexts);
+
+        sockets.getFirst().setEnabledProtocols(new String[] {"TLSv1.2"});
+        sockets.getSecond().setEnabledProtocols(new String[] {"TLSv1.2"});
+
+        connectSockets(sockets);
+        sendData(sockets);
+        closeSockets(sockets);
     }
 
     private <T> Future<T> runAsync(Callable<T> callable) {
