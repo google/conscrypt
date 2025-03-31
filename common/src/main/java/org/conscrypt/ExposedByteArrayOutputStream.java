@@ -6,16 +6,15 @@ import java.io.ByteArrayOutputStream;
  * ByteArrayOutputStream that exposes the underlying byte array.
  */
 final class ExposedByteArrayOutputStream extends ByteArrayOutputStream {
+    ExposedByteArrayOutputStream() {
+        super();
+    }
 
-  ExposedByteArrayOutputStream() {
-    super();
-  }
+    ExposedByteArrayOutputStream(int initialCapacity) {
+        super(initialCapacity);
+    }
 
-  ExposedByteArrayOutputStream(int initialCapacity) {
-    super(initialCapacity);
-  }
-
-  byte[] array() {
-      return buf;
-  }
+    byte[] array() {
+        return buf;
+    }
 }
