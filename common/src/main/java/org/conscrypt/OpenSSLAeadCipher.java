@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -24,6 +25,7 @@ import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -44,11 +46,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     static final int DEFAULT_TAG_SIZE_BITS = 16 * 8;
 
     /**
-     * Keeps track of the last used block size.
-     */
-    private static int lastGlobalMessageSize = 32;
-
-    /**
      * The previously used key to prevent key + nonce (IV) reuse.
      */
     private byte[] previousKey;
@@ -64,10 +61,22 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      */
     private boolean mustInitialize;
 
+    // ByteArrayOutputStream that exposes the underlying byte array.
+    private static final class Buffer extends ByteArrayOutputStream {
+        Buffer(int initialCapacity) {
+            super(initialCapacity);
+        }
+
+        byte[] array() {
+            return buf;
+        }
+    }
+
     /**
-     * The byte array containing the bytes written.
+     * The byte array containing the bytes written. It is initialized to null because it is only
+     * needed when update is called. So we don't want to allocate it until it is needed.
      */
-    byte[] buf;
+    private Buffer buf = null;
 
     /**
      * The number of bytes written.
@@ -114,27 +123,20 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return diff == 0;
     }
 
-    private void expand(int i) {
-        /* Can the buffer handle i more bytes, if not expand it */
-        if (bufCount + i <= buf.length) {
-            return;
-        }
-
-        byte[] newbuf = new byte[(bufCount + i) * 2];
-        System.arraycopy(buf, 0, newbuf, 0, bufCount);
-        buf = newbuf;
-    }
-
     private void reset() {
         aad = null;
-        final int lastBufSize = lastGlobalMessageSize;
         if (buf == null) {
-            buf = new byte[lastBufSize];
-        } else if (bufCount > 0 && bufCount != lastBufSize) {
-            lastGlobalMessageSize = bufCount;
-            if (buf.length != bufCount) {
-                buf = new byte[bufCount];
-            }
+            bufCount = 0;
+            return;
+        }
+        int bufMemSize = buf.array().length;
+        if (bufMemSize > 1024 && bufCount < bufMemSize / 8) {
+            // The memory usage of the buffer much larger than what was used.
+            // We prefer to release it to avoid keeping too much memory.
+            buf = null;
+        } else {
+            // Keep using the same buffer, to save on memory allocation.
+            buf.reset();
         }
         bufCount = 0;
     }
@@ -205,7 +207,11 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         }
         mustInitialize = false;
         this.iv = iv;
-        reset();
+        aad = null;
+        if (buf != null) {
+            buf.reset();
+        }
+        bufCount = 0;
     }
 
     void checkSupportedTagLength(int tagLenBits)
@@ -306,16 +312,12 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     void appendToBuf(byte[] input, int inputOffset, int inputLen) {
-        if (buf == null) {
-            throw new IllegalStateException("Cipher not initialized");
-        }
-
         ArrayUtils.checkOffsetAndCount(input.length, inputOffset, inputLen);
-        if (inputLen > 0) {
-            expand(inputLen);
-            System.arraycopy(input, inputOffset, buf, this.bufCount, inputLen);
-            this.bufCount += inputLen;
+        if (buf == null) {
+            buf = new Buffer(inputLen);
         }
+        buf.write(input, inputOffset, inputLen);
+        this.bufCount += inputLen;
     }
 
     @Override
@@ -388,7 +390,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             if (inputLen > 0) {
                 appendToBuf(input, inputOffset, inputLen);
             }
-            in = buf;
+            in = buf.array();
             inOffset = 0;
             inLen = bufCount;
         } else {
