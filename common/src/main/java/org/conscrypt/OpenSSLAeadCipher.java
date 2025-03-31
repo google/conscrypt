@@ -62,7 +62,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
 
     // ByteArrayOutputStream that exposes the underlying byte array.
     private static final class Buffer extends ByteArrayOutputStream {
-
         Buffer(int initialCapacity) {
             super(initialCapacity);
         }
@@ -122,7 +121,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         }
         return diff == 0;
     }
-    
+
     private void reset() {
         aad = null;
         if (buf == null) {
@@ -130,7 +129,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             return;
         }
         int bufMemSize = buf.array().length;
-        if (bufMemSize > 1024 && bufCount < bufMemSize/8) {
+        if (bufMemSize > 1024 && bufCount < bufMemSize / 8) {
             // The memory usage of the buffer much larger than what was used.
             // We prefer to release it to avoid keeping too much memory.
             buf = null;
