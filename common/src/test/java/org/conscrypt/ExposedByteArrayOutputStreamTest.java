@@ -39,7 +39,8 @@ public final class ExposedByteArrayOutputStreamTest {
         ExposedByteArrayOutputStream outputStream =
                 new ExposedByteArrayOutputStream(/* initialCapacity= */ 6);
         byte[] array = outputStream.array();
-        // Because array is not a copy, any write will change the array, if it is large enough.
+        assertEquals(6, array.length);
+        // Because array is not a copy and there is enough space, write 3 bytes will change array.
         outputStream.write(new byte[] {1, 2, 3});
         assertArrayEquals(new byte[] {1, 2, 3, 0, 0, 0}, array);
     }
@@ -56,7 +57,9 @@ public final class ExposedByteArrayOutputStreamTest {
         ExposedByteArrayOutputStream outputStream =
                 new ExposedByteArrayOutputStream(/* initialCapacity= */ 3);
         assertEquals(3, outputStream.array().length);
-        outputStream.write(new byte[] {1, 2, 3, 4});
+        outputStream.write(new byte[] {1, 2});
+        outputStream.write(new byte[] {3, 4});
         assertTrue(outputStream.array().length > 3);
+        assertArrayEquals(new byte[] {1, 2, 3, 4}, outputStream.toByteArray());
     }
 }
