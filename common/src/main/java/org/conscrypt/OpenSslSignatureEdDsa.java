@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.PrivateKey;
@@ -36,17 +35,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
      */
     private OpenSSLKey key;
 
-    // Buffer provides access to the underlying byte array without making a copy.
-    private static final class Buffer extends ByteArrayOutputStream {
-        byte[] array() {
-            return buf;
-        }
-    }
-
-    /**
-     * buffer to hold value to be signed or verified.
-     */
-    private final Buffer buffer = new Buffer();
+    private final ExposedByteArrayOutputStream buffer = new ExposedByteArrayOutputStream();
 
     public OpenSslSignatureEdDsa() {}
 

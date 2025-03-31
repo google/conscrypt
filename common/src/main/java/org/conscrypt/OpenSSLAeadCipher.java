@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -61,22 +60,11 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      */
     private boolean mustInitialize;
 
-    // ByteArrayOutputStream that exposes the underlying byte array.
-    private static final class Buffer extends ByteArrayOutputStream {
-        Buffer(int initialCapacity) {
-            super(initialCapacity);
-        }
-
-        byte[] array() {
-            return buf;
-        }
-    }
-
     /**
      * The byte array containing the bytes written. It is initialized to null because it is only
      * needed when update is called. So we don't want to allocate it until it is needed.
      */
-    private Buffer buf = null;
+    private ExposedByteArrayOutputStream buf = null;
 
     /**
      * The number of bytes written.
@@ -314,7 +302,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     void appendToBuf(byte[] input, int inputOffset, int inputLen) {
         ArrayUtils.checkOffsetAndCount(input.length, inputOffset, inputLen);
         if (buf == null) {
-            buf = new Buffer(inputLen);
+            buf = new ExposedByteArrayOutputStream(inputLen);
         }
         buf.write(input, inputOffset, inputLen);
         this.bufCount += inputLen;
