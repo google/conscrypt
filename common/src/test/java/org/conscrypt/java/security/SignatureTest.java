@@ -105,7 +105,7 @@ public class SignatureTest {
                 // ML-DSA is skipped because it doesn't yet support getFormat() and getEncoded().
                 .skipAlgorithm("ML-DSA")
                 // SLH-DSA is skipped because it doesn't yet support getFormat() and getEncoded().
-                // disabled... .skipAlgorithm("SLH-DSA")
+                .skipAlgorithm("SLH-DSA")
                 .skipAlgorithm("HSS/LMS")
                 .run((provider, algorithm) -> {
                     KeyPair kp = keyPair(algorithm);
