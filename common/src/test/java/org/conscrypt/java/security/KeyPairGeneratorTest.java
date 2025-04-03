@@ -256,7 +256,7 @@ public class KeyPairGeneratorTest {
             // ML-DSA keys are not yet serializable, so just skip them.
             return;
         }
-        if (expectedAlgorithm.equals("SLH-DSA")) {
+        if (expectedAlgorithm.equals("SLH-DSA-SHA2-128S")) {
             // SLH-DSA keys are not yet serializable, so just skip them.
             return;
         }
