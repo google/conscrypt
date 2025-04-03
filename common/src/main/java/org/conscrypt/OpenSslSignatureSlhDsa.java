@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,20 +24,19 @@ import java.security.SignatureException;
 import java.security.SignatureSpi;
 
 /**
- * Implements the JDK Signature interface needed for SLH-DSA-SHA2-128S signature generation and verification
- * using BoringSSL.
+ * Implements the JDK Signature interface needed for SLH-DSA-SHA2-128S signature generation and
+ * verification using BoringSSL.
  */
 @Internal
 public class OpenSslSignatureSlhDsa extends SignatureSpi {
+    /** The current OpenSSL key we're operating on. */
+    private OpenSslSlhDsaPrivateKey privateKey;
+    private OpenSslSlhDsaPublicKey publicKey;
 
-  /** The current OpenSSL key we're operating on. */
-  private OpenSslSlhDsaPrivateKey privateKey;
-  private OpenSslSlhDsaPublicKey publicKey;
+    /** Buffer to hold value to be signed or verified. */
+    private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
-  /** Buffer to hold value to be signed or verified. */
-  private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-  public OpenSslSignatureSlhDsa() {}
+    public OpenSslSignatureSlhDsa() {}
 
     @Override
     protected void engineUpdate(byte input) {
@@ -57,16 +56,16 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
 
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
-      this.privateKey = (OpenSslSlhDsaPrivateKey) privateKey;
-      this.publicKey = null;
-      buffer.reset();
+        this.privateKey = (OpenSslSlhDsaPrivateKey) privateKey;
+        this.publicKey = null;
+        buffer.reset();
     }
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-    this.publicKey = (OpenSslSlhDsaPublicKey) publicKey;
-    this.privateKey = null;
-    buffer.reset();
+        this.publicKey = (OpenSslSlhDsaPublicKey) publicKey;
+        this.privateKey = null;
+        buffer.reset();
     }
 
     @Override
@@ -76,24 +75,24 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
 
     @Override
     protected byte[] engineSign() throws SignatureException {
-    if (privateKey == null) {
-      // This should not happen.
-      throw new SignatureException("No privateKey provided");
-    }
-    byte[] data = buffer.toByteArray();
-    buffer.reset();
-    return NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKey.getRaw());
+        if (privateKey == null) {
+            // This should not happen.
+            throw new SignatureException("No privateKey provided");
+        }
+        byte[] data = buffer.toByteArray();
+        buffer.reset();
+        return NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKey.getRaw());
     }
 
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-    if (publicKey == null) {
-      // This should not happen.
-      throw new SignatureException("No publicKey provided");
-    }
-    byte[] data = buffer.toByteArray();
-    buffer.reset();
-    int result = NativeCrypto.SLHDSA_SHA2_128S_verify(data, sigBytes, publicKey.getRaw());
-    return result == 1;
+        if (publicKey == null) {
+            // This should not happen.
+            throw new SignatureException("No publicKey provided");
+        }
+        byte[] data = buffer.toByteArray();
+        buffer.reset();
+        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(data, sigBytes, publicKey.getRaw());
+        return result == 1;
     }
 }

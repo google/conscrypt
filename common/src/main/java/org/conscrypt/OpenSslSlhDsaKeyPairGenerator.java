@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,26 +26,26 @@ import java.security.KeyPairGenerator;
  */
 @Internal
 public final class OpenSslSlhDsaKeyPairGenerator extends KeyPairGenerator {
-  private static final String ALGORITHM = "SLH-DSA";
+    private static final String ALGORITHM = "SLH-DSA";
 
-  public OpenSslSlhDsaKeyPairGenerator() {
+    public OpenSslSlhDsaKeyPairGenerator() {
         super(ALGORITHM);
     }
 
-  @Override
-  public void initialize(int bits) throws InvalidParameterException {
-    if (bits != -1) {
-      throw new InvalidParameterException("SLH-DSA only supports -1 for bits");
+    @Override
+    public void initialize(int bits) throws InvalidParameterException {
+        if (bits != -1) {
+            throw new InvalidParameterException("SLH-DSA only supports -1 for bits");
         }
     }
 
-  @Override
-  public KeyPair generateKeyPair() {
-    byte[] privateKeyBytes = new byte[OpenSslSlhDsaPrivateKey.PRIVATE_KEY_SIZE_BYTES];
-    byte[] publicKeyBytes = new byte[OpenSslSlhDsaPublicKey.PUBLIC_KEY_SIZE_BYTES];
-    NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyBytes, privateKeyBytes);
+    @Override
+    public KeyPair generateKeyPair() {
+        byte[] privateKeyBytes = new byte[OpenSslSlhDsaPrivateKey.PRIVATE_KEY_SIZE_BYTES];
+        byte[] publicKeyBytes = new byte[OpenSslSlhDsaPublicKey.PUBLIC_KEY_SIZE_BYTES];
+        NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyBytes, privateKeyBytes);
 
-    return new KeyPair(
-        new OpenSslSlhDsaPublicKey(publicKeyBytes), new OpenSslSlhDsaPrivateKey(privateKeyBytes));
+        return new KeyPair(new OpenSslSlhDsaPublicKey(publicKeyBytes),
+                new OpenSslSlhDsaPrivateKey(privateKeyBytes));
     }
 }

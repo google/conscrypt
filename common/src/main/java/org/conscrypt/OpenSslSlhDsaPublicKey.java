@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,73 +23,72 @@ import java.util.Arrays;
 
 /** An SLH-DSA public key. */
 public class OpenSslSlhDsaPublicKey implements PublicKey {
+    static final int PUBLIC_KEY_SIZE_BYTES = 32;
 
-  static final int PUBLIC_KEY_SIZE_BYTES = 32;
+    private final byte[] raw;
 
-  private final byte[] raw;
-
-  public OpenSslSlhDsaPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
+    public OpenSslSlhDsaPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
-    if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-          if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
+        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+            if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
-          }
-          raw = encoded;
+            }
+            raw = encoded;
         } else {
-      throw new InvalidKeySpecException("Encoding must be in raw format");
+            throw new InvalidKeySpecException("Encoding must be in raw format");
         }
     }
 
-  public OpenSslSlhDsaPublicKey(byte[] raw) {
-    if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
-                throw new IllegalArgumentException("Invalid key size");
-    }
-      this.raw = raw.clone();
+    public OpenSslSlhDsaPublicKey(byte[] raw) {
+        if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
+            throw new IllegalArgumentException("Invalid key size");
+        }
+        this.raw = raw.clone();
     }
 
     @Override
     public String getAlgorithm() {
-      return "SLH-DSA";
+        return "SLH-DSA";
     }
 
     @Override
     public String getFormat() {
-    throw new UnsupportedOperationException("getFormat() not yet supported");
+        throw new UnsupportedOperationException("getFormat() not yet supported");
     }
 
     @Override
     public byte[] getEncoded() {
-    throw new UnsupportedOperationException("getEncoded() not yet supported");
+        throw new UnsupportedOperationException("getEncoded() not yet supported");
     }
 
-  byte[] getRaw() {
-    if (raw == null) {
+    byte[] getRaw() {
+        if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }
-    return raw.clone();
+        return raw.clone();
     }
 
     @Override
     public boolean equals(Object o) {
-    if (raw == null) {
+        if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }
 
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof OpenSslSlhDsaPublicKey)) {
-      return false;
-    }
-    OpenSslSlhDsaPublicKey that = (OpenSslSlhDsaPublicKey) o;
-    return Arrays.equals(raw, that.raw);
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof OpenSslSlhDsaPublicKey)) {
+            return false;
+        }
+        OpenSslSlhDsaPublicKey that = (OpenSslSlhDsaPublicKey) o;
+        return Arrays.equals(raw, that.raw);
     }
 
     @Override
     public int hashCode() {
-    if (raw == null) {
+        if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }
-    return Arrays.hashCode(raw);
+        return Arrays.hashCode(raw);
     }
 }

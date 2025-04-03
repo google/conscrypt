@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,7 @@ import java.security.spec.X509EncodedKeySpec;
 /** An implementation of a {@link KeyFactorySpi} for SlhDsa keys based on BoringSSL. */
 @Internal
 public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
-
-  public OpenSslSlhDsaKeyFactory() {}
+    public OpenSslSlhDsaKeyFactory() {}
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
@@ -41,10 +40,10 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
         if (keySpec instanceof EncodedKeySpec) {
-          return new OpenSslSlhDsaPublicKey((EncodedKeySpec) keySpec);
+            return new OpenSslSlhDsaPublicKey((EncodedKeySpec) keySpec);
         }
-    throw new InvalidKeySpecException(
-        "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException(
+                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
     }
 
     @Override
@@ -53,10 +52,10 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
         if (keySpec instanceof EncodedKeySpec) {
-          return new OpenSslSlhDsaPrivateKey((EncodedKeySpec) keySpec);
+            return new OpenSslSlhDsaPrivateKey((EncodedKeySpec) keySpec);
         }
         throw new InvalidKeySpecException(
-            "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
     }
 
     @Override
@@ -68,22 +67,24 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-    if (!key.getAlgorithm().equals("SLH-DSA")) {
-      throw new InvalidKeySpecException("Key must be a SLH-DSA key");
+        if (!key.getAlgorithm().equals("SLH-DSA")) {
+            throw new InvalidKeySpecException("Key must be a SLH-DSA key");
         }
-    if (key instanceof OpenSslSlhDsaPublicKey) {
-      OpenSslSlhDsaPublicKey conscryptKey = (OpenSslSlhDsaPublicKey) key;
-      if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-        throw new UnsupportedOperationException("X509EncodedKeySpec is currently not supported");
+        if (key instanceof OpenSslSlhDsaPublicKey) {
+            OpenSslSlhDsaPublicKey conscryptKey = (OpenSslSlhDsaPublicKey) key;
+            if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
+                throw new UnsupportedOperationException(
+                        "X509EncodedKeySpec is currently not supported");
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-        return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
-    } else if (key instanceof OpenSslSlhDsaPrivateKey) {
-      OpenSslSlhDsaPrivateKey conscryptKey = (OpenSslSlhDsaPrivateKey) key;
-      if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-        throw new UnsupportedOperationException("PKCS8EncodedKeySpec is currently not supported");
+        } else if (key instanceof OpenSslSlhDsaPrivateKey) {
+            OpenSslSlhDsaPrivateKey conscryptKey = (OpenSslSlhDsaPrivateKey) key;
+            if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
+                throw new UnsupportedOperationException(
+                        "PKCS8EncodedKeySpec is currently not supported");
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-        return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
@@ -100,8 +101,8 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
             }
             return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                 IllegalAccessException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
+                | IllegalAccessException e) {
             throw new InvalidKeySpecException(
                     "Can't process KeySpec class " + keySpecClass.getName(), e);
         }
@@ -112,9 +113,10 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (key == null) {
             throw new InvalidKeyException("key == null");
         }
-    if ((key instanceof OpenSslSlhDsaPublicKey) || (key instanceof OpenSslSlhDsaPrivateKey)) {
+        if ((key instanceof OpenSslSlhDsaPublicKey) || (key instanceof OpenSslSlhDsaPrivateKey)) {
             return key;
         }
-    throw new InvalidKeyException("Key must be OpenSslSlhDsaPublicKey or OpenSslSlhDsaPrivateKey");
-  }
+        throw new InvalidKeyException(
+                "Key must be OpenSslSlhDsaPublicKey or OpenSslSlhDsaPrivateKey");
+    }
 }
