@@ -29,7 +29,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
-/** An implementation of a {@link KeyFactorySpi} for SlhDsa keys based on BoringSSL. */
+/** An implementation of a {@link KeyFactorySpi} for SLH-DSL keys based on BoringSSL. */
 @Internal
 public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
     public OpenSslSlhDsaKeyFactory() {}

@@ -241,7 +241,7 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyFactory.Ed25519", "EdDSA");
 
         put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory");
-        put("Alg.Alias.KeyFactory.ML-DSA-65", "ML-DSA");\
+        put("Alg.Alias.KeyFactory.ML-DSA-65", "ML-DSA");
         
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyFactory.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyFactory");
