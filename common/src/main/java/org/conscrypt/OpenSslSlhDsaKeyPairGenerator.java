@@ -26,7 +26,7 @@ import java.security.KeyPairGenerator;
  */
 @Internal
 public final class OpenSslSlhDsaKeyPairGenerator extends KeyPairGenerator {
-    private static final String ALGORITHM = "SLH-DSA";
+    private static final String ALGORITHM = "SLH-DSA-SHA2-128S";
 
     public OpenSslSlhDsaKeyPairGenerator() {
         super(ALGORITHM);

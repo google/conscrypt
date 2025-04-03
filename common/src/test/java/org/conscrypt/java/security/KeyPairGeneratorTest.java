@@ -151,7 +151,7 @@ public class KeyPairGeneratorTest {
         putKeySize("XDH", 255);
         putKeySize("EdDSA", 255);
         putKeySize("ML-DSA", -1);
-        putKeySize("SLH-DSA", -1);
+        putKeySize("SLH-DSA-SHA2-128S", -1);
     }
 
     /** Elliptic Curve Crypto named curves that should be supported. */
