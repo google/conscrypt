@@ -67,9 +67,6 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (!key.getAlgorithm().equals("SLH-DSA")) {
-            throw new InvalidKeySpecException("Key must be a SLH-DSA key");
-        }
         if (key instanceof OpenSslSlhDsaPublicKey) {
             OpenSslSlhDsaPublicKey conscryptKey = (OpenSslSlhDsaPublicKey) key;
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
