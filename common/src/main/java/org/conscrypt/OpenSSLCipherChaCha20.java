@@ -16,12 +16,18 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.metrics.MetricsAlgorithm.CIPHER;
+import static org.conscrypt.metrics.MetricsCipher.CHACHA20;
+import static org.conscrypt.metrics.MetricsMode.NO_MODE;
+import static org.conscrypt.metrics.MetricsPadding.NO_PADDING;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -43,7 +49,10 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     private int currentBlockConsumedBytes = 0;
     private int blockCounter = 0;
 
-    public OpenSSLCipherChaCha20() {}
+    public OpenSSLCipherChaCha20() {
+        Platform.getStatsLog().countServiceUsage(
+                CIPHER.getId(), CHACHA20.getId(), NO_MODE.getId(), NO_PADDING.getId());
+    }
 
     @Override
     void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params, SecureRandom random)

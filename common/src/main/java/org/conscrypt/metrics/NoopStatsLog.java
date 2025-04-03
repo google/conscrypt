@@ -37,4 +37,6 @@ public class NoopStatsLog implements StatsLog {
 
     public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
             PolicyCompliance compliance, CertificateTransparencyVerificationReason reason) {}
+
+    public void countServiceUsage(int algorithmId, int cipherId, int modeId, int paddingId) {}
 }
