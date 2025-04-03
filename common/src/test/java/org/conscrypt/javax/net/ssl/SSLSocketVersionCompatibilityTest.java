@@ -1225,6 +1225,7 @@ public class SSLSocketVersionCompatibilityTest {
         }
     }
 
+    @SuppressWarnings("TestExceptionChecker")
     @Test(expected = SocketTimeoutException.class)
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
         // Only run this test on Linux since it relies on non-posix methods.
