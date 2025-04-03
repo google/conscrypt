@@ -48,7 +48,7 @@ public class OpenSslSlhDsaPublicKey implements PublicKey {
 
     @Override
     public String getAlgorithm() {
-        return "SLH-DSA";
+        return "SLH-DSA-SHA2-128S";
     }
 
     @Override
