@@ -20,6 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -33,190 +38,180 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SlhDsaTest {
+    private final Provider conscryptProvider = TestUtils.getConscryptProvider();
 
-  private final Provider conscryptProvider = TestUtils.getConscryptProvider();
-
-  @BeforeClass
-  public static void setUp() {
-    TestUtils.assumeAllowsUnsignedCrypto();
-  }
-
-  public static final class RawKeySpec extends EncodedKeySpec {
-
-    public RawKeySpec(byte[] encoded) {
-      super(encoded);
+    @BeforeClass
+    public static void setUp() {
+        TestUtils.assumeAllowsUnsignedCrypto();
     }
 
-    @Override
-    public String getFormat() {
-      return "raw";
+    public static final class RawKeySpec extends EncodedKeySpec {
+        public RawKeySpec(byte[] encoded) {
+            super(encoded);
+        }
+
+        @Override
+        public String getFormat() {
+            return "raw";
+        }
     }
-  }
 
-  @Test
-  public void signAndVerify_works() throws Exception {
-    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-    KeyPair keyPair = keyGen.generateKeyPair();
-    PrivateKey privateKey = keyPair.getPrivate();
-    PublicKey publicKey = keyPair.getPublic();
+    @Test
+    public void signAndVerify_works() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
 
-    byte[] msg = new byte[123];
-    Signature ss = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-    ss.initSign(privateKey);
-    ss.update(msg);
-    byte[] sig = ss.sign();
-    assertEquals(7856, sig.length);
+        byte[] msg = new byte[123];
+        Signature ss = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        ss.initSign(privateKey);
+        ss.update(msg);
+        byte[] sig = ss.sign();
+        assertEquals(7856, sig.length);
 
-    Signature sv = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-    sv.initVerify(publicKey);
-    sv.update(msg);
-    boolean verified = sv.verify(sig);
-    assertTrue(verified);
-  }
-
-  @Test
-  public void emptyMessage_works() throws Exception {
-    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-    KeyPair keyPair = keyGen.generateKeyPair();
-
-    byte[] emptyMessage = new byte[0];
-
-    Signature signature = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-
-    signature.initSign(keyPair.getPrivate());
-    signature.update(emptyMessage);
-    byte[] sig = signature.sign();
-
-    signature.initVerify(keyPair.getPublic());
-    signature.update(emptyMessage);
-    assertTrue(signature.verify(sig));
-
-    // Create a signature without calling update.
-    signature.initSign(keyPair.getPrivate());
-    byte[] sig2 = signature.sign();
-
-    signature.initVerify(keyPair.getPublic());
-    assertTrue(signature.verify(sig2));
-
-    signature.initVerify(keyPair.getPublic());
-    signature.update(emptyMessage);
-    assertTrue(signature.verify(sig2));
-  }
-
-  @Test
-  public void plainSlhDsa_isNotSupported() throws Exception {
-    assertThrows(
-        NoSuchAlgorithmException.class,
-        () -> KeyPairGenerator.getInstance("SLH-DSA", conscryptProvider));
-    assertThrows(
-        NoSuchAlgorithmException.class,
-        () -> Signature.getInstance("SLH-DSA", conscryptProvider));
-    assertThrows(
-        NoSuchAlgorithmException.class,
-        () -> KeyFactory.getInstance("SLH-DSA", conscryptProvider));
-  }
-
-  @Test
-  public void getRawKey_works() throws Exception {
-    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-    KeyPair keyPair = keyGen.generateKeyPair();
-
-    KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-
-    EncodedKeySpec privateKeySpec = keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
-    assertEquals("raw", privateKeySpec.getFormat());
-    byte[] rawPrivateKey = privateKeySpec.getEncoded();
-    assertEquals(64, rawPrivateKey.length);
-
-    EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
-    assertEquals("raw", publicKeySpec.getFormat());
-    byte[] rawPublicKey = publicKeySpec.getEncoded();
-    assertEquals(32, rawPublicKey.length);
-
-    PrivateKey privateKey2 = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
-    PublicKey publicKey2 = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
-
-    assertEquals(keyPair.getPublic(), publicKey2);
-    assertEquals(keyPair.getPrivate(), privateKey2);
-  }
-
-  @Test
-  public void fromRawPrivateKey_checksSize() throws Exception {
-    KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-
-    PrivateKey  unused = keyFactory.generatePrivate(new RawKeySpec(new byte[64]));
-    assertThrows(
-        InvalidKeySpecException.class,
-        () -> keyFactory.generatePrivate(new RawKeySpec(new byte[63])));
-    assertThrows(
-        InvalidKeySpecException.class,
-        () -> keyFactory.generatePrivate(new RawKeySpec(new byte[65])));
-  }
-
-  @Test
-  public void fromRawPublicKey_checksSize() throws Exception {
-    KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-
-    PublicKey  unused = keyFactory.generatePublic(new RawKeySpec(new byte[32]));
-    assertThrows(
-        InvalidKeySpecException.class,
-        () -> keyFactory.generatePublic(new RawKeySpec(new byte[31])));
-    assertThrows(
-        InvalidKeySpecException.class,
-        () -> keyFactory.generatePublic(new RawKeySpec(new byte[33])));
-  }
-
-  @Test
-  public void x509AndPkcs8_areNotSupported() throws Exception {
-    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-    KeyPair keyPair = keyGen.generateKeyPair();
-
-    KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
-  }
-
-  @Test
-  public void testVectors() throws Exception {
-    List<TestVector> vectors = TestUtils.readTestVectors("crypto/slhdsa.txt");
-
-    for (TestVector vector : vectors) {
-      String errMsg = vector.getString("name");
-      String algorithm = vector.getString("algorithm");
-      byte[] privateKey = vector.getBytes("private_key");
-      byte[] publicKey = vector.getBytes("public_key");
-      byte[] message = vector.getBytes("message");
-      byte[] signature = vector.getBytes("signature");
-
-      assertEquals(errMsg + ", algorithm:", "SLH-DSA-SHA2-128S", algorithm);
-
-      KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-
-      Signature signer = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-      signer.initSign(keyFactory.generatePrivate(new RawKeySpec(privateKey)));
-      signer.update(message);
-      byte[] sig = signer.sign();
-
-      Signature verifier = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
-      verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
-      verifier.update(message);
-      assertTrue(verifier.verify(sig));
-
-      verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
-      verifier.update(message);
-      assertTrue(verifier.verify(signature));
+        Signature sv = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        sv.initVerify(publicKey);
+        sv.update(msg);
+        boolean verified = sv.verify(sig);
+        assertTrue(verified);
     }
-  }
+
+    @Test
+    public void emptyMessage_works() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        byte[] emptyMessage = new byte[0];
+
+        Signature signature = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+        signature.initSign(keyPair.getPrivate());
+        signature.update(emptyMessage);
+        byte[] sig = signature.sign();
+
+        signature.initVerify(keyPair.getPublic());
+        signature.update(emptyMessage);
+        assertTrue(signature.verify(sig));
+
+        // Create a signature without calling update.
+        signature.initSign(keyPair.getPrivate());
+        byte[] sig2 = signature.sign();
+
+        signature.initVerify(keyPair.getPublic());
+        assertTrue(signature.verify(sig2));
+
+        signature.initVerify(keyPair.getPublic());
+        signature.update(emptyMessage);
+        assertTrue(signature.verify(sig2));
+    }
+
+    @Test
+    public void plainSlhDsa_isNotSupported() throws Exception {
+        assertThrows(NoSuchAlgorithmException.class,
+                () -> KeyPairGenerator.getInstance("SLH-DSA", conscryptProvider));
+        assertThrows(NoSuchAlgorithmException.class,
+                () -> Signature.getInstance("SLH-DSA", conscryptProvider));
+        assertThrows(NoSuchAlgorithmException.class,
+                () -> KeyFactory.getInstance("SLH-DSA", conscryptProvider));
+    }
+
+    @Test
+    public void getRawKey_works() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+        EncodedKeySpec privateKeySpec =
+                keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
+        assertEquals("raw", privateKeySpec.getFormat());
+        byte[] rawPrivateKey = privateKeySpec.getEncoded();
+        assertEquals(64, rawPrivateKey.length);
+
+        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
+        assertEquals("raw", publicKeySpec.getFormat());
+        byte[] rawPublicKey = publicKeySpec.getEncoded();
+        assertEquals(32, rawPublicKey.length);
+
+        PrivateKey privateKey2 = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
+        PublicKey publicKey2 = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
+
+        assertEquals(keyPair.getPublic(), publicKey2);
+        assertEquals(keyPair.getPrivate(), privateKey2);
+    }
+
+    @Test
+    public void fromRawPrivateKey_checksSize() throws Exception {
+        KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+        PrivateKey unused = keyFactory.generatePrivate(new RawKeySpec(new byte[64]));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePrivate(new RawKeySpec(new byte[63])));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePrivate(new RawKeySpec(new byte[65])));
+    }
+
+    @Test
+    public void fromRawPublicKey_checksSize() throws Exception {
+        KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+        PublicKey unused = keyFactory.generatePublic(new RawKeySpec(new byte[32]));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePublic(new RawKeySpec(new byte[31])));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePublic(new RawKeySpec(new byte[33])));
+    }
+
+    @Test
+    public void x509AndPkcs8_areNotSupported() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
+        assertThrows(UnsupportedOperationException.class,
+                () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
+    }
+
+    @Test
+    public void testVectors() throws Exception {
+        List<TestVector> vectors = TestUtils.readTestVectors("crypto/slhdsa.txt");
+
+        for (TestVector vector : vectors) {
+            String errMsg = vector.getString("name");
+            String algorithm = vector.getString("algorithm");
+            byte[] privateKey = vector.getBytes("private_key");
+            byte[] publicKey = vector.getBytes("public_key");
+            byte[] message = vector.getBytes("message");
+            byte[] signature = vector.getBytes("signature");
+
+            assertEquals(errMsg + ", algorithm:", "SLH-DSA-SHA2-128S", algorithm);
+
+            KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+            Signature signer = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+            signer.initSign(keyFactory.generatePrivate(new RawKeySpec(privateKey)));
+            signer.update(message);
+            byte[] sig = signer.sign();
+
+            Signature verifier = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+            verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
+            verifier.update(message);
+            assertTrue(verifier.verify(sig));
+
+            verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
+            verifier.update(message);
+            assertTrue(verifier.verify(signature));
+        }
+    }
 }
