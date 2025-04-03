@@ -21,8 +21,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 
 /**
- * An implementation of {@link KeyPairGenerator} for XDH keys which uses BoringSSL to perform all
- * the operations. This only supports SLH-DSA keys.
+ * An implementation of {@link KeyPairGenerator} for SLH-DSA keys which uses BoringSSL to perform all
+ * the operations. It only supports SLHDSA_SHA2_128S.
  */
 @Internal
 public final class OpenSslSlhDsaKeyPairGenerator extends KeyPairGenerator {
