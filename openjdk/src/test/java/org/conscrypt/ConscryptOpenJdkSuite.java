@@ -110,6 +110,7 @@ import org.junit.runners.Suite;
         PlatformTest.class,
         SSLUtilsTest.class,
         ServerSessionContextTest.class,
+        SlhDsaTest.class,
         TestSessionBuilderTest.class,
         TrustManagerImplTest.class,
         // org.conscrypt.ct tests
