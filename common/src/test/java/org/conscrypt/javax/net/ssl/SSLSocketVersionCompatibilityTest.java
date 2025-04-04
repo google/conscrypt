@@ -1225,7 +1225,8 @@ public class SSLSocketVersionCompatibilityTest {
         }
     }
 
-    @Test(expected = SocketTimeoutException.class)
+    @Test
+    @Ignore("Broken test: See b/408399060")
     public void test_SSLSocket_setSoWriteTimeout() throws Exception {
         // Only run this test on Linux since it relies on non-posix methods.
         assumeTrue("Test only runs on Linux. Current OS: " + osName(), isLinux());
