@@ -151,6 +151,7 @@ public class KeyPairGeneratorTest {
         putKeySize("XDH", 255);
         putKeySize("EdDSA", 255);
         putKeySize("ML-DSA", -1);
+        putKeySize("SLH-DSA-SHA2-128S", -1);
     }
 
     /** Elliptic Curve Crypto named curves that should be supported. */
@@ -253,6 +254,10 @@ public class KeyPairGeneratorTest {
         }
         if (expectedAlgorithm.equals("ML-DSA")) {
             // ML-DSA keys are not yet serializable, so just skip them.
+            return;
+        }
+        if (expectedAlgorithm.equals("SLH-DSA-SHA2-128S")) {
+            // SLH-DSA keys are not yet serializable, so just skip them.
             return;
         }
         assertNotNull(k.getEncoded());

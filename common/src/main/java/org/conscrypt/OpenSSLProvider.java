@@ -219,6 +219,9 @@ public final class OpenSSLProvider extends Provider {
         put("KeyPairGenerator.ML-DSA", PREFIX + "OpenSslMlDsaKeyPairGenerator");
         put("Alg.Alias.KeyPairGenerator.ML-DSA-65", "ML-DSA");
 
+        // We don't support SLH-DSA, because it's not clear which algorithm to use.
+        put("KeyPairGenerator.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyPairGenerator");
+
         /* == KeyFactory == */
         put("KeyFactory.RSA", PREFIX + "OpenSSLRSAKeyFactory");
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
@@ -239,6 +242,9 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory");
         put("Alg.Alias.KeyFactory.ML-DSA-65", "ML-DSA");
+
+        // We don't support SLH-DSA, because it's not clear which algorithm to use.
+        put("KeyFactory.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyFactory");
 
         /* == SecretKeyFactory == */
         put("SecretKeyFactory.DESEDE", PREFIX + "DESEDESecretKeyFactory");
@@ -368,6 +374,9 @@ public final class OpenSSLProvider extends Provider {
 
         putSignatureImplClass("ML-DSA", "OpenSslSignatureMlDsa");
         put("Alg.Alias.Signature.ML-DSA-65", "ML-DSA");
+
+        // We don't support SLH-DSA, because it's not clear which algorithm to use.
+        putSignatureImplClass("SLH-DSA-SHA2-128S", "OpenSslSignatureSlhDsa");
 
         /* === SecureRandom === */
         /*
