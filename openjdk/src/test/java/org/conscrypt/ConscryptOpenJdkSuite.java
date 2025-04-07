@@ -100,6 +100,7 @@ import org.junit.runners.Suite;
         HpkeContextSenderTest.class,
         HpkeSuiteTest.class,
         HpkeTestVectorsTest.class,
+        KeySpecUtilTest.class,
         MlDsaTest.class,
         NativeCryptoArgTest.class,
         NativeCryptoTest.class,
