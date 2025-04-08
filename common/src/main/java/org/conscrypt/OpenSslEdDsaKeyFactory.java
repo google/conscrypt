@@ -16,8 +16,6 @@
 
 package org.conscrypt;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactorySpi;
@@ -88,7 +86,7 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
                 T result = (T) new X509EncodedKeySpec(key.getEncoded());
                 return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         } else if (key instanceof OpenSslEdDsaPrivateKey) {
             OpenSslEdDsaPrivateKey conscryptKey = (OpenSslEdDsaPrivateKey) key;
@@ -97,28 +95,11 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
                 T result = (T) new PKCS8EncodedKeySpec(key.getEncoded());
                 return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
                 + key.getClass().getName() + ", keySpec=" + keySpec.getName());
-    }
-
-    private <T extends KeySpec> T makeRawKeySpec(byte[] bytes, Class<T> keySpecClass)
-            throws InvalidKeySpecException {
-        try {
-            Constructor<T> constructor = keySpecClass.getConstructor(byte[].class);
-            T instance = constructor.newInstance((Object) bytes);
-            EncodedKeySpec spec = (EncodedKeySpec) instance;
-            if (!spec.getFormat().equalsIgnoreCase("raw")) {
-                throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
-            }
-            return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
-                | IllegalAccessException e) {
-            throw new InvalidKeySpecException(
-                    "Can't process KeySpec class " + keySpecClass.getName(), e);
-        }
     }
 
     @Override
