@@ -19,11 +19,12 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.security.spec.EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
 
 @RunWith(JUnit4.class)
 public final class KeySpecUtilTest {
