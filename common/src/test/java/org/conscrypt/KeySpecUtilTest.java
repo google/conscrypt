@@ -48,7 +48,7 @@ public final class KeySpecUtilTest {
     }
 
     @Test
-    public void makeRawKeySpec_returnsRawKeySpec() {
+    public void makeRawKeySpec_returnsRawKeySpec() throws Exception {
         byte[] rawBytes = new byte[] {1, 2, 3};
 
         RawKeySpec rawKeySpec = KeySpecUtil.makeRawKeySpec(rawBytes, RawKeySpec.class);
@@ -58,7 +58,7 @@ public final class KeySpecUtilTest {
     }
 
     @Test
-    public void makeRawKeySpec_notRawKeySpecClass_throws() {
+    public void makeRawKeySpec_notRawKeySpecClass_throws() throws Exception {
         byte[] rawBytes = new byte[] {1, 2, 3};
 
         assertThrows(InvalidKeySpecException.class,
