@@ -137,13 +137,25 @@ public final class StatsLogImpl implements StatsLog {
         }
     }
 
+    private static final boolean sdkVersionBiggerThan32;
+
+    static {
+        sdkVersionBiggerThan32 = Platform.isSdkGreater(32);
+    }
+
+    @SuppressWarnings("NewApi")
     private void write(int atomId, boolean success, int protocol, int cipherSuite, int duration,
             int source, int[] uids) {
         e.execute(new Runnable() {
             @Override
             public void run() {
-                ConscryptStatsLog.write(
-                        atomId, success, protocol, cipherSuite, duration, source, uids);
+                if (sdkVersionBiggerThan32) {
+                    GeneratedStatsLog.write(
+                            atomId, success, protocol, cipherSuite, duration, source, uids);
+                } else {
+                    ConscryptStatsLog.write(
+                            atomId, success, protocol, cipherSuite, duration, source, uids);
+                }
             }
         });
     }
