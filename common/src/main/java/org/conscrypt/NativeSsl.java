@@ -310,7 +310,7 @@ final class NativeSsl {
                     + " are no longer supported and were filtered from the list");
         }
         NativeCrypto.setEnabledProtocols(ssl, this, parameters.enabledProtocols);
-        // We can use default cipher suites for SPAKE.
+        // We only set the cipher suites if we are not using SPAKE.
         if (!parameters.isSpake()) {
             NativeCrypto.setEnabledCipherSuites(
                     ssl, this, parameters.enabledCipherSuites, parameters.enabledProtocols);

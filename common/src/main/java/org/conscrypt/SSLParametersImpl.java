@@ -167,8 +167,10 @@ final class SSLParametersImpl implements Cloneable {
         }
 
         // initialize the list of cipher suites and protocols enabled by default
-        if (protocols == null) {
-          enabledProtocols = NativeCrypto.getDefaultProtocols().clone();
+        if (isSpake()) {
+            enabledProtocols = new String[] {NativeCrypto.SUPPORTED_PROTOCOL_TLSV1_3};
+        } else if (protocols == null) {
+            enabledProtocols = NativeCrypto.getDefaultProtocols().clone();
         } else {
             String[] filteredProtocols =
                     filterFromProtocols(protocols, Arrays.asList(!Platform.isTlsV1Filtered()
@@ -346,6 +348,8 @@ final class SSLParametersImpl implements Cloneable {
     void setEnabledProtocols(String[] protocols) {
         if (protocols == null) {
             throw new IllegalArgumentException("protocols == null");
+        } else if (isSpake()) {
+            return;
         }
         String[] filteredProtocols =
                 filterFromProtocols(protocols, Arrays.asList(!Platform.isTlsV1Filtered()
