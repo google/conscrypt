@@ -449,7 +449,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     protected void engineUpdateAAD(byte[] input, int inputOffset, int inputLen) {
         checkInitialization();
         if (aadBuf == null) {
-            aadBuf = new Buffer(inputLen);
+            aadBuf = new ExposedByteArrayOutputStream(inputLen);
         }
         aadBuf.write(input, inputOffset, inputLen);
     }
@@ -460,7 +460,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         checkInitialization();
         int inputLen = buf.remaining();
         if (aadBuf == null) {
-            aadBuf = new Buffer(inputLen);
+            aadBuf = new ExposedByteArrayOutputStream(inputLen);
             buf.get(aadBuf.array(), 0, inputLen);
             return;
         }
