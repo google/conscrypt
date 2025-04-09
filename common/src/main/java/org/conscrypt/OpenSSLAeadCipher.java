@@ -77,8 +77,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     long evpAead;
 
     /**
-     * Additional authenticated data. It is initialized to null because it is only
-     * needed when update is called. So we don't want to allocate it until it is needed.
+     * Additional authenticated data. It is initialized when needed.
      */
     private ExposedByteArrayOutputStream aadBuf = null;
 
