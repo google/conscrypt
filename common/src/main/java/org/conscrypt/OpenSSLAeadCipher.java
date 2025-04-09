@@ -460,7 +460,9 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         int inputLen = buf.remaining();
         if (aadBuf == null) {
             aadBuf = new ExposedByteArrayOutputStream(inputLen);
+            // Directly write the content of buf to aadBuf.array()
             buf.get(aadBuf.array(), 0, inputLen);
+            aadBuf.setCountManually(intputLen);
             return;
         }
         byte[] input = new byte[inputLen];
