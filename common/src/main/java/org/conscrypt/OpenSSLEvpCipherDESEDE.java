@@ -16,33 +16,39 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.metrics.MetricsCipher.DESEDE;
+import static org.conscrypt.metrics.MetricsMode.CBC;
+import static org.conscrypt.metrics.MetricsPadding.NO_PADDING;
+import static org.conscrypt.metrics.MetricsPadding.PKCS5;
+
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
+
 import javax.crypto.NoSuchPaddingException;
 
 @Internal
 public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     private static final int DES_BLOCK_SIZE = 8;
 
-    OpenSSLEvpCipherDESEDE(Mode mode, Padding padding) {
-        super(mode, padding);
+    OpenSSLEvpCipherDESEDE(Mode mode, Padding padding, int modeId, int paddingId) {
+        super(mode, padding, DESEDE.getId(), modeId, paddingId);
     }
 
     public static class CBC extends OpenSSLEvpCipherDESEDE {
-        CBC(Padding padding) {
-            super(Mode.CBC, padding);
+        CBC(Padding padding, int paddingId) {
+            super(Mode.CBC, padding, CBC.getId(), paddingId);
         }
 
         public static class NoPadding extends CBC {
             public NoPadding() {
-                super(Padding.NOPADDING);
+                super(Padding.NOPADDING, NO_PADDING.getId());
             }
         }
 
         public static class PKCS5Padding extends CBC {
             public PKCS5Padding() {
-                super(Padding.PKCS5PADDING);
+                super(Padding.PKCS5PADDING, PKCS5.getId());
             }
         }
     }
