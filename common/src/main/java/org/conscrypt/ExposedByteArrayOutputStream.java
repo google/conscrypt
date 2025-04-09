@@ -32,9 +32,11 @@ final class ExposedByteArrayOutputStream extends ByteArrayOutputStream {
     byte[] array() {
         return buf;
     }
-    
-    /* Manually sets the count. This is only needed when data is written to array() without using write. */
+
+    /* Manually sets the count. This is only needed when data is written to array() without using
+     * write.
+     */
     void setCountManually(int count) {
-    	this.count = count;
+        this.count = count;
     }
 }

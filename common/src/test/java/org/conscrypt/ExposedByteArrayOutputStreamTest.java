@@ -50,6 +50,16 @@ public final class ExposedByteArrayOutputStreamTest {
     }
 
     @Test
+    public void setCountManually_works() throws Exception {
+        ExposedByteArrayOutputStream outputStream = new ExposedByteArrayOutputStream(10);
+        outputStream.array()[9] = 42;
+        outputStream.setCountManually(1);
+
+        assertArrayEquals(new byte[] {42}, outputStream.toByteArray());
+        assertEquals(3, outputStream.size());
+    }
+
+    @Test
     public void array_doesNotCopyArray() throws Exception {
         ExposedByteArrayOutputStream outputStream =
                 new ExposedByteArrayOutputStream(/* initialCapacity= */ 6);
