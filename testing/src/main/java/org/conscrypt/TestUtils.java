@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
@@ -51,6 +52,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import javax.net.ssl.SSLContext;
@@ -898,6 +905,74 @@ public final class TestUtils {
             return defaultValue;
         } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException("Reflection failure", e);
+        }
+    }
+
+    private static final int STRESS_THREAD_COUNT = 16;
+    private static final int STRESS_ITERATION_COUNT = 100;
+
+    // Just a Runnable which can throw exceptions.
+    @FunctionalInterface
+    public interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    // Stress test a throwing Runnable with default counts and allowing exceptions,
+    // e.g. to ensure abuse of non-thread-safe code doesn't cause native crashes.
+    public static void stressTestAllowingExceptions(ThrowingRunnable runnable) throws Exception {
+        stressTest(runnable, STRESS_THREAD_COUNT, STRESS_ITERATION_COUNT, true);
+    }
+
+    // Stress test a throwing Runnable with default counts, rethrowing any exceptions encountered.
+    public static void stressTest(ThrowingRunnable runnable) throws Exception {
+        stressTest(runnable, STRESS_THREAD_COUNT, STRESS_ITERATION_COUNT, false);
+    }
+
+    /**
+     * Stress test a throwing {@code Runnable} by running it multiple times in multiple threads.
+     *<p>
+     * Optionally allow exceptions - this is to allow for stress tests which abuse non-thread-safe
+     * classes where we are aware that the answers will be wrong and the code may throw but we
+     * wish to ensure that such misuse doesn't provoke any native crashes.
+     *<p>
+     * The test will time out after one minute.
+     *
+     * @param runnable a {@link ThrowingRunnable} containing the code to test
+     * @param threadCount the number of concurrent threads to use
+     * @param iterationCount number of iterations on each thread
+     * @param allowExceptions whether to allow exceptions
+     */
+    public static void stressTest(ThrowingRunnable runnable, int threadCount, int iterationCount,
+            boolean allowExceptions) throws Exception {
+        ExecutorService es = Executors.newFixedThreadPool(threadCount);
+
+        final CountDownLatch latch = new CountDownLatch(threadCount);
+        List<Future<Void>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(es.submit(() -> {
+                // Try to make sure all the threads are ready first.
+                latch.countDown();
+                latch.await();
+
+                for (int j = 0; j < iterationCount; j++) {
+                    runnable.run();
+                }
+
+                return null;
+            }));
+        }
+        es.shutdown();
+        assertTrue("Timed out during stress test", es.awaitTermination(1, TimeUnit.MINUTES));
+
+        for (Future<Void> f : futures) {
+            try {
+                f.get();
+            } catch (ExecutionException exception) {
+                if (!allowExceptions) {
+                    throw exception;
+                }
+            }
         }
     }
 
