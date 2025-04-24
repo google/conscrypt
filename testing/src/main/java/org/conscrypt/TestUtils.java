@@ -21,6 +21,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.testing.Streams;
+import org.junit.Assume;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -68,11 +74,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.conscrypt.testing.Streams;
-import org.junit.Assume;
 
 /**
  * Utility methods to support testing.
@@ -916,14 +917,14 @@ public final class TestUtils {
 
     // Stress test a throwing Runnable with default counts and allowing exceptions,
     // e.g. to ensure abuse of non-thread-safe code doesn't cause native crashes.
-    public static void stressTestAllowingExceptions(int threadCount, int iterationCount,
-            ThrowingRunnable runnable) throws Exception {
+    public static void stressTestAllowingExceptions(
+            int threadCount, int iterationCount, ThrowingRunnable runnable) throws Exception {
         stressTest(threadCount, iterationCount, true, runnable);
     }
 
     // Stress test a throwing Runnable with default counts, rethrowing any exceptions encountered.
-    public static void stressTest(int threadCount, int iterationCount, ThrowingRunnable runnable)
-            throws Exception {
+    public static void stressTest(
+            int threadCount, int iterationCount, ThrowingRunnable runnable) throws Exception {
         stressTest(threadCount, iterationCount, false, runnable);
     }
 

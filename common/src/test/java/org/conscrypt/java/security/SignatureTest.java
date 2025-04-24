@@ -23,6 +23,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
+import org.conscrypt.testing.BrokenProvider;
+import org.conscrypt.testing.OpaqueProvider;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -58,13 +66,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.TestUtils;
-import org.conscrypt.testing.BrokenProvider;
-import org.conscrypt.testing.OpaqueProvider;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
@@ -3068,8 +3070,7 @@ public class SignatureTest {
     private void testSignature_ThreadMisuse(final Signature signature, final PrivateKey key)
             throws Exception {
         final byte[] message = new byte[64];
-        TestUtils.stressTestAllowingExceptions(16, 100, () ->
-        {
+        TestUtils.stressTestAllowingExceptions(16, 100, () -> {
             signature.initSign(key);
             signature.update(message);
             signature.sign();
