@@ -3068,7 +3068,7 @@ public class SignatureTest {
     private void testSignature_ThreadMisuse(final Signature signature, final PrivateKey key)
             throws Exception {
         final byte[] message = new byte[64];
-        TestUtils.stressTestAllowingExceptions(() ->
+        TestUtils.stressTestAllowingExceptions(16, 100, () ->
         {
             signature.initSign(key);
             signature.update(message);

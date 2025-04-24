@@ -908,9 +908,6 @@ public final class TestUtils {
         }
     }
 
-    private static final int STRESS_THREAD_COUNT = 16;
-    private static final int STRESS_ITERATION_COUNT = 100;
-
     // Just a Runnable which can throw exceptions.
     @FunctionalInterface
     public interface ThrowingRunnable {
@@ -919,31 +916,33 @@ public final class TestUtils {
 
     // Stress test a throwing Runnable with default counts and allowing exceptions,
     // e.g. to ensure abuse of non-thread-safe code doesn't cause native crashes.
-    public static void stressTestAllowingExceptions(ThrowingRunnable runnable) throws Exception {
-        stressTest(runnable, STRESS_THREAD_COUNT, STRESS_ITERATION_COUNT, true);
+    public static void stressTestAllowingExceptions(int threadCount, int iterationCount,
+            ThrowingRunnable runnable) throws Exception {
+        stressTest(threadCount, iterationCount, true, runnable);
     }
 
     // Stress test a throwing Runnable with default counts, rethrowing any exceptions encountered.
-    public static void stressTest(ThrowingRunnable runnable) throws Exception {
-        stressTest(runnable, STRESS_THREAD_COUNT, STRESS_ITERATION_COUNT, false);
+    public static void stressTest(int threadCount, int iterationCount, ThrowingRunnable runnable)
+            throws Exception {
+        stressTest(threadCount, iterationCount, false, runnable);
     }
 
     /**
      * Stress test a throwing {@code Runnable} by running it multiple times in multiple threads.
-     *<p>
+     * <p>
      * Optionally allow exceptions - this is to allow for stress tests which abuse non-thread-safe
      * classes where we are aware that the answers will be wrong and the code may throw but we
      * wish to ensure that such misuse doesn't provoke any native crashes.
-     *<p>
+     * <p>
      * The test will time out after one minute.
      *
-     * @param runnable a {@link ThrowingRunnable} containing the code to test
-     * @param threadCount the number of concurrent threads to use
-     * @param iterationCount number of iterations on each thread
+     * @param threadCount     the number of concurrent threads to use
+     * @param iterationCount  number of iterations on each thread
      * @param allowExceptions whether to allow exceptions
+     * @param runnable        a {@link ThrowingRunnable} containing the code to test
      */
-    public static void stressTest(ThrowingRunnable runnable, int threadCount, int iterationCount,
-            boolean allowExceptions) throws Exception {
+    private static void stressTest(int threadCount, int iterationCount, boolean allowExceptions,
+            ThrowingRunnable runnable) throws Exception {
         ExecutorService es = Executors.newFixedThreadPool(threadCount);
 
         final CountDownLatch latch = new CountDownLatch(threadCount);
@@ -975,5 +974,4 @@ public final class TestUtils {
             }
         }
     }
-
 }
