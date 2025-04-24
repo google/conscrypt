@@ -13,7 +13,7 @@ include_directories(../common/src/jni/main/include/
                     ${BORINGSSL_HOME}/include)
 
 find_library(android-log-lib log)
-target_link_libraries(conscrypt_jni ${android-log-lib} ssl crypto)
+target_link_libraries(conscrypt_jni ${android-log-lib} ssl)
 
 add_definitions(-DANDROID
                 -fvisibility=hidden
