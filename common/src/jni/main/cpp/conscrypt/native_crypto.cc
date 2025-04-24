@@ -2512,7 +2512,7 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
 
     ScopedByteArrayRO seedArray(env, privateKeySeed);
     if (seedArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA65_sign => privateKeySeed == null");
+        JNI_TRACE("NativeCrypto_MLDSA65_public_key_from_seed => privateKeySeed == null");
         return nullptr;
     }
 
@@ -2533,7 +2533,7 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
 
     CBB cbb;
     size_t size;
-    uint8_t public_key_bytes[MLDSA65_SIGNATURE_BYTES];
+    uint8_t public_key_bytes[MLDSA65_PUBLIC_KEY_BYTES];
     if (!CBB_init_fixed(&cbb, public_key_bytes, MLDSA65_PUBLIC_KEY_BYTES) ||
         !MLDSA65_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
         size != MLDSA65_PUBLIC_KEY_BYTES) {
