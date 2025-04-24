@@ -3064,6 +3064,7 @@ public class SignatureTest {
         assertTrue("Signature must verify correctly", sig.verify(SHA256withDSA_Vector2Signature));
     }
 
+    // Abuse a single Signature object across multiple threads to check for any native crashes.
     private void testSignature_ThreadMisuse(final Signature signature, final PrivateKey key)
             throws Exception {
         final byte[] message = new byte[64];
