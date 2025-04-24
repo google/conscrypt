@@ -18,7 +18,14 @@ package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.testing.Streams;
+import org.junit.Assume;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -51,6 +58,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import javax.net.ssl.SSLContext;
@@ -61,11 +74,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.conscrypt.testing.Streams;
-import org.junit.Assume;
 
 /**
  * Utility methods to support testing.
@@ -901,4 +909,72 @@ public final class TestUtils {
         }
     }
 
+    // Just a Runnable which can throw exceptions.
+    @FunctionalInterface
+    public interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    // Stress test a throwing Runnable with default counts and allowing exceptions,
+    // e.g. to ensure abuse of non-thread-safe code doesn't cause native crashes.
+    public static void stressTestAllowingExceptions(
+            int threadCount, int iterationCount, ThrowingRunnable runnable) throws Exception {
+        stressTest(threadCount, iterationCount, true, runnable);
+    }
+
+    // Stress test a throwing Runnable with default counts, rethrowing any exceptions encountered.
+    public static void stressTest(int threadCount, int iterationCount, ThrowingRunnable runnable)
+            throws Exception {
+        stressTest(threadCount, iterationCount, false, runnable);
+    }
+
+    /**
+     * Stress test a throwing {@code Runnable} by running it multiple times in multiple threads.
+     * <p>
+     * Optionally allow exceptions - this is to allow for stress tests which abuse non-thread-safe
+     * classes where we are aware that the answers will be wrong and the code may throw but we
+     * wish to ensure that such misuse doesn't provoke any native crashes.
+     * <p>
+     * The test will time out after one minute.
+     * <p>
+     * TODO(prb): Now that we plan to use this more widely, it needs tests.
+     *
+     * @param threadCount     the number of concurrent threads to use
+     * @param iterationCount  number of iterations on each thread
+     * @param allowExceptions whether to allow exceptions
+     * @param runnable        a {@link ThrowingRunnable} containing the code to test
+     */
+    private static void stressTest(int threadCount, int iterationCount, boolean allowExceptions,
+            ThrowingRunnable runnable) throws Exception {
+        ExecutorService es = Executors.newFixedThreadPool(threadCount);
+
+        final CountDownLatch latch = new CountDownLatch(threadCount);
+        List<Future<Void>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(es.submit(() -> {
+                // Try to make sure all the threads are ready first.
+                latch.countDown();
+                latch.await();
+
+                for (int j = 0; j < iterationCount; j++) {
+                    runnable.run();
+                }
+
+                return null;
+            }));
+        }
+        es.shutdown();
+        assertTrue("Timed out during stress test", es.awaitTermination(1, TimeUnit.MINUTES));
+
+        for (Future<Void> f : futures) {
+            try {
+                f.get();
+            } catch (ExecutionException exception) {
+                if (!allowExceptions) {
+                    throw exception;
+                }
+            }
+        }
+    }
 }
