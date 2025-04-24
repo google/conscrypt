@@ -923,8 +923,8 @@ public final class TestUtils {
     }
 
     // Stress test a throwing Runnable with default counts, rethrowing any exceptions encountered.
-    public static void stressTest(
-            int threadCount, int iterationCount, ThrowingRunnable runnable) throws Exception {
+    public static void stressTest(int threadCount, int iterationCount, ThrowingRunnable runnable)
+            throws Exception {
         stressTest(threadCount, iterationCount, false, runnable);
     }
 
