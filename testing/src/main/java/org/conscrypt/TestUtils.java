@@ -936,6 +936,8 @@ public final class TestUtils {
      * wish to ensure that such misuse doesn't provoke any native crashes.
      * <p>
      * The test will time out after one minute.
+     * <p>
+     * TODO(prb): Now that we plan to use this more widely, it needs tests.
      *
      * @param threadCount     the number of concurrent threads to use
      * @param iterationCount  number of iterations on each thread
