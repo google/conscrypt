@@ -479,8 +479,8 @@ model {
                         linker.args "-WX",
                                 "ws2_32.lib",
                                 "advapi32.lib",
-                                "${libPath}\\ssl\\ssl.lib",
-                                "${libPath}\\crypto\\crypto.lib"
+                                "${libPath}\\ssl.lib",
+                                "${libPath}\\crypto.lib"
                     }
                 }
 
