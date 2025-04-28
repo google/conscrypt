@@ -89,8 +89,8 @@ public class OpenSSLSignatureRawECDSA extends SignatureSpi {
         int output_size = NativeCrypto.ECDSA_size(key.getNativeRef());
         byte[] outputBuffer = new byte[output_size];
         try {
-            int bytes_written =
-                    NativeCrypto.ECDSA_sign(buffer.array(), buffer.size(), outputBuffer, key.getNativeRef());
+            int bytes_written = NativeCrypto.ECDSA_sign(
+                    buffer.array(), buffer.size(), outputBuffer, key.getNativeRef());
             if (bytes_written < 0) {
                 throw new SignatureException("Could not compute signature.");
             }
@@ -118,8 +118,8 @@ public class OpenSSLSignatureRawECDSA extends SignatureSpi {
         }
 
         try {
-            int result =
-                    NativeCrypto.ECDSA_verify(buffer.array(), buffer.size(), sigBytes, key.getNativeRef());
+            int result = NativeCrypto.ECDSA_verify(
+                    buffer.array(), buffer.size(), sigBytes, key.getNativeRef());
             if (result == -1) {
                 throw new SignatureException("Could not verify signature.");
             }
