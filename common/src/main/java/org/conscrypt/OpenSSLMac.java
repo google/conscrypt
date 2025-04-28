@@ -192,7 +192,6 @@ public abstract class OpenSSLMac extends MacSpi {
             final NativeRef.HMAC_CTX ctxLocal = ctx;
             return NativeCrypto.HMAC_Final(ctxLocal);
         }
-
     }
 
     public static final class HmacMD5 extends Hmac {

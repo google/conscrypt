@@ -197,24 +197,23 @@ public class MacTest {
 
     @Test
     public void threadAbuse() {
-        newMacServiceTester()
-                .run((provider, algorithm) -> {
-                    final byte[] b1 = new byte[2048];
-                    final byte[] b2 = new byte[2048];
-                    final byte[] b3 = new byte[2048];
-                    final Mac mac = Mac.getInstance(algorithm, provider);
-                    final SecretKeySpec key = findAnyKey(algorithm);
+        newMacServiceTester().run((provider, algorithm) -> {
+            final byte[] b1 = new byte[2048];
+            final byte[] b2 = new byte[2048];
+            final byte[] b3 = new byte[2048];
+            final Mac mac = Mac.getInstance(algorithm, provider);
+            final SecretKeySpec key = findAnyKey(algorithm);
 
-                    if (key != null) {
-                        TestUtils.stressTest(32, 32, () -> {
-                            mac.init(key);
-                            mac.update(b1);
-                            mac.update(b2);
-                            mac.update(b3);
-                            mac.reset();
-                        });
-                    }
+            if (key != null) {
+                TestUtils.stressTest(32, 32, () -> {
+                    mac.init(key);
+                    mac.update(b1);
+                    mac.update(b2);
+                    mac.update(b3);
+                    mac.reset();
                 });
+            }
+        });
 
     }
 
