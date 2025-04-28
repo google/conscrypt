@@ -142,23 +142,21 @@ public final class StatsLogImpl implements StatsLog {
             builder.usePooledBuffer();
             ReflexiveStatsLog.write(builder.build());
         } else {
-            ConscryptStatsLog.write(
-                atomId, success, protocol, cipherSuite, duration, source, uids);
+            ConscryptStatsLog.write(atomId, success, protocol, cipherSuite, duration, source, uids);
         }
     }
 
     private void write(int atomId, int status, int loadedCompatVersion,
             int minCompatVersionAvailable, int majorVersion, int minorVersion) {
-        ConscryptStatsLog.write(atomId, status, loadedCompatVersion,
-                minCompatVersionAvailable, majorVersion, minorVersion);
+        ConscryptStatsLog.write(atomId, status, loadedCompatVersion, minCompatVersionAvailable,
+                majorVersion, minorVersion);
     }
 
     private void write(int atomId, int verificationResult, int verificationReason,
             int policyCompatVersion, int majorVersion, int minorVersion, int numEmbeddedScts,
             int numOcspScts, int numTlsScts) {
-        ConscryptStatsLog.write(atomId, verificationResult, verificationReason,
-                policyCompatVersion, majorVersion, minorVersion, numEmbeddedScts,
-                numOcspScts, numTlsScts);
+        ConscryptStatsLog.write(atomId, verificationResult, verificationReason, policyCompatVersion,
+                majorVersion, minorVersion, numEmbeddedScts, numOcspScts, numTlsScts);
     }
 
     private void write(int atomId, int algorithmId, int cipherId, int modeId, int paddingId) {
