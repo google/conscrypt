@@ -2414,8 +2414,8 @@ static jint NativeCrypto_ECDSA_size(JNIEnv* env, jclass, jobject pkeyRef) {
     return static_cast<jint>(size);
 }
 
-static jint NativeCrypto_ECDSA_sign(JNIEnv* env, jclass, jbyteArray data, jint dataLen, jbyteArray sig,
-                                    jobject pkeyRef) {
+static jint NativeCrypto_ECDSA_sign(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
+                                    jbyteArray sig, jobject pkeyRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("ECDSA_sign(%p, %d, %p, %p)", data, dataLen, sig, pkey);
@@ -2446,9 +2446,9 @@ static jint NativeCrypto_ECDSA_sign(JNIEnv* env, jclass, jbyteArray data, jint d
     }
 
     unsigned int sig_size;
-    int result = ECDSA_sign(0, reinterpret_cast<const unsigned char*>(data_array.get()),
-                            dataLen, reinterpret_cast<unsigned char*>(sig_array.get()),
-                            &sig_size, ec_key.get());
+    int result =
+            ECDSA_sign(0, reinterpret_cast<const unsigned char*>(data_array.get()), dataLen,
+                       reinterpret_cast<unsigned char*>(sig_array.get()), &sig_size, ec_key.get());
     if (result == 0) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "ECDSA_sign");
         JNI_TRACE("ECDSA_sign => threw error");
@@ -2459,8 +2459,8 @@ static jint NativeCrypto_ECDSA_sign(JNIEnv* env, jclass, jbyteArray data, jint d
     return static_cast<jint>(sig_size);
 }
 
-static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen, jbyteArray sig,
-                                      jobject pkeyRef) {
+static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
+                                      jbyteArray sig, jobject pkeyRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     JNI_TRACE("ECDSA_verify(%p, %d, %p, %p)", data, dataLen, sig, pkey);
@@ -2490,10 +2490,9 @@ static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jint
         return -1;
     }
 
-    int result =
-            ECDSA_verify(0, reinterpret_cast<const unsigned char*>(data_array.get()),
-                         dataLen, reinterpret_cast<const unsigned char*>(sig_array.get()),
-                         sig_array.size(), ec_key.get());
+    int result = ECDSA_verify(0, reinterpret_cast<const unsigned char*>(data_array.get()), dataLen,
+                              reinterpret_cast<const unsigned char*>(sig_array.get()),
+                              sig_array.size(), ec_key.get());
 
     if (result == 0) {
         // NOLINTNEXTLINE(runtime/int)
@@ -2593,7 +2592,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
 
     if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
         conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                            "dataLen");
+                                           "dataLen");
         return nullptr;
     }
 
@@ -2644,7 +2643,7 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, ji
 
     if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
         conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                            "dataLen");
+                                           "dataLen");
         return -1;
     }
 
@@ -2653,13 +2652,12 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, ji
         return -1;
     }
 
-    int result =
-            MLDSA65_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
-                           dataLen, reinterpret_cast<const unsigned char*>(dataArray.get()),
-                           dataArray.size(), /*context=*/NULL, /*context_len=*/0);
+    int result = MLDSA65_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
+                                dataLen, reinterpret_cast<const unsigned char*>(dataArray.get()),
+                                dataArray.size(), /*context=*/NULL, /*context_len=*/0);
 
     JNI_TRACE("MLDSA65_verify(%p, %p, %p, %d) => %d", publicKey, sig, data, dataLen, result);
-  return static_cast<jint>(result);
+    return static_cast<jint>(result);
 }
 
 static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
@@ -2703,8 +2701,8 @@ static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
     JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p) => success", outPublicArray, outPrivateArray);
 }
 
-static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
-                                                     jbyteArray privateKey) {
+static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteArray data,
+                                                     jint dataLen, jbyteArray privateKey) {
     CHECK_ERROR_QUEUE_ON_RETURN;
 
     ScopedByteArrayRO privateKeyArray(env, privateKey);
@@ -2726,15 +2724,15 @@ static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteA
 
     if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
         conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                            "dataLen");
+                                           "dataLen");
         return nullptr;
     }
 
     uint8_t result[SLHDSA_SHA2_128S_SIGNATURE_BYTES];
     if (!SLHDSA_SHA2_128S_sign(result,
                                reinterpret_cast<const unsigned char*>(privateKeyArray.get()),
-                               reinterpret_cast<const unsigned char*>(dataArray.get()),
-                               dataLen, /* context */ NULL, /* context_len */ 0)) {
+                               reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
+                               /* context */ NULL, /* context_len */ 0)) {
         JNI_TRACE("SLHDSA_SHA2_128S_sign failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SLHDSA_SHA2_128S_sign");
         return nullptr;
@@ -2777,7 +2775,7 @@ static jint NativeCrypto_SLHDSA_SHA2_128S_verify(JNIEnv* env, jclass, jbyteArray
 
     if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
         conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                            "dataLen");
+                                           "dataLen");
         return -1;
     }
 
