@@ -93,7 +93,8 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No publicKey provided");
         }
-        int result = NativeCrypto.MLDSA65_verify(buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
+        int result = NativeCrypto.MLDSA65_verify(
+                buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
         buffer.reset();
         return result == 1;
     }

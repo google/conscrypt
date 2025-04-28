@@ -78,7 +78,8 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
             // This should not happen.
             throw new SignatureException("No privateKey provided");
         }
-        byte[] sig = NativeCrypto.SLHDSA_SHA2_128S_sign(buffer.array(), buffer.size(), privateKey.getRaw());
+        byte[] sig = NativeCrypto.SLHDSA_SHA2_128S_sign(
+                buffer.array(), buffer.size(), privateKey.getRaw());
         buffer.reset();
         return sig;
     }
@@ -89,7 +90,8 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
             // This should not happen.
             throw new SignatureException("No publicKey provided");
         }
-        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
+        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(
+                buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
         buffer.reset();
         return result == 1;
     }
