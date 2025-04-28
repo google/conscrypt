@@ -221,7 +221,8 @@ public final class NativeCrypto {
 
     static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, int dataLen, byte[] privateKey);
 
-    static native int SLHDSA_SHA2_128S_verify(byte[] data, int dataLen, byte[] sig, byte[] publicKey);
+    static native int SLHDSA_SHA2_128S_verify(
+            byte[] data, int dataLen, byte[] sig, byte[] publicKey);
 
     // --- Curve25519 --------------
 
