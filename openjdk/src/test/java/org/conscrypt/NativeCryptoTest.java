@@ -3273,43 +3273,56 @@ public class NativeCryptoTest {
         byte[] publicKey = NativeCrypto.MLDSA65_public_key_from_seed(privateKeySeed);
         assertEquals(1952, publicKey.length);
 
-        byte[] signature = NativeCrypto.MLDSA65_sign(data, privateKeySeed);
+        byte[] signature = NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeed);
         assertEquals(3309, signature.length);
 
-        int result = NativeCrypto.MLDSA65_verify(data, signature, publicKey);
+        int result = NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKey);
         assertEquals(1, result);
 
+        // data buffer is larger than data
+        byte[] dataBuffer = Arrays.copyOf(data, data.length + 42);
+        assertEquals(1, NativeCrypto.MLDSA65_verify(dataBuffer, data.length, signature, publicKey));
+
+        // data too short
+        assertEquals(0, NativeCrypto.MLDSA65_verify(data, data.length - 1, signature, publicKey));
+
         byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
-        assertEquals(0, NativeCrypto.MLDSA65_verify(data, signatureTooShort, publicKey));
+        assertEquals(0, NativeCrypto.MLDSA65_verify(data, data.length, signatureTooShort, publicKey));
 
         byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
-        assertEquals(0, NativeCrypto.MLDSA65_verify(data, signatureTooLong, publicKey));
+        assertEquals(0, NativeCrypto.MLDSA65_verify(data, data.length, signatureTooLong, publicKey));
 
         byte[] modifiedSignature = signature.clone();
         modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
-        assertEquals(0, NativeCrypto.MLDSA65_verify(data, modifiedSignature, publicKey));
+        assertEquals(0, NativeCrypto.MLDSA65_verify(data, data.length, modifiedSignature, publicKey));
 
         byte[] modifiedData = data.clone();
         modifiedData[0] = (byte) (modifiedData[0] ^ 0x01);
-        assertEquals(0, NativeCrypto.MLDSA65_verify(modifiedData, signature, publicKey));
+        assertEquals(0, NativeCrypto.MLDSA65_verify(modifiedData, data.length, signature, publicKey));
+
+        int invalidDataLen = data.length + 1;
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.MLDSA65_sign(data, invalidDataLen, privateKeySeed));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.MLDSA65_verify(data, invalidDataLen, signature, publicKey));
 
         byte[] privateKeySeedTooShort = Arrays.copyOf(privateKeySeed, privateKeySeed.length - 1);
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.MLDSA65_public_key_from_seed(privateKeySeedTooShort));
         assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_sign(data, privateKeySeedTooShort));
+                () -> NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeedTooShort));
 
         byte[] privateKeySeedTooLong = Arrays.copyOf(privateKeySeed, privateKeySeed.length + 1);
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.MLDSA65_public_key_from_seed(privateKeySeedTooLong));
         assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_sign(data, privateKeySeedTooLong));
+                () -> NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeedTooLong));
 
         byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
-        assertEquals(-1, NativeCrypto.MLDSA65_verify(data, signature, publicKeyTooShort));
+        assertEquals(-1, NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooShort));
 
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
-        assertEquals(-1, NativeCrypto.MLDSA65_verify(data, signature, publicKeyTooLong));
+        assertEquals(-1, NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooLong));
     }
 
     @Test
@@ -3320,41 +3333,54 @@ public class NativeCryptoTest {
 
         byte[] data = decodeHex("AB");
 
-        byte[] signature = NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKey);
+        byte[] signature = NativeCrypto.SLHDSA_SHA2_128S_sign(data, data.length, privateKey);
         assertEquals(7856, signature.length);
 
-        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(data, signature, publicKey);
+        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length, signature, publicKey);
         assertEquals(1, result);
 
+        // data buffer is larger than data
+        byte[] dataBuffer = Arrays.copyOf(data, data.length + 42);
+        assertEquals(1, NativeCrypto.SLHDSA_SHA2_128S_verify(dataBuffer, data.length, signature, publicKey));
+
+        // data too short
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length - 1, signature, publicKey));
+
         byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
-        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, signatureTooShort, publicKey));
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length, signatureTooShort, publicKey));
 
         byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
-        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, signatureTooLong, publicKey));
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length, signatureTooLong, publicKey));
 
         byte[] modifiedSignature = signature.clone();
         modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
-        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, modifiedSignature, publicKey));
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length, modifiedSignature, publicKey));
 
         byte[] modifiedData = data.clone();
         modifiedData[0] = (byte) (modifiedData[0] ^ 0x01);
-        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(modifiedData, signature, publicKey));
+        assertEquals(0, NativeCrypto.SLHDSA_SHA2_128S_verify(modifiedData, modifiedData.length, signature, publicKey));
+
+        int invalidDataLen = data.length + 1;
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, invalidDataLen, privateKey));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, invalidDataLen, signature, publicKey));
 
         byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
         assertThrows(RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooShort));
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, data.length, privateKeyTooShort));
 
         byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
         assertThrows(RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKeyTooLong));
+                () -> NativeCrypto.SLHDSA_SHA2_128S_sign(data, data.length, privateKeyTooLong));
 
         byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
         assertThrows(RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, signature, publicKeyTooShort));
+                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length, signature, publicKeyTooShort));
 
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
         assertThrows(RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, signature, publicKeyTooLong));
+                () -> NativeCrypto.SLHDSA_SHA2_128S_verify(data, data.length, signature, publicKeyTooLong));
 
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKey, privateKeyTooShort));

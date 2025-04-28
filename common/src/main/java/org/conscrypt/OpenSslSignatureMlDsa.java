@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.PrivateKey;
@@ -38,7 +37,7 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
     /**
      * Buffer to hold value to be signed or verified.
      */
-    private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    private ExposedByteArrayOutputStream buffer = new ExposedByteArrayOutputStream();
 
     public OpenSslSignatureMlDsa() {}
 
@@ -83,9 +82,9 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No privateKey provided");
         }
-        byte[] data = buffer.toByteArray();
+        byte[] sig = NativeCrypto.MLDSA65_sign(buffer.array(), buffer.size(), privateKey.getSeed());
         buffer.reset();
-        return NativeCrypto.MLDSA65_sign(data, privateKey.getSeed());
+        return sig;
     }
 
     @Override
@@ -94,9 +93,8 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No publicKey provided");
         }
-        byte[] data = buffer.toByteArray();
+        int result = NativeCrypto.MLDSA65_verify(buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
         buffer.reset();
-        int result = NativeCrypto.MLDSA65_verify(data, sigBytes, publicKey.getRaw());
         return result == 1;
     }
 }
