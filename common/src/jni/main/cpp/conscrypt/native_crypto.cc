@@ -2618,7 +2618,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
     return resultRef.release();
 }
 
-static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen, 
+static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
                                         jbyteArray sig, jbyteArray publicKey) {
     CHECK_ERROR_QUEUE_ON_RETURN;
 
