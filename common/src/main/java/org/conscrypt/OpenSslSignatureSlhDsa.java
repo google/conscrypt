@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.PrivateKey;
@@ -34,7 +33,7 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
     private OpenSslSlhDsaPublicKey publicKey;
 
     /** Buffer to hold value to be signed or verified. */
-    private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    private ExposedByteArrayOutputStream buffer = new ExposedByteArrayOutputStream();
 
     public OpenSslSignatureSlhDsa() {}
 
@@ -79,9 +78,10 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
             // This should not happen.
             throw new SignatureException("No privateKey provided");
         }
-        byte[] data = buffer.toByteArray();
+        byte[] sig = NativeCrypto.SLHDSA_SHA2_128S_sign(
+                buffer.array(), buffer.size(), privateKey.getRaw());
         buffer.reset();
-        return NativeCrypto.SLHDSA_SHA2_128S_sign(data, privateKey.getRaw());
+        return sig;
     }
 
     @Override
@@ -90,9 +90,9 @@ public class OpenSslSignatureSlhDsa extends SignatureSpi {
             // This should not happen.
             throw new SignatureException("No publicKey provided");
         }
-        byte[] data = buffer.toByteArray();
+        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(
+                buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
         buffer.reset();
-        int result = NativeCrypto.SLHDSA_SHA2_128S_verify(data, sigBytes, publicKey.getRaw());
         return result == 1;
     }
 }
