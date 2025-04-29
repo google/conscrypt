@@ -2652,9 +2652,10 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, ji
         return -1;
     }
 
-    int result = MLDSA65_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
-                                sigArray.size(), reinterpret_cast<const unsigned char*>(dataArray.get()),
-                                dataLen, /*context=*/NULL, /*context_len=*/0);
+    int result =
+            MLDSA65_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
+                           sigArray.size(), reinterpret_cast<const unsigned char*>(dataArray.get()),
+                           dataLen, /*context=*/NULL, /*context_len=*/0);
 
     JNI_TRACE("MLDSA65_verify(%p, %p, %p, %d) => %d", publicKey, sig, data, dataLen, result);
     return static_cast<jint>(result);

@@ -3280,7 +3280,8 @@ public class NativeCryptoTest {
 
         int signatureMaxLength = NativeCrypto.ECDSA_size(privateKey);
         byte[] signatureBuffer = new byte[signatureMaxLength];
-        int signatureLength = NativeCrypto.ECDSA_sign(data, data.length, signatureBuffer, privateKey);
+        int signatureLength =
+                NativeCrypto.ECDSA_sign(data, data.length, signatureBuffer, privateKey);
         assertTrue(signatureLength > 0);
         assertTrue(signatureLength <= signatureMaxLength);
         byte[] signature = Arrays.copyOf(signatureBuffer, signatureLength);
