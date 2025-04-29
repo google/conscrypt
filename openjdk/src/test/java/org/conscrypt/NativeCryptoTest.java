@@ -3276,16 +3276,14 @@ public class NativeCryptoTest {
                 new NativeRef.EVP_PKEY(NativeCrypto.EVP_parse_private_key(p256PrivateKeyPkcs8));
         NativeRef.EVP_PKEY publicKey =
                 new NativeRef.EVP_PKEY(NativeCrypto.EVP_parse_public_key(p256PublicKeyX509));
-        int derEncodedSignatureLengthForEcdsaWithP256 = 72;
-
         byte[] data = decodeHex("AB");
 
-        int signatureLength = NativeCrypto.ECDSA_size(privateKey);
-        assertEquals(derEncodedSignatureLengthForEcdsaWithP256, signatureLength);
-
-        byte[] signature = new byte[signatureLength];
-        int bytesWritten = NativeCrypto.ECDSA_sign(data, data.length, signature, privateKey);
-        assertEquals(signatureLength, bytesWritten);
+        int signatureMaxLength = NativeCrypto.ECDSA_size(privateKey);
+        byte[] signatureBuffer = new byte[signatureMaxLength];
+        int signatureLength = NativeCrypto.ECDSA_sign(data, data.length, signatureBuffer, privateKey);
+        assertTrue(signatureLength > 0);
+        assertTrue(signatureLength <= signatureMaxLength);
+        byte[] signature = Arrays.copyOf(signatureBuffer, signatureLength);
 
         int result = NativeCrypto.ECDSA_verify(data, data.length, signature, publicKey);
         assertEquals(1, result);
