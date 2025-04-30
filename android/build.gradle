@@ -118,8 +118,6 @@ dependencies {
 
     // Adds the constants module as a dependency so that we can include its generated source
     compileOnly project(':conscrypt-constants')
-
-    compileOnly project(':conscrypt-openjdk')
 }
 
 def javadocs = tasks.register("javadocs", Javadoc) {
