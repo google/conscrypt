@@ -62,11 +62,12 @@ subprojects {
         // Needs to be binary compatible with androidMinSdkVersion
         androidMinJavaVersion = JavaVersion.VERSION_1_8
 
-        if (project.hasProperty("boringsslHome")) {
-            boringsslHome = project.property("boringsslHome")
-        } else {
-            boringsslHome = "$System.env.BORINGSSL_HOME"
-        }
+        // if (project.hasProperty("boringsslHome")) {
+        //     boringsslHome = project.property("boringsslHome")
+        // } else {
+        //     boringsslHome = "$System.env.BORINGSSL_HOME"
+        // }
+        boringsslHome = "/home/mnbogner/Software/Repository/boringssl"
         boringsslIncludeDir = normalizePath("$boringsslHome/include")
 
         // Ensure the environment is configured properly.
