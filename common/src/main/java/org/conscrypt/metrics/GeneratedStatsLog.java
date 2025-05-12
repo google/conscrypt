@@ -16,19 +16,16 @@
 package org.conscrypt.metrics;
 
 import org.conscrypt.Internal;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.PolicyCompliance;
-import org.conscrypt.ct.VerificationResult;
 
+/**
+ * @hide This class is not part of the Android public SDK API
+ **/
 @Internal
-public interface StatsLog {
-    public void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration);
-
-    public void updateCTLogListStatusChanged(LogStore logStore);
-
-    public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
-            PolicyCompliance compliance, CertificateTransparencyVerificationReason reason);
-
-    public void countServiceUsage(int algorithmId, int cipherId, int modeId, int paddingId);
+public final class GeneratedStatsLog {
+    public static void write(int atomId, boolean success, int protocol, int cipherSuite,
+            int duration, int source, int[] uids) {
+        ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
+                atomId, success, protocol, cipherSuite, duration, source, uids);
+        ReflexiveStatsLog.write(event);
+    }
 }

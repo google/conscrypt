@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.metrics.MetricsAlgorithm.CIPHER;
+
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -31,6 +33,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Locale;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherSpi;
@@ -130,6 +133,11 @@ public abstract class OpenSSLCipher extends CipherSpi {
         this.mode = mode;
         this.padding = padding;
         blockSize = getCipherBlockSize();
+    }
+
+    OpenSSLCipher(Mode mode, Padding padding, int cipherId, int modeId, int paddingId) {
+        this(mode, padding);
+        Platform.getStatsLog().countServiceUsage(CIPHER.getId(), cipherId, modeId, paddingId);
     }
 
     /**

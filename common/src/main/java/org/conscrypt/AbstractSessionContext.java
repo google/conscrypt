@@ -47,7 +47,6 @@ abstract class AbstractSessionContext implements SSLSessionContext {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-
     private final Map<ByteArray, NativeSslSession> sessions =
             new LinkedHashMap<ByteArray, NativeSslSession>() {
                 @Override
@@ -204,6 +203,25 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     // result may be incorrect by the time it is used.
     private boolean isValid() {
         return (sslCtxNativePointer != 0);
+    }
+
+    void initSpake(SSLParametersImpl parameters) throws SSLException {
+        Spake2PlusKeyManager spakeKeyManager = parameters.getSpake2PlusKeyManager();
+        byte[] context = spakeKeyManager.getContext();
+        byte[] idProverArray = spakeKeyManager.getIdProver();
+        byte[] idVerifierArray = spakeKeyManager.getIdVerifier();
+        byte[] pwArray = spakeKeyManager.getPassword();
+        boolean isClient = spakeKeyManager.isClient();
+        int handshakeLimit = spakeKeyManager.getHandshakeLimit();
+        lock.writeLock().lock();
+        try {
+            if (isValid()) {
+                NativeCrypto.SSL_CTX_set_spake_credential(context, pwArray, idProverArray,
+                        idVerifierArray, isClient, handshakeLimit, sslCtxNativePointer, this);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     /**

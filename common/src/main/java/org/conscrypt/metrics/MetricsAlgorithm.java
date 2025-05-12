@@ -16,19 +16,34 @@
 package org.conscrypt.metrics;
 
 import org.conscrypt.Internal;
-import org.conscrypt.ct.LogStore;
-import org.conscrypt.ct.PolicyCompliance;
-import org.conscrypt.ct.VerificationResult;
 
+/**
+ * Cipher to metric mapping for metrics instrumentation.
+ *
+ * Must be in sync with frameworks/base/cmds/statsd/src/atoms.proto
+ */
 @Internal
-public interface StatsLog {
-    public void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration);
+public enum MetricsAlgorithm {
+    UNKNOWN_ALGORITHM(0x0000),
+    CIPHER(0x0001),
+    SIGNATURE(0x0002),
+    ;
 
-    public void updateCTLogListStatusChanged(LogStore logStore);
+    final int id;
 
-    public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
-            PolicyCompliance compliance, CertificateTransparencyVerificationReason reason);
+    public int getId() {
+        return this.id;
+    }
 
-    public void countServiceUsage(int algorithmId, int cipherId, int modeId, int paddingId);
+    public static MetricsAlgorithm forName(String name) {
+        try {
+            return MetricsAlgorithm.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            return MetricsAlgorithm.UNKNOWN_ALGORITHM;
+        }
+    }
+
+    private MetricsAlgorithm(int id) {
+        this.id = id;
+    }
 }

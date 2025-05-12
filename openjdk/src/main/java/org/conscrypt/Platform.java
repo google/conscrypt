@@ -865,4 +865,8 @@ final public class Platform {
     public static boolean isPakeSupported() {
         return false;
     }
+
+    public static boolean isSdkGreater(int sdk) {
+        return false;
+    }
 }

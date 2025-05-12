@@ -48,6 +48,7 @@
 #include <openssl/pkcs8.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <openssl/slhdsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
@@ -2511,7 +2512,7 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
 
     ScopedByteArrayRO seedArray(env, privateKeySeed);
     if (seedArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA65_sign => privateKeySeed == null");
+        JNI_TRACE("NativeCrypto_MLDSA65_public_key_from_seed => privateKeySeed == null");
         return nullptr;
     }
 
@@ -2532,7 +2533,7 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
 
     CBB cbb;
     size_t size;
-    uint8_t public_key_bytes[MLDSA65_SIGNATURE_BYTES];
+    uint8_t public_key_bytes[MLDSA65_PUBLIC_KEY_BYTES];
     if (!CBB_init_fixed(&cbb, public_key_bytes, MLDSA65_PUBLIC_KEY_BYTES) ||
         !MLDSA65_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
         size != MLDSA65_PUBLIC_KEY_BYTES) {
@@ -2634,6 +2635,129 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jb
                            dataArray.size(), /*context=*/NULL, /*context_len=*/0);
 
     JNI_TRACE("MLDSA65_verify(%p, %p, %p) => %d", publicKey, sig, data, result);
+    return static_cast<jint>(result);
+}
+
+static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
+                                                       jbyteArray outPublicArray,
+                                                       jbyteArray outPrivateArray) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p)", outPublicArray, outPrivateArray);
+
+    ScopedByteArrayRW outPublic(env, outPublicArray);
+    if (outPublic.get() == nullptr) {
+        JNI_TRACE(
+                "SLHDSA_SHA2_128S_generate_key(%p, %p) can't get output public key "
+                "buffer",
+                outPublicArray, outPrivateArray);
+        return;
+    }
+
+    ScopedByteArrayRW outPrivate(env, outPrivateArray);
+    if (outPrivate.get() == nullptr) {
+        JNI_TRACE(
+                "SLHDSA_SHA2_128S_generate_key(%p, %p) can't get output private key "
+                "buffer",
+                outPublicArray, outPrivateArray);
+        return;
+    }
+
+    if (outPublic.size() != SLHDSA_SHA2_128S_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "Output public key array length != 32");
+        return;
+    }
+
+    if (outPrivate.size() != SLHDSA_SHA2_128S_PRIVATE_KEY_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "Output private key array length != 64");
+        return;
+    }
+
+    SLHDSA_SHA2_128S_generate_key(reinterpret_cast<uint8_t*>(outPublic.get()),
+                                  reinterpret_cast<uint8_t*>(outPrivate.get()));
+    JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p) => success", outPublicArray, outPrivateArray);
+}
+
+static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteArray data,
+                                                     jbyteArray privateKey) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO privateKeyArray(env, privateKey);
+    if (privateKeyArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_sign => privateKey == null");
+        return nullptr;
+    }
+
+    if (privateKeyArray.size() != SLHDSA_SHA2_128S_PRIVATE_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Private key array length != 64");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO dataArray(env, data);
+    if (dataArray.get() == nullptr) {
+        return nullptr;
+    }
+
+    uint8_t result[SLHDSA_SHA2_128S_SIGNATURE_BYTES];
+    if (!SLHDSA_SHA2_128S_sign(result,
+                               reinterpret_cast<const unsigned char*>(privateKeyArray.get()),
+                               reinterpret_cast<const unsigned char*>(dataArray.get()),
+                               dataArray.size(), /* context */ NULL, /* context_len */ 0)) {
+        JNI_TRACE("SLHDSA_SHA2_128S_sign failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SLHDSA_SHA2_128S_sign");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> resultRef(
+            env, env->NewByteArray(static_cast<jsize>(SLHDSA_SHA2_128S_SIGNATURE_BYTES)));
+    if (resultRef.get() == nullptr) {
+        return nullptr;
+    }
+
+    ScopedByteArrayRW resultArray(env, resultRef.get());
+    if (resultArray.get() == nullptr) {
+        return nullptr;
+    }
+    memcpy(resultArray.get(), result, SLHDSA_SHA2_128S_SIGNATURE_BYTES);
+    return resultRef.release();
+}
+
+static jint NativeCrypto_SLHDSA_SHA2_128S_verify(JNIEnv* env, jclass, jbyteArray data,
+                                                 jbyteArray sig, jbyteArray publicKey) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO publicKeyArray(env, publicKey);
+    if (publicKeyArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_verify => publicKey == null");
+        return -1;
+    }
+
+    if (publicKeyArray.size() != SLHDSA_SHA2_128S_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Public key array length != 32");
+        return -1;
+    }
+
+    ScopedByteArrayRO dataArray(env, data);
+    if (dataArray.get() == nullptr) {
+        return -1;
+    }
+
+    ScopedByteArrayRO sigArray(env, sig);
+    if (sigArray.get() == nullptr) {
+        return -1;
+    }
+
+    int result = SLHDSA_SHA2_128S_verify(
+            reinterpret_cast<const unsigned char*>(sigArray.get()), sigArray.size(),
+            reinterpret_cast<const unsigned char*>(publicKeyArray.get()),
+            reinterpret_cast<const unsigned char*>(dataArray.get()), dataArray.size(),
+            /*context=*/NULL, /*context_len=*/0);
+
+    JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_verify(%p, %p, %p) => %d", publicKey, sig, data,
+              result);
     return static_cast<jint>(result);
 }
 
@@ -11201,6 +11325,124 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     return key_bytes;
 }
 
+/**
+ * SPAKE2+ support
+ */
+
+#define SPAKE2PLUS_PW_VERIFIER_SIZE 32
+#define SPAKE2PLUS_REGISTRATION_RECORD_SIZE 65
+
+static void NativeCrypto_SSL_CTX_set_spake_credential(
+        JNIEnv* env, jclass, jbyteArray context, jbyteArray pw_array, jbyteArray id_prover_array,
+        jbyteArray id_verifier_array, jboolean is_client, jint handshake_limit,
+        jlong ssl_ctx_address, CONSCRYPT_UNUSED jobject holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %d, %ld)", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx_address);
+
+    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+
+    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %d, %p)", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx);
+
+    if (context == nullptr || pw_array == nullptr || id_prover_array == nullptr ||
+        id_verifier_array == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Input parameters cannot be null");
+        return;
+    }
+
+    ScopedByteArrayRO context_bytes(env, context);
+    if (context_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for context");
+        return;
+    }
+
+    ScopedByteArrayRO pw_bytes(env, pw_array);
+    if (pw_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for pw_array");
+        return;
+    }
+
+    ScopedByteArrayRO id_prover_bytes(env, id_prover_array);
+    if (id_prover_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for id_prover_array");
+        return;
+    }
+
+    ScopedByteArrayRO id_verifier_bytes(env, id_verifier_array);
+    if (id_verifier_bytes.get() == nullptr) {
+        JNI_TRACE("ctx=%p SSL_CTX_set_spake_credential => threw exception", ssl_ctx);
+        conscrypt::jniutil::throwOutOfMemory(env,
+                                             "Unable to allocate buffer for id_verifier_array");
+        return;
+    }
+
+    uint8_t pw_verifier_w0[SPAKE2PLUS_PW_VERIFIER_SIZE];
+    uint8_t pw_verifier_w1[SPAKE2PLUS_PW_VERIFIER_SIZE];
+    uint8_t registration_record[SPAKE2PLUS_REGISTRATION_RECORD_SIZE];
+    int ret = SSL_spake2plusv1_register(
+            /* out_pw_verifier_w0= */ pw_verifier_w0,
+            /* out_pw_verifier_w1= */ pw_verifier_w1,
+            /* out_registration_record= */ registration_record,
+            /* pw= */ reinterpret_cast<const uint8_t*>(pw_bytes.get()),
+            /* pw_len= */ pw_bytes.size(),
+            /* id_prover= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
+            /* id_prover_len= */ id_prover_bytes.size(),
+            /* id_verifier= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
+            /* id_verifier_len= */ id_verifier_bytes.size());
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
+                                                             "SSL_spake2plusv1_register failed");
+        return;
+    }
+
+    bssl::UniquePtr<SSL_CREDENTIAL> creds;
+    if (is_client) {
+        bssl::UniquePtr<SSL_CREDENTIAL> creds_client(SSL_CREDENTIAL_new_spake2plusv1_client(
+                /* context= */ reinterpret_cast<const uint8_t*>(context_bytes.get()),
+                /* context_len= */ context_bytes.size(),
+                /* client_identity= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
+                /* client_identity_len= */ id_prover_bytes.size(),
+                /* server_identity= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
+                /* server_identity_len= */ id_verifier_bytes.size(),
+                /* attempts= */ handshake_limit,
+                /* w0= */ pw_verifier_w0,
+                /* w0_len= */ sizeof(pw_verifier_w0),
+                /* w1= */ pw_verifier_w1,
+                /* w1_len= */ sizeof(pw_verifier_w1)));
+        creds = std::move(creds_client);
+    } else {
+        bssl::UniquePtr<SSL_CREDENTIAL> creds_server(SSL_CREDENTIAL_new_spake2plusv1_server(
+                /* context= */ reinterpret_cast<const uint8_t*>(context_bytes.get()),
+                /* context_len= */ context_bytes.size(),
+                /* client_identity= */ reinterpret_cast<const uint8_t*>(id_prover_bytes.get()),
+                /* client_identity_len= */ id_prover_bytes.size(),
+                /* server_identity= */ reinterpret_cast<const uint8_t*>(id_verifier_bytes.get()),
+                /* server_identity_len= */ id_verifier_bytes.size(),
+                /* attempts= */ handshake_limit,
+                /* w0= */ pw_verifier_w0,
+                /* w0_len= */ sizeof(pw_verifier_w0),
+                /* registration_record= */ registration_record,
+                /* registration_record_len= */ sizeof(registration_record)));
+        creds = std::move(creds_server);
+    }
+    if (creds == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "SSL_CREDENTIAL_new_spake2plusv1 failed");
+        return;
+    }
+    ret = SSL_CTX_add1_credential(ssl_ctx, creds.get());
+    if (ret != 1) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_CTX_add1_credential failed");
+        return;
+    }
+    JNI_TRACE("SSL_CTX_set_spake_credential (%p, %p, %p, %p, %d, %d, %p) => %p", context, pw_array,
+              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx, creds.get());
+    return;
+}
+
 // TESTING METHODS BEGIN
 
 static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray outputJavaBytes) {
@@ -11433,6 +11675,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(MLDSA65_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLDSA65_sign, "([B[B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLDSA65_verify, "([B[B[B)I"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_generate_key, "([B[B)V"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_sign, "([B[B)[B"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_verify, "([B[B[B)I"),
         CONSCRYPT_NATIVE_METHOD(X25519, "([B[B[B)Z"),
         CONSCRYPT_NATIVE_METHOD(X25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(ED25519_keypair, "([B[B)V"),
@@ -11687,6 +11932,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ENGINE_SSL_shutdown, "(J" REF_SSL SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "([B[B[B[BZIJ" REF_SSL_CTX ")V"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

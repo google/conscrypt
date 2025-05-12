@@ -50,6 +50,7 @@ import javax.net.ssl.ManagerFactoryParameters;
 public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
     PakeClientKeyManagerParameters clientParams;
     PakeServerKeyManagerParameters serverParams;
+    private static final int MAX_HANDSHAKE_LIMIT = 24;
 
     /**
      * @see KeyManagerFactorySpi#engineInit(KeyStore ks, char[] password)
@@ -96,6 +97,19 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
         }
     }
 
+    private static int getHandshakeLimit(PakeOption option, String limitName) {
+        byte[] limit = option.getMessageComponent(limitName);
+        if (limit == null) {
+            return 1;
+        }
+        int handshakeLimit = limit[0];
+        // This should never happen, but just in case, we set the limit to 1.
+        if (handshakeLimit < 1 || handshakeLimit > MAX_HANDSHAKE_LIMIT) {
+            return 1;
+        }
+        return handshakeLimit;
+    }
+
     private KeyManager[] initClient() {
         List<PakeOption> options = clientParams.getOptions();
         for (PakeOption option : options) {
@@ -106,15 +120,10 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
             byte[] idVerifier = clientParams.getServerId();
             byte[] context = option.getMessageComponent("context");
             byte[] password = option.getMessageComponent("password");
+            int clientHandshakeLimit = getHandshakeLimit(option, "client-handshake-limit");
             if (password != null) {
                 return new KeyManager[] {new Spake2PlusKeyManager(
-                        context, password, null, null, null, idProver, idVerifier, true)};
-            }
-            byte[] w0 = option.getMessageComponent("w0");
-            byte[] w1 = option.getMessageComponent("w1");
-            if (w0 != null && w1 != null) {
-                return new KeyManager[] {new Spake2PlusKeyManager(
-                        context, null, w0, w1, null, idProver, idVerifier, true)};
+                        context, password, idProver, idVerifier, true, clientHandshakeLimit)};
             }
             break;
         }
@@ -133,15 +142,10 @@ public class PakeKeyManagerFactory extends KeyManagerFactorySpi {
                 byte[] idVerifier = link.getServerId();
                 byte[] context = option.getMessageComponent("context");
                 byte[] password = option.getMessageComponent("password");
+                int serverHandshakeLimit = getHandshakeLimit(option, "server-handshake-limit");
                 if (password != null) {
                     return new KeyManager[] {new Spake2PlusKeyManager(
-                            context, password, null, null, null, idProver, idVerifier, false)};
-                }
-                byte[] w0 = option.getMessageComponent("w0");
-                byte[] l = option.getMessageComponent("L");
-                if (w0 != null && l != null) {
-                    return new KeyManager[] {new Spake2PlusKeyManager(
-                            context, null, w0, null, l, idProver, idVerifier, false)};
+                            context, password, idProver, idVerifier, false, serverHandshakeLimit)};
                 }
                 break;
             }

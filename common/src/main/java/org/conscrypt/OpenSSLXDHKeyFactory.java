@@ -109,7 +109,7 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
                 T result = (T) new XdhKeySpec(conscryptKey.getU());
                 return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getU(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getU(), keySpec);
             }
         } else if (key instanceof OpenSSLX25519PrivateKey) {
             OpenSSLX25519PrivateKey conscryptKey = (OpenSSLX25519PrivateKey) key;
@@ -126,28 +126,11 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
                 T result = (T) new XdhKeySpec(conscryptKey.getU());
                 return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getU(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getU(), keySpec);
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
                 + key.getClass().getName() + ", keySpec=" + keySpec.getName());
-    }
-
-    private <T extends KeySpec> T makeRawKeySpec(byte[] bytes, Class<T> keySpecClass)
-            throws InvalidKeySpecException {
-        try {
-            Constructor<T> constructor = keySpecClass.getConstructor(byte[].class);
-            T instance = constructor.newInstance((Object) bytes);
-            EncodedKeySpec spec = (EncodedKeySpec) instance;
-            if (!spec.getFormat().equalsIgnoreCase("raw")) {
-                throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
-            }
-            return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
-                 IllegalAccessException e) {
-            throw new InvalidKeySpecException(
-                    "Can't process KeySpec class " + keySpecClass.getName(), e);
-        }
     }
 
     @Override

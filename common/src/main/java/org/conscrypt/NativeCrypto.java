@@ -69,6 +69,7 @@ public final class NativeCrypto {
             error = t;
         }
         loadError = error;
+        setTlsV1DeprecationStatus(Platform.isTlsV1Deprecated(), Platform.isTlsV1Supported());
     }
 
     private native static void clinit();
@@ -213,6 +214,14 @@ public final class NativeCrypto {
     static native byte[] MLDSA65_sign(byte[] data, byte[] privateKeySeed);
 
     static native int MLDSA65_verify(byte[] data, byte[] sig, byte[] publicKey);
+
+    // --- SLHDSA_SHA2_128S --------------------------------------------------------------
+
+    static native void SLHDSA_SHA2_128S_generate_key(byte[] outPublicKey, byte[] outPrivateKey);
+
+    static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, byte[] privateKey);
+
+    static native int SLHDSA_SHA2_128S_verify(byte[] data, byte[] sig, byte[] publicKey);
 
     // --- Curve25519 --------------
 
@@ -654,6 +663,16 @@ public final class NativeCrypto {
     // --- X509_EXTENSION ------------------------------------------------------
 
     static native int X509_supported_extension(long x509ExtensionRef);
+
+    // --- SPAKE ---------------------------------------------------------------
+
+    /**
+     * Sets the SPAKE credential for the given SSL context using a password.
+     * Used for both client and server.
+     */
+    static native void SSL_CTX_set_spake_credential(byte[] context, byte[] pw_array,
+            byte[] id_prover_array, byte[] id_verifier_array, boolean is_client,
+            int handshake_limit, long ssl_ctx, AbstractSessionContext holder) throws SSLException;
 
     // --- ASN1_TIME -----------------------------------------------------------
 

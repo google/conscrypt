@@ -100,6 +100,8 @@ import org.junit.runners.Suite;
         HpkeContextSenderTest.class,
         HpkeSuiteTest.class,
         HpkeTestVectorsTest.class,
+        KeySpecUtilTest.class,
+        MlDsaTest.class,
         NativeCryptoArgTest.class,
         NativeCryptoTest.class,
         NativeRefTest.class,
@@ -109,6 +111,7 @@ import org.junit.runners.Suite;
         PlatformTest.class,
         SSLUtilsTest.class,
         ServerSessionContextTest.class,
+        SlhDsaTest.class,
         TestSessionBuilderTest.class,
         TrustManagerImplTest.class,
         // org.conscrypt.ct tests

@@ -274,6 +274,11 @@ int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
             env, "javax/crypto/IllegalBlockSizeException", message);
 }
 
+int throwIllegalStateException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwIllegalStateException %s", message);
+    return conscrypt::jniutil::throwException(env, "java/lang/IllegalStateException", message);
+}
+
 int throwShortBufferException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwShortBufferException %s", message);
     return conscrypt::jniutil::throwException(
@@ -416,6 +421,30 @@ int throwForX509Error(JNIEnv* env, int reason, const char* message,
     }
 }
 
+int throwForCryptoError(JNIEnv* env, int reason, const char* message,
+                        int (*defaultThrow)(JNIEnv*, const char*)) {
+    switch (reason) {
+        case ERR_R_INTERNAL_ERROR:
+            return throwIOException(env, message);
+            break;
+        default:
+            return defaultThrow(env, message);
+            break;
+    }
+}
+
+int throwForSslError(JNIEnv* env, int reason, const char* message,
+                     int (*defaultThrow)(JNIEnv*, const char*)) {
+    switch (reason) {
+        case ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED:
+            return throwIllegalStateException(env, message);
+            break;
+        default:
+            return defaultThrow(env, message);
+            break;
+    }
+}
+
 void throwExceptionFromBoringSSLError(JNIEnv* env, CONSCRYPT_UNUSED const char* location,
                                       int (*defaultThrow)(JNIEnv*, const char*)) {
     const char* file;
@@ -458,6 +487,12 @@ void throwExceptionFromBoringSSLError(JNIEnv* env, CONSCRYPT_UNUSED const char* 
                 break;
             case ERR_LIB_DSA:
                 throwInvalidKeyException(env, message);
+                break;
+            case ERR_LIB_CRYPTO:
+                throwForCryptoError(env, reason, message, defaultThrow);
+                break;
+            case ERR_LIB_SSL:
+                throwForSslError(env, reason, message, defaultThrow);
                 break;
             default:
                 defaultThrow(env, message);

@@ -23,6 +23,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
+import org.conscrypt.testing.BrokenProvider;
+import org.conscrypt.testing.OpaqueProvider;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -55,24 +63,10 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.TestUtils;
-import org.conscrypt.testing.BrokenProvider;
-import org.conscrypt.testing.OpaqueProvider;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
@@ -102,6 +96,11 @@ public class SignatureTest {
                 // We don't have code to generate key pairs for these yet.
                 .skipAlgorithm("Ed448")
                 .skipAlgorithm("EdDSA")
+                // ML-DSA is skipped because it doesn't yet support getFormat() and getEncoded().
+                .skipAlgorithm("ML-DSA")
+                // SLH-DSA-SHA2-128S is skipped because it doesn't yet support getFormat() and
+                // getEncoded().
+                .skipAlgorithm("SLH-DSA-SHA2-128S")
                 .skipAlgorithm("HSS/LMS")
                 .run((provider, algorithm) -> {
                     KeyPair kp = keyPair(algorithm);
@@ -148,6 +147,8 @@ public class SignatureTest {
             kpAlgorithm = "RSA";
         } else if (sigAlgorithmUpperCase.equals("ED25519")) {
             kpAlgorithm = "ED25519";
+        } else if (sigAlgorithmUpperCase.equals("ML-DSA")) {
+            kpAlgorithm = "ML-DSA";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "
                                 + sigAlgorithm);
@@ -232,7 +233,7 @@ public class SignatureTest {
         }
 
         if (Conscrypt.isConscrypt(sig.getProvider())) {
-            testSignature_MultipleThreads_Misuse(sig, keyPair.getPrivate());
+            testSignature_ThreadMisuse(sig, keyPair.getPrivate());
         }
     }
 
@@ -3065,42 +3066,15 @@ public class SignatureTest {
         assertTrue("Signature must verify correctly", sig.verify(SHA256withDSA_Vector2Signature));
     }
 
-    private final int THREAD_COUNT = 10;
-
-    private void testSignature_MultipleThreads_Misuse(final Signature s, final PrivateKey p)
+    // Abuse a single Signature object across multiple threads to check for any native crashes.
+    private void testSignature_ThreadMisuse(final Signature signature, final PrivateKey key)
             throws Exception {
-        ExecutorService es = Executors.newFixedThreadPool(THREAD_COUNT);
-
-        final CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
         final byte[] message = new byte[64];
-        List<Future<Void>> futures = new ArrayList<>();
-
-        for (int i = 0; i < THREAD_COUNT; i++) {
-            futures.add(es.submit(() -> {
-                // Try to make sure all the threads are ready first.
-                latch.countDown();
-                latch.await();
-
-                for (int j = 0; j < 100; j++) {
-                    s.initSign(p);
-                    s.update(message);
-                    s.sign();
-                }
-
-                return null;
-            }));
-        }
-        es.shutdown();
-        assertTrue("Test should not timeout", es.awaitTermination(1, TimeUnit.MINUTES));
-
-        for (Future<Void> f : futures) {
-            try {
-                f.get();
-            } catch (ExecutionException expected) {
-                // We expect concurrent execution to cause instances to eventually throw, though
-                // if they happen to get lucky and execute completely, that's fine.
-            }
-        }
+        TestUtils.stressTestAllowingExceptions(16, 100, () -> {
+            signature.initSign(key);
+            signature.update(message);
+            signature.sign();
+        });
     }
 
     private static final byte[] NAMED_CURVE_VECTOR = "Satoshi Nakamoto".getBytes(
