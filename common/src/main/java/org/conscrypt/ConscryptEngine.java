@@ -132,6 +132,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     private int state = STATE_NEW;
     private boolean handshakeFinished;
 
+    private byte[] echRetryConfigList;
+
     /**
      * Wrapper around the underlying SSL object.
      */
@@ -393,6 +395,45 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     @Override
     public int getPeerPort() {
         return peerInfoProvider.getPort();
+    }
+
+    @Override
+    public void setUseEchGrease(boolean enabled) {
+        sslParameters.setUseEchGrease(enabled);
+    }
+
+    @Override
+    public boolean getUseEchGrease() {
+        return sslParameters.getUseEchGrease();
+    }
+
+    @Override
+    public void setEchConfigList(byte[] echConfigList) {
+        sslParameters.setEchConfigList(echConfigList);
+    }
+
+    @Override
+    public byte[] getEchConfigList() {
+        return sslParameters.getEchConfigList();
+    }
+
+    @Override
+    public String getEchNameOverride() {
+        return ssl.getEchNameOverride();
+    }
+
+    @Override
+    public byte[] getEchRetryConfigList() {
+        return echRetryConfigList;
+    }
+
+    private void cacheEchRetryConfigList() {
+        this.echRetryConfigList = ssl.getEchRetryConfigList();
+    }
+
+    @Override
+    public boolean echAccepted() {
+        return ssl.echAccepted();
     }
 
     @Override
@@ -911,6 +952,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             } catch (IOException e) {
                 // Shut down the SSL and rethrow the exception.  Users will need to drain any alerts
                 // from the SSL before closing.
+                if (!handshakeFinished && e.getMessage().contains(":ECH_REJECTED ")) {
+                    // TODO this should probably be implemented in boringssl
+                    cacheEchRetryConfigList();
+                }
                 closeAll();
                 throw convertException(e);
             }

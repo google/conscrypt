@@ -274,6 +274,18 @@ final class NativeSsl {
         return NativeCrypto.SSL_get_tls_channel_id(ssl, this);
     }
 
+    String getEchNameOverride() {
+        return NativeCrypto.SSL_get0_ech_name_override(ssl, this);
+    }
+
+    byte[] getEchRetryConfigList() {
+        return NativeCrypto.SSL_get0_ech_retry_configs(ssl, this);
+    }
+
+    boolean echAccepted() {
+        return NativeCrypto.SSL_ech_accepted(ssl, this);
+    }
+
     void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
         boolean enableSessionCreation = parameters.getEnableSessionCreation();
         if (!enableSessionCreation) {
@@ -292,6 +304,11 @@ final class NativeSsl {
             NativeCrypto.SSL_enable_ocsp_stapling(ssl, this);
             if (parameters.isCTVerificationEnabled(hostname)) {
                 NativeCrypto.SSL_enable_signed_cert_timestamps(ssl, this);
+            }
+            NativeCrypto.SSL_set_enable_ech_grease(ssl, this, parameters.getUseEchGrease());
+            if (parameters.echConfigList != null
+                    && !NativeCrypto.SSL_set1_ech_config_list(ssl, this, parameters.echConfigList)) {
+                throw new SSLHandshakeException("Error setting ECHConfigList");
             }
         } else {
             NativeCrypto.SSL_set_accept_state(ssl, this);
