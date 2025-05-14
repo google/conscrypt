@@ -11621,7 +11621,8 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
                   " could not read config bytes");
         return JNI_FALSE;
     }
-    const uint8_t* bs = reinterpret_cast<const uint8_t*>(configBytes.get());
+    // UNUSED?
+    // const uint8_t* bs = reinterpret_cast<const uint8_t*>(configBytes.get());
     int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
                                        configBytes.size());
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => %d", ssl, configJavaBytes, ret);
@@ -11690,7 +11691,7 @@ static jbyteArray NativeCrypto_SSL_marshal_ech_config(JNIEnv* env, jclass, short
     const uint8_t* key = reinterpret_cast<const uint8_t*>(keyBytes.get());
     size_t keySize = keyBytes.size();
     bssl::UniquePtr<SSL_ECH_KEYS> keys(SSL_ECH_KEYS_new());
-    SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*1, ech_config, ech_config_len, key.get());
+    SSL_ECH_KEYS_add(keys.get(), [SLASH,ASTERIX]is_retry_config=*1, ech_config, ech_config_len, key.get());
     bssl::ScopedEVP_HPKE_KEY hpke_key;
     JNI_TRACE("NativeCrypto_SSL_marshal_ech_config(keyJavaBytes=%p) =>", keyJavaBytes);
     */
@@ -11759,7 +11760,7 @@ static jbyteArray NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs(JNIEnv* env, j
     }
     if (!keys ||
         !EVP_HPKE_KEY_init(hpke_key.get(), EVP_hpke_x25519_hkdf_sha256(), key, keySize) ||
-        !SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*1, config, configSize, hpke_key.get()) ||
+        !SSL_ECH_KEYS_add(keys.get(), [SLASH,ASTERIX]is_retry_config=*1, config, configSize, hpke_key.get()) ||
         JNI_TRACE("NativeCrypto_SSL_ECH_KEYS_marshal_retry_configs: Error setting private key\n");
         return nullptr;
     }
