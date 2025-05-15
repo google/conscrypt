@@ -124,6 +124,50 @@ public class NativeCryptoTest {
 
     private static RSAPrivateCrtKey TEST_RSA_KEY;
 
+
+    @BeforeClass
+    public static void getPlatformMethods() throws Exception {
+        Class<?> c_Platform = TestUtils.conscryptClass("Platform");
+        m_Platform_getFileDescriptor =
+                c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
+        m_Platform_getFileDescriptor.setAccessible(true);
+    }
+
+    private static OpenSSLKey getServerPrivateKey() throws Exception {
+        initStatics();
+        return SERVER_PRIVATE_KEY;
+    }
+
+    private static long[] getServerCertificateRefs() throws Exception {
+        initStatics();
+        return SERVER_CERTIFICATE_REFS;
+    }
+
+    private static byte[][] getEncodedServerCertificates() throws Exception {
+        initStatics();
+        return ENCODED_SERVER_CERTIFICATES;
+    }
+
+    private static OpenSSLKey getClientPrivateKey() throws Exception {
+        initStatics();
+        return CLIENT_PRIVATE_KEY;
+    }
+
+    private static long[] getClientCertificateRefs() throws Exception {
+        initStatics();
+        return CLIENT_CERTIFICATE_REFS;
+    }
+
+    private static byte[][] getEncodedClientCertificates() throws Exception {
+        initStatics();
+        return ENCODED_CLIENT_CERTIFICATES;
+    }
+
+    private static byte[][] getCaPrincipals() throws Exception {
+        initStatics();
+        return CA_PRINCIPALS;
+    }
+
     @BeforeClass
     @SuppressWarnings("JdkObsolete") // Public API KeyStore.aliases() uses Enumeration
     public static void initStatics() throws Exception {
@@ -477,6 +521,7 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
+    @Test
     public void test_SSL_do_handshake_ech_grease_only() throws Exception {
         System.out.println("test_SSL_ech_accepted_exchange");
         final ServerSocket listener = newServerSocket();
