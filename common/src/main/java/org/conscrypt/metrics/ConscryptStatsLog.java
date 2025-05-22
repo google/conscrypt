@@ -16,7 +16,6 @@
 package org.conscrypt.metrics;
 
 import org.conscrypt.Internal;
-import org.conscrypt.metrics.GeneratedStatsLog;
 
 /**
  * Reimplement with reflection calls the logging class,

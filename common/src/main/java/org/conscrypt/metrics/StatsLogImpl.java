@@ -37,33 +37,11 @@ import org.conscrypt.ct.LogStore;
 import org.conscrypt.ct.PolicyCompliance;
 import org.conscrypt.ct.VerificationResult;
 
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Implements logging for Conscrypt metrics.
  */
 @Internal
 public final class StatsLogImpl implements StatsLog {
-    private static final ExecutorService e = Executors.newSingleThreadExecutor(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r, "ConscryptStatsLog");
-            thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    // Ignore
-                }
-            });
-            return thread;
-        }
-    });
-
     private static final StatsLog INSTANCE = new StatsLogImpl();
     private StatsLogImpl() {}
     public static StatsLog getInstance() {
@@ -152,50 +130,36 @@ public final class StatsLogImpl implements StatsLog {
     @SuppressWarnings("NewApi")
     private void write(int atomId, boolean success, int protocol, int cipherSuite, int duration,
             int source, int[] uids) {
-        e.execute(new Runnable() {
-            @Override
-            public void run() {
-                if (sdkVersionBiggerThan32) {
-                    GeneratedStatsLog.write(
-                            atomId, success, protocol, cipherSuite, duration, source, uids);
-                } else {
-                    ConscryptStatsLog.write(
-                            atomId, success, protocol, cipherSuite, duration, source, uids);
-                }
-            }
-        });
+        if (!sdkVersionBiggerThan32) {
+            final ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
+            builder.writeInt(atomId);
+            builder.writeBoolean(success);
+            builder.writeInt(protocol);
+            builder.writeInt(cipherSuite);
+            builder.writeInt(duration);
+            builder.writeInt(source);
+
+            builder.usePooledBuffer();
+            ReflexiveStatsLog.write(builder.build());
+        } else {
+            ConscryptStatsLog.write(atomId, success, protocol, cipherSuite, duration, source, uids);
+        }
     }
 
     private void write(int atomId, int status, int loadedCompatVersion,
             int minCompatVersionAvailable, int majorVersion, int minorVersion) {
-        e.execute(new Runnable() {
-            @Override
-            public void run() {
-                ConscryptStatsLog.write(atomId, status, loadedCompatVersion,
-                        minCompatVersionAvailable, majorVersion, minorVersion);
-            }
-        });
+        ConscryptStatsLog.write(atomId, status, loadedCompatVersion, minCompatVersionAvailable,
+                majorVersion, minorVersion);
     }
 
     private void write(int atomId, int verificationResult, int verificationReason,
             int policyCompatVersion, int majorVersion, int minorVersion, int numEmbeddedScts,
             int numOcspScts, int numTlsScts) {
-        e.execute(new Runnable() {
-            @Override
-            public void run() {
-                ConscryptStatsLog.write(atomId, verificationResult, verificationReason,
-                        policyCompatVersion, majorVersion, minorVersion, numEmbeddedScts,
-                        numOcspScts, numTlsScts);
-            }
-        });
+        ConscryptStatsLog.write(atomId, verificationResult, verificationReason, policyCompatVersion,
+                majorVersion, minorVersion, numEmbeddedScts, numOcspScts, numTlsScts);
     }
 
     private void write(int atomId, int algorithmId, int cipherId, int modeId, int paddingId) {
-        e.execute(new Runnable() {
-            @Override
-            public void run() {
-                ConscryptStatsLog.write(atomId, algorithmId, cipherId, modeId, paddingId);
-            }
-        });
+        ConscryptStatsLog.write(atomId, algorithmId, cipherId, modeId, paddingId);
     }
 }
