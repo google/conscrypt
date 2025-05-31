@@ -521,6 +521,7 @@ public final class Conscrypt {
         toConscrypt(socket).setUseEchGrease(enabled);
     }
 
+    // TODO: accepts null byte arrays leading to unexpected results
     public static void setEchConfigList(SSLSocket socket, byte[] echConfigList) {
         toConscrypt(socket).setEchConfigList(echConfigList);
     }
@@ -877,7 +878,9 @@ public final class Conscrypt {
          * skip 2 octet priority and TargetName as those are the
          * application's responsibility, not the library's
          */
-        if (remaining <= 2) return null;
+        if (remaining <= 2) {
+            return null;
+        }
         pos += 2;
         remaining -= 2;
         pos++;
