@@ -55,8 +55,8 @@ public final class ExposedByteArrayOutputStreamTest {
         outputStream.array()[9] = 42;
         outputStream.setCountManually(1);
 
-        assertArrayEquals(new byte[] {42}, outputStream.toByteArray());
-        assertEquals(3, outputStream.size());
+        assertArrayEquals(new byte[] {0}, outputStream.toByteArray());
+        assertEquals(1, outputStream.size());
     }
 
     @Test
