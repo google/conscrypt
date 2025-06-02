@@ -20,29 +20,47 @@ import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.Objects;
 
 /** An OpenSSL ML-DSA public key. */
 public class OpenSslMlDsaPublicKey implements PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
     private final byte[] raw;
+    private final MlDsaAlgorithm algorithm;
 
-    public OpenSslMlDsaPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-            raw = encoded;
-        } else {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
+    private boolean isValidRawKey(byte[] rawKey, MlDsaAlgorithm algorithm) {
+        return rawKey.length == algorithm.publicKeySize();
     }
 
-    public OpenSslMlDsaPublicKey(byte[] raw) {
+    public OpenSslMlDsaPublicKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
+        byte[] encoded = keySpec.getEncoded();
+        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
+            throw new InvalidKeySpecException("Encoding must be in raw format");
+        }
+        if (!isValidRawKey(encoded, algorithm)) {
+            throw new InvalidKeySpecException("Invalid raw key");
+        }
+        this.raw = encoded;
+        this.algorithm = algorithm;
+    }
+
+    public OpenSslMlDsaPublicKey(byte[] raw, MlDsaAlgorithm algorithm) {
+        if (!isValidRawKey(raw, algorithm)) {
+            throw new IllegalArgumentException("Invalid raw key");
+        }
         this.raw = raw.clone();
+        this.algorithm = algorithm;
     }
 
     @Override
     public String getAlgorithm() {
         return "ML-DSA";
+    }
+
+    public MlDsaAlgorithm getMlDsaAlgorithm() {
+        return algorithm;
     }
 
     @Override
@@ -75,7 +93,8 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
             return false;
         }
         OpenSslMlDsaPublicKey that = (OpenSslMlDsaPublicKey) o;
-        return Arrays.equals(raw, that.raw);
+
+        return algorithm.equals(that.algorithm) && Arrays.equals(raw, that.raw);
     }
 
     @Override
@@ -83,6 +102,6 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        return Arrays.hashCode(raw);
+        return Objects.hash(Arrays.hashCode(raw), algorithm);
     }
 }
