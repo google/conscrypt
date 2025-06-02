@@ -3388,8 +3388,10 @@ public class NativeCryptoTest {
 
     @Test
     public void test_mldsa87_works() throws Exception {
-        byte[] privateKeySeed = decodeHex("7C9935A0B07694AA0C6D10E4DB6B1ADD2FD81A25CCB148032DCD739936737F2D");
-        byte[] data = decodeHex("D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8");
+        byte[] privateKeySeed =
+                decodeHex("7C9935A0B07694AA0C6D10E4DB6B1ADD2FD81A25CCB148032DCD739936737F2D");
+        byte[] data =
+                decodeHex("D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8");
 
         byte[] publicKey = NativeCrypto.MLDSA87_public_key_from_seed(privateKeySeed);
         assertEquals(2592, publicKey.length);
@@ -3450,7 +3452,7 @@ public class NativeCryptoTest {
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
         assertEquals(
                 -1, NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooLong));
-  }
+    }
 
     @Test
     public void test_slhdsa_sha2_128s_works() throws Exception {
