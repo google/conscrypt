@@ -136,7 +136,7 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
         buffer.reset();
         switch (privateKey.getMlDsaAlgorithm()) {
             case ML_DSA_65:
-                return NativeCrypto.MLDSA65_sign(data, privateKey.getSeed());
+                return NativeCrypto.MLDSA65_sign(data, data.length, privateKey.getSeed());
             case ML_DSA_87:
                 return NativeCrypto.MLDSA87_sign(data, data.length, privateKey.getSeed());
         }
@@ -153,7 +153,8 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
         buffer.reset();
         switch (publicKey.getMlDsaAlgorithm()) {
             case ML_DSA_65:
-                int result = NativeCrypto.MLDSA65_verify(data, sigBytes, publicKey.getRaw());
+                int result = NativeCrypto.MLDSA65_verify(
+                	data, data.length, sigBytes, publicKey.getRaw());
                 return result == 1;
             case ML_DSA_87:
                 int result2 = NativeCrypto.MLDSA87_verify(
