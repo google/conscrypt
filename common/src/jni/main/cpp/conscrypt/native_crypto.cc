@@ -2846,47 +2846,6 @@ static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
     JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p) => success", outPublicArray, outPrivateArray);
 }
 
-static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
-                                                       jbyteArray outPublicArray,
-                                                       jbyteArray outPrivateArray) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p)", outPublicArray, outPrivateArray);
-
-    ScopedByteArrayRW outPublic(env, outPublicArray);
-    if (outPublic.get() == nullptr) {
-        JNI_TRACE(
-                "SLHDSA_SHA2_128S_generate_key(%p, %p) can't get output public key "
-                "buffer",
-                outPublicArray, outPrivateArray);
-        return;
-    }
-
-    ScopedByteArrayRW outPrivate(env, outPrivateArray);
-    if (outPrivate.get() == nullptr) {
-        JNI_TRACE(
-                "SLHDSA_SHA2_128S_generate_key(%p, %p) can't get output private key "
-                "buffer",
-                outPublicArray, outPrivateArray);
-        return;
-    }
-
-    if (outPublic.size() != SLHDSA_SHA2_128S_PUBLIC_KEY_BYTES) {
-        conscrypt::jniutil::throwIllegalArgumentException(env,
-                                                          "Output public key array length != 32");
-        return;
-    }
-
-    if (outPrivate.size() != SLHDSA_SHA2_128S_PRIVATE_KEY_BYTES) {
-        conscrypt::jniutil::throwIllegalArgumentException(env,
-                                                          "Output private key array length != 64");
-        return;
-    }
-
-    SLHDSA_SHA2_128S_generate_key(reinterpret_cast<uint8_t*>(outPublic.get()),
-                                  reinterpret_cast<uint8_t*>(outPrivate.get()));
-    JNI_TRACE("SLHDSA_SHA2_128S_generate_key(%p, %p) => success", outPublicArray, outPrivateArray);
-}
-
 static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteArray data,
                                                      jint dataLen, jbyteArray privateKey) {
     CHECK_ERROR_QUEUE_ON_RETURN;
