@@ -38,7 +38,7 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
     /**
      * Buffer to hold value to be signed or verified.
      */
-    private ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    private ExposedByteArrayOutputStream buffer = new ExposedByteArrayOutputStream();
 
     abstract boolean supportsAlgorithm(MlDsaAlgorithm algorithm);
 
@@ -132,13 +132,18 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No privateKey provided");
         }
-        byte[] data = buffer.toByteArray();
-        buffer.reset();
+        byte[] sig;
         switch (privateKey.getMlDsaAlgorithm()) {
             case ML_DSA_65:
-                return NativeCrypto.MLDSA65_sign(data, data.length, privateKey.getSeed());
+                sig = NativeCrypto.MLDSA65_sign(
+                        buffer.array(), buffer.size(), privateKey.getSeed());
+                buffer.reset();
+                return sig;
             case ML_DSA_87:
-                return NativeCrypto.MLDSA87_sign(data, data.length, privateKey.getSeed());
+                sig = NativeCrypto.MLDSA87_sign(
+                        buffer.array(), buffer.size(), privateKey.getSeed());
+                buffer.reset();
+                return sig;
         }
         throw new SignatureException("Unsupported algorithm: " + privateKey.getMlDsaAlgorithm());
     }
@@ -149,17 +154,18 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No publicKey provided");
         }
-        byte[] data = buffer.toByteArray();
-        buffer.reset();
+        int result;
         switch (publicKey.getMlDsaAlgorithm()) {
             case ML_DSA_65:
-                int result = NativeCrypto.MLDSA65_verify(
-                	data, data.length, sigBytes, publicKey.getRaw());
+                result = NativeCrypto.MLDSA65_verify(
+                        buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
+                buffer.reset();
                 return result == 1;
             case ML_DSA_87:
-                int result2 = NativeCrypto.MLDSA87_verify(
-                        data, data.length, sigBytes, publicKey.getRaw());
-                return result2 == 1;
+                result = NativeCrypto.MLDSA87_verify(
+                        buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
+                buffer.reset();
+                return result == 1;
         }
         throw new SignatureException("Unsupported algorithm: " + publicKey.getMlDsaAlgorithm());
     }
