@@ -305,9 +305,9 @@ final class NativeSsl {
             if (parameters.isCTVerificationEnabled(hostname)) {
                 NativeCrypto.SSL_enable_signed_cert_timestamps(ssl, this);
             }
-            NativeCrypto.SSL_set_enable_ech_grease(ssl, this, parameters.getUseEchGrease());
-            if (parameters.echConfigList != null
-                    && !NativeCrypto.SSL_set1_ech_config_list(ssl, this, parameters.echConfigList)) {
+            NativeCrypto.SSL_set_enable_ech_grease(ssl, this, parameters.getEchParameters().useEchGrease);
+            if (parameters.getEchParameters().configList != null
+                    && !NativeCrypto.SSL_set1_ech_config_list(ssl, this, parameters.getEchParameters().configList)) {
                 throw new SSLHandshakeException("Error setting ECHConfigList");
             }
         } else {

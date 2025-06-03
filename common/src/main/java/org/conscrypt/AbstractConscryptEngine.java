@@ -92,13 +92,9 @@ abstract class AbstractConscryptEngine extends SSLEngine {
 
     @Override public abstract int getPeerPort();
 
-    public abstract void setUseEchGrease(boolean enabled);
+    public abstract void setEchParameters(EchParameters parameters);
 
-    public abstract boolean getUseEchGrease();
-
-    public abstract void setEchConfigList(byte[] echConfigList);
-
-    public abstract byte[] getEchConfigList();
+    public abstract EchParameters getEchParameters();
 
     public abstract String getEchNameOverride();
 

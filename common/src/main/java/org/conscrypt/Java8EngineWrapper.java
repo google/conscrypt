@@ -116,24 +116,12 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
         return delegate.getPeerPort();
     }
 
-    @Override
-    public void setUseEchGrease(boolean enabled) {
-        delegate.setUseEchGrease(enabled);
+    public void setEchParameters(EchParameters parameters) {
+        delegate.setEchParameters(parameters);
     }
 
-    @Override
-    public boolean getUseEchGrease() {
-        return delegate.getUseEchGrease();
-    }
-
-    @Override
-    public void setEchConfigList(byte[] echConfigList) {
-        delegate.setEchConfigList(echConfigList);
-    }
-
-    @Override
-    public byte[] getEchConfigList() {
-        return delegate.getEchConfigList();
+    public EchParameters getEchParameters() {
+        return delegate.getEchParameters();
     }
 
     @Override

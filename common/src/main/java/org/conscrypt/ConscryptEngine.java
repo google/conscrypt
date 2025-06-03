@@ -397,24 +397,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return peerInfoProvider.getPort();
     }
 
-    @Override
-    public void setUseEchGrease(boolean enabled) {
-        sslParameters.setUseEchGrease(enabled);
+    public void setEchParameters(EchParameters parameters) {
+        sslParameters.setEchParameters(parameters);
     }
 
-    @Override
-    public boolean getUseEchGrease() {
-        return sslParameters.getUseEchGrease();
-    }
-
-    @Override
-    public void setEchConfigList(byte[] echConfigList) {
-        sslParameters.setEchConfigList(echConfigList);
-    }
-
-    @Override
-    public byte[] getEchConfigList() {
-        return sslParameters.getEchConfigList();
+    public EchParameters getEchParameters() {
+        return sslParameters.getEchParameters();
     }
 
     @Override

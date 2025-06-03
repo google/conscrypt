@@ -125,12 +125,11 @@ public class EchInteropTest {
             try {
                 byte[] echConfigList = getEchConfigListFromDns(h);
                 if (echConfigList != null) {
-                    Conscrypt.setUseEchGrease(sslSocket, true);
-                    Conscrypt.setEchConfigList(sslSocket, echConfigList);
+                    Conscrypt.setEchParameters(sslSocket, new EchParameters(true, echConfigList));
                     System.out.println("ENABLED ECH GREASE AND CONFIG LIST");
                     setUpEch = true;
                 } else {
-                    Conscrypt.setUseEchGrease(sslSocket, true);
+                    Conscrypt.setEchParameters(sslSocket, new EchParameters(true));
                     System.out.println("ENABLED ECH GREASE");
                 }
             } catch (NamingException e) {
@@ -199,7 +198,7 @@ public class EchInteropTest {
             echConfigList[22] = (byte) 0xff;
             echConfigList[23] = (byte) 0xff;
             echPbuf("CORRUPT ECH CONFIG LIST FOR " + h, echConfigList);
-            Conscrypt.setEchConfigList(sslSocket, echConfigList);
+            Conscrypt.setEchParameters(sslSocket, new EchParameters(echConfigList));
 
             try {
                 sslSocket.setSoTimeout(TIMEOUT_MILLISECONDS);
@@ -212,7 +211,7 @@ public class EchInteropTest {
                 sslSocket.close();
                 echPbuf("ECH RETRY CONFIG", echRetryConfig);
                 SSLSocket sslSocket2 = (SSLSocket) sslSocketFactory.createSocket(host, port);
-                Conscrypt.setEchConfigList(sslSocket2, echRetryConfig);
+                Conscrypt.setEchParameters(sslSocket2, new EchParameters(echRetryConfig));
                 sslSocket2.setSoTimeout(TIMEOUT_MILLISECONDS);
                 sslSocket2.startHandshake();
                 assertTrue(h + " should connect with ECH Retry Config", sslSocket2.isConnected());
@@ -250,7 +249,7 @@ public class EchInteropTest {
 
             // load saved ech config with the expecation that the key mismatch will cause rejection
             byte[] echConfigList = TestUtils.readTestFile("draft-13.esni.defo.ie_12414-ech-config-list.bin");
-            Conscrypt.setEchConfigList(sslSocket, echConfigList);
+            Conscrypt.setEchParameters(sslSocket, new EchParameters(echConfigList));
 
             echRejectedExceptionRule.expect(SSLHandshakeException.class);
             echRejectedExceptionRule.expectMessage("ECH_REJECTED");
@@ -351,11 +350,10 @@ public class EchInteropTest {
             SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
             assertTrue(Conscrypt.isConscrypt(sslSocket));
             if (echConfigList != null) {
-                Conscrypt.setUseEchGrease(sslSocket, true);
-                Conscrypt.setEchConfigList(sslSocket, echConfigList);
+                Conscrypt.setEchParameters(sslSocket, new EchParameters(true, echConfigList));
                 System.out.println("ENABLED ECH GREASE AND CONFIG LIST");
             } else {
-                Conscrypt.setUseEchGrease(sslSocket, true);
+                Conscrypt.setEchParameters(sslSocket, new EchParameters(true));
                 System.out.println("ENABLED ECH GREASE");
             }
             sslSocket.setSoTimeout(TIMEOUT_MILLISECONDS);
@@ -538,8 +536,7 @@ public class EchInteropTest {
 
         private Socket setEchSettings(Socket socket) {
             SSLSocket sslSocket = (SSLSocket) socket;
-            Conscrypt.setUseEchGrease(sslSocket, enableEchGrease);
-            Conscrypt.setEchConfigList(sslSocket, echConfigList);
+            Conscrypt.setEchParameters(sslSocket, new EchParameters(enableEchGrease, echConfigList));
             return sslSocket;
         }
 

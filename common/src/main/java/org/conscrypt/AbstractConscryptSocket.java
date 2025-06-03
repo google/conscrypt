@@ -739,11 +739,9 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     abstract byte[] exportKeyingMaterial(String label, byte[] context, int length)
             throws SSLException;
 
-    public abstract void setUseEchGrease(boolean enabled);
+    public abstract void setEchParameters(EchParameters parameters);
 
-    public abstract void setEchConfigList(byte[] echConfigList);
-
-    public abstract byte[] getEchConfigList();
+    public abstract EchParameters getEchParameters();
 
     public abstract String getEchNameOverride();
 

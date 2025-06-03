@@ -517,17 +517,13 @@ public final class Conscrypt {
      * @param socket the socket
      * @param enabled whether ECH GREASE is enabled or not
      */
-    public static void setUseEchGrease(SSLSocket socket, boolean enabled) {
-        toConscrypt(socket).setUseEchGrease(enabled);
+
+    public static void setEchParameters(SSLSocket socket, EchParameters parameters) {
+        toConscrypt(socket).setEchParameters(parameters);
     }
 
-    // TODO: accepts null byte arrays leading to unexpected results
-    public static void setEchConfigList(SSLSocket socket, byte[] echConfigList) {
-        toConscrypt(socket).setEchConfigList(echConfigList);
-    }
-
-    public static byte[] getEchConfigList(SSLSocket socket) {
-        return toConscrypt(socket).getEchConfigList();
+    public static EchParameters getEchParameters(SSLSocket socket) {
+        return toConscrypt(socket).getEchParameters();
     }
 
     public static String getEchNameOverride(SSLSocket socket) {
@@ -794,16 +790,13 @@ public final class Conscrypt {
      *
      * @see <a href="https://www.ietf.org/archive/id/draft-ietf-tls-esni-13.html#section-6.2">TLS Encrypted Client Hello 6.2. GREASE ECH</a>
      */
-    public static void setUseEchGrease(SSLEngine engine, boolean enabled) {
-        toConscrypt(engine).setUseEchGrease(enabled);
+
+    public static void setEchParameters(SSLEngine engine, EchParameters parameters) {
+        toConscrypt(engine).setEchParameters(parameters);
     }
 
-    public static void setEchConfigList(SSLEngine engine, byte[] echConfigList) {
-        toConscrypt(engine).setEchConfigList(echConfigList);
-    }
-
-    public static byte[] getEchConfigList(SSLEngine engine) {
-        return toConscrypt(engine).getEchConfigList();
+    public static EchParameters getEchParameters(SSLEngine engine) {
+        return toConscrypt(engine).getEchParameters();
     }
 
     public static String getEchNameOverride(SSLEngine engine) {
