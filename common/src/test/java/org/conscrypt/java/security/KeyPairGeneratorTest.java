@@ -240,7 +240,7 @@ public class KeyPairGeneratorTest {
         if (expectedAlgorithm.startsWith("ML-DSA")) {
             // In OpenJDK, KeyPairGenerator.getInstance("ML-DSA-65") returns a
             // KeyPairGenerator with algorithm "ML-DSA-65". But the key it generates
-            // have algorithm "ML-DSA"s.
+            // have algorithm "ML-DSA".
             expectedAlgorithm = "ML-DSA";
         }
         assertEquals(expectedAlgorithm, k.getAlgorithm().toUpperCase(Locale.ROOT));
