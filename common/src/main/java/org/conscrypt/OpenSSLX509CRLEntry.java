@@ -135,4 +135,16 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
             NativeCrypto.BIO_free_all(bioCtx);
         }
     }
+
+    @Override
+    @SuppressWarnings("Finalize")
+    protected void finalize() throws Throwable {
+        try {
+            if (mContext != 0) {
+                NativeCrypto.X509_REVOKED_free(mContext);
+            }
+        } finally {
+            super.finalize();
+        }
+    }
 }

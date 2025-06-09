@@ -6019,6 +6019,20 @@ static jlong NativeCrypto_X509_REVOKED_dup(JNIEnv* env, jclass, jlong x509Revoke
     return reinterpret_cast<uintptr_t>(dup);
 }
 
+static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509RevokedRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
+    JNI_TRACE("X509_REVOKED_free(%p)", revoked);
+
+    if (revoked == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "revoked == null");
+        JNI_TRACE("X509_REVOKED_free(%p) => revoked == null", revoked);
+        return;
+    }
+
+    X509_REVOKED_free(revoked);
+}
+
 static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
                                                           jlong x509RevokedRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
