@@ -19,7 +19,6 @@ package org.conscrypt;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 import java.io.ByteArrayOutputStream;
-import java.lang.AutoCloseable;
 import java.math.BigInteger;
 import java.security.cert.CRLException;
 import java.security.cert.X509CRLEntry;
