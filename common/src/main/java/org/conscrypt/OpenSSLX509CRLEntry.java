@@ -142,7 +142,6 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry implements AutoCloseable {
     public void close() {
         if (mContext != 0) {
             NativeCrypto.X509_REVOKED_free(mContext);
-            mContext = 0;
         }
     }
 
