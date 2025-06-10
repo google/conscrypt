@@ -2609,7 +2609,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA65_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
-    	JNI_TRACE("NativeCrypto_MLDSA65_sign: byte array creation failed");
+        JNI_TRACE("NativeCrypto_MLDSA65_sign: byte array creation failed");
         return nullptr;
     }
 
@@ -2755,7 +2755,7 @@ static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA87_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
-    	JNI_TRACE("NativeCrypto_MLDSA87_sign: byte array creation failed");
+        JNI_TRACE("NativeCrypto_MLDSA87_sign: byte array creation failed");
         return nullptr;
     }
 
