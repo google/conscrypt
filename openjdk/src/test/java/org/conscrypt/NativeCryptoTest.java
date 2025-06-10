@@ -3378,12 +3378,12 @@ public class NativeCryptoTest {
                 () -> NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeedTooLong));
 
         byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
-        assertEquals(
-                -1, NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooShort));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooShort));
 
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
-        assertEquals(
-                -1, NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooLong));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooLong));
     }
 
     @Test
@@ -3446,12 +3446,12 @@ public class NativeCryptoTest {
                 () -> NativeCrypto.MLDSA87_sign(data, data.length, privateKeySeedTooLong));
 
         byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
-        assertEquals(
-                -1, NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooShort));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooShort));
 
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
-        assertEquals(
-                -1, NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooLong));
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooLong));
     }
 
     @Test

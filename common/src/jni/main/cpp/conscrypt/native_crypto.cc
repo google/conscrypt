@@ -2633,6 +2633,8 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, ji
     MLDSA65_public_key pubkey;
     if (!MLDSA65_parse_public_key(&pubkey, &cbs)) {
         JNI_TRACE("MLDSA65_parse_public_key failed");
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "MLDSA87_parse_public_key failed");
         return -1;
     }
 
@@ -2777,6 +2779,8 @@ static jint NativeCrypto_MLDSA87_verify(JNIEnv* env, jclass, jbyteArray data, ji
     MLDSA87_public_key pubkey;
     if (!MLDSA87_parse_public_key(&pubkey, &cbs)) {
         JNI_TRACE("MLDSA87_parse_public_key failed");
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "MLDSA87_parse_public_key failed");
         return -1;
     }
 
