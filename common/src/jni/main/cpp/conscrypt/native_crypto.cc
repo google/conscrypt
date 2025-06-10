@@ -2607,6 +2607,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA65_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
+    	JNI_TRACE("NativeCrypto_MLDSA65_sign: byte array creation failed");
         return nullptr;
     }
 
@@ -2633,8 +2634,7 @@ static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, ji
     MLDSA65_public_key pubkey;
     if (!MLDSA65_parse_public_key(&pubkey, &cbs)) {
         JNI_TRACE("MLDSA65_parse_public_key failed");
-        conscrypt::jniutil::throwIllegalArgumentException(env,
-                                                          "MLDSA87_parse_public_key failed");
+        conscrypt::jniutil::throwIllegalArgumentException(env, "MLDSA65_parse_public_key failed");
         return -1;
     }
 
@@ -2753,6 +2753,7 @@ static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA87_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
+    	JNI_TRACE("NativeCrypto_MLDSA87_sign: byte array creation failed");
         return nullptr;
     }
 
@@ -2779,8 +2780,7 @@ static jint NativeCrypto_MLDSA87_verify(JNIEnv* env, jclass, jbyteArray data, ji
     MLDSA87_public_key pubkey;
     if (!MLDSA87_parse_public_key(&pubkey, &cbs)) {
         JNI_TRACE("MLDSA87_parse_public_key failed");
-        conscrypt::jniutil::throwIllegalArgumentException(env,
-                                                          "MLDSA87_parse_public_key failed");
+        conscrypt::jniutil::throwIllegalArgumentException(env, "MLDSA87_parse_public_key failed");
         return -1;
     }
 
