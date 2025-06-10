@@ -223,25 +223,28 @@ public final class NativeCrypto {
 
     @FastNative static native int ECDSA_size(NativeRef.EVP_PKEY pkey);
 
-    @FastNative static native int ECDSA_sign(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
+    @FastNative
+    static native int ECDSA_sign(byte[] data, int dataLen, byte[] sig, NativeRef.EVP_PKEY pkey);
 
-    @FastNative static native int ECDSA_verify(byte[] data, byte[] sig, NativeRef.EVP_PKEY pkey);
+    @FastNative
+    static native int ECDSA_verify(byte[] data, int dataLen, byte[] sig, NativeRef.EVP_PKEY pkey);
 
     // --- MLDSA65 --------------------------------------------------------------
 
     static native byte[] MLDSA65_public_key_from_seed(byte[] privateKeySeed);
 
-    static native byte[] MLDSA65_sign(byte[] data, byte[] privateKeySeed);
+    static native byte[] MLDSA65_sign(byte[] data, int dataLen, byte[] privateKeySeed);
 
-    static native int MLDSA65_verify(byte[] data, byte[] sig, byte[] publicKey);
+    static native int MLDSA65_verify(byte[] data, int dataLen, byte[] sig, byte[] publicKey);
 
     // --- SLHDSA_SHA2_128S --------------------------------------------------------------
 
     static native void SLHDSA_SHA2_128S_generate_key(byte[] outPublicKey, byte[] outPrivateKey);
 
-    static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, byte[] privateKey);
+    static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, int dataLen, byte[] privateKey);
 
-    static native int SLHDSA_SHA2_128S_verify(byte[] data, byte[] sig, byte[] publicKey);
+    static native int SLHDSA_SHA2_128S_verify(
+            byte[] data, int dataLen, byte[] sig, byte[] publicKey);
 
     // --- Curve25519 --------------
 
