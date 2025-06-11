@@ -20,27 +20,45 @@ import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.Objects;
 
 /** An OpenSSL ML-DSA private key. */
 public class OpenSslMlDsaPrivateKey implements PrivateKey {
     private byte[] seed;
+    private final MlDsaAlgorithm algorithm;
 
-    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-            seed = encoded;
-        } else {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
+    private boolean isValidSeed(byte[] seed) {
+        return seed.length == 32;
     }
 
-    public OpenSslMlDsaPrivateKey(byte[] seed) {
+    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
+        byte[] encoded = keySpec.getEncoded();
+        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
+            throw new InvalidKeySpecException("Encoding must be in raw format");
+        }
+        if (!isValidSeed(encoded)) {
+            throw new InvalidKeySpecException("Invalid seed");
+        }
+        this.seed = encoded;
+        this.algorithm = algorithm;
+    }
+
+    public OpenSslMlDsaPrivateKey(byte[] seed, MlDsaAlgorithm algorithm) {
+        if (!isValidSeed(seed)) {
+            throw new IllegalArgumentException("Invalid seed");
+        }
         this.seed = seed.clone();
+        this.algorithm = algorithm;
     }
 
     @Override
     public String getAlgorithm() {
         return "ML-DSA";
+    }
+
+    public MlDsaAlgorithm getMlDsaAlgorithm() {
+        return algorithm;
     }
 
     @Override
@@ -82,11 +100,11 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
             return false;
         }
         OpenSslMlDsaPrivateKey that = (OpenSslMlDsaPrivateKey) o;
-        return Arrays.equals(seed, that.seed);
+        return algorithm.equals(that.algorithm) && Arrays.equals(seed, that.seed);
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(seed);
+        return Objects.hash(Arrays.hashCode(seed), algorithm);
     }
 }
