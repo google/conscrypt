@@ -513,27 +513,52 @@ public final class Conscrypt {
     }
 
     /**
-     *
-     * @param socket the socket
-     * @param enabled whether ECH GREASE is enabled or not
+     * Casts a socket to a Conscrypt socket if possible, and sets the parameters
+     * required to configure ECH for that socket.
+     * Throws an IllegalArgumentException if the socket is not a ConscryptSocket
+     * @param socket the socket (instance of ConscryptSocket)
+     * @param parameters parameters required to configure ECH
      */
-
     public static void setEchParameters(SSLSocket socket, EchParameters parameters) {
         toConscrypt(socket).setEchParameters(parameters);
     }
 
+    /**
+     * Casts a socket to a Conscrypt socket if possible, and returns the parameters
+     * used to configure ECH for that socket.
+     * Throws an IllegalArgumentException if the socket is not a ConscryptSocket
+     * @param socket the socket (instance of ConscryptSocket)
+     */
     public static EchParameters getEchParameters(SSLSocket socket) {
         return toConscrypt(socket).getEchParameters();
     }
 
+    /**
+     * Casts a socket to a Conscrypt socket if possible, and returns the string used
+     * to replace the hostname as the public name.
+     * Throws an IllegalArgumentException if the socket is not a ConscryptSocket
+     * @param socket the socket (instance of ConscryptSocket)
+     */
     public static String getEchNameOverride(SSLSocket socket) {
         return toConscrypt(socket).getEchNameOverride();
     }
 
+    /**
+     * Casts a socket to a Conscrypt socket if possible, and returns the ECH config
+     * cached after a failed handshake.
+     * Throws an IllegalArgumentException if the socket is not a ConscryptSocket
+     * @param socket the socket (instance of ConscryptSocket)
+     */
     public static byte[] getEchRetryConfigList(SSLSocket socket) {
         return toConscrypt(socket).getEchRetryConfigList();
     }
 
+    /**
+     * Casts a socket to a Conscrypt socket if possible, and returns whether the native
+     * SSL/crypto implementation detects that the connection supports ECH.
+     * Throws an IllegalArgumentException if the socket is not a ConscryptSocket
+     * @param socket the socket (instance of ConscryptSocket)
+     */
     public static boolean echAccepted(SSLSocket socket) {
         return toConscrypt(socket).echAccepted();
     }
