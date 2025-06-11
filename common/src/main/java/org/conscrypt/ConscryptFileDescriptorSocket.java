@@ -896,6 +896,31 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
+    public void setEchParameters(EchParameters parameters) {
+        sslParameters.setEchParameters(parameters);
+    }
+
+    @Override
+    public EchParameters getEchParameters() {
+        return sslParameters.getEchParameters();
+    }
+
+    @Override
+    public String getEchNameOverride() {
+        return ssl.getEchNameOverride();
+    }
+
+    @Override
+    public byte[] getEchRetryConfigList() {
+        return ssl.getEchRetryConfigList();
+    }
+
+    @Override
+    public boolean echAccepted() {
+        return ssl.echAccepted();
+    }
+
+    @Override
     public final boolean getUseClientMode() {
         return sslParameters.getUseClientMode();
     }

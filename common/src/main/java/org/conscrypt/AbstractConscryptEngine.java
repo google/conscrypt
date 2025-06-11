@@ -92,6 +92,16 @@ abstract class AbstractConscryptEngine extends SSLEngine {
 
     @Override public abstract int getPeerPort();
 
+    public abstract void setEchParameters(EchParameters parameters);
+
+    public abstract EchParameters getEchParameters();
+
+    public abstract String getEchNameOverride();
+
+    public abstract byte[] getEchRetryConfigList();
+
+    public abstract boolean echAccepted();
+
     /* @Override */
     @SuppressWarnings("MissingOverride") // For compilation with Java 6.
     public final SSLSession getHandshakeSession() {
