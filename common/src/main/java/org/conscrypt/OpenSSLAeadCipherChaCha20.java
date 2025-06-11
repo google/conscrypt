@@ -16,17 +16,13 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.metrics.MetricsCipher.CHACHA20;
-import static org.conscrypt.metrics.MetricsMode.POLY1305;
-import static org.conscrypt.metrics.MetricsPadding.NO_PADDING;
-
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 @Internal
 public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     public OpenSSLAeadCipherChaCha20() {
-        super(Mode.POLY1305, CHACHA20.getId(), POLY1305.getId(), NO_PADDING.getId());
+        super(Mode.POLY1305);
     }
 
     @Override

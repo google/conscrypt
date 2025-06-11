@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.conscrypt.metrics;
+package dalvik.annotation.optimization;
 
 import org.conscrypt.Internal;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
 /**
- * @hide This class is not part of the Android public SDK API
- **/
+ * Stub annotation for FastNative methods that only work on Android.
+ */
 @Internal
-public final class GeneratedStatsLog {
-    public static void write(int atomId, boolean success, int protocol, int cipherSuite,
-            int duration, int source, int[] uids) {
-        ReflexiveStatsEvent event = ReflexiveStatsEvent.buildEvent(
-                atomId, success, protocol, cipherSuite, duration, source, uids);
-        ReflexiveStatsLog.write(event);
-    }
-}
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.METHOD})
+@Documented
+public @interface FastNative {}

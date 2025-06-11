@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dalvik.annotation.optimization;
 
-package org.conscrypt;
+import org.conscrypt.Internal;
 
-import javax.net.ssl.TrustManager;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Noop TrustManager for Spake2Plus
- * @hide This class is not part of the Android public SDK API
+ * Stub annotation for CriticalNative methods that only work on Android.
  */
 @Internal
-public class Spake2PlusTrustManager implements TrustManager {
-    Spake2PlusTrustManager() {}
-
-    public void checkClientTrusted() {}
-
-    public void checkServerTrusted() {}
-}
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.METHOD})
+@Documented
+public @interface CriticalNative {}
