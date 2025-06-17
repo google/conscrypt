@@ -2612,8 +2612,8 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
     }
 
     if (!MLDSA65_sign(reinterpret_cast<unsigned char*>(resultArray.get()), &privateKey,
-                      reinterpret_cast<const unsigned char*>(dataArray.get()),
-                      dataLen, /* context */ NULL, /* context_len */ 0)) {
+                      reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
+                      /* context */ NULL, /* context_len */ 0)) {
         JNI_TRACE("MLDSA65_sign failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_sign");
         return nullptr;
@@ -2757,8 +2757,8 @@ static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data
     }
 
     if (!MLDSA87_sign(reinterpret_cast<unsigned char*>(resultArray.get()), &privateKey,
-                      reinterpret_cast<const unsigned char*>(dataArray.get()),
-                      dataLen, /* context */ NULL, /* context_len */ 0)) {
+                      reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
+                      /* context */ NULL, /* context_len */ 0)) {
         JNI_TRACE("MLDSA87_sign failed");
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_sign");
         return nullptr;
