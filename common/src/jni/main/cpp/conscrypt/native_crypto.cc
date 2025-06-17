@@ -2544,17 +2544,6 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
         return nullptr;
     }
 
-    CBB cbb;
-    size_t size;
-    uint8_t public_key_bytes[MLDSA65_PUBLIC_KEY_BYTES];
-    if (!CBB_init_fixed(&cbb, public_key_bytes, MLDSA65_PUBLIC_KEY_BYTES) ||
-        !MLDSA65_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
-        size != MLDSA65_PUBLIC_KEY_BYTES) {
-        JNI_TRACE("Failed to serialize ML-DSA public key.");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_marshal_public_key");
-        return nullptr;
-    }
-
     ScopedLocalRef<jbyteArray> publicKeyRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA65_PUBLIC_KEY_BYTES)));
     if (publicKeyRef.get() == nullptr) {
@@ -2565,7 +2554,19 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
     if (publicKeyArray.get() == nullptr) {
         return nullptr;
     }
-    memcpy(publicKeyArray.get(), public_key_bytes, MLDSA65_PUBLIC_KEY_BYTES);
+
+    CBB cbb;
+    size_t size;
+    uint8_t public_key_bytes[MLDSA65_PUBLIC_KEY_BYTES];
+    if (!CBB_init_fixed(&cbb, reinterpret_cast<uint8_t*>(publicKeyArray.get()),
+                        MLDSA65_PUBLIC_KEY_BYTES) ||
+        !MLDSA65_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
+        size != MLDSA65_PUBLIC_KEY_BYTES) {
+        JNI_TRACE("Failed to serialize ML-DSA public key.");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_marshal_public_key");
+        return nullptr;
+    }
+
     return publicKeyRef.release();
 }
 
@@ -2598,14 +2599,6 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
         return nullptr;
     }
 
-    uint8_t result[MLDSA65_SIGNATURE_BYTES];
-    if (!MLDSA65_sign(result, &privateKey, reinterpret_cast<const unsigned char*>(dataArray.get()),
-                      dataLen, /* context */ NULL, /* context_len */ 0)) {
-        JNI_TRACE("MLDSA65_sign failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_sign");
-        return nullptr;
-    }
-
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA65_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
@@ -2617,7 +2610,16 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
     if (resultArray.get() == nullptr) {
         return nullptr;
     }
-    memcpy(resultArray.get(), result, MLDSA65_SIGNATURE_BYTES);
+
+    if (!MLDSA65_sign(reinterpret_cast<unsigned char*>(resultArray.get()),
+                      &privateKey,
+                      reinterpret_cast<const unsigned char*>(dataArray.get()),
+                      dataLen, /* context */ NULL, /* context_len */ 0)) {
+        JNI_TRACE("MLDSA65_sign failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_sign");
+        return nullptr;
+    }
+
     return resultRef.release();
 }
 
@@ -2690,17 +2692,6 @@ static jbyteArray NativeCrypto_MLDSA87_public_key_from_seed(JNIEnv* env, jclass,
         return nullptr;
     }
 
-    CBB cbb;
-    size_t size;
-    uint8_t public_key_bytes[MLDSA87_SIGNATURE_BYTES];
-    if (!CBB_init_fixed(&cbb, public_key_bytes, MLDSA87_PUBLIC_KEY_BYTES) ||
-        !MLDSA87_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
-        size != MLDSA87_PUBLIC_KEY_BYTES) {
-        JNI_TRACE("Failed to serialize ML-DSA public key.");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_marshal_public_key");
-        return nullptr;
-    }
-
     ScopedLocalRef<jbyteArray> publicKeyRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA87_PUBLIC_KEY_BYTES)));
     if (publicKeyRef.get() == nullptr) {
@@ -2711,7 +2702,17 @@ static jbyteArray NativeCrypto_MLDSA87_public_key_from_seed(JNIEnv* env, jclass,
     if (publicKeyArray.get() == nullptr) {
         return nullptr;
     }
-    memcpy(publicKeyArray.get(), public_key_bytes, MLDSA87_PUBLIC_KEY_BYTES);
+
+    CBB cbb;
+    size_t size;
+    if (!CBB_init_fixed(&cbb, reinterpret_cast<uint8_t*>(publicKeyArray.get()),
+                        MLDSA87_PUBLIC_KEY_BYTES) ||
+        !MLDSA87_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
+        size != MLDSA87_PUBLIC_KEY_BYTES) {
+        JNI_TRACE("Failed to serialize ML-DSA public key.");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_marshal_public_key");
+        return nullptr;
+    }
     return publicKeyRef.release();
 }
 
@@ -2744,14 +2745,6 @@ static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data
         return nullptr;
     }
 
-    uint8_t result[MLDSA87_SIGNATURE_BYTES];
-    if (!MLDSA87_sign(result, &privateKey, reinterpret_cast<const unsigned char*>(dataArray.get()),
-                      dataLen, /* context */ NULL, /* context_len */ 0)) {
-        JNI_TRACE("MLDSA87_sign failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_sign");
-        return nullptr;
-    }
-
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(MLDSA87_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
@@ -2763,7 +2756,16 @@ static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data
     if (resultArray.get() == nullptr) {
         return nullptr;
     }
-    memcpy(resultArray.get(), result, MLDSA87_SIGNATURE_BYTES);
+
+    if (!MLDSA87_sign(reinterpret_cast<unsigned char*>(resultArray.get()),
+                      &privateKey,
+                      reinterpret_cast<const unsigned char*>(dataArray.get()),
+                      dataLen, /* context */ NULL, /* context_len */ 0)) {
+        JNI_TRACE("MLDSA87_sign failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_sign");
+        return nullptr;
+    }
+
     return resultRef.release();
 }
 
