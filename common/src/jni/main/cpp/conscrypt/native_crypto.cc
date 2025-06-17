@@ -2611,8 +2611,7 @@ static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data
         return nullptr;
     }
 
-    if (!MLDSA65_sign(reinterpret_cast<unsigned char*>(resultArray.get()),
-                      &privateKey,
+    if (!MLDSA65_sign(reinterpret_cast<unsigned char*>(resultArray.get()), &privateKey,
                       reinterpret_cast<const unsigned char*>(dataArray.get()),
                       dataLen, /* context */ NULL, /* context_len */ 0)) {
         JNI_TRACE("MLDSA65_sign failed");
@@ -2673,7 +2672,7 @@ static jbyteArray NativeCrypto_MLDSA87_public_key_from_seed(JNIEnv* env, jclass,
 
     ScopedByteArrayRO seedArray(env, privateKeySeed);
     if (seedArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA87_sign => privateKeySeed == null");
+        JNI_TRACE("NativeCrypto_MLDSA87_public_key_from_seed => privateKeySeed == null");
         return nullptr;
     }
 
@@ -2757,8 +2756,7 @@ static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data
         return nullptr;
     }
 
-    if (!MLDSA87_sign(reinterpret_cast<unsigned char*>(resultArray.get()),
-                      &privateKey,
+    if (!MLDSA87_sign(reinterpret_cast<unsigned char*>(resultArray.get()), &privateKey,
                       reinterpret_cast<const unsigned char*>(dataArray.get()),
                       dataLen, /* context */ NULL, /* context_len */ 0)) {
         JNI_TRACE("MLDSA87_sign failed");
