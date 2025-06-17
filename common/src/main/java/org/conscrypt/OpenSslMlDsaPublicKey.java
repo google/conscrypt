@@ -24,7 +24,7 @@ import java.util.Objects;
 
 /** An OpenSSL ML-DSA public key. */
 public class OpenSslMlDsaPublicKey implements PublicKey {
-    private static final long serialVersionUID = 453861992373478445L;
+    private static final long serialVersionUID = 2L;
 
     private final byte[] raw;
     private final MlDsaAlgorithm algorithm;

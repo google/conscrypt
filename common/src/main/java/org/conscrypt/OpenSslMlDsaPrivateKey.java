@@ -24,6 +24,7 @@ import java.util.Objects;
 
 /** An OpenSSL ML-DSA private key. */
 public class OpenSslMlDsaPrivateKey implements PrivateKey {
+    private static final long serialVersionUID = 2L;
     private byte[] seed;
     private final MlDsaAlgorithm algorithm;
 
