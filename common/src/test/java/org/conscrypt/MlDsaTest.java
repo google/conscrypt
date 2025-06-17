@@ -249,8 +249,8 @@ public class MlDsaTest {
             byte[] message = vector.getBytes("message");
             byte[] signature = vector.getBytes("signature");
 
-            if (!algorithm.equals("ML-DSA-65") && !algorithm.equals("ML-DSA-87")) {
-                assertTrue(errMsg + ", algorithm must be ML-DSA-65 or ML-DSA-87", false);
+            if (!algorithm.startsWith("ML-DSA")) {
+                assertTrue(errMsg + ", algorithm must start with ML-DSA", false);
             }
 
             KeyFactory keyFactory = KeyFactory.getInstance(algorithm, conscryptProvider);
