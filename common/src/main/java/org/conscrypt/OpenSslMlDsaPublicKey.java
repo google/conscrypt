@@ -16,21 +16,32 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Objects;
 
 /** An OpenSSL ML-DSA public key. */
 public class OpenSslMlDsaPublicKey implements PublicKey {
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 453861992373478445L;
 
-    private final byte[] raw;
-    private final MlDsaAlgorithm algorithm;
+    private byte[] raw;
+    private transient MlDsaAlgorithm algorithm;
 
-    private boolean isValidRawKey(byte[] rawKey, MlDsaAlgorithm algorithm) {
-        return rawKey.length == algorithm.publicKeySize();
+    private static boolean isValid(byte[] raw, MlDsaAlgorithm algorithm) {
+        return raw.length == algorithm.publicKeySize();
+    }
+
+    private static MlDsaAlgorithm getAlgorithmFromRaw(byte[] raw) {
+        if (raw.length == MlDsaAlgorithm.ML_DSA_65.publicKeySize()) {
+            return MlDsaAlgorithm.ML_DSA_65;
+        }
+        if (raw.length == MlDsaAlgorithm.ML_DSA_87.publicKeySize()) {
+            return MlDsaAlgorithm.ML_DSA_87;
+        }
+        throw new IllegalArgumentException("Invalid raw key of length " + raw.length);
     }
 
     public OpenSslMlDsaPublicKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
@@ -39,16 +50,16 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
             throw new InvalidKeySpecException("Encoding must be in raw format");
         }
-        if (!isValidRawKey(encoded, algorithm)) {
-            throw new InvalidKeySpecException("Invalid raw key");
+        if (!isValid(encoded, algorithm)) {
+            throw new InvalidKeySpecException("Invalid key of length " + encoded.length);
         }
         this.raw = encoded;
         this.algorithm = algorithm;
     }
 
     public OpenSslMlDsaPublicKey(byte[] raw, MlDsaAlgorithm algorithm) {
-        if (!isValidRawKey(raw, algorithm)) {
-            throw new IllegalArgumentException("Invalid raw key");
+        if (!isValid(raw, algorithm)) {
+            throw new IllegalArgumentException("Invalid key of length " + raw.length);
         }
         this.raw = raw.clone();
         this.algorithm = algorithm;
@@ -94,7 +105,9 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         }
         OpenSslMlDsaPublicKey that = (OpenSslMlDsaPublicKey) o;
 
-        return algorithm.equals(that.algorithm) && Arrays.equals(raw, that.raw);
+        // different algorithms have different raw key lengths, so we only need to compare the raw
+        // key.
+        return Arrays.equals(raw, that.raw);
     }
 
     @Override
@@ -102,6 +115,14 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        return Objects.hash(Arrays.hashCode(raw), algorithm);
+        return Arrays.hashCode(raw);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "this.raw"
+        this.algorithm = getAlgorithmFromRaw(this.raw);
+        if (!isValid(this.raw, this.algorithm)) {
+            throw new IOException("Invalid key");
+        }
     }
 }
