@@ -33,8 +33,6 @@ import javax.crypto.spec.IvParameterSpec;
 
 @Internal
 public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
-    private static final Logger logger = Logger.getLogger(OpenSSLAeadCipher.class.getName());
-
     /**
      * Controls whether no-copy optimizations for direct ByteBuffers are enabled.
      */
@@ -474,6 +472,4 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     abstract long getEVP_AEAD(int keyLength) throws InvalidKeyException;
-
 }
-
