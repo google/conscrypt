@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.security.cert.CRLException;
@@ -24,12 +26,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * An implementation of {@link X509CRLEntry} based on BoringSSL.
  */
-final class OpenSSLX509CRLEntry extends X509CRLEntry {
+final class OpenSSLX509CRLEntry extends X509CRLEntry implements AutoCloseable {
     private final long mContext;
     private final Date revocationDate;
 
@@ -133,6 +134,23 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
             return os.toString();
         } finally {
             NativeCrypto.BIO_free_all(bioCtx);
+        }
+    }
+
+    @Override
+    public void close() {
+        if (mContext != 0) {
+            NativeCrypto.X509_REVOKED_free(mContext);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("Finalize")
+    protected void finalize() throws Throwable {
+        try {
+            close();
+        } finally {
+            super.finalize();
         }
     }
 }
