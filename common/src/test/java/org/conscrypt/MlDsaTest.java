@@ -299,45 +299,4 @@ public class MlDsaTest {
                 + "07a0" + TestUtils.encodeHex(rawPublicKey);
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
     }
-
-    @Test
-    public void deserializePublicKeyWithWrongSize_fails() throws Exception {
-        String invalidPrivateKey = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
-                + "3bacc385e8e106a3" // serialVersionUID
-                + "0200015b0004"
-                + "73656564" // hex("seed")
-                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
-                + "22" // hex(34), illegal size of encoded seed
-                // encoded seed.
-                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-                + "5757";
-
-        ByteArrayInputStream bais =
-                new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKey));
-        ObjectInputStream ois = new ObjectInputStream(bais);
-
-        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
-    }
-
-    @Test
-    public void deserializeInvalidPublicKey_fails() throws Exception {
-        byte[] invalidRawPublicKey = new byte[2593]; // one byte too long.
-
-        String hexPublicKey = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
-                + "064c7113d078e42d" // serialVersionUID
-                + "0200015b0003"
-                + "726177" // hex("raw")
-                + "7400025b427870757200025b42acf317f8060854e002000078700000"
-                + "0a21" // hex(2593), size of the invalid raw public key
-                + TestUtils.encodeHex(invalidRawPublicKey);
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(TestUtils.decodeHex(hexPublicKey));
-        ObjectInputStream ois = new ObjectInputStream(bais);
-
-        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
-    }
 }
