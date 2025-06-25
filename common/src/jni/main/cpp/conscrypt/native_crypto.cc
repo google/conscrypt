@@ -57,6 +57,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "jni.h"
+
 using conscrypt::AppData;
 using conscrypt::BioInputStream;
 using conscrypt::BioOutputStream;
@@ -2917,8 +2919,7 @@ static void NativeCrypto_EVP_MD_CTX_cleanup(JNIEnv* env, jclass, jobject ctxRef)
     }
 }
 
-static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv* env, jclass, jlong ctxRef) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
+static void NativeCrypto_EVP_MD_CTX_destroy(CRITICAL_JNI_PARAMS_COMMA jlong ctxRef) {
     EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
     JNI_TRACE_MD("EVP_MD_CTX_destroy(%p)", ctx);
 
@@ -6018,6 +6019,21 @@ static jlong NativeCrypto_X509_REVOKED_dup(JNIEnv* env, jclass, jlong x509Revoke
     return reinterpret_cast<uintptr_t>(dup);
 }
 
+static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509RevokedRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
+    JNI_TRACE("X509_REVOKED_free(%p)", revoked);
+
+    if (revoked == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "revoked == null");
+        JNI_TRACE("X509_REVOKED_free(%p) => revoked == null", revoked);
+        return;
+    }
+
+    X509_REVOKED_free(revoked);
+    revoked = nullptr;
+}
+
 static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
                                                           jlong x509RevokedRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -8048,8 +8064,7 @@ static SSL_SESSION* server_session_requested_callback(SSL* ssl, const uint8_t* i
     return ssl_session_ptr;
 }
 
-static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv* env, jclass) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
+static jint NativeCrypto_EVP_has_aes_hardware(CRITICAL_JNI_PARAMS) {
     int ret = 0;
     ret = EVP_has_aes_hardware();
     JNI_TRACE("EVP_has_aes_hardware => %d", ret);
@@ -10294,9 +10309,8 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
     return result;
 }
 
-static jint NativeCrypto_SSL_get_signature_algorithm_key_type(JNIEnv* env, jclass,
-                                                              jint signatureAlg) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
+static jint NativeCrypto_SSL_get_signature_algorithm_key_type(
+        CRITICAL_JNI_PARAMS_COMMA jint signatureAlg) {
     return SSL_get_signature_algorithm_key_type(signatureAlg);
 }
 
@@ -10769,7 +10783,7 @@ static jint NativeCrypto_SSL_get_error(JNIEnv* env, jclass, jlong ssl_address,
     return SSL_get_error(ssl, ret);
 }
 
-static void NativeCrypto_SSL_clear_error(JNIEnv*, jclass) {
+static void NativeCrypto_SSL_clear_error(CRITICAL_JNI_PARAMS) {
     ERR_clear_error();
 }
 
@@ -11850,6 +11864,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X509_CRL_get_ext, "(J" REF_X509_CRL "Ljava/lang/String;)J"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext, "(JLjava/lang/String;)J"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_dup, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(i2d_X509_REVOKED, "(J)[B"),
         CONSCRYPT_NATIVE_METHOD(X509_supported_extension, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(ASN1_TIME_to_Calendar, "(JLjava/util/Calendar;)V"),
