@@ -37,14 +37,14 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
         mContext = ctx;
         // The legacy X509 OpenSSL APIs don't validate ASN1_TIME structures until access, so
         // parse them here because this is the only time we're allowed to throw ParsingException
-        revocationDate = OpenSSLX509CRL.toDate(NativeCrypto.get_X509_REVOKED_revocationDate(mContext));
+        revocationDate = OpenSSLX509CRL.toDate(NativeCrypto.get_X509_REVOKED_revocationDate(mContext, this));
     }
 
     @Override
     public Set<String> getCriticalExtensionOIDs() {
         String[] critOids =
                 NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                        NativeCrypto.EXTENSION_TYPE_CRITICAL);
+                        NativeCrypto.EXTENSION_TYPE_CRITICAL, this);
 
         /*
          * This API has a special case that if there are no extensions, we
@@ -53,7 +53,7 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
          */
         if ((critOids.length == 0)
                 && (NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                        NativeCrypto.EXTENSION_TYPE_NON_CRITICAL).length == 0)) {
+                        NativeCrypto.EXTENSION_TYPE_NON_CRITICAL, this).length == 0)) {
             return null;
         }
 
@@ -62,14 +62,14 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
 
     @Override
     public byte[] getExtensionValue(String oid) {
-        return NativeCrypto.X509_REVOKED_get_ext_oid(mContext, oid);
+        return NativeCrypto.X509_REVOKED_get_ext_oid(mContext, oid, this);
     }
 
     @Override
     public Set<String> getNonCriticalExtensionOIDs() {
         String[] critOids =
                 NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                        NativeCrypto.EXTENSION_TYPE_NON_CRITICAL);
+                        NativeCrypto.EXTENSION_TYPE_NON_CRITICAL, this);
 
         /*
          * This API has a special case that if there are no extensions, we
@@ -78,7 +78,7 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
          */
         if ((critOids.length == 0)
                 && (NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                        NativeCrypto.EXTENSION_TYPE_CRITICAL).length == 0)) {
+                        NativeCrypto.EXTENSION_TYPE_CRITICAL, this).length == 0)) {
             return null;
         }
 
@@ -89,9 +89,9 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
     public boolean hasUnsupportedCriticalExtension() {
         final String[] criticalOids =
                 NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                        NativeCrypto.EXTENSION_TYPE_CRITICAL);
+                        NativeCrypto.EXTENSION_TYPE_CRITICAL, this);
         for (String oid : criticalOids) {
-            final long extensionRef = NativeCrypto.X509_REVOKED_get_ext(mContext, oid);
+            final long extensionRef = NativeCrypto.X509_REVOKED_get_ext(mContext, oid, this);
             if (NativeCrypto.X509_supported_extension(extensionRef) != 1) {
                 return true;
             }
@@ -102,12 +102,12 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
 
     @Override
     public byte[] getEncoded() throws CRLException {
-        return NativeCrypto.i2d_X509_REVOKED(mContext);
+        return NativeCrypto.i2d_X509_REVOKED(mContext, this);
     }
 
     @Override
     public BigInteger getSerialNumber() {
-        return new BigInteger(NativeCrypto.X509_REVOKED_get_serialNumber(mContext));
+        return new BigInteger(NativeCrypto.X509_REVOKED_get_serialNumber(mContext, this));
     }
 
     @Override
@@ -119,9 +119,9 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
     @Override
     public boolean hasExtensions() {
         return (NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                NativeCrypto.EXTENSION_TYPE_NON_CRITICAL).length != 0)
+                NativeCrypto.EXTENSION_TYPE_NON_CRITICAL, this).length != 0)
                 || (NativeCrypto.get_X509_REVOKED_ext_oids(mContext,
-                        NativeCrypto.EXTENSION_TYPE_CRITICAL).length != 0);
+                        NativeCrypto.EXTENSION_TYPE_CRITICAL, this).length != 0);
     }
 
     @Override
@@ -129,10 +129,25 @@ final class OpenSSLX509CRLEntry extends X509CRLEntry {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         long bioCtx = NativeCrypto.create_BIO_OutputStream(os);
         try {
-            NativeCrypto.X509_REVOKED_print(bioCtx, mContext);
+            NativeCrypto.X509_REVOKED_print(bioCtx, mContext, this);
             return os.toString();
         } finally {
             NativeCrypto.BIO_free_all(bioCtx);
         }
     }
+<<<<<<< HEAD
+=======
+
+    @Override
+    @SuppressWarnings("Finalize")
+    protected void finalize() throws Throwable {
+        try {
+            if (mContext != 0) {
+                NativeCrypto.X509_REVOKED_free(mContext, this);
+            }
+        } finally {
+            super.finalize();
+        }
+    }
+>>>>>>> 7d2c56950 (Address upstream comments for  OpenSSLX509CRLEntry)
 }
