@@ -25,6 +25,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -122,6 +126,7 @@ public class MlDsaTest {
         ss.initSign(privateKey);
         ss.update(msg);
         byte[] sig = ss.sign();
+        assertEquals(3309, sig.length);
 
         Signature sv = Signature.getInstance("ML-DSA-65", conscryptProvider);
         sv.initVerify(publicKey);
@@ -145,6 +150,35 @@ public class MlDsaTest {
         EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
         assertEquals("raw", publicKeySpec.getFormat());
         assertEquals(1952, publicKeySpec.getEncoded().length);
+
+        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        assertEquals(privateKey, keyPair.getPrivate());
+        assertEquals(publicKey, keyPair.getPublic());
+    }
+
+    @Test
+    public void mldsa65_getRawKey_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+
+        EncodedKeySpec privateKeySpec =
+                keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
+        assertEquals("raw", privateKeySpec.getFormat());
+        assertEquals(32, privateKeySpec.getEncoded().length);
+
+        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
+        assertEquals("raw", publicKeySpec.getFormat());
+        assertEquals(1952, publicKeySpec.getEncoded().length);
+
+        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        assertEquals(privateKey, keyPair.getPrivate());
+        assertEquals(publicKey, keyPair.getPublic());
     }
 
     @Test
@@ -172,23 +206,97 @@ public class MlDsaTest {
             byte[] message = vector.getBytes("message");
             byte[] signature = vector.getBytes("signature");
 
-            assertEquals(errMsg + ", algorithm:", "ML-DSA-65", algorithm);
+            if (!algorithm.startsWith("ML-DSA")) {
+                assertTrue(errMsg + ", algorithm must start with ML-DSA", false);
+            }
 
-            KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA", conscryptProvider);
+            KeyFactory keyFactory = KeyFactory.getInstance(algorithm, conscryptProvider);
 
-            Signature signer = Signature.getInstance("ML-DSA", conscryptProvider);
+            Signature signer = Signature.getInstance(algorithm, conscryptProvider);
             signer.initSign(keyFactory.generatePrivate(new RawKeySpec(seed)));
             signer.update(message);
             byte[] sig = signer.sign();
 
-            Signature verifier = Signature.getInstance("ML-DSA", conscryptProvider);
+            assertEquals(errMsg + ", signature length mismatch", signature.length, sig.length);
+
+            Signature verifier = Signature.getInstance(algorithm, conscryptProvider);
             verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
             verifier.update(message);
-            assertTrue(verifier.verify(sig));
+            assertTrue(errMsg + ", new signature verification failed", verifier.verify(sig));
 
             verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
             verifier.update(message);
-            assertTrue(verifier.verify(signature));
+            assertTrue(errMsg + ", testvector signature verification failed. how about: ["
+                            + TestUtils.encodeHex(sig) + "]",
+                    verifier.verify(signature));
         }
+    }
+
+    @Test
+    public void serializeAndDeserialize_65_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(keyPair.getPrivate());
+            oos.writeObject(keyPair.getPublic());
+        }
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+        PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+
+        assertEquals(inflatedPrivateKey, keyPair.getPrivate());
+        assertEquals(inflatedPublicKey, keyPair.getPublic());
+    }
+
+    @Test
+    public void serializePrivateKey_65_isEqualToTestVector() throws Exception {
+        byte[] rawPrivateKey = TestUtils.decodeHex(
+                "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+        PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(privateKey);
+        }
+
+        String expectedHexEncoding = "aced000573720024"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "0200015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "20" // hex(32), size of the raw private key
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"; // rawPrivateKey
+        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+    }
+
+    @Test
+    public void serializePublicKey_65_isEqualToTestVector() throws Exception {
+        byte[] rawPublicKey = new byte[1952];
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+        PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(publicKey);
+        }
+
+        String expectedHexEncoding = "aced000573720023"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
+                + "064c7113d078e42d" // serialVersionUID
+                + "0200015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "07a0" + TestUtils.encodeHex(rawPublicKey);
+        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
     }
 }
