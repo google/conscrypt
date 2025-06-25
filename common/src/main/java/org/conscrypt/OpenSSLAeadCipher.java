@@ -90,10 +90,6 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         super(mode, Padding.NOPADDING);
     }
 
-    protected OpenSSLAeadCipher(Mode mode, int cipherId, int modeId, int paddingId) {
-        super(mode, Padding.NOPADDING, cipherId, modeId, paddingId);
-    }
-
     private void checkInitialization() {
         if (mustInitialize) {
             throw new IllegalStateException(
