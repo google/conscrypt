@@ -760,11 +760,8 @@ public final class NativeCrypto {
 
     @FastNative static native void X509_REVOKED_print(long bioRef, long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
-<<<<<<< HEAD
-=======
     @FastNative static native void X509_REVOKED_free(long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
->>>>>>> 7d2c56950 (Address upstream comments for  OpenSSLX509CRLEntry)
     // --- X509_EXTENSION ------------------------------------------------------
 
     @FastNative static native int X509_supported_extension(long x509ExtensionRef);

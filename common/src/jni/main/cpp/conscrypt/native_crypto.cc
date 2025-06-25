@@ -6019,8 +6019,6 @@ static jlong NativeCrypto_X509_REVOKED_dup(JNIEnv* env, jclass, jlong x509Revoke
     return reinterpret_cast<uintptr_t>(dup);
 }
 
-<<<<<<< HEAD
-=======
 
 static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509RevokedRef,
                                             CONSCRYPT_UNUSED jobject holder) {
@@ -6037,7 +6035,6 @@ static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509Revoke
     X509_REVOKED_free(revoked);
 }
 
->>>>>>> 7d2c56950 (Address upstream comments for  OpenSSLX509CRLEntry)
 static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
                                                           jlong x509RevokedRef, CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
