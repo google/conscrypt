@@ -203,6 +203,7 @@ public class MlDsaTest {
 
         assertEquals(privateKey, keyPair.getPrivate());
         assertEquals(publicKey, keyPair.getPublic());
+<<<<<<< HEAD
     }
 
     @Test
@@ -226,6 +227,8 @@ public class MlDsaTest {
 
         assertEquals(privateKey, keyPair.getPrivate());
         assertEquals(publicKey, keyPair.getPublic());
+=======
+>>>>>>> upstream/master
     }
 
     @Test
@@ -439,7 +442,7 @@ public class MlDsaTest {
     }
 
     @Test
-    public void deserializePublicKeyWithWrongSize_fails() throws Exception {
+    public void deserializePrivateKeyWithWrongSize_fails() throws Exception {
         String invalidPrivateKey = "aced000573720024"
                 + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
                 + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
