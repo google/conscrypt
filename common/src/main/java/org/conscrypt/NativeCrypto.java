@@ -753,22 +753,36 @@ public final class NativeCrypto {
 
     @FastNative static native long X509_REVOKED_dup(long x509RevokedCtx);
 
-    @FastNative static native byte[] i2d_X509_REVOKED(long x509RevokedCtx);
+    @FastNative
+    static native byte[] i2d_X509_REVOKED(long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
-    @FastNative static native String[] get_X509_REVOKED_ext_oids(long x509ctx, int critical);
+    @FastNative
+    static native String[] get_X509_REVOKED_ext_oids(
+            long x509ctx, int critical, OpenSSLX509CRLEntry holder);
 
-    @FastNative static native byte[] X509_REVOKED_get_ext_oid(long x509RevokedCtx, String oid);
+    @FastNative
+    static native byte[] X509_REVOKED_get_ext_oid(
+            long x509RevokedCtx, String oid, OpenSSLX509CRLEntry holder);
 
-    @FastNative static native byte[] X509_REVOKED_get_serialNumber(long x509RevokedCtx);
+    @FastNative
+    static native byte[] X509_REVOKED_get_serialNumber(
+            long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
-    @FastNative static native long X509_REVOKED_get_ext(long x509RevokedCtx, String oid);
+    @FastNative
+    static native long X509_REVOKED_get_ext(
+            long x509RevokedCtx, String oid, OpenSSLX509CRLEntry holder);
 
     /** Returns ASN1_TIME reference. */
-    @FastNative static native long get_X509_REVOKED_revocationDate(long x509RevokedCtx);
+    @FastNative
+    static native long get_X509_REVOKED_revocationDate(
+            long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
-    @FastNative static native void X509_REVOKED_print(long bioRef, long x509RevokedCtx);
+    @FastNative
+    static native void X509_REVOKED_print(
+            long bioRef, long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
-    @FastNative static native void X509_REVOKED_free(long x509RevokedCtx);
+    @FastNative
+    static native void X509_REVOKED_free(long x509RevokedCtx, OpenSSLX509CRLEntry holder);
 
     // --- X509_EXTENSION ------------------------------------------------------
 

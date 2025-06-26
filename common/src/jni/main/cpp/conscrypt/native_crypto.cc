@@ -5609,7 +5609,8 @@ static jbyteArray NativeCrypto_X509_get_serialNumber(JNIEnv* env, jclass, jlong 
 }
 
 static jbyteArray NativeCrypto_X509_REVOKED_get_serialNumber(JNIEnv* env, jclass,
-                                                             jlong x509RevokedRef) {
+                                                             jlong x509RevokedRef,
+                                                             CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_serialNumber(%p)", revoked);
@@ -6139,7 +6140,7 @@ static jlong NativeCrypto_X509_CRL_get_ext(JNIEnv* env, jclass, jlong x509CrlRef
 }
 
 static jlong NativeCrypto_X509_REVOKED_get_ext(JNIEnv* env, jclass, jlong x509RevokedRef,
-                                               jstring oid) {
+                                               jstring oid, CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_ext(%p, %p)", revoked, oid);
@@ -6166,7 +6167,8 @@ static jlong NativeCrypto_X509_REVOKED_dup(JNIEnv* env, jclass, jlong x509Revoke
     return reinterpret_cast<uintptr_t>(dup);
 }
 
-static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509RevokedRef) {
+static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509RevokedRef,
+                                           CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_free(%p)", revoked);
@@ -6178,11 +6180,10 @@ static void NativeCrypto_X509_REVOKED_free(JNIEnv* env, jclass, jlong x509Revoke
     }
 
     X509_REVOKED_free(revoked);
-    revoked = nullptr;
 }
 
-static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
-                                                          jlong x509RevokedRef) {
+static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass, jlong x509RevokedRef,
+                                                          CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("get_X509_REVOKED_revocationDate(%p)", revoked);
@@ -6202,8 +6203,8 @@ static jlong NativeCrypto_get_X509_REVOKED_revocationDate(JNIEnv* env, jclass,
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 #endif
-static void NativeCrypto_X509_REVOKED_print(JNIEnv* env, jclass, jlong bioRef,
-                                            jlong x509RevokedRef) {
+static void NativeCrypto_X509_REVOKED_print(JNIEnv* env, jclass, jlong bioRef, jlong x509RevokedRef,
+                                            CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     BIO* bio = reinterpret_cast<BIO*>(static_cast<uintptr_t>(bioRef));
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
@@ -7489,7 +7490,8 @@ static jbyteArray NativeCrypto_X509_CRL_get_ext_oid(JNIEnv* env, jclass, jlong x
 }
 
 static jbyteArray NativeCrypto_X509_REVOKED_get_ext_oid(JNIEnv* env, jclass, jlong x509RevokedRef,
-                                                        jstring oidString) {
+                                                        jstring oidString,
+                                                        CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     X509_REVOKED* revoked = reinterpret_cast<X509_REVOKED*>(static_cast<uintptr_t>(x509RevokedRef));
     JNI_TRACE("X509_REVOKED_get_ext_oid(%p, %p)", revoked, oidString);
@@ -7569,7 +7571,8 @@ static jobjectArray NativeCrypto_get_X509_CRL_ext_oids(JNIEnv* env, jclass, jlon
 }
 
 static jobjectArray NativeCrypto_get_X509_REVOKED_ext_oids(JNIEnv* env, jclass,
-                                                           jlong x509RevokedRef, jint critical) {
+                                                           jlong x509RevokedRef, jint critical,
+                                                           CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     // NOLINTNEXTLINE(runtime/int)
     JNI_TRACE("get_X509_CRL_ext_oids(0x%llx, %d)", (long long)x509RevokedRef, critical);
@@ -11798,6 +11801,7 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_BIO_IN_STREAM "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream;"
 #define REF_X509 "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509Certificate;"
 #define REF_X509_CRL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CRL;"
+#define REF_X509_REVOKED "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLX509CRLEntry;"
 #define REF_SSL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl;"
 #define REF_SSL_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/AbstractSessionContext;"
 static JNINativeMethod sNativeCryptoMethods[] = {
@@ -11978,13 +11982,15 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X509_CRL_verify, "(J" REF_X509_CRL REF_EVP_PKEY ")V"),
         CONSCRYPT_NATIVE_METHOD(X509_CRL_get_lastUpdate, "(J" REF_X509_CRL ")J"),
         CONSCRYPT_NATIVE_METHOD(X509_CRL_get_nextUpdate, "(J" REF_X509_CRL ")J"),
-        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext_oid, "(JLjava/lang/String;)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_serialNumber, "(J)[B"),
-        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_print, "(JJ)V"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_REVOKED_revocationDate, "(J)J"),
+        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext_oid,
+                                "(JLjava/lang/String;" REF_X509_REVOKED ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_serialNumber, "(J" REF_X509_REVOKED ")[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_print, "(JJ" REF_X509_REVOKED ")V"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_REVOKED_revocationDate, "(J" REF_X509_REVOKED ")J"),
         CONSCRYPT_NATIVE_METHOD(get_X509_ext_oids, "(J" REF_X509 "I)[Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_X509_CRL_ext_oids, "(J" REF_X509_CRL "I)[Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(get_X509_REVOKED_ext_oids, "(JI)[Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(get_X509_REVOKED_ext_oids,
+                                "(JI" REF_X509_REVOKED ")[Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(get_X509_GENERAL_NAME_stack,
                                 "(J" REF_X509 "I)[[Ljava/lang/Object;"),
         CONSCRYPT_NATIVE_METHOD(X509_get_notBefore, "(J" REF_X509 ")J"),
@@ -12012,10 +12018,10 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X509_CRL_get_issuer_name, "(J" REF_X509_CRL ")[B"),
         CONSCRYPT_NATIVE_METHOD(X509_CRL_get_version, "(J" REF_X509_CRL ")J"),
         CONSCRYPT_NATIVE_METHOD(X509_CRL_get_ext, "(J" REF_X509_CRL "Ljava/lang/String;)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext, "(JLjava/lang/String;)J"),
+        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_get_ext, "(JLjava/lang/String;" REF_X509_REVOKED ")J"),
         CONSCRYPT_NATIVE_METHOD(X509_REVOKED_dup, "(J)J"),
-        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_free, "(J)V"),
-        CONSCRYPT_NATIVE_METHOD(i2d_X509_REVOKED, "(J)[B"),
+        CONSCRYPT_NATIVE_METHOD(X509_REVOKED_free, "(J" REF_X509_REVOKED ")V"),
+        CONSCRYPT_NATIVE_METHOD(i2d_X509_REVOKED, "(J" REF_X509_REVOKED ")[B"),
         CONSCRYPT_NATIVE_METHOD(X509_supported_extension, "(J)I"),
         CONSCRYPT_NATIVE_METHOD(ASN1_TIME_to_Calendar, "(JLjava/util/Calendar;)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_init, "([B)J"),
