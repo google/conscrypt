@@ -203,7 +203,6 @@ public class MlDsaTest {
 
         assertEquals(privateKey, keyPair.getPrivate());
         assertEquals(publicKey, keyPair.getPublic());
-<<<<<<< HEAD
     }
 
     @Test
@@ -227,8 +226,6 @@ public class MlDsaTest {
 
         assertEquals(privateKey, keyPair.getPrivate());
         assertEquals(publicKey, keyPair.getPublic());
-=======
->>>>>>> upstream/master
     }
 
     @Test
