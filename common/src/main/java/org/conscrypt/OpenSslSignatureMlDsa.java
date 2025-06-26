@@ -15,6 +15,7 @@
  */
 package org.conscrypt;
 
+import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.PrivateKey;
@@ -27,7 +28,7 @@ import java.security.SignatureSpi;
  * using BoringSSL.
  */
 @Internal
-public class OpenSslSignatureMlDsa extends SignatureSpi {
+public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
     /**
      * The current OpenSSL key we're operating on.
      */
@@ -39,7 +40,41 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
      */
     private ExposedByteArrayOutputStream buffer = new ExposedByteArrayOutputStream();
 
-    public OpenSslSignatureMlDsa() {}
+    abstract boolean supportsAlgorithm(MlDsaAlgorithm algorithm);
+
+    /** ML-DSA */
+    public static class MlDsa extends OpenSslSignatureMlDsa {
+        public MlDsa() {
+            super();
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_65)
+                    || algorithm.equals(MlDsaAlgorithm.ML_DSA_87);
+        }
+    }
+
+    /** ML-DSA-65 */
+    public static class MlDsa65 extends OpenSslSignatureMlDsa {
+        public MlDsa65() {
+            super();
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_65);
+        }
+    }
+
+    /** ML-DSA-87 */
+    public static class MlDsa87 extends OpenSslSignatureMlDsa {
+        public MlDsa87() {
+            super();
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_87);
+        }
+    }
 
     @Override
     protected void engineUpdate(byte input) {
@@ -59,14 +94,29 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
 
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
-        this.privateKey = (OpenSslMlDsaPrivateKey) privateKey;
+        if (!(privateKey instanceof OpenSslMlDsaPrivateKey)) {
+            throw new InvalidKeyException("PrivateKey must be OpenSslMlDsaPrivateKey");
+        }
+        OpenSslMlDsaPrivateKey conscryptPrivateKey = (OpenSslMlDsaPrivateKey) privateKey;
+        if (!supportsAlgorithm(conscryptPrivateKey.getMlDsaAlgorithm())) {
+            throw new InvalidKeyException(
+                    "Key version mismatch: " + conscryptPrivateKey.getMlDsaAlgorithm());
+        }
+        this.privateKey = conscryptPrivateKey;
         this.publicKey = null;
         buffer.reset();
     }
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-        this.publicKey = (OpenSslMlDsaPublicKey) publicKey;
+        if (!(publicKey instanceof OpenSslMlDsaPublicKey)) {
+            throw new InvalidKeyException("PublicKey must be OpenSslMlDsaPublicKey");
+        }
+        OpenSslMlDsaPublicKey conscryptPublicKey = (OpenSslMlDsaPublicKey) publicKey;
+        if (!supportsAlgorithm(conscryptPublicKey.getMlDsaAlgorithm())) {
+            throw new InvalidKeyException("Key algorithm mismatch");
+        }
+        this.publicKey = conscryptPublicKey;
         this.privateKey = null;
         buffer.reset();
     }
@@ -82,9 +132,20 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No privateKey provided");
         }
-        byte[] sig = NativeCrypto.MLDSA65_sign(buffer.array(), buffer.size(), privateKey.getSeed());
-        buffer.reset();
-        return sig;
+        byte[] sig;
+        switch (privateKey.getMlDsaAlgorithm()) {
+            case ML_DSA_65:
+                sig = NativeCrypto.MLDSA65_sign(
+                        buffer.array(), buffer.size(), privateKey.getSeed());
+                buffer.reset();
+                return sig;
+            case ML_DSA_87:
+                sig = NativeCrypto.MLDSA87_sign(
+                        buffer.array(), buffer.size(), privateKey.getSeed());
+                buffer.reset();
+                return sig;
+        }
+        throw new SignatureException("Unsupported algorithm: " + privateKey.getMlDsaAlgorithm());
     }
 
     @Override
@@ -93,9 +154,19 @@ public class OpenSslSignatureMlDsa extends SignatureSpi {
             // This can't actually happen, but you never know...
             throw new SignatureException("No publicKey provided");
         }
-        int result = NativeCrypto.MLDSA65_verify(
-                buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
-        buffer.reset();
-        return result == 1;
+        int result;
+        switch (publicKey.getMlDsaAlgorithm()) {
+            case ML_DSA_65:
+                result = NativeCrypto.MLDSA65_verify(
+                        buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
+                buffer.reset();
+                return result == 1;
+            case ML_DSA_87:
+                result = NativeCrypto.MLDSA87_verify(
+                        buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
+                buffer.reset();
+                return result == 1;
+        }
+        throw new SignatureException("Unsupported algorithm: " + publicKey.getMlDsaAlgorithm());
     }
 }
