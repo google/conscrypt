@@ -396,7 +396,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         } else {
             if (inputLen == 0 && input == null) {
                 in = EmptyArray.BYTE; // input can be null when inputLen == 0
-		inOffset = inputOffset;
+                inOffset = inputOffset;
             } else if (input == output
                     && ((inputOffset + inputLen > outputOffset && inputOffset <= outputOffset)
                             || (inputOffset >= outputOffset
