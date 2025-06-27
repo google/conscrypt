@@ -401,10 +401,11 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
                 // BoringSSL requires that input and output do not overlap. To be on the safe side,
                 // we copy the input to a new array.
                 in = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen);
+                inOffset = 0;
             } else {
                 in = input;
+                inOffset = inputOffset;
             }
-            inOffset = inputOffset;
             inLen = inputLen;
         }
 
