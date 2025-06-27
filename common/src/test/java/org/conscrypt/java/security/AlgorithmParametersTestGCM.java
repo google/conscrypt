@@ -33,6 +33,7 @@ import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import tests.util.ServiceTester;
 
