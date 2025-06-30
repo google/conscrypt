@@ -57,8 +57,6 @@
 #include <type_traits>
 #include <vector>
 
-#include "jni.h"
-
 using conscrypt::AppData;
 using conscrypt::BioInputStream;
 using conscrypt::BioOutputStream;
@@ -3066,7 +3064,8 @@ static void NativeCrypto_EVP_MD_CTX_cleanup(JNIEnv* env, jclass, jobject ctxRef)
     }
 }
 
-static void NativeCrypto_EVP_MD_CTX_destroy(CRITICAL_JNI_PARAMS_COMMA jlong ctxRef) {
+static void NativeCrypto_EVP_MD_CTX_destroy(JNIEnv* env, jclass, jlong ctxRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
     EVP_MD_CTX* ctx = reinterpret_cast<EVP_MD_CTX*>(ctxRef);
     JNI_TRACE_MD("EVP_MD_CTX_destroy(%p)", ctx);
 
@@ -8214,7 +8213,8 @@ static SSL_SESSION* server_session_requested_callback(SSL* ssl, const uint8_t* i
     return ssl_session_ptr;
 }
 
-static jint NativeCrypto_EVP_has_aes_hardware(CRITICAL_JNI_PARAMS) {
+static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
     int ret = 0;
     ret = EVP_has_aes_hardware();
     JNI_TRACE("EVP_has_aes_hardware => %d", ret);
@@ -10459,8 +10459,9 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
     return result;
 }
 
-static jint NativeCrypto_SSL_get_signature_algorithm_key_type(
-        CRITICAL_JNI_PARAMS_COMMA jint signatureAlg) {
+static jint NativeCrypto_SSL_get_signature_algorithm_key_type(JNIEnv* env, jclass,
+                                                              jint signatureAlg) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
     return SSL_get_signature_algorithm_key_type(signatureAlg);
 }
 
@@ -10933,7 +10934,7 @@ static jint NativeCrypto_SSL_get_error(JNIEnv* env, jclass, jlong ssl_address,
     return SSL_get_error(ssl, ret);
 }
 
-static void NativeCrypto_SSL_clear_error(CRITICAL_JNI_PARAMS) {
+static void NativeCrypto_SSL_clear_error(JNIEnv*, jclass) {
     ERR_clear_error();
 }
 

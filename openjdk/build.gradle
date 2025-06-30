@@ -130,7 +130,6 @@ ext {
 sourceSets {
     main {
         java {
-            srcDirs = [ "src/main/java" ]
             srcDirs += "${rootDir}/common/src/main/java"
             srcDirs += project(':conscrypt-constants').sourceSets.main.java.srcDirs
         }
