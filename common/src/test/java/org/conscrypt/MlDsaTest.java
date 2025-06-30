@@ -136,6 +136,30 @@ public class MlDsaTest {
     }
 
     @Test
+    public void mldsa87_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
+
+        assertEquals("ML-DSA", privateKey.getAlgorithm());
+        assertEquals("ML-DSA", publicKey.getAlgorithm());
+
+        byte[] msg = new byte[123];
+        Signature ss = Signature.getInstance("ML-DSA-87", conscryptProvider);
+        ss.initSign(privateKey);
+        ss.update(msg);
+        byte[] sig = ss.sign();
+        assertEquals(4627, sig.length);
+
+        Signature sv = Signature.getInstance("ML-DSA-87", conscryptProvider);
+        sv.initVerify(publicKey);
+        sv.update(msg);
+        boolean verified = sv.verify(sig);
+        assertTrue(verified);
+    }
+
+    @Test
     public void getRawKey_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
@@ -173,6 +197,29 @@ public class MlDsaTest {
         EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
         assertEquals("raw", publicKeySpec.getFormat());
         assertEquals(1952, publicKeySpec.getEncoded().length);
+
+        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        assertEquals(privateKey, keyPair.getPrivate());
+        assertEquals(publicKey, keyPair.getPublic());
+    }
+
+    @Test
+    public void mldsa87_getRawKey_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+
+        EncodedKeySpec privateKeySpec =
+                keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
+        assertEquals("raw", privateKeySpec.getFormat());
+        assertEquals(32, privateKeySpec.getEncoded().length);
+
+        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
+        assertEquals("raw", publicKeySpec.getFormat());
+        assertEquals(2592, publicKeySpec.getEncoded().length);
 
         PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
         PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
@@ -253,6 +300,26 @@ public class MlDsaTest {
     }
 
     @Test
+    public void serializeAndDeserialize_87_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(keyPair.getPrivate());
+            oos.writeObject(keyPair.getPublic());
+        }
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+        PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+
+        assertEquals(inflatedPrivateKey, keyPair.getPrivate());
+        assertEquals(inflatedPublicKey, keyPair.getPublic());
+    }
+
+    @Test
     public void serializePrivateKey_65_isEqualToTestVector() throws Exception {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
@@ -278,6 +345,32 @@ public class MlDsaTest {
     }
 
     @Test
+    public void serializePrivateKey_87_isEqualToTestVector() throws Exception {
+        byte[] rawPrivateKey = TestUtils.decodeHex(
+                "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(privateKey);
+        }
+
+        String expectedHexEncoding = "aced000573720024"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "0200015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "21" // hex(33), size of "seed", which is 32 + 1
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
+                + "57"; // hex(87)
+        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+    }
+
+    @Test
     public void serializePublicKey_65_isEqualToTestVector() throws Exception {
         byte[] rawPublicKey = new byte[1952];
 
@@ -298,5 +391,91 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "07a0" + TestUtils.encodeHex(rawPublicKey);
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+    }
+
+    @Test
+    public void serializePublicKey_87_isEqualToTestVector() throws Exception {
+        byte[] rawPublicKey = new byte[2592];
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(publicKey);
+        }
+
+        String expectedHexEncoding = "aced000573720023"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
+                + "064c7113d078e42d" // serialVersionUID
+                + "0200015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "0a20" // hex(2592), size of the raw public key
+                + TestUtils.encodeHex(rawPublicKey);
+        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+    }
+
+    @Test
+    public void deserializePrivateKeyWithWrongSuffix_fails() throws Exception {
+        String invalidPrivateKey = "aced000573720024"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "0200015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "21" // hex(33), size of encoded seed, which is 1 + 32
+                // encoded seed.
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+                + "41"; // wrong suffix.
+
+        ByteArrayInputStream bais =
+                new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKey));
+        ObjectInputStream ois = new ObjectInputStream(bais);
+
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+    }
+
+    @Test
+    public void deserializePrivateKeyWithWrongSize_fails() throws Exception {
+        String invalidPrivateKey = "aced000573720024"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "0200015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "22" // hex(34), illegal size of encoded seed, only 32 or 33 are allowed.
+                // encoded seed.
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+                + "5757";
+
+        ByteArrayInputStream bais =
+                new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKey));
+        ObjectInputStream ois = new ObjectInputStream(bais);
+
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+    }
+
+    @Test
+    public void deserializeInvalidPublicKey_fails() throws Exception {
+        byte[] invalidRawPublicKey = new byte[2593]; // one byte too long.
+
+        String hexPublicKey = "aced000573720023"
+                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
+                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
+                + "064c7113d078e42d" // serialVersionUID
+                + "0200015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "0a21" // hex(2593), size of the invalid raw public key
+                + TestUtils.encodeHex(invalidRawPublicKey);
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(TestUtils.decodeHex(hexPublicKey));
+        ObjectInputStream ois = new ObjectInputStream(bais);
+
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 }

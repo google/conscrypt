@@ -16,31 +16,94 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.Objects;
 
 /** An OpenSSL ML-DSA private key. */
 public class OpenSslMlDsaPrivateKey implements PrivateKey {
-    private byte[] seed;
+    private static final long serialVersionUID = 0x3bacc385e8e106a3L;
 
-    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-            seed = encoded;
+    // To preserve the serialization format, "seed" is the only variable that gets
+    // serialized. To be able to distinguish between ML-DSA-65 and ML-DSA-87, we add
+    // and additional byte to the end of the seed if the algorithm is ML-DSA-87. So:
+    // - for ML-DSA-65, "seed" has length 32 and is equal to the seed.
+    // - for ML-DSA-87, "seed" has length 33, where the first 32 bytes are the seed, and
+    //   the last byte has value 87 = 0x57.
+    private byte[] seed;
+    private transient MlDsaAlgorithm algorithm;
+
+    private static boolean isValid(byte[] encodedSeed, MlDsaAlgorithm algorithm) {
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return encodedSeed.length == 32;
+        }
+        if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return encodedSeed.length == 33 && encodedSeed[32] == 87;
+        }
+        return false;
+    }
+
+    private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed) {
+        if (encodedSeed.length == 32) {
+            return MlDsaAlgorithm.ML_DSA_65;
+        }
+        if (encodedSeed.length == 33 && encodedSeed[32] == 87) {
+            return MlDsaAlgorithm.ML_DSA_87;
+        }
+        throw new IllegalArgumentException("Invalid encoded seed");
+    }
+
+    private static byte[] encodeSeed(byte[] unencodedSeed, MlDsaAlgorithm algorithm) {
+        if (unencodedSeed.length != 32) {
+            throw new IllegalArgumentException("Invalid seed");
+        }
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return unencodedSeed.clone();
         } else {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
+            // add the suffix 87 to the end of the seed.
+            byte[] encodedSeed = Arrays.copyOf(unencodedSeed, 33);
+            encodedSeed[32] = 87;
+            return encodedSeed;
         }
     }
 
-    public OpenSslMlDsaPrivateKey(byte[] seed) {
-        this.seed = seed.clone();
+    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
+        byte[] rawKey = keySpec.getEncoded();
+        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
+            throw new InvalidKeySpecException("Encoding must be in raw format");
+        }
+        if (rawKey.length != 32) {
+            throw new InvalidKeySpecException("Invalid key");
+        }
+        byte[] encodedSeed = encodeSeed(rawKey, algorithm);
+        if (!isValid(encodedSeed, algorithm)) {
+            throw new IllegalArgumentException("Invalid key");
+        }
+        this.algorithm = algorithm;
+        this.seed = encodedSeed;
+    }
+
+    public OpenSslMlDsaPrivateKey(byte[] seed, MlDsaAlgorithm algorithm) {
+        byte[] encodedSeed = encodeSeed(seed, algorithm);
+        if (!isValid(encodedSeed, algorithm)) {
+            throw new IllegalArgumentException("Invalid key");
+        }
+        this.algorithm = algorithm;
+        this.seed = encodedSeed;
     }
 
     @Override
     public String getAlgorithm() {
         return "ML-DSA";
+    }
+
+    public MlDsaAlgorithm getMlDsaAlgorithm() {
+        return algorithm;
     }
 
     @Override
@@ -57,7 +120,8 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
         if (seed == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        return seed.clone();
+        // The unencoded seed is always the first 32 bytes of the encoded seed.
+        return Arrays.copyOf(seed, 32);
     }
 
     @Override
@@ -82,11 +146,20 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
             return false;
         }
         OpenSslMlDsaPrivateKey that = (OpenSslMlDsaPrivateKey) o;
+        // algorithm is encoded in the seed, so we only need to compare the seed.
         return Arrays.equals(seed, that.seed);
     }
 
     @Override
     public int hashCode() {
         return Arrays.hashCode(seed);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "seed"
+        this.algorithm = getAlgorithmFromEncodedSeed(this.seed);
+        if (!isValid(this.seed, this.algorithm)) {
+            throw new IOException("Invalid key");
+        }
     }
 }
