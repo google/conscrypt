@@ -31,8 +31,48 @@ import java.security.spec.X509EncodedKeySpec;
 
 /** An implementation of a {@link KeyFactorySpi} for MLDSA keys based on BoringSSL. */
 @Internal
-public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
-    public OpenSslMlDsaKeyFactory() {}
+public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
+    private final MlDsaAlgorithm algorithm;
+
+    private OpenSslMlDsaKeyFactory(MlDsaAlgorithm algorithm) {
+        this.algorithm = algorithm;
+    }
+
+    abstract boolean supportsAlgorithm(MlDsaAlgorithm algorithm);
+
+    /** ML-DSA */
+    public static class MlDsa extends OpenSslMlDsaKeyFactory {
+        public MlDsa() {
+            super(MlDsaAlgorithm.ML_DSA_65);
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_65)
+                    || algorithm.equals(MlDsaAlgorithm.ML_DSA_87);
+        }
+    }
+
+    /** ML-DSA-65 */
+    public static class MlDsa65 extends OpenSslMlDsaKeyFactory {
+        public MlDsa65() {
+            super(MlDsaAlgorithm.ML_DSA_65);
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_65);
+        }
+    }
+
+    /** ML-DSA-87 */
+    public static class MlDsa87 extends OpenSslMlDsaKeyFactory {
+        public MlDsa87() {
+            super(MlDsaAlgorithm.ML_DSA_87);
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_87);
+        }
+    }
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
@@ -40,7 +80,7 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
         if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslMlDsaPublicKey((EncodedKeySpec) keySpec);
+            return new OpenSslMlDsaPublicKey((EncodedKeySpec) keySpec, algorithm);
         }
         throw new InvalidKeySpecException(
                 "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
@@ -52,7 +92,7 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("keySpec == null");
         }
         if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslMlDsaPrivateKey((EncodedKeySpec) keySpec);
+            return new OpenSslMlDsaPrivateKey((EncodedKeySpec) keySpec, algorithm);
         }
         throw new InvalidKeySpecException(
                 "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
@@ -72,6 +112,9 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
         if (key instanceof OpenSslMlDsaPublicKey) {
             OpenSslMlDsaPublicKey conscryptKey = (OpenSslMlDsaPublicKey) key;
+            if (!supportsAlgorithm(conscryptKey.getMlDsaAlgorithm())) {
+                throw new InvalidKeySpecException("Key algorithm mismatch");
+            }
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 throw new UnsupportedOperationException(
                         "X509EncodedKeySpec is currently not supported");
@@ -80,6 +123,9 @@ public final class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             }
         } else if (key instanceof OpenSslMlDsaPrivateKey) {
             OpenSslMlDsaPrivateKey conscryptKey = (OpenSslMlDsaPrivateKey) key;
+            if (!supportsAlgorithm(conscryptKey.getMlDsaAlgorithm())) {
+                throw new InvalidKeySpecException("Key algorithm mismatch");
+            }
             if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 throw new UnsupportedOperationException(
                         "PKCS8EncodedKeySpec is currently not supported");
