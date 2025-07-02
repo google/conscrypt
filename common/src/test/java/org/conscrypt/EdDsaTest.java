@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -324,10 +325,10 @@ public class EdDsaTest {
         try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
             oos.writeObject(privateKey);
         }
-
+        
+        String classNameHex = encodeHex(privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
         String expectedHexEncoding = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4564447361507269766174654b6579" // hex("OpenSslEdDsaPrivateKey")
+                + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
                 + "707269766174654b65794279746573" // hex("privateKeyBytes")
@@ -353,9 +354,9 @@ public class EdDsaTest {
             oos.writeObject(publicKey);
         }
 
+        String classNameHex = encodeHex(publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
         String expectedHexEncoding = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c45644473615075626c69634b6579" // hex("OpenSslEdDsaPublicKey")
+                + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
                 + "7075626c69634b65794279746573" // hex("publicKeyBytes")
@@ -366,9 +367,12 @@ public class EdDsaTest {
 
     @Test
     public void deserializeInvalidPrivateKey_fails() throws Exception {
+    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        String classNameHex = encodeHex(keyPair.getPrivate().getClass().getName().getBytes(StandardCharsets.UTF_8));
+
         String invalidPrivateKeySerialized = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4564447361507269766174654b6579" // hex("OpenSslEdDsaPrivateKey")
+                + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
                 + "707269766174654b65794279746573" // hex("privateKeyBytes")
@@ -389,9 +393,12 @@ public class EdDsaTest {
 
     @Test
     public void deserializeInvalidPublicKey_fails() throws Exception {
+    	KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        String classNameHex = encodeHex(keyPair.getPublic().getClass().getName().getBytes(StandardCharsets.UTF_8));
+
         String invalidPublicKeySerialized = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c45644473615075626c69634b6579" // hex("OpenSslEdDsaPublicKey")
+                + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
                 + "7075626c69634b65794279746573" // hex("publicKeyBytes")
