@@ -334,8 +334,7 @@ public class MlDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720024"
-                + classNameHex
+        String expectedHexEncoding = "aced000573720024" + classNameHex
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -360,8 +359,7 @@ public class MlDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720024"
-                + classNameHex
+        String expectedHexEncoding = "aced000573720024" + classNameHex
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -386,8 +384,7 @@ public class MlDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720023"
-                + classNameHex
+        String expectedHexEncoding = "aced000573720023" + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
@@ -410,8 +407,7 @@ public class MlDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720023"
-                + classNameHex
+        String expectedHexEncoding = "aced000573720023" + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
@@ -427,8 +423,7 @@ public class MlDsaTest {
         KeyPair keyPair = keyGen.generateKeyPair();
         String classNameHex = TestUtils.encodeHex(
                 keyPair.getPrivate().getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String invalidPrivateKey = "aced000573720024"
-                + classNameHex
+        String invalidPrivateKey = "aced000573720024" + classNameHex
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -451,8 +446,7 @@ public class MlDsaTest {
         KeyPair keyPair = keyGen.generateKeyPair();
         String classNameHex = TestUtils.encodeHex(
                 keyPair.getPrivate().getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String invalidPrivateKey = "aced000573720024"
-                + classNameHex
+        String invalidPrivateKey = "aced000573720024" + classNameHex
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -477,8 +471,7 @@ public class MlDsaTest {
                 keyPair.getPublic().getClass().getName().getBytes(StandardCharsets.UTF_8));
         byte[] invalidRawPublicKey = new byte[2593]; // one byte too long.
 
-        String hexPublicKey = "aced000573720023"
-                + classNameHex
+        String hexPublicKey = "aced000573720023" + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
