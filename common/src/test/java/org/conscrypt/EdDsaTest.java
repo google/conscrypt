@@ -327,7 +327,7 @@ public class EdDsaTest {
         }
 
         String classNameHex =
-                encodeHex(privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+                TestUtils.encodeHex(privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
         String expectedHexEncoding = "aced000573720024" + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
@@ -356,7 +356,7 @@ public class EdDsaTest {
         }
 
         String classNameHex =
-                encodeHex(publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+                TestUtils.encodeHex(publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
         String expectedHexEncoding = "aced000573720023" + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
@@ -371,7 +371,7 @@ public class EdDsaTest {
     public void deserializeInvalidPrivateKey_fails() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
-        String classNameHex = encodeHex(
+        String classNameHex = TestUtils.encodeHex(
                 keyPair.getPrivate().getClass().getName().getBytes(StandardCharsets.UTF_8));
 
         String invalidPrivateKeySerialized = "aced000573720024" + classNameHex
@@ -397,7 +397,7 @@ public class EdDsaTest {
     public void deserializeInvalidPublicKey_fails() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
-        String classNameHex = encodeHex(
+        String classNameHex = TestUtils.encodeHex(
                 keyPair.getPublic().getClass().getName().getBytes(StandardCharsets.UTF_8));
 
         String invalidPublicKeySerialized = "aced000573720023" + classNameHex
