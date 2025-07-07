@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -325,14 +326,15 @@ public class EdDsaTest {
             oos.writeObject(privateKey);
         }
 
-        String expectedHexEncoding = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4564447361507269766174654b6579" // hex("OpenSslEdDsaPrivateKey")
+        String classNameHex = TestUtils.encodeHex(
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+        String expectedHexEncoding = "aced000573720024" + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
                 + "707269766174654b65794279746573" // hex("privateKeyBytes")
                 + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
-                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"; // private key
+                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"; // private
+                                                                                        // key
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
     }
 
@@ -353,22 +355,26 @@ public class EdDsaTest {
             oos.writeObject(publicKey);
         }
 
-        String expectedHexEncoding = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c45644473615075626c69634b6579" // hex("OpenSslEdDsaPublicKey")
+        String classNameHex = TestUtils.encodeHex(
+                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+        String expectedHexEncoding = "aced000573720023" + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
                 + "7075626c69634b65794279746573" // hex("publicKeyBytes")
                 + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
-                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"; // public key
+                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"; // public
+                                                                                        // key
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
     }
 
     @Test
     public void deserializeInvalidPrivateKey_fails() throws Exception {
-        String invalidPrivateKeySerialized = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4564447361507269766174654b6579" // hex("OpenSslEdDsaPrivateKey")
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        String classNameHex = TestUtils.encodeHex(
+                keyPair.getPrivate().getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String invalidPrivateKeySerialized = "aced000573720024" + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
                 + "707269766174654b65794279746573" // hex("privateKeyBytes")
@@ -389,9 +395,12 @@ public class EdDsaTest {
 
     @Test
     public void deserializeInvalidPublicKey_fails() throws Exception {
-        String invalidPublicKeySerialized = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c45644473615075626c69634b6579" // hex("OpenSslEdDsaPublicKey")
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        String classNameHex = TestUtils.encodeHex(
+                keyPair.getPublic().getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String invalidPublicKeySerialized = "aced000573720023" + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
                 + "7075626c69634b65794279746573" // hex("publicKeyBytes")
