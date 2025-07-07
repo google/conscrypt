@@ -478,10 +478,11 @@ public class MlDsaTest {
 
     @Test
     public void deserializeInvalidPublicKey_fails() throws Exception {
+        byte[] rawPublicKey = new byte[2592];
         byte[] invalidRawPublicKey = new byte[2593]; // one byte too long.
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
-        PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(invalidRawPublicKey));
+        PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
