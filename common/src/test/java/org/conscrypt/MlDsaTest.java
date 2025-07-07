@@ -337,8 +337,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200" + privateKey.getClass().getName().length()
-                + hexClassName + "3bacc385e8e106a3" // serialVersionUID
+        String expectedHexEncoding = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
@@ -363,8 +364,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200" + privateKey.getClass().getName().length()
-                + hexClassName + "3bacc385e8e106a3" // serialVersionUID
+        String expectedHexEncoding = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
@@ -389,8 +391,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200" + publicKey.getClass().getName().length()
-                + hexClassName + "064c7113d078e42d" // serialVersionUID
+        String expectedHexEncoding = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
@@ -413,8 +416,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200" + publicKey.getClass().getName().length()
-                + hexClassName + "064c7113d078e42d" // serialVersionUID
+        String expectedHexEncoding = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
@@ -433,8 +437,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String invalidPrivateKey = "aced0005737200" + privateKey.getClass().getName().length()
-                + hexClassName + "3bacc385e8e106a3" // serialVersionUID
+        String invalidPrivateKey = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
@@ -460,8 +465,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String invalidPrivateKey = "aced0005737200" + privateKey.getClass().getName().length()
-                + hexClassName + "3bacc385e8e106a3" // serialVersionUID
+        String invalidPrivateKey = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
@@ -487,8 +493,9 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String hexPublicKey = "aced0005737200" + publicKey.getClass().getName().length()
-                + hexClassName + "064c7113d078e42d" // serialVersionUID
+        String hexPublicKey = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
