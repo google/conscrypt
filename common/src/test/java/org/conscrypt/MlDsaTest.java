@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -332,9 +333,10 @@ public class MlDsaTest {
             oos.writeObject(privateKey);
         }
 
-        String expectedHexEncoding = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+        String hexClassName = TestUtils.encodeHex(
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String expectedHexEncoding = "aced000573720024" + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -357,9 +359,10 @@ public class MlDsaTest {
             oos.writeObject(privateKey);
         }
 
-        String expectedHexEncoding = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+        String hexClassName = TestUtils.encodeHex(
+                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String expectedHexEncoding = "aced000573720024" + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -382,9 +385,10 @@ public class MlDsaTest {
             oos.writeObject(publicKey);
         }
 
-        String expectedHexEncoding = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
+        String hexClassName = TestUtils.encodeHex(
+                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String expectedHexEncoding = "aced000573720023" + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
@@ -405,9 +409,10 @@ public class MlDsaTest {
             oos.writeObject(publicKey);
         }
 
-        String expectedHexEncoding = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
+        String hexClassName = TestUtils.encodeHex(
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String expectedHexEncoding = "aced000573720023" + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
@@ -419,9 +424,14 @@ public class MlDsaTest {
 
     @Test
     public void deserializePrivateKeyWithWrongSuffix_fails() throws Exception {
-        String invalidPrivateKey = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+        byte[] rawPrivateKey = TestUtils.decodeHex(
+                "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+
+        PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
+        String hexClassName = TestUtils.encodeHex(
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String invalidPrivateKey = "aced000573720024" + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -440,9 +450,14 @@ public class MlDsaTest {
 
     @Test
     public void deserializePrivateKeyWithWrongSize_fails() throws Exception {
-        String invalidPrivateKey = "aced000573720024"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c447361507269766174654b6579" // hex("OpenSslMldsaPrivateKey")
+        byte[] rawPrivateKey = TestUtils.decodeHex(
+                "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+
+        PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
+        String hexClassName = TestUtils.encodeHex(
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String invalidPrivateKey = "aced000573720024" + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
@@ -463,9 +478,11 @@ public class MlDsaTest {
     public void deserializeInvalidPublicKey_fails() throws Exception {
         byte[] invalidRawPublicKey = new byte[2593]; // one byte too long.
 
-        String hexPublicKey = "aced000573720023"
-                + "6f72672e636f6e7363727970742e" // hex("org.conscrypt.")
-                + "4f70656e53736c4d6c4473615075626c69634b6579" // hex("OpenSslMldsaPublicKey")
+        PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(invalidRawPublicKey));
+        String hexClassName = TestUtils.encodeHex(
+                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String hexPublicKey = "aced000573720023" + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
