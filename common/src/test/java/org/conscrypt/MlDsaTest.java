@@ -360,7 +360,7 @@ public class MlDsaTest {
         }
 
         String hexClassName = TestUtils.encodeHex(
-                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
         String expectedHexEncoding = "aced000573720024" + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
@@ -410,7 +410,7 @@ public class MlDsaTest {
         }
 
         String hexClassName = TestUtils.encodeHex(
-                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
         String expectedHexEncoding = "aced000573720023" + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
@@ -427,6 +427,7 @@ public class MlDsaTest {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
         PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
@@ -453,6 +454,7 @@ public class MlDsaTest {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
         PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
@@ -478,6 +480,7 @@ public class MlDsaTest {
     public void deserializeInvalidPublicKey_fails() throws Exception {
         byte[] invalidRawPublicKey = new byte[2593]; // one byte too long.
 
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
         PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(invalidRawPublicKey));
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
