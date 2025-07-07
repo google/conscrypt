@@ -27,7 +27,6 @@ import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -452,7 +451,7 @@ public class MlDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKey));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IOException.class, () -> ois.readObject());
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 
     @Test
@@ -480,7 +479,7 @@ public class MlDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKey));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IOException.class, () -> ois.readObject());
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 
     @Test
@@ -505,6 +504,6 @@ public class MlDsaTest {
         ByteArrayInputStream bais = new ByteArrayInputStream(TestUtils.decodeHex(hexPublicKey));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IOException.class, () -> ois.readObject());
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 }
