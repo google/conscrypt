@@ -121,7 +121,7 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey {
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        stream.defaultReadObject(); // reads "privateKeyBytes"
+        stream.defaultReadObject();
         if (privateKeyBytes.length != ED25519_PRIVATE_KEY_SIZE_BYTES) {
             throw new IllegalArgumentException("Invalid key size");
         }
