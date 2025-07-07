@@ -386,10 +386,7 @@ public class EdDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKeySerialized));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        // Update this!
-        PrivateKey privateKey = (PrivateKey) ois.readObject();
-        Signature signer = Signature.getInstance("Ed25519", conscryptProvider);
-        assertThrows(InvalidKeyException.class, () -> signer.initSign(privateKey));
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 
     @Test
@@ -411,9 +408,6 @@ public class EdDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPublicKeySerialized));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        // Update this!
-        PublicKey publicKey = (PublicKey) ois.readObject();
-        Signature verifier = Signature.getInstance("Ed25519", conscryptProvider);
-        assertThrows(InvalidKeyException.class, () -> verifier.initVerify(publicKey));
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 }
