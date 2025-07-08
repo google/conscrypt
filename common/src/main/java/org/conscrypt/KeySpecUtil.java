@@ -22,7 +22,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 
 /** A utility class for working with KeySpecs. */
-final class KeySpecUtil {
+public final class KeySpecUtil {
     private KeySpecUtil() {}
 
     /**
