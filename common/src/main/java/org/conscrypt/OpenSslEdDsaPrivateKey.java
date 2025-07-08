@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
@@ -116,5 +118,12 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey {
     @Override
     public int hashCode() {
         return Arrays.hashCode(privateKeyBytes);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject();
+        if (privateKeyBytes.length != ED25519_PRIVATE_KEY_SIZE_BYTES) {
+            throw new IllegalArgumentException("Invalid key size");
+        }
     }
 }
