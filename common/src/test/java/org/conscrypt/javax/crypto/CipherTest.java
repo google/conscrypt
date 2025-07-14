@@ -4748,4 +4748,248 @@ public final class CipherTest {
             // expected
         }
     }
+
+    private static byte[] randomBytes(int n) {
+        byte[] bytes = new byte[n];
+        new SecureRandom().nextBytes(bytes);
+        return bytes;
+    }
+
+    @Test
+    public void basicAesGcm() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(128);
+        byte[] plaintext = randomBytes(42);
+        byte[] ciphertext = new byte[42 + 16];
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        int ctLength = cipher.doFinal(plaintext, 0, plaintext.length, ciphertext, 0);
+
+        assertTrue(ctLength == 58); // plaintext length + tag length
+
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        byte[] decrypted = cipher.doFinal(ciphertext, 0, ctLength);
+        assertTrue(Arrays.equals(decrypted, plaintext));
+    }
+
+    @Test
+    public void aesGcmWithEqualBuffers() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(128);
+        byte[] plainWithPadding = randomBytes(42 + 32);
+        byte[] plain = new byte[42];
+        System.arraycopy(plainWithPadding, 0, plain, 0, 42);
+        int offset = 0;
+        int length = 42;
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        // We use the same buffer for plaintext and ciphertext, but with different offsets.
+        int ctLength =
+                cipher.doFinal(plainWithPadding, offset, length, plainWithPadding, offset + 8);
+
+        assertTrue(ctLength == 58); // plaintext length + tag length
+
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        byte[] decrypted = cipher.doFinal(plainWithPadding, offset + 8, ctLength);
+        assertTrue(Arrays.equals(decrypted, plain));
+    }
+
+    @Test
+    public void aesGcmWithIdenticalBuffers_ExactOverlap() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(64); // Smaller AAD
+        int plaintextLength = 50;
+        int tagLength = 16;
+        int totalRequiredLength = plaintextLength + tagLength; // Minimum for in-place
+
+        byte[] sharedBuffer = randomBytes(totalRequiredLength);
+        byte[] originalPlaintext = new byte[plaintextLength];
+        System.arraycopy(sharedBuffer, 0, originalPlaintext, 0, plaintextLength);
+
+        int inputOffset = 0;
+        int outputOffset = 0; // Exact overlap: output starts where input starts
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        int actualCiphertextLength = cipher.doFinal(
+                sharedBuffer, inputOffset, plaintextLength, sharedBuffer, outputOffset);
+
+        assertEquals(totalRequiredLength, actualCiphertextLength);
+
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        byte[] decrypted = cipher.doFinal(sharedBuffer, outputOffset, actualCiphertextLength);
+        assertArrayEquals(originalPlaintext, decrypted);
+    }
+
+    @Test
+    public void aesGcmWithIdenticalBuffers_BackwardOverlap() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(64);
+        int plaintextLength = 40;
+        int tagLength = 16;
+        int inputStartOffset = 10; // Input starts 10 bytes in
+        int outputStartOffset = 0; // Output starts at beginning, causes backward overlap
+
+        // Ensure buffer is large enough for input (10 + 40), and output (0 + 40 + 16)
+        int totalBufferSize = inputStartOffset + plaintextLength + tagLength;
+
+        byte[] sharedBuffer = randomBytes(totalBufferSize);
+        byte[] originalPlaintext = new byte[plaintextLength];
+        System.arraycopy(sharedBuffer, inputStartOffset, originalPlaintext, 0, plaintextLength);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        int actualCiphertextLength = cipher.doFinal(
+                sharedBuffer, inputStartOffset, plaintextLength, sharedBuffer, outputStartOffset);
+
+        assertEquals(plaintextLength + tagLength, actualCiphertextLength);
+
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        byte[] decrypted = cipher.doFinal(sharedBuffer, outputStartOffset, actualCiphertextLength);
+        assertArrayEquals(originalPlaintext, decrypted);
+    }
+
+    @Test
+    public void aesGcmWithIdenticalBuffers_ForwardOverlap_OutputWithinInput() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(64);
+        int plaintextLength = 60;
+        int tagLength = 16;
+        int inputStartOffset = 0; // Input starts at beginning
+        int outputStartOffset = 20; // Output starts 20 bytes into input, causing forward overlap
+
+        // Ensure buffer is large enough for input (0 + 60), and output (20 + 60 + 16)
+        int totalBufferSize = outputStartOffset + plaintextLength + tagLength;
+
+        byte[] sharedBuffer = randomBytes(totalBufferSize);
+        byte[] originalPlaintext = new byte[plaintextLength];
+        System.arraycopy(sharedBuffer, inputStartOffset, originalPlaintext, 0, plaintextLength);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        int actualCiphertextLength = cipher.doFinal(
+                sharedBuffer, inputStartOffset, plaintextLength, sharedBuffer, outputStartOffset);
+
+        assertEquals(plaintextLength + tagLength, actualCiphertextLength);
+
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        byte[] decrypted = cipher.doFinal(sharedBuffer, outputStartOffset, actualCiphertextLength);
+        assertArrayEquals(originalPlaintext, decrypted);
+    }
+
+    @Test
+    public void aesGcmWithIdenticalBuffers_NoOverlap_Adjacent() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(64);
+        int plaintextLength = 45;
+        int tagLength = 16;
+        int inputStartOffset = 0;
+        int outputStartOffset = plaintextLength; // Output starts immediately after input ends
+
+        int totalBufferSize = outputStartOffset + plaintextLength + tagLength;
+
+        byte[] sharedBuffer = randomBytes(totalBufferSize);
+        byte[] originalPlaintext = new byte[plaintextLength];
+        System.arraycopy(sharedBuffer, inputStartOffset, originalPlaintext, 0, plaintextLength);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        int actualCiphertextLength = cipher.doFinal(
+                sharedBuffer, inputStartOffset, plaintextLength, sharedBuffer, outputStartOffset);
+
+        assertEquals(plaintextLength + tagLength, actualCiphertextLength);
+
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+        byte[] decrypted = cipher.doFinal(sharedBuffer, outputStartOffset, actualCiphertextLength);
+        assertArrayEquals(originalPlaintext, decrypted);
+    }
+
+    @Test
+    public void aesGcmWithIdenticalBuffers_BackwardOverlap_OutputTooSmallForTag() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(64);
+        int plaintextLength = 30;
+        int tagLength = 16;
+        int inputStartOffset = 5;
+        int outputStartOffset = 0;
+        // Total buffer size is just enough for input + a portion of the tag
+        int totalBufferSize =
+                inputStartOffset + plaintextLength + (tagLength / 2); // Deliberately too small
+
+        byte[] sharedBuffer = randomBytes(totalBufferSize);
+        byte[] originalPlaintext = new byte[plaintextLength];
+        System.arraycopy(sharedBuffer, inputStartOffset, originalPlaintext, 0, plaintextLength);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+
+        try {
+            cipher.doFinal(sharedBuffer, inputStartOffset, plaintextLength, sharedBuffer,
+                    outputStartOffset);
+            fail("Expected ShortBufferException due to insufficient output buffer space");
+        } catch (ShortBufferException expected) {
+            // Test passed: exception was thrown as expected
+        }
+    }
+
+    @Test
+    public void aesGcmWithIdenticalBuffers_ForwardOverlap_OutputTooSmallForTag() throws Exception {
+        GCMParameterSpec ivSpec = new GCMParameterSpec(128, randomBytes(12));
+        SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
+
+        byte[] associatedData = randomBytes(64);
+        int plaintextLength = 30;
+        int tagLength = 16;
+        int inputStartOffset = 0;
+        int outputStartOffset = 10; // Overlaps input
+        // Total buffer size is input start + plaintext length + output offset + a portion of the
+        // tag, making it too small at the end.
+        int totalBufferSize =
+                outputStartOffset + plaintextLength + (tagLength / 2); // Deliberately too small
+
+        byte[] sharedBuffer = randomBytes(totalBufferSize);
+        byte[] originalPlaintext = new byte[plaintextLength];
+        System.arraycopy(sharedBuffer, inputStartOffset, originalPlaintext, 0, plaintextLength);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
+        cipher.updateAAD(associatedData);
+
+        try {
+            cipher.doFinal(sharedBuffer, inputStartOffset, plaintextLength, sharedBuffer,
+                    outputStartOffset);
+            fail("Expected ShortBufferException due to insufficient output buffer space");
+        } catch (ShortBufferException expected) {
+            // Test passed: exception was thrown as expected
+        }
+    }
 }
