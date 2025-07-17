@@ -16,6 +16,7 @@
 package org.conscrypt.javax.crypto;
 
 import static org.conscrypt.TestUtils.decodeBase64;
+import static org.conscrypt.TestUtils.decodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -34,6 +35,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
