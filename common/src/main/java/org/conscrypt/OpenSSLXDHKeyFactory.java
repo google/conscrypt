@@ -214,7 +214,7 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
     // See https://datatracker.ietf.org/doc/html/rfc7748#section-5.
     private BigInteger uToBigInteger(byte[] u) {
         byte[] reversedU = ArrayUtils.reverse(u);
-        reversedU[0] &= (byte) ((1 << (255 % 8)) - 1);
+        reversedU[0] &= 0x7f;  // (1 << (255 % 8)) - 1 = 0x7f
         return new BigInteger(1, reversedU);
     }
 
@@ -227,8 +227,8 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
             Constructor<?> c = OpenSSLXDHKeyFactory.javaXecPublicKeySpec.getConstructor(
                     AlgorithmParameterSpec.class, BigInteger.class);
             @SuppressWarnings("unchecked")
-            KeySpec result =
-              (KeySpec) c.newInstance(javaX25519AlgorithmSpec, uToBigInteger(publicKey.getU()));
+            KeySpec result = (KeySpec) c.newInstance(
+                    javaX25519AlgorithmSpec, uToBigInteger(publicKey.getU()));
             return result;
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
                  InvocationTargetException e) {

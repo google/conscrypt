@@ -198,8 +198,8 @@ public class XdhKeyFactoryTest {
     public void getKeySpec_xECPublicKeySpec_success() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
-        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
-                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
         Method getUMethod = javaClass.getMethod("getU");
 
         // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
