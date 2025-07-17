@@ -195,6 +195,33 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
+    public void getKeySpec_xECPublicKeySpec_success() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
+                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Method getUMethod = javaClass.getMethod("getU");
+
+        // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
+        byte[][] uAsBytes = new byte[][] {
+                decodeHex("0900000000000000000000000000000000000000000000000000000000000000"),
+                decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c"),
+                decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493")};
+        BigInteger[] expectedUAsBigIntegers = new BigInteger[] {BigInteger.valueOf(9),
+                new BigInteger("3442643403391959445115510778118882165131616721530663157499622662110"
+                        + "2155684838"),
+                new BigInteger("8883857351183929894090759386610649319417338800022198945255395922347"
+                        + "792736741")};
+        assertEquals(uAsBytes.length, expectedUAsBigIntegers.length);
+        for (int i = 0; i < uAsBytes.length; i++) {
+            PublicKey publicKey = factory.generatePublic(new XdhKeySpec(uAsBytes[i]));
+            KeySpec publicKeySpec = factory.getKeySpec(publicKey, javaClass);
+            BigInteger u = (BigInteger) getUMethod.invoke(publicKeySpec);
+            assertEquals(u, expectedUAsBigIntegers[i]);
+        }
+    }
+
+    @Test
     @Ignore("Inconsistent results across platforms")
     public void xecPrivateKeySpec() throws Exception {
         TestUtils.assumeXecClassesAvailable();
