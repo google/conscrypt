@@ -214,7 +214,7 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
     // See https://datatracker.ietf.org/doc/html/rfc7748#section-5.
     private BigInteger uToBigInteger(byte[] u) {
         byte[] reversedU = ArrayUtils.reverse(u);
-        reversedU[0] &= 0x7f;  // (1 << (255 % 8)) - 1 = 0x7f
+        reversedU[0] &= 0x7f; // (1 << (255 % 8)) - 1 = 0x7f
         return new BigInteger(1, reversedU);
     }
 
