@@ -211,16 +211,16 @@ public class XdhKeyFactoryTest {
                 decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c"),
                 decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493")};
         BigInteger[] expectedUAsBigIntegers = new BigInteger[] {BigInteger.valueOf(9),
-                new BigInteger("3442643403391959445115510778118882165131616721530663157499622662110"
-                        + "2155684838"),
-                new BigInteger("8883857351183929894090759386610649319417338800022198945255395922347"
-                        + "792736741")};
-        assertEquals(uAsBytes.length, expectedUAsBigIntegers.length);
+                new BigInteger("34426434033919594451155107781188821651"
+                        + "316167215306631574996226621102155684838"),
+                new BigInteger("88838573511839298940907593866106493194"
+                        + "17338800022198945255395922347792736741")};
+        assertEquals(expectedUAsBigIntegers.length, uAsBytes.length);
         for (int i = 0; i < uAsBytes.length; i++) {
             PublicKey publicKey = factory.generatePublic(new XdhKeySpec(uAsBytes[i]));
             KeySpec publicKeySpec = factory.getKeySpec(publicKey, javaClass);
             BigInteger u = (BigInteger) getUMethod.invoke(publicKeySpec);
-            assertEquals(u, expectedUAsBigIntegers[i]);
+            assertEquals(expectedUAsBigIntegers[i], u);
         }
     }
 
