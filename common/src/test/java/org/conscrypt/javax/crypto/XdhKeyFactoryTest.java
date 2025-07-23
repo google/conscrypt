@@ -16,6 +16,7 @@
 package org.conscrypt.javax.crypto;
 
 import static org.conscrypt.TestUtils.decodeBase64;
+import static org.conscrypt.TestUtils.decodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -34,6 +35,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -191,6 +194,33 @@ public class XdhKeyFactoryTest {
             assertEquals(publicKey, key);
         } catch (NoSuchProviderException e) {
             // Ignored
+        }
+    }
+
+    @Test
+    public void getKeySpec_xECPublicKeySpec_success() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
+        Method getUMethod = javaClass.getMethod("getU");
+
+        // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
+        byte[][] uAsBytes = new byte[][] {
+                decodeHex("0900000000000000000000000000000000000000000000000000000000000000"),
+                decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c"),
+                decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493")};
+        BigInteger[] expectedUAsBigIntegers = new BigInteger[] {BigInteger.valueOf(9),
+                new BigInteger("34426434033919594451155107781188821651"
+                        + "316167215306631574996226621102155684838"),
+                new BigInteger("88838573511839298940907593866106493194"
+                        + "17338800022198945255395922347792736741")};
+        assertEquals(expectedUAsBigIntegers.length, uAsBytes.length);
+        for (int i = 0; i < uAsBytes.length; i++) {
+            PublicKey publicKey = factory.generatePublic(new XdhKeySpec(uAsBytes[i]));
+            KeySpec publicKeySpec = factory.getKeySpec(publicKey, javaClass);
+            BigInteger u = (BigInteger) getUMethod.invoke(publicKeySpec);
+            assertEquals(expectedUAsBigIntegers[i], u);
         }
     }
 
