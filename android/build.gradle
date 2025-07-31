@@ -46,7 +46,7 @@ android {
                         '-DANDROID_STL=c++_static',
                         "-DBORINGSSL_HOME=$boringsslHome",
                         "-DCMAKE_CXX_STANDARD=17",
-                        '-DCMAKE_SHARED_LINKER_FLAGS=-z max-page-size=16384'
+                        '-DCMAKE_SHARED_LINKER_FLAGS=-z max-page-size=16384 -z common-page-size=16384'
                 cFlags '-fvisibility=hidden',
                         '-DBORINGSSL_SHARED_LIBRARY',
                         '-DBORINGSSL_IMPLEMENTATION',
