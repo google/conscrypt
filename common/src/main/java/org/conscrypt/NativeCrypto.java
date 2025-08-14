@@ -1622,6 +1622,31 @@ public final class NativeCrypto {
      */
     static native boolean usesBoringSsl_FIPS_mode();
 
+    /* ECH */
+
+    static native void SSL_set_enable_ech_grease(long ssl, NativeSsl ssl_holder, boolean enable);
+
+    static native boolean SSL_set1_ech_config_list(long ssl, NativeSsl ssl_holder, byte[] echConfig);
+
+    static native String SSL_get0_ech_name_override(long ssl, NativeSsl ssl_holder);
+
+    static native byte[] SSL_get0_ech_retry_configs(long ssl, NativeSsl ssl_holder);
+
+    static native byte[] SSL_marshal_ech_config(short configId, byte[] key, String publicName);
+
+    static native long SSL_ECH_KEYS_new();
+
+    static native void SSL_ECH_KEYS_up_ref(long sslEchKeys);
+
+    static native void SSL_ECH_KEYS_free(long sslEchKeys);
+
+    static native byte[] SSL_ECH_KEYS_marshal_retry_configs(byte[] key);
+
+    static native boolean SSL_ech_accepted(long ssl, NativeSsl ssl_holder);
+
+    static native boolean SSL_CTX_ech_enable_server(long sslCtx, AbstractSessionContext holder,
+                                                    byte[] key, byte[] config);
+
     /**
      * Used for testing only.
      */
