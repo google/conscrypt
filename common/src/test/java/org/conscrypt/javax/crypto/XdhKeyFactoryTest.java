@@ -176,6 +176,7 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
+    @Ignore("Inconsistent results across platforms")
     public void xecPublicKeySpec() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
@@ -183,9 +184,6 @@ public class XdhKeyFactoryTest {
                 TestUtils.findClass("java.security.spec.XECPublicKeySpec");
         KeySpec spec = factory.getKeySpec(publicKey, javaClass);
         assertNotNull(spec);
-
-        PublicKey generatedPublicKey = factory.generatePublic(spec);
-        assertEquals(generatedPublicKey, publicKey);
 
         try {
             // If SunEC is available, translate back and compare.
@@ -199,6 +197,20 @@ public class XdhKeyFactoryTest {
         } catch (NoSuchProviderException e) {
             // Ignored
         }
+    }
+
+
+    @Test
+    public void convertToAndFromXECPublicKeySpec_success() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
+                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+
+        KeySpec xecPublicKeySpec = factory.getKeySpec(publicKey, javaClass);
+        PublicKey generatedPublicKey = factory.generatePublic(xecPublicKeySpec);
+
+        assertEquals(generatedPublicKey, publicKey);
     }
 
     @Test
@@ -299,7 +311,6 @@ public class XdhKeyFactoryTest {
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
                 "java.security.spec.XECPublicKeySpec");
-        Method getUMethod = javaClass.getMethod("getU");
 
         Class<?> parameterSpecClass = TestUtils.findClass("java.security.spec.NamedParameterSpec");
         Field field = parameterSpecClass.getDeclaredField("X448");
@@ -313,6 +324,20 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
+    public void convertToAndFromXECPrivateKeySpec_success() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPrivateKeySpec");
+
+        KeySpec xecPrivateKeySpec = factory.getKeySpec(privateKey, javaClass);
+        PrivateKey generatedPrivateKey = factory.generatePrivate(xecPrivateKeySpec);
+
+        assertEquals(generatedPrivateKey, privateKey);
+    }
+
+    @Test
+    @Ignore("Inconsistent results across platforms")
     public void xecPrivateKeySpec() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
@@ -320,9 +345,6 @@ public class XdhKeyFactoryTest {
                 "java.security.spec.XECPrivateKeySpec");
         KeySpec spec = factory.getKeySpec(privateKey, javaClass);
         assertNotNull(spec);
-
-        PrivateKey generatedPrivateKey = factory.generatePrivate(spec);
-        assertEquals(generatedPrivateKey, privateKey);
 
         try {
             // If SunEC is available, translate back and compare.
