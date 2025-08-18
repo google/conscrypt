@@ -202,7 +202,8 @@ public class XdhKeyFactoryTest {
     }
 
 @Test
-    public void convertToAndFromXECPublicKeySpec_withCanonicalPublicKeys_success() throws Exception {
+    public void convertToAndFromXECPublicKeySpec_withCanonicalPublicKeys_success()
+                throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
@@ -232,21 +233,21 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
-    public void convertToAndFromXECPublicKeySpec_withNonCanonicalPublicKeys_success() throws Exception {
+    public void convertToAndFromXECPublicKeySpec_withNonCanonicalPublicKeys_success()
+                throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
                 "java.security.spec.XECPublicKeySpec");
         Method getUMethod = javaClass.getMethod("getU");
 
-    // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
-    byte[] nonCanonicalRawPublicKey =
-        decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493");
-    byte[] canonicalRawPublicKey =
-        decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a413");
-        BigInteger uAsBigInteger =
-                new BigInteger("88838573511839298940907593866106493194"
-                        + "17338800022198945255395922347792736741");
+        // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
+        byte[] nonCanonicalRawPublicKey =
+                decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493");
+        byte[] canonicalRawPublicKey =
+                decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a413");
+        BigInteger uAsBigInteger = new BigInteger("88838573511839298940907593866106493194"
+                + "17338800022198945255395922347792736741");
         // Convert non-canonical raw public key to XECPublicKeySpec.
         PublicKey publicKey = factory.generatePublic(new XdhKeySpec(nonCanonicalRawPublicKey));
         KeySpec xecPublicKeySpec = factory.getKeySpec(publicKey, javaClass);
@@ -270,24 +271,22 @@ public class XdhKeyFactoryTest {
     public void fromXECPublicKeySpec_withLargeBigInteger_takesModulus() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
-        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
-                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
         Method getUMethod = javaClass.getMethod("getU");
 
         Class<?> parameterSpecClass = TestUtils.findClass("java.security.spec.NamedParameterSpec");
         Field field = parameterSpecClass.getDeclaredField("X25519");
         Object x25519Spec = field.get(null);
-        Constructor<?> xecPublicKeySpecConstructor =
-                javaClass.getConstructor(
-                    TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"),
-                    BigInteger.class);
+        Constructor<?> xecPublicKeySpecConstructor = javaClass.getConstructor(
+                TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"), BigInteger.class);
 
         // Use a public key that is slightly larger than Modulus: 2^255 - 10 = 9 mod (2^255 - 19).
-        BigInteger publicKeyLargerThanModulus = BigInteger.valueOf(2).pow(255).subtract(BigInteger.valueOf(10));
+        BigInteger publicKeyLargerThanModulus =
+                BigInteger.valueOf(2).pow(255).subtract(BigInteger.valueOf(10));
 
-        KeySpec xecPublicKeySpec =
-                (KeySpec) xecPublicKeySpecConstructor.newInstance(
-                        x25519Spec, publicKeyLargerThanModulus);
+        KeySpec xecPublicKeySpec = (KeySpec) xecPublicKeySpecConstructor.newInstance(
+                x25519Spec, publicKeyLargerThanModulus);
         PublicKey publicKey = factory.generatePublic(xecPublicKeySpec);
         KeySpec xecPublicKeySpec2 = factory.getKeySpec(publicKey, javaClass);
         BigInteger u = (BigInteger) getUMethod.invoke(xecPublicKeySpec2);
@@ -304,14 +303,11 @@ public class XdhKeyFactoryTest {
 
         Class<?> parameterSpecClass = TestUtils.findClass("java.security.spec.NamedParameterSpec");
         Field field = parameterSpecClass.getDeclaredField("X448");
-        Object x25519Spec = field.get(null);
-        Constructor<?> xecPublicKeySpecConstructor =
-                javaClass.getConstructor(
-                    TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"),
-                    BigInteger.class);
-        KeySpec xecPublicKeySpec =
-                (KeySpec) xecPublicKeySpecConstructor.newInstance(
-                        x25519Spec, BigInteger.valueOf(9));
+        Object x448Spec = field.get(null);
+        Constructor<?> xecPublicKeySpecConstructor = javaClass.getConstructor(
+                TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"), BigInteger.class);
+        KeySpec xecPublicKeySpec = (KeySpec) xecPublicKeySpecConstructor.newInstance(
+                x448Spec, BigInteger.valueOf(9));
 
         assertThrows(InvalidKeySpecException.class, () -> factory.generatePublic(xecPublicKeySpec));
     }
@@ -320,8 +316,8 @@ public class XdhKeyFactoryTest {
     public void xecPrivateKeySpec() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
-        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
-                TestUtils.findClass("java.security.spec.XECPrivateKeySpec");
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPrivateKeySpec");
         KeySpec spec = factory.getKeySpec(privateKey, javaClass);
         assertNotNull(spec);
 

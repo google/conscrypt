@@ -65,8 +65,7 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
             }
             String keySpecName = getKeySpecName(keySpec);
             if (!keySpecName.equals("X25519")) {
-                throw new InvalidKeySpecException(
-                    keySpecName + " is not supported, only X25519.");
+                throw new InvalidKeySpecException(keySpecName + " is not supported, only X25519.");
             }
             byte[] uArray = ArrayUtils.reverse(u.mod(MODULUS).toByteArray());
             // uArray is little-endian, and may be longer or shorter than 32 bytes.
@@ -97,8 +96,7 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
             }
             String keySpecName = getKeySpecName(keySpec);
             if (!keySpecName.equals("X25519")) {
-                throw new InvalidKeySpecException(
-                    keySpecName + " is not supported, only X25519.");
+                throw new InvalidKeySpecException(keySpecName + " is not supported, only X25519.");
             }
             if (scalar.length != 32) {
                 throw new InvalidKeySpecException(
