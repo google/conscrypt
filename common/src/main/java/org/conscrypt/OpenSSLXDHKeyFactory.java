@@ -41,6 +41,8 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
     private static final Class<?> javaXecPrivateKeySpec = getJavaXECPrivateKeySpec();
     private static final AlgorithmParameterSpec javaX25519AlgorithmSpec
             = getJavaX25519ParameterSpec();
+    private static final BigInteger MODULUS =
+            BigInteger.valueOf(2).pow(255).subtract(BigInteger.valueOf(19));
 
     public OpenSSLXDHKeyFactory() {}
 
@@ -51,6 +53,25 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
         }
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSSLX25519PublicKey((EncodedKeySpec) keySpec);
+        }
+        Class<?> keySpecClass = keySpec.getClass();
+        if (keySpecClass.getName().equals("java.security.spec.XECPublicKeySpec")) {
+            BigInteger u;
+            try {
+                Method getU = keySpecClass.getDeclaredMethod("getU");
+                u = (BigInteger) getU.invoke(keySpec);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Failed to get U from XECPublicKeySpec", e);
+            }
+            String keySpecName = getKeySpecName(keySpec);
+            if (!keySpecName.equals("X25519")) {
+                throw new InvalidKeySpecException(
+                    keySpecName + " is not supported, only X25519.");
+            }
+            byte[] uArray = ArrayUtils.reverse(u.mod(MODULUS).toByteArray());
+            // uArray is little-endian, and may be longer or shorter than 32 bytes.
+            // Arrays.copyOf(u, 32) makes sure that the result is always 32 bytes.
+            return new OpenSSLX25519PublicKey(Arrays.copyOf(uArray, 32));
         }
         throw new InvalidKeySpecException(
                 "Must use XECPublicKeySpec, X509EncodedKeySpec or Raw EncodedKeySpec; was "
@@ -64,6 +85,26 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
         }
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSSLX25519PrivateKey((EncodedKeySpec) keySpec);
+        }
+        Class<?> keySpecClass = keySpec.getClass();
+        if (keySpecClass.getName().equals("java.security.spec.XECPrivateKeySpec")) {
+            byte[] scalar;
+            try {
+                Method getScalar = keySpecClass.getDeclaredMethod("getScalar");
+                scalar = (byte[]) getScalar.invoke(keySpec);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Failed to get scalar from XECPrivateKeySpec", e);
+            }
+            String keySpecName = getKeySpecName(keySpec);
+            if (!keySpecName.equals("X25519")) {
+                throw new InvalidKeySpecException(
+                    keySpecName + " is not supported, only X25519.");
+            }
+            if (scalar.length != 32) {
+                throw new InvalidKeySpecException(
+                        "For X25519 private keys scalar must be 32 bytes");
+            }
+            return new OpenSSLX25519PrivateKey(scalar);
         }
         throw new InvalidKeySpecException(
                 "Must use XECPrivateKeySpec, PKCS8EncodedKeySpec or Raw EncodedKeySpec; was "
@@ -234,6 +275,18 @@ public final class OpenSSLXDHKeyFactory extends KeyFactorySpi {
                  InvocationTargetException e) {
             throw new InvalidKeySpecException(
                     "Could not find java.security.spec.XECPublicKeySpec", e);
+        }
+    }
+
+    private static String getKeySpecName(KeySpec keySpec) {
+        Class<?> keySpecClass = keySpec.getClass();
+        try {
+            Method getParams = keySpecClass.getDeclaredMethod("getParams");
+            Object params = getParams.invoke(keySpec);
+            Method getName = params.getClass().getDeclaredMethod("getName");
+            return (String) getName.invoke(params);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Failed to get name from KeySpec Params", e);
         }
     }
 }

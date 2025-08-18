@@ -35,6 +35,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -174,7 +176,6 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
-    @Ignore("Inconsistent results across platforms")
     public void xecPublicKeySpec() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
@@ -182,6 +183,9 @@ public class XdhKeyFactoryTest {
                 TestUtils.findClass("java.security.spec.XECPublicKeySpec");
         KeySpec spec = factory.getKeySpec(publicKey, javaClass);
         assertNotNull(spec);
+
+        PublicKey generatedPublicKey = factory.generatePublic(spec);
+        assertEquals(generatedPublicKey, publicKey);
 
         try {
             // If SunEC is available, translate back and compare.
@@ -197,8 +201,8 @@ public class XdhKeyFactoryTest {
         }
     }
 
-    @Test
-    public void getKeySpec_xECPublicKeySpec_success() throws Exception {
+@Test
+    public void convertToAndFromXECPublicKeySpec_withCanonicalPublicKeys_success() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
@@ -208,20 +212,86 @@ public class XdhKeyFactoryTest {
         // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
         byte[][] uAsBytes = new byte[][] {
                 decodeHex("0900000000000000000000000000000000000000000000000000000000000000"),
-                decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c"),
-                decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493")};
+                decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c")};
         BigInteger[] expectedUAsBigIntegers = new BigInteger[] {BigInteger.valueOf(9),
                 new BigInteger("34426434033919594451155107781188821651"
-                        + "316167215306631574996226621102155684838"),
-                new BigInteger("88838573511839298940907593866106493194"
-                        + "17338800022198945255395922347792736741")};
+                        + "316167215306631574996226621102155684838")};
         assertEquals(expectedUAsBigIntegers.length, uAsBytes.length);
         for (int i = 0; i < uAsBytes.length; i++) {
+            // Convert raw bytes to XECPublicKeySpec.
             PublicKey publicKey = factory.generatePublic(new XdhKeySpec(uAsBytes[i]));
             KeySpec publicKeySpec = factory.getKeySpec(publicKey, javaClass);
             BigInteger u = (BigInteger) getUMethod.invoke(publicKeySpec);
             assertEquals(expectedUAsBigIntegers[i], u);
+
+            // Convert XECPublicKeySpec to raw bytes.
+            PublicKey publicKey2 = factory.generatePublic(publicKeySpec);
+            XdhKeySpec xdhKeySpec = factory.getKeySpec(publicKey2, XdhKeySpec.class);
+            assertArrayEquals(xdhKeySpec.getKey(), uAsBytes[i]);
         }
+    }
+
+    @Test
+    public void convertToAndFromXECPublicKeySpec_withNonCanonicalPublicKeys_success() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
+        Method getUMethod = javaClass.getMethod("getU");
+
+    // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
+    byte[] nonCanonicalRawPublicKey =
+        decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493");
+    byte[] canonicalRawPublicKey =
+        decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a413");
+        BigInteger uAsBigInteger =
+                new BigInteger("88838573511839298940907593866106493194"
+                        + "17338800022198945255395922347792736741");
+        // Convert non-canonical raw public key to XECPublicKeySpec.
+        PublicKey publicKey = factory.generatePublic(new XdhKeySpec(nonCanonicalRawPublicKey));
+        KeySpec xecPublicKeySpec = factory.getKeySpec(publicKey, javaClass);
+        BigInteger u = (BigInteger) getUMethod.invoke(xecPublicKeySpec);
+        assertEquals(uAsBigInteger, u);
+
+        // Convert XECPublicKeySpec back to a raw key gives the canonical key.
+        PublicKey publicKey2 = factory.generatePublic(xecPublicKeySpec);
+        XdhKeySpec xdhKeySpec = factory.getKeySpec(publicKey2, XdhKeySpec.class);
+        assertArrayEquals(canonicalRawPublicKey, xdhKeySpec.getKey());
+
+        // Check that the canonical raw key gets converted into the same BigInteger as the
+        // non-canonical raw key.
+        PublicKey publicKey3 = factory.generatePublic(new XdhKeySpec(canonicalRawPublicKey));
+        KeySpec xecPublicKeySpec3 = factory.getKeySpec(publicKey3, javaClass);
+        BigInteger u3 = (BigInteger) getUMethod.invoke(xecPublicKeySpec3);
+        assertEquals(uAsBigInteger, u3);
+    }
+
+    @Test
+    public void getKeySpec_acceptsULargerThanModulus() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
+                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Method getUMethod = javaClass.getMethod("getU");
+
+        Class<?> parameterSpecClass = TestUtils.findClass("java.security.spec.NamedParameterSpec");
+        Field field = parameterSpecClass.getDeclaredField("X25519");
+        Object x25519Spec = field.get(null);
+        Constructor<?> xecPublicKeySpecConstructor =
+                javaClass.getConstructor(
+                    TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"),
+                    BigInteger.class);
+
+        // Use a public key that is slightly larger than Modulus: 2^255 - 10 = 9 mod (2^255 - 19).
+        BigInteger publicKeyLargerThanModulus = BigInteger.valueOf(2).pow(255).subtract(BigInteger.valueOf(10));
+
+        KeySpec xecPublicKeySpec =
+                (KeySpec) xecPublicKeySpecConstructor.newInstance(
+                        x25519Spec, publicKeyLargerThanModulus);
+        PublicKey publicKey = factory.generatePublic(xecPublicKeySpec);
+        KeySpec xecPublicKeySpec2 = factory.getKeySpec(publicKey, javaClass);
+        BigInteger u = (BigInteger) getUMethod.invoke(xecPublicKeySpec2);
+        assertEquals(BigInteger.valueOf(9), u);
     }
 
     @Test
