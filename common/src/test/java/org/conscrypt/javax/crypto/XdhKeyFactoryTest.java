@@ -267,7 +267,7 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
-    public void getKeySpec_acceptsULargerThanModulus() throws Exception {
+    public void fromXECPublicKeySpec_withLargeBigInteger_takesModulus() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
@@ -295,7 +295,28 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
-    @Ignore("Inconsistent results across platforms")
+    public void fromXECPublicKeySpec_withX448_isNotSupported() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
+                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Method getUMethod = javaClass.getMethod("getU");
+
+        Class<?> parameterSpecClass = TestUtils.findClass("java.security.spec.NamedParameterSpec");
+        Field field = parameterSpecClass.getDeclaredField("X448");
+        Object x25519Spec = field.get(null);
+        Constructor<?> xecPublicKeySpecConstructor =
+                javaClass.getConstructor(
+                    TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"),
+                    BigInteger.class);
+        KeySpec xecPublicKeySpec =
+                (KeySpec) xecPublicKeySpecConstructor.newInstance(
+                        x25519Spec, BigInteger.valueOf(9));
+
+        assertThrows(InvalidKeySpecException.class, () -> factory.generatePublic(xecPublicKeySpec));
+    }
+
+    @Test
     public void xecPrivateKeySpec() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
@@ -303,6 +324,10 @@ public class XdhKeyFactoryTest {
                 TestUtils.findClass("java.security.spec.XECPrivateKeySpec");
         KeySpec spec = factory.getKeySpec(privateKey, javaClass);
         assertNotNull(spec);
+
+        PrivateKey generatedPrivateKey = factory.generatePrivate(spec);
+        assertEquals(generatedPrivateKey, privateKey);
+
         try {
             // If SunEC is available, translate back and compare.
             KeyFactory sunKf = KeyFactory.getInstance("XDH", "SunEC");
