@@ -204,8 +204,8 @@ public class XdhKeyFactoryTest {
     public void convertToAndFromXECPublicKeySpec_success() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
-        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
-                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
 
         KeySpec xecPublicKeySpec = factory.getKeySpec(publicKey, javaClass);
         PublicKey generatedPublicKey = factory.generatePublic(xecPublicKeySpec);
