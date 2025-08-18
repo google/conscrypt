@@ -201,9 +201,9 @@ public class XdhKeyFactoryTest {
         }
     }
 
-@Test
+    @Test
     public void convertToAndFromXECPublicKeySpec_withCanonicalPublicKeys_success()
-                throws Exception {
+            throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
@@ -234,7 +234,7 @@ public class XdhKeyFactoryTest {
 
     @Test
     public void convertToAndFromXECPublicKeySpec_withNonCanonicalPublicKeys_success()
-                throws Exception {
+            throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
         Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
@@ -297,8 +297,8 @@ public class XdhKeyFactoryTest {
     public void fromXECPublicKeySpec_withX448_isNotSupported() throws Exception {
         TestUtils.assumeXecClassesAvailable();
         @SuppressWarnings("unchecked")
-        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>)
-                TestUtils.findClass("java.security.spec.XECPublicKeySpec");
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
         Method getUMethod = javaClass.getMethod("getU");
 
         Class<?> parameterSpecClass = TestUtils.findClass("java.security.spec.NamedParameterSpec");
@@ -306,8 +306,8 @@ public class XdhKeyFactoryTest {
         Object x448Spec = field.get(null);
         Constructor<?> xecPublicKeySpecConstructor = javaClass.getConstructor(
                 TestUtils.findClass("java.security.spec.AlgorithmParameterSpec"), BigInteger.class);
-        KeySpec xecPublicKeySpec = (KeySpec) xecPublicKeySpecConstructor.newInstance(
-                x448Spec, BigInteger.valueOf(9));
+        KeySpec xecPublicKeySpec =
+                (KeySpec) xecPublicKeySpecConstructor.newInstance(x448Spec, BigInteger.valueOf(9));
 
         assertThrows(InvalidKeySpecException.class, () -> factory.generatePublic(xecPublicKeySpec));
     }
