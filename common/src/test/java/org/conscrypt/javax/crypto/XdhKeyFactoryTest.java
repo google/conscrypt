@@ -199,7 +199,6 @@ public class XdhKeyFactoryTest {
         }
     }
 
-
     @Test
     public void convertToAndFromXECPublicKeySpec_success() throws Exception {
         TestUtils.assumeXecClassesAvailable();
