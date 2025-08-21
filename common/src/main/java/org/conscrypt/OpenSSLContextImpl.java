@@ -56,7 +56,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     SSLParametersImpl sslParameters;
 
     /** Allows outside callers to get the preferred SSLContext. */
-    static OpenSSLContextImpl getPreferred() {
+    public static OpenSSLContextImpl getPreferred() {
         return new TLSv13();
     }
 

@@ -17,6 +17,8 @@ package org.conscrypt;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
@@ -441,9 +443,22 @@ public final class Conscrypt {
      *
      * @param socket the socket
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
+     * @throws IllegalArgumentException if the socket is not a Conscrypt socket.
      */
     public static String getApplicationProtocol(SSLSocket socket) {
-        return toConscrypt(socket).getApplicationProtocol();
+        if (isConscrypt(socket)) {
+            return toConscrypt(socket).getApplicationProtocol();
+        }
+        try {
+            if (!Class.forName("com.android.org.conscrypt.AbstractConscryptSocket").isInstance(socket)) {
+                throw new IllegalArgumentException(
+                        "Not a conscrypt socket: " + socket.getClass().getName());
+            }
+            return invokeConscryptMethod(socket, "getApplicationProtocol");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt socket: " + socket.getClass().getName(), e);
+        }
     }
 
     /**
@@ -721,9 +736,22 @@ public final class Conscrypt {
      *
      * @param engine the engine
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
+     * @throws IllegalArgumentException if the engine is not a Conscrypt engine.
      */
     public static String getApplicationProtocol(SSLEngine engine) {
-        return toConscrypt(engine).getApplicationProtocol();
+        if (isConscrypt(engine)) {
+            return toConscrypt(engine).getApplicationProtocol();
+        }
+        try {
+            if (!Class.forName("com.android.org.conscrypt.AbstractConscryptEngine").isInstance(engine)) {
+                throw new IllegalArgumentException(
+                        "Not a conscrypt engine: " + engine.getClass().getName());
+            }
+            return invokeConscryptMethod(engine, "getApplicationProtocol");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt engine: " + engine.getClass().getName(), e);
+        }
     }
 
     /**
@@ -822,5 +850,59 @@ public final class Conscrypt {
                 return verifier.verify(hostname, session);
             }
         };
+    }
+
+    /**
+     * Generic helper method for invoking methods on potentially non-Conscrypt SSLSocket/SSLEngine
+     * instances via reflection.
+     *
+     * @param instance The SSLSocket or SSLEngine instance.
+     * @param methodName The name of the method to invoke.
+     * @return String.
+     * @throws IllegalArgumentException if the method cannot be invoked or throws a checked exception.
+     * @throws IllegalStateException if the method throws an IllegalStateException.
+     * @throws RuntimeException if the method throws a RuntimeException.
+     * @throws Error if the method throws an Error.
+     */
+    private static String invokeConscryptMethod(Object instance, String methodName)
+            throws IllegalArgumentException {
+        try {
+            Method method = instance.getClass().getMethod(methodName);
+            Object result = method.invoke(instance);
+            return (String) result;
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SSLException
+                    || cause instanceof IOException) {
+                IllegalArgumentException wrapped =
+                    new IllegalArgumentException(
+                        "Reflected method '"
+                            + methodName
+                            + "' threw a checked exception.",
+                        cause);
+                throw wrapped;
+            } else if (cause instanceof IllegalStateException) {
+                throw (IllegalStateException) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else if (cause instanceof Error) {
+                throw (Error) cause;
+            } else {
+                throw new RuntimeException(
+                        "Reflected method '" + methodName + "' threw an unexpected exception", cause);
+            }
+        } catch (Exception e) {
+            String className = instance.getClass().getName();
+            IllegalArgumentException wrapped =
+                new IllegalArgumentException(
+                    "Failed reflection fallback for method '"
+                        + methodName
+                        + "' on class '"
+                        + className
+                        + ", message: "
+                        + e.getMessage(),
+                    e);
+            throw wrapped;
+        }
     }
 }
