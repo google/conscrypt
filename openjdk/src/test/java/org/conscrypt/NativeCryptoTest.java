@@ -3431,7 +3431,7 @@ public class NativeCryptoTest {
 
     @Test
     public void hpkeWithX25519Sha256_export_returnsValueAsInRfc9180() throws Exception {
-        // Test Vector from RFC 9180, Section A.1.1.1
+        // Test Vector from RFC 9180, Section A.1.1.2
         byte[] info = decodeHex("4f6465206f6e2061204772656369616e2055726e");
         byte[] skRecipient =
                 decodeHex("4612c550263fc8ad58375df3f557aac531d26850903e55a9f23f21d8534e8ac8");
