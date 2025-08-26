@@ -3336,7 +3336,7 @@ public class NativeCryptoTest {
     private static final int EXPORT_ONLY = 0xFFFF;
 
     @Test
-    public void hpke_works() throws Exception {
+    public void hpkeWithX25519Sha256_sealAndOpen_success() throws Exception {
         byte[] pkRecipient = new byte[32];
         byte[] skRecipient = new byte[32];
         NativeCrypto.X25519_keypair(pkRecipient, skRecipient);
@@ -3361,6 +3361,15 @@ public class NativeCryptoTest {
 
             assertArrayEquals(plaintext, output);
         }
+    }
+
+    @Test
+    public void hpkeWithUnsupportedAlgorithms_setup_throwsIllegalArgumentException()
+            throws Exception {
+        byte[] pkRecipient = new byte[32];
+        byte[] skRecipient = new byte[32];
+        NativeCrypto.X25519_keypair(pkRecipient, skRecipient);
+        byte[] info = decodeHex("aa");
 
         // These KEM IDs are currently not supported in Conscrypt.
         assertThrows(IllegalArgumentException.class,
@@ -3401,7 +3410,7 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void hpkeOpen_withTestVectors_works() throws Exception {
+    public void hpkeWithX25519Sha256_openWithRfc9180TestVector_success() throws Exception {
         // Test Vector from RFC 9180, Section A.1.1.1
         byte[] info = decodeHex("4f6465206f6e2061204772656369616e2055726e");
         byte[] skRecipient =
@@ -3421,7 +3430,7 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void hpkeExport_withTestVectors_works() throws Exception {
+    public void hpkeWithX25519Sha256_export_returnsValueAsInRfc9180() throws Exception {
         // Test Vector from RFC 9180, Section A.1.1.1
         byte[] info = decodeHex("4f6465206f6e2061204772656369616e2055726e");
         byte[] skRecipient =
