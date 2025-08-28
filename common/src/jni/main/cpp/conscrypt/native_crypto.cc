@@ -11822,10 +11822,11 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 
 // TESTING METHODS END
 
-#define CONSCRYPT_NATIVE_METHOD(functionName, signature) \
-    {/* NOLINTNEXTLINE */                                \
-     (char*)#functionName, (char*)(signature),           \
-     reinterpret_cast<void*>(NativeCrypto_##functionName)}
+#define CONSCRYPT_NATIVE_METHOD(functionName, signature)             \
+    { /* NOLINTNEXTLINE */                                           \
+        (char*)#functionName, (char*)(signature),                    \
+                reinterpret_cast<void*>(NativeCrypto_##functionName) \
+    }
 
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS \
