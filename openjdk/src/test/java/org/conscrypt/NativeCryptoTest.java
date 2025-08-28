@@ -3317,6 +3317,26 @@ public class NativeCryptoTest {
                 () -> NativeCrypto.ECDSA_verify(data, invalidDataLen, signature, publicKey));
     }
 
+    @Test
+    public void xwingPublicKeyFromSeed_returnsPublicKeyIfPrivateKeyIsValid() throws Exception {
+        // test vector from
+        // https://datatracker.ietf.org/doc/html/draft-connolly-cfrg-xwing-kem-06#appendix-C
+        byte[] privateKey =
+                decodeHex("7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26");
+
+        byte[] publicKey = NativeCrypto.XWING_public_key_from_seed(privateKey);
+        assertEquals(1216, publicKey.length);
+        // verify that the first 8 bytes of the public key are as expected.
+        assertArrayEquals(decodeHex("e2236b35a8c24b39"), Arrays.copyOf(publicKey, 8));
+
+        byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.XWING_public_key_from_seed(privateKeyTooShort));
+        byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.XWING_public_key_from_seed(privateKeyTooLong));
+    }
+
     // HPKE constants.
     // see: https://www.iana.org/assignments/hpke/hpke.xhtml
     // KEM IDs
