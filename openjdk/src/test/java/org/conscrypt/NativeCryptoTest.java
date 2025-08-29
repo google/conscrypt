@@ -3317,6 +3317,26 @@ public class NativeCryptoTest {
                 () -> NativeCrypto.ECDSA_verify(data, invalidDataLen, signature, publicKey));
     }
 
+    @Test
+    public void xwingPublicKeyFromSeed_returnsPublicKeyIfPrivateKeyIsValid() throws Exception {
+        // test vector from
+        // https://datatracker.ietf.org/doc/html/draft-connolly-cfrg-xwing-kem-06#appendix-C
+        byte[] privateKey =
+                decodeHex("7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26");
+
+        byte[] publicKey = NativeCrypto.XWING_public_key_from_seed(privateKey);
+        assertEquals(1216, publicKey.length);
+        // verify that the first 8 bytes of the public key are as expected.
+        assertArrayEquals(decodeHex("e2236b35a8c24b39"), Arrays.copyOf(publicKey, 8));
+
+        byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.XWING_public_key_from_seed(privateKeyTooShort));
+        byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
+        assertThrows(RuntimeException.class,
+                () -> NativeCrypto.XWING_public_key_from_seed(privateKeyTooLong));
+    }
+
     // HPKE constants.
     // see: https://www.iana.org/assignments/hpke/hpke.xhtml
     // KEM IDs
@@ -3325,6 +3345,7 @@ public class NativeCryptoTest {
     private static final int DHKEM_P521_HKDF_SHA512 = 0x0012;
     private static final int DHKEM_X25519_HKDF_SHA256 = 0x0020;
     private static final int DHKEM_X448_HKDF_SHA256 = 0x0021;
+    private static final int XWING = 0x647a;
     // KDF IDs
     private static final int HKDF_SHA256 = 0x0001;
     private static final int HKDF_SHA384 = 0x0002;
@@ -3361,6 +3382,33 @@ public class NativeCryptoTest {
 
             assertArrayEquals(plaintext, output);
         }
+    }
+
+    @Test
+    public void hpkeWithXwing_publicKeyFromSeedSealOpen_success() throws Exception {
+        byte[] privateKey =
+                decodeHex("7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26");
+        byte[] publicKey = NativeCrypto.XWING_public_key_from_seed(privateKey);
+
+        byte[] info = decodeHex("aa");
+        byte[] plaintext = decodeHex("bb");
+        byte[] aad = decodeHex("cc");
+
+        Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender(
+                XWING, HKDF_SHA256, HKDF_SHA256, publicKey, info);
+        NativeRef.EVP_HPKE_CTX ctxSender = (NativeRef.EVP_HPKE_CTX) result[0];
+        byte[] encapsulated = (byte[]) result[1];
+        assertEquals(1120, encapsulated.length);
+
+        byte[] ciphertext = NativeCrypto.EVP_HPKE_CTX_seal(ctxSender, plaintext, aad);
+
+        NativeRef.EVP_HPKE_CTX ctxRecipient =
+                (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_base_mode_recipient(
+                        /* kem= */ 0x647a, /*kdf=*/0x0001, /* aead= */ 0x0001, privateKey,
+                        encapsulated, info);
+        byte[] output = NativeCrypto.EVP_HPKE_CTX_open(ctxRecipient, ciphertext, aad);
+
+        assertArrayEquals(plaintext, output);
     }
 
     @Test

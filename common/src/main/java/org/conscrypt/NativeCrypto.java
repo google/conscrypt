@@ -244,6 +244,10 @@ public final class NativeCrypto {
 
     static native void ED25519_keypair(byte[] outPublicKey, byte[] outPrivateKey);
 
+    // --- X-Wing --------------
+
+    static native byte[] XWING_public_key_from_seed(byte[] privateKeySeed);
+
     // --- Message digest functions --------------
 
     // These return const references
