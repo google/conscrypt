@@ -65,7 +65,6 @@ public final class NativeCrypto {
         UnsatisfiedLinkError error = null;
         try {
             NativeCryptoJni.init();
-            clinit();
         } catch (UnsatisfiedLinkError t) {
             // Don't rethrow the error, so that we can later on interrogate the
             // value of loadError.
@@ -74,8 +73,6 @@ public final class NativeCrypto {
         loadError = error;
         setTlsV1DeprecationStatus(Platform.isTlsV1Deprecated(), Platform.isTlsV1Supported());
     }
-
-    private native static void clinit();
 
     /**
      * Checks to see whether or not the native library was successfully loaded. If not, throws
