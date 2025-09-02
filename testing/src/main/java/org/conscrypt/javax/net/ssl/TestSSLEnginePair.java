@@ -75,9 +75,8 @@ public final class TestSSLEnginePair implements Closeable {
      * Create a new connected server/client engine pair within a
      * existing SSLContext.
      */
-    public static SSLEngine[] connect(final TestSSLContext c,
-            Hooks hooks,
-            boolean[] finished) throws IOException {
+    public static SSLEngine[] connect(final TestSSLContext c, Hooks hooks, boolean[] finished)
+            throws IOException {
         if (hooks == null) {
             hooks = new Hooks();
         }
