@@ -77,7 +77,7 @@ public final class TestSSLEnginePair implements Closeable {
      */
     public static SSLEngine[] connect(final TestSSLContext c,
             Hooks hooks,
-            boolean finished[]) throws IOException {
+            boolean[] finished) throws IOException {
         if (hooks == null) {
             hooks = new Hooks();
         }
