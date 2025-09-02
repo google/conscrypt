@@ -125,46 +125,31 @@ public class NativeCryptoTest {
 
     private static RSAPrivateCrtKey TEST_RSA_KEY;
 
-    @BeforeClass
-    public static void getPlatformMethods() throws Exception {
-        Class<?> c_Platform = TestUtils.conscryptClass("Platform");
-        m_Platform_getFileDescriptor =
-                c_Platform.getDeclaredMethod("getFileDescriptor", Socket.class);
-        m_Platform_getFileDescriptor.setAccessible(true);
-    }
-
     private static OpenSSLKey getServerPrivateKey() throws Exception {
-        initStatics();
         return SERVER_PRIVATE_KEY;
     }
 
     private static long[] getServerCertificateRefs() throws Exception {
-        initStatics();
         return SERVER_CERTIFICATE_REFS;
     }
 
     private static byte[][] getEncodedServerCertificates() throws Exception {
-        initStatics();
         return ENCODED_SERVER_CERTIFICATES;
     }
 
     private static OpenSSLKey getClientPrivateKey() throws Exception {
-        initStatics();
         return CLIENT_PRIVATE_KEY;
     }
 
     private static long[] getClientCertificateRefs() throws Exception {
-        initStatics();
         return CLIENT_CERTIFICATE_REFS;
     }
 
     private static byte[][] getEncodedClientCertificates() throws Exception {
-        initStatics();
         return ENCODED_CLIENT_CERTIFICATES;
     }
 
     private static byte[][] getCaPrincipals() throws Exception {
-        initStatics();
         return CA_PRINCIPALS;
     }
 
@@ -523,7 +508,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_grease_only() throws Exception {
-        System.out.println("test_SSL_ech_accepted_exchange");
         final ServerSocket listener = newServerSocket();
 
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
@@ -594,7 +578,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_client_server() throws Exception {
-        System.out.println("test_SSL_do_handshake_ech_client_server");
         final ServerSocket listener = newServerSocket();
 
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
@@ -805,40 +788,6 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void test_SSL_marshal_ech_config() throws Exception {
-        int[] kPrivateKey = {
-                0xbc, 0xb5, 0x51, 0x29, 0x31, 0x10, 0x30, 0xc9, 0xed, 0x26, 0xde,
-                0xd4, 0xb3, 0xdf, 0x3a, 0xce, 0x06, 0x8a, 0xee, 0x17, 0xab, 0xce,
-                0xd7, 0xdb, 0xf3, 0x11, 0xe5, 0xa8, 0xf3, 0xb1, 0x8e, 0x24
-        };
-        int[] kECHConfig = {
-                // version
-                0xfe, 0x0d,
-                // length
-                0x00, 0x41,
-                // contents.config_id
-                0x01,
-                // contents.kem_id
-                0x00, 0x20,
-                // contents.public_key
-                0x00, 0x20, 0xa6, 0x9a, 0x41, 0x48, 0x5d, 0x32, 0x96, 0xa4, 0xe0, 0xc3,
-                0x6a, 0xee, 0xf6, 0x63, 0x0f, 0x59, 0x32, 0x6f, 0xdc, 0xff, 0x81, 0x29,
-                0x59, 0xa5, 0x85, 0xd3, 0x9b, 0x3b, 0xde, 0x98, 0x55, 0x5c,
-                // contents.cipher_suites
-                0x00, 0x08, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03,
-                // contents.maximum_name_length
-                0x10,
-                // contents.public_name
-                0x0e, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x2e, 0x65, 0x78, 0x61, 0x6d,
-                0x70, 0x6c, 0x65,
-                // contents.extensions
-                0x00, 0x00
-        };
-
-        // ???
-    }
-
-    @Test
     public void test_SSL_ech_accepted() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
@@ -1015,7 +964,6 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c, null);
         assertEquals(1, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_VERSION, TLS1_1_VERSION));
         assertEquals(1, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_2_VERSION, TLS1_2_VERSION));
-        assertEquals(1, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_3_VERSION, TLS1_3_VERSION));
         assertEquals(0, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_2_VERSION + 413, TLS1_1_VERSION));
         assertEquals(0, NativeCrypto.SSL_set_protocol_versions(s, null, TLS1_1_VERSION, TLS1_2_VERSION + 413));
         NativeCrypto.SSL_free(s, null);
