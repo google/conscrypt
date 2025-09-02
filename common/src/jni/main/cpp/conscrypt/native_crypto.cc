@@ -826,14 +826,6 @@ void init_engine_globals() {
 #define THROWN_EXCEPTION (-4)
 
 /**
- * Initialization phase for every OpenSSL job: Loads the Error strings, the
- * crypto algorithms and reset the OpenSSL library
- */
-static void NativeCrypto_clinit(JNIEnv*, jclass) {
-    CRYPTO_library_init();
-}
-
-/**
  * private static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
  */
 static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jbyteArray e,
@@ -11853,7 +11845,6 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_SSL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl;"
 #define REF_SSL_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/AbstractSessionContext;"
 static JNINativeMethod sNativeCryptoMethods[] = {
-        CONSCRYPT_NATIVE_METHOD(clinit, "()V"),
         CONSCRYPT_NATIVE_METHOD(CMAC_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(CMAC_CTX_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(CMAC_Init, "(" REF_CMAC_CTX "[B)V"),
