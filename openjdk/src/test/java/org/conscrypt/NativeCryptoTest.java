@@ -3037,10 +3037,11 @@ public class NativeCryptoTest {
         }
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void EVP_CipherInit_ex_withNullCtxShouldThrow() throws Exception {
         final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
-        NativeCrypto.EVP_CipherInit_ex(null, evpCipher, null, null, true);
+        assertThrows(NullPointerException.class,
+                () -> NativeCrypto.EVP_CipherInit_ex(null, evpCipher, null, null, true));
     }
 
     @Test
