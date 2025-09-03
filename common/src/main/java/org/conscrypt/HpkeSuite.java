@@ -144,7 +144,7 @@ public final class HpkeSuite {
      */
     public enum KEM {
         DHKEM_X25519_HKDF_SHA256(
-                /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32);
+                /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32),
         XWING(/* id= */ 0x647a, /* nSecret= */ 32, /* nEnc= */ 1120, /* nPk= */ 1216,
                 /* nSk= */ 32);
 
