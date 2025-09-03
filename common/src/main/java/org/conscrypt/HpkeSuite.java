@@ -36,6 +36,11 @@ public final class HpkeSuite {
     public static final int KEM_DHKEM_X25519_HKDF_SHA256 = 0x0020;
 
     /**
+     * KEM: 0x647a X-Wing
+     */
+    public static final int KEM_XWING = 0x647a;
+
+    /**
      * KDF: 0x0001 HKDF-SHA256
      */
     public static final int KDF_HKDF_SHA256 = 0x0001;
