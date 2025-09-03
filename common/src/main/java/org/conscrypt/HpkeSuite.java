@@ -140,10 +140,12 @@ public final class HpkeSuite {
      *
      * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">
      *         rfc9180 </a>
+     * @see <a href="https://www.iana.org/assignments/hpke/hpke.xhtml">IANA HPKE</a>
      */
     public enum KEM {
         DHKEM_X25519_HKDF_SHA256(
                 /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32);
+        XWING(/* id= */ 0x647a, /* nSecret= */ 32, /* nEnc= */ 1120, /* nPk= */ 1216, /* nSk= */ 32);
 
         private final int id;
         private final int nSecret;
