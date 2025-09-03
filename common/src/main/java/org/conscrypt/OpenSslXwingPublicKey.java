@@ -25,6 +25,8 @@ import java.util.Arrays;
 
 /** An X-Wing public key. */
 public class OpenSslXwingPublicKey implements PublicKey {
+    private static final long serialVersionUID = 1L;
+
     static final int PUBLIC_KEY_SIZE_BYTES = 1216;
 
     private final byte[] raw;
