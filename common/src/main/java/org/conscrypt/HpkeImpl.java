@@ -46,15 +46,15 @@ public class HpkeImpl implements HpkeSpi {
   }
 
   byte[] getPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
-    if (publicKey == null) {
-      throw new InvalidKeyException("null recipient key");
-    } else if ((publicKey instanceof OpenSSLX25519PublicKey)) {
-      return ((OpenSSLX25519PublicKey) publicKey).getU();
-    } else if ((publicKey instanceof OpenSslXwingPublicKey)) {
-      return ((OpenSslXwingPublicKey) publicKey).getRaw();
-    } else {
-      throw new InvalidKeyException("Unsupported recipient key class: " + publicKey.getClass());
-    }
+      if (publicKey == null) {
+          throw new InvalidKeyException("null recipient key");
+      } else if ((publicKey instanceof OpenSSLX25519PublicKey)) {
+          return ((OpenSSLX25519PublicKey) publicKey).getU();
+      } else if ((publicKey instanceof OpenSslXwingPublicKey)) {
+          return ((OpenSslXwingPublicKey) publicKey).getRaw();
+      } else {
+          throw new InvalidKeyException("Unsupported recipient key class: " + publicKey.getClass());
+      }
   }
 
   @Override
@@ -83,16 +83,16 @@ public class HpkeImpl implements HpkeSpi {
   }
 
   byte[] getPrivateKeyBytes(PrivateKey privateKey) throws InvalidKeyException {
-    if (privateKey == null) {
-      throw new InvalidKeyException("null recipient private key");
-    } else if ((privateKey instanceof OpenSSLX25519PrivateKey)) {
-      return ((OpenSSLX25519PrivateKey) privateKey).getU();
-    } else if ((privateKey instanceof OpenSslXwingPrivateKey)) {
-      return ((OpenSslXwingPrivateKey) privateKey).getRaw();
-    } else {
-      throw new InvalidKeyException(
-          "Unsupported recipient private key class: " + privateKey.getClass());
-    }
+      if (privateKey == null) {
+          throw new InvalidKeyException("null recipient private key");
+      } else if ((privateKey instanceof OpenSSLX25519PrivateKey)) {
+          return ((OpenSSLX25519PrivateKey) privateKey).getU();
+      } else if ((privateKey instanceof OpenSslXwingPrivateKey)) {
+          return ((OpenSslXwingPrivateKey) privateKey).getRaw();
+      } else {
+          throw new InvalidKeyException(
+                  "Unsupported recipient private key class: " + privateKey.getClass());
+      }
   }
 
   @Override
@@ -202,22 +202,22 @@ public class HpkeImpl implements HpkeSpi {
 
   /** Implementation of XWING/HKDF_SHA256/AES_128_GCM. */
   public static class XwingHkdfSha256Aes128Gcm extends HpkeImpl {
-    public XwingHkdfSha256Aes128Gcm() {
-      super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
-    }
+      public XwingHkdfSha256Aes128Gcm() {
+          super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+      }
   }
 
   /** Implementation of XWING/HKDF_SHA256/AES_256_GCM. */
   public static class XwingHkdfSha256Aes256Gcm extends HpkeImpl {
-    public XwingHkdfSha256Aes256Gcm() {
-      super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
-    }
+      public XwingHkdfSha256Aes256Gcm() {
+          super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+      }
   }
 
   /** Implementation of XWING/HKDF_SHA256/CHACHA20_POLY1305. */
   public static class XwingHkdfSha256ChaCha20Poly1305 extends HpkeImpl {
-    public XwingHkdfSha256ChaCha20Poly1305() {
-      super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
-    }
+      public XwingHkdfSha256ChaCha20Poly1305() {
+          super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+      }
   }
 }

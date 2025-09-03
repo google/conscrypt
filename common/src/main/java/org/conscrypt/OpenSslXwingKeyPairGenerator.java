@@ -26,25 +26,23 @@ import java.security.KeyPairGenerator;
  */
 @Internal
 public final class OpenSslXwingKeyPairGenerator extends KeyPairGenerator {
-
-  public OpenSslXwingKeyPairGenerator() {
-    super("XWING");
-  }
-
-  @Override
-  public void initialize(int bits) throws InvalidParameterException {
-    if (bits != -1) {
-      throw new InvalidParameterException("XWING only supports -1 for bits");
+    public OpenSslXwingKeyPairGenerator() {
+        super("XWING");
     }
-  }
 
-  @Override
-  public KeyPair generateKeyPair() {
-    byte[] privateKeyBytes = new byte[OpenSslXwingPrivateKey.PRIVATE_KEY_SIZE_BYTES];
-    NativeCrypto.RAND_bytes(privateKeyBytes);
-    byte[] publicKeyBytes = NativeCrypto.XWING_public_key_from_seed(privateKeyBytes);
-    return new KeyPair(
-        new OpenSslXwingPublicKey(publicKeyBytes), new OpenSslXwingPrivateKey(privateKeyBytes));
-  }
+    @Override
+    public void initialize(int bits) throws InvalidParameterException {
+        if (bits != -1) {
+            throw new InvalidParameterException("XWING only supports -1 for bits");
+        }
+    }
+
+    @Override
+    public KeyPair generateKeyPair() {
+        byte[] privateKeyBytes = new byte[OpenSslXwingPrivateKey.PRIVATE_KEY_SIZE_BYTES];
+        NativeCrypto.RAND_bytes(privateKeyBytes);
+        byte[] publicKeyBytes = NativeCrypto.XWING_public_key_from_seed(privateKeyBytes);
+        return new KeyPair(new OpenSslXwingPublicKey(publicKeyBytes),
+                new OpenSslXwingPrivateKey(privateKeyBytes));
+    }
 }
-

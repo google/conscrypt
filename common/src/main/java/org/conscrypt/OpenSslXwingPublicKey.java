@@ -25,81 +25,80 @@ import java.util.Arrays;
 
 /** An X-Wing public key. */
 public class OpenSslXwingPublicKey implements PublicKey {
-  static final int PUBLIC_KEY_SIZE_BYTES = 1216;
+    static final int PUBLIC_KEY_SIZE_BYTES = 1216;
 
-  private final byte[] raw;
+    private final byte[] raw;
 
-  public OpenSslXwingPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
-    byte[] encoded = keySpec.getEncoded();
-    if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-      if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
-        throw new InvalidKeySpecException("Invalid key size");
-      }
-      raw = encoded;
-    } else {
-      throw new InvalidKeySpecException("Encoding must be in raw format");
-    }
-  }
-
-  public OpenSslXwingPublicKey(byte[] raw) {
-    if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
-      throw new IllegalArgumentException("Invalid key size");
-    }
-    this.raw = raw.clone();
-  }
-
-  @Override
-  public String getAlgorithm() {
-    return "XWING";
-  }
-
-  @Override
-  public String getFormat() {
-    throw new UnsupportedOperationException("getFormat() not yet supported");
-  }
-
-  @Override
-  public byte[] getEncoded() {
-    throw new UnsupportedOperationException("getEncoded() not yet supported");
-  }
-
-  byte[] getRaw() {
-    if (raw == null) {
-      throw new IllegalStateException("key is destroyed");
-    }
-    return raw.clone();
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (raw == null) {
-      throw new IllegalStateException("key is destroyed");
+    public OpenSslXwingPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
+        byte[] encoded = keySpec.getEncoded();
+        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+            if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
+                throw new InvalidKeySpecException("Invalid key size");
+            }
+            raw = encoded;
+        } else {
+            throw new InvalidKeySpecException("Encoding must be in raw format");
+        }
     }
 
-    if (this == o) {
-      return true;
+    public OpenSslXwingPublicKey(byte[] raw) {
+        if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
+            throw new IllegalArgumentException("Invalid key size");
+        }
+        this.raw = raw.clone();
     }
-    if (!(o instanceof OpenSslXwingPublicKey)) {
-      return false;
+
+    @Override
+    public String getAlgorithm() {
+        return "XWING";
     }
-    OpenSslXwingPublicKey that = (OpenSslXwingPublicKey) o;
-    return Arrays.equals(raw, that.raw);
-  }
 
-  @Override
-  public int hashCode() {
-    if (raw == null) {
-      throw new IllegalStateException("key is destroyed");
+    @Override
+    public String getFormat() {
+        throw new UnsupportedOperationException("getFormat() not yet supported");
     }
-    return Arrays.hashCode(raw);
-  }
 
-  private void readObject(ObjectInputStream in) {
-    throw new UnsupportedOperationException("serialization not supported");
-  }
+    @Override
+    public byte[] getEncoded() {
+        throw new UnsupportedOperationException("getEncoded() not yet supported");
+    }
 
-  private void writeObject(ObjectOutputStream out) {
-    throw new UnsupportedOperationException("serialization not supported");
-  }
+    byte[] getRaw() {
+        if (raw == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        return raw.clone();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (raw == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof OpenSslXwingPublicKey)) {
+            return false;
+        }
+        OpenSslXwingPublicKey that = (OpenSslXwingPublicKey) o;
+        return Arrays.equals(raw, that.raw);
+    }
+
+    @Override
+    public int hashCode() {
+        if (raw == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        return Arrays.hashCode(raw);
+    }
+
+    private void readObject(ObjectInputStream in) {
+        throw new UnsupportedOperationException("serialization not supported");
+    }
+
+    private void writeObject(ObjectOutputStream out) {
+        throw new UnsupportedOperationException("serialization not supported");
+    }
 }
-

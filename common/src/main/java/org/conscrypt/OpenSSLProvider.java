@@ -588,7 +588,7 @@ public final class OpenSSLProvider extends Provider {
         put("ConscryptHpke.XWING/HKDF_SHA256/AES_256_GCM", baseClass + "$XwingHkdfSha256Aes256Gcm");
         put("ConscryptHpke.XWING/HKDF_SHA256/CHACHA20POLY1305",
                 baseClass + "$XwingHkdfSha256ChaCha20Poly1305");
-        
+
         /* === PAKE === */
         if (Platform.isPakeSupported()) {
             put("TrustManagerFactory.PAKE", PREFIX + "PakeTrustManagerFactory");
