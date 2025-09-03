@@ -20,6 +20,7 @@ import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
 import static org.conscrypt.HpkeSuite.AEAD_CHACHA20POLY1305;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
+import static org.conscrypt.HpkeSuite.KEM_XWING;
 
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
