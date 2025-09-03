@@ -11869,7 +11869,7 @@ static jbyteArray NativeCrypto_SSL_get0_ech_retry_configs(JNIEnv* env, jclass, j
     }
     env->SetByteArrayRegion(result, 0, static_cast<jsize>(retry_configs_len),
                             reinterpret_cast<const jbyte*>(retry_configs));
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs(%p) => %p", ssl, ssl, result);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs() => %p", ssl, result);
     return result;
 }
 

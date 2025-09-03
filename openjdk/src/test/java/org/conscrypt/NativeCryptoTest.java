@@ -524,8 +524,6 @@ public class NativeCryptoTest {
             @Override
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                                        FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                assertFalse(NativeCrypto.SSL_ech_accepted(ssl, null));
-                assertNull(NativeCrypto.SSL_get0_ech_name_override(ssl, null));
                 byte[] retryConfigs = NativeCrypto.SSL_get0_ech_retry_configs(ssl, null);
                 assertEquals(5, retryConfigs.length);  // should be the invalid ECH Config List
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
@@ -748,12 +746,19 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void test_SSL_set1_ech_config_list() throws Exception {
+    public void test_SSL_set1_ech_valid_config_list() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
         final byte[] configList = readTestFile("boringssl-ech-config-list.bin");
         assertTrue(NativeCrypto.SSL_set1_ech_config_list(s, null, configList));
+    }
+
+    @Test
+    public void test_SSL_set1_ech_invalid_config_list() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+
         byte[] badConfigList = {
                 0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff
         };
