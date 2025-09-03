@@ -223,6 +223,8 @@ public final class OpenSSLProvider extends Provider {
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyPairGenerator.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyPairGenerator");
 
+        put("KeyPairGenerator.XWING", PREFIX + "OpenSslXwingKeyPairGenerator");
+
         /* == KeyFactory == */
         put("KeyFactory.RSA", PREFIX + "OpenSSLRSAKeyFactory");
         put("Alg.Alias.KeyFactory.1.2.840.113549.1.1.1", "RSA");
@@ -247,6 +249,8 @@ public final class OpenSSLProvider extends Provider {
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyFactory.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyFactory");
+
+        put("KeyFactory.XWING", PREFIX + "OpenSslXwingKeyFactory");
 
         /* == SecretKeyFactory == */
         put("SecretKeyFactory.DESEDE", PREFIX + "DESEDESecretKeyFactory");
@@ -580,7 +584,11 @@ public final class OpenSSLProvider extends Provider {
                 baseClass + "$X25519_CHACHA20");
         put("Alg.Alias.ConscryptHpke.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_GhpkeCHACHA20POLY1305",
                 "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305");
-
+        put("ConscryptHpke.XWING/HKDF_SHA256/AES_128_GCM", baseClass + "$XwingHkdfSha256Aes128Gcm");
+        put("ConscryptHpke.XWING/HKDF_SHA256/AES_256_GCM", baseClass + "$XwingHkdfSha256Aes256Gcm");
+        put("ConscryptHpke.XWING/HKDF_SHA256/CHACHA20POLY1305",
+                baseClass + "$XwingHkdfSha256ChaCha20Poly1305");
+        
         /* === PAKE === */
         if (Platform.isPakeSupported()) {
             put("TrustManagerFactory.PAKE", PREFIX + "PakeTrustManagerFactory");
