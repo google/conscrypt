@@ -122,36 +122,7 @@ public class NativeCryptoTest {
     private static OpenSSLKey CHANNEL_ID_PRIVATE_KEY;
     private static byte[] CHANNEL_ID;
     private static Method m_Platform_getFileDescriptor;
-
     private static RSAPrivateCrtKey TEST_RSA_KEY;
-
-    private static OpenSSLKey getServerPrivateKey() throws Exception {
-        return SERVER_PRIVATE_KEY;
-    }
-
-    private static long[] getServerCertificateRefs() throws Exception {
-        return SERVER_CERTIFICATE_REFS;
-    }
-
-    private static byte[][] getEncodedServerCertificates() throws Exception {
-        return ENCODED_SERVER_CERTIFICATES;
-    }
-
-    private static OpenSSLKey getClientPrivateKey() throws Exception {
-        return CLIENT_PRIVATE_KEY;
-    }
-
-    private static long[] getClientCertificateRefs() throws Exception {
-        return CLIENT_CERTIFICATE_REFS;
-    }
-
-    private static byte[][] getEncodedClientCertificates() throws Exception {
-        return ENCODED_CLIENT_CERTIFICATES;
-    }
-
-    private static byte[][] getCaPrincipals() throws Exception {
-        return CA_PRINCIPALS;
-    }
 
     @BeforeClass
     @SuppressWarnings("JdkObsolete") // Public API KeyStore.aliases() uses Enumeration
@@ -529,7 +500,7 @@ public class NativeCryptoTest {
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
-        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
+        Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
             @Override
             public long beforeHandshake(long c) throws SSLException {
                 long ssl = super.beforeHandshake(c);
@@ -547,7 +518,7 @@ public class NativeCryptoTest {
                 server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(
-                getServerCertificateRefs(), clientCallback.certificateChainRefs);
+                SERVER_CERTIFICATE_REFS, clientCallback.certificateChainRefs);
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
@@ -597,7 +568,7 @@ public class NativeCryptoTest {
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
-        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
+        Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
             @Override
             public long beforeHandshake(long c) throws SSLException {
                 long ssl = super.beforeHandshake(c);
@@ -622,104 +593,7 @@ public class NativeCryptoTest {
                 server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertTrue(clientCallback.verifyCertificateChainCalled);
         assertEqualCertificateChains(
-                getServerCertificateRefs(), clientCallback.certificateChainRefs);
-        assertFalse(serverCallback.verifyCertificateChainCalled);
-        assertFalse(clientCallback.clientCertificateRequestedCalled);
-        assertFalse(serverCallback.clientCertificateRequestedCalled);
-        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
-        assertTrue(clientCallback.handshakeCompletedCalled);
-        assertTrue(serverCallback.handshakeCompletedCalled);
-        assertFalse(clientCallback.serverCertificateRequestedInvoked);
-        assertTrue(serverCallback.serverCertificateRequestedInvoked);
-    }
-
-    @Test
-    public void test_SSL_do_handshake_ech_retry_configs() throws Exception {
-        final ServerSocket listener = newServerSocket();
-
-        final byte[] key = readTestFile("boringssl-ech-private-key.bin");
-        final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
-        final byte[] originalClientConfigList = readTestFile("boringssl-ech-config-list.bin");
-        final byte[] clientConfigList = originalClientConfigList.clone();
-        clientConfigList[20] = (byte) (clientConfigList[20] % 255 + 1);  // corrupt it
-
-        Hooks cHooks = new ClientHooks() {
-            @Override
-            public long beforeHandshake(long c) throws SSLException {
-                long ssl = super.beforeHandshake(c);
-                assertEquals(1, NativeCrypto.SSL_set_protocol_versions(ssl, null, TLS1_VERSION, TLS1_3_VERSION));
-                assertTrue(NativeCrypto.SSL_set1_ech_config_list(ssl, null, clientConfigList));
-                return ssl;
-            }
-
-            @Override
-            public void afterHandshake(long session, long ssl, long context, Socket socket,
-                                       FileDescriptor fd, SSLHandshakeCallbacks callback) {
-                fail();
-            }
-        };
-        Hooks sHooks = new ServerHooks(getServerPrivateKey(), getEncodedServerCertificates()) {
-            @Override
-            public long beforeHandshake(long c) throws SSLException {
-                long ssl = super.beforeHandshake(c);
-                assertEquals(1, NativeCrypto.SSL_set_protocol_versions(ssl, null, TLS1_VERSION, TLS1_3_VERSION));
-                assertTrue(NativeCrypto.SSL_CTX_ech_enable_server(c, null, key, serverConfig));
-                return ssl;
-            }
-
-            @Override
-            public void afterHandshake(long session, long ssl, long context, Socket socket,
-                                       FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                assertTrue(NativeCrypto.SSL_ech_accepted(ssl, null));
-                super.afterHandshake(session, ssl, context, socket, fd, callback);
-            }
-        };
-        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null, true);
-        Future<TestSSLHandshakeCallbacks> server = handshake(listener, 0, false, sHooks, null, null, true);
-        TestSSLHandshakeCallbacks clientCallback = null;
-        TestSSLHandshakeCallbacks serverCallback = null;
-        try {
-            clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-            // caused by SSLProtocolException
-        }
-        assertNull(clientCallback);
-        assertNull(serverCallback);
-        assertArrayEquals(originalClientConfigList, cHooks.echRetryConfigs);
-        assertEquals("example.com", cHooks.echNameOverride);
-        assertNotNull(cHooks.echRetryConfigs);
-        assertNull(sHooks.echNameOverride);
-        assertNull(sHooks.echRetryConfigs);
-
-        final byte[] echRetryConfigsFromPrevious = cHooks.echRetryConfigs;
-        cHooks = new ClientHooks() {
-            @Override
-            public long beforeHandshake(long c) throws SSLException {
-                long ssl = super.beforeHandshake(c);
-                assertEquals(1, NativeCrypto.SSL_set_protocol_versions(ssl, null, TLS1_VERSION, TLS1_3_VERSION));
-                assertTrue(NativeCrypto.SSL_set1_ech_config_list(ssl, null, echRetryConfigsFromPrevious));
-                return ssl;
-            }
-
-            @Override
-            public void afterHandshake(long session, long ssl, long context, Socket socket,
-                                       FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                assertTrue(NativeCrypto.SSL_ech_accepted(ssl, null));
-                super.afterHandshake(session, ssl, context, socket, fd, callback);
-            }
-        };
-
-        client = handshake(listener, 0, true, cHooks, null, null);
-        server = handshake(listener, 0, false, sHooks, null, null);
-        clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertTrue(clientCallback.verifyCertificateChainCalled);
-        assertEqualCertificateChains(
-                getServerCertificateRefs(), clientCallback.certificateChainRefs);
+                SERVER_CERTIFICATE_REFS, clientCallback.certificateChainRefs);
         assertFalse(serverCallback.verifyCertificateChainCalled);
         assertFalse(clientCallback.clientCertificateRequestedCalled);
         assertFalse(serverCallback.clientCertificateRequestedCalled);
@@ -773,11 +647,11 @@ public class NativeCryptoTest {
         assertFalse(set);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void test_SSL_set1_ech_config_list_withNull() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
-        NativeCrypto.SSL_set1_ech_config_list(s, null, null);
+        assertThrows(NullPointerException.class, () -> NativeCrypto.SSL_set1_ech_config_list(s, null, null));
     }
 
     @Test
@@ -814,14 +688,14 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void test_SSL_get0_ech_retry_configs_withNullShouldThrow() throws Exception {
-        NativeCrypto.SSL_get0_ech_retry_configs(NULL, null);
+        assertThrows(NullPointerException.class, () -> NativeCrypto.SSL_get0_ech_retry_configs(NULL, null));
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void test_SSL_CTX_ech_enable_server_NULL_SSL_CTX() throws Exception {
-        NativeCrypto.SSL_CTX_ech_enable_server(NULL, null, null, null);
+        assertThrows(NullPointerException.class, () -> NativeCrypto.SSL_CTX_ech_enable_server(NULL, null, null, null));
     }
 
     @Test
@@ -1406,14 +1280,6 @@ public class NativeCryptoTest {
                                                               final int timeout, final boolean client,
                                                               final Hooks hooks, final byte[] alpnProtocols,
                                                               final ApplicationProtocolSelectorAdapter alpnSelector) {
-        return handshake(listener, timeout, client, hooks, alpnProtocols, alpnSelector, false);
-    }
-
-    public static Future<TestSSLHandshakeCallbacks> handshake(final ServerSocket listener,
-                                                              final int timeout, final boolean client,
-                                                              final Hooks hooks, final byte[] alpnProtocols,
-                                                              final ApplicationProtocolSelectorAdapter alpnSelector,
-                                                              final boolean useEchRetryConfig) {
         // TODO(prb) rewrite for engine socket. FD socket calls infeasible to test on Java 17+
         assumeFalse(TestUtils.isJavaVersion(17));
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -1456,20 +1322,7 @@ public class NativeCryptoTest {
                                 NativeCrypto.setHasApplicationProtocolSelector(s, null, true);
                             }
 
-                            // "if" added for ECH testing
-                            if (useEchRetryConfig) {
-                                try {
-                                    NativeCrypto.SSL_do_handshake(s, null, fd, callback, timeout);
-                                } catch (SSLProtocolException e) {
-                                    hooks.echRetryConfigs =
-                                            NativeCrypto.SSL_get0_ech_retry_configs(s, null);
-                                    hooks.echNameOverride =
-                                            NativeCrypto.SSL_get0_ech_name_override(s, null);
-                                    throw e;
-                                }
-                            } else {
-                                NativeCrypto.SSL_do_handshake(s, null, fd, callback, timeout);
-                            }
+                            NativeCrypto.SSL_do_handshake(s, null, fd, callback, timeout);
 
                             session = NativeCrypto.SSL_get1_session(s, null);
                             if (DEBUG) {
@@ -3500,10 +3353,10 @@ public class NativeCryptoTest {
         }
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void EVP_CipherInit_ex_withNullCtxShouldThrow() throws Exception {
         final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
-        NativeCrypto.EVP_CipherInit_ex(null, evpCipher, null, null, true);
+        assertThrows(NullPointerException.class, () -> NativeCrypto.EVP_CipherInit_ex(null, evpCipher, null, null, true));
     }
 
     @Test
