@@ -46,7 +46,7 @@ public class HpkeImpl implements HpkeSpi {
     this.hpkeSuite = hpkeSuite;
   }
 
-  byte[] getPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
+  private byte[] getPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
       if (publicKey == null) {
           throw new InvalidKeyException("null recipient key");
       } else if ((publicKey instanceof OpenSSLX25519PublicKey)) {
@@ -83,7 +83,7 @@ public class HpkeImpl implements HpkeSpi {
     encapsulated = (byte[]) result[1];
   }
 
-  byte[] getPrivateKeyBytes(PrivateKey privateKey) throws InvalidKeyException {
+  private byte[] getPrivateKeyBytes(PrivateKey privateKey) throws InvalidKeyException {
       if (privateKey == null) {
           throw new InvalidKeyException("null recipient private key");
       } else if ((privateKey instanceof OpenSSLX25519PrivateKey)) {
