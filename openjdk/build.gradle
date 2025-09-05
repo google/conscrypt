@@ -341,6 +341,15 @@ def testInterop = tasks.register("testInterop", Test) {
 }
 check.dependsOn testInterop
 
+// Added to see results of new ECH tests when running tests from the command line
+tasks.withType(Test).configureEach {
+    testLogging {
+        exceptionFormat "full"
+        events "started", "skipped", "passed", "failed"
+        showStandardStreams true
+    }
+}
+
 jacocoTestReport {
     additionalSourceDirs.from files("$rootDir/openjdk/src/test/java", "$rootDir/common/src/main/java")
     executionData tasks.withType(Test)
