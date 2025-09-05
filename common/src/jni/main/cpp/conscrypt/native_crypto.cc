@@ -126,7 +126,8 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
 }
 
 static SSL_ECH_KEYS* to_SSL_ECH_KEYS(JNIEnv* env, jlong ssl_ech_keys_address, bool throwIfNull) {
-    SSL_ECH_KEYS* ssl_ech_keys = reinterpret_cast<SSL_ECH_KEYS*>(static_cast<uintptr_t>(ssl_ech_keys_address));
+    SSL_ECH_KEYS* ssl_ech_keys =
+            reinterpret_cast<SSL_ECH_KEYS*>(static_cast<uintptr_t>(ssl_ech_keys_address));
     if ((ssl_ech_keys == nullptr) && throwIfNull) {
         JNI_TRACE("ssl_ech_keys == null");
         conscrypt::jniutil::throwNullPointerException(env, "ssl_ech_keys == null");
@@ -11855,7 +11856,7 @@ static jbyteArray NativeCrypto_SSL_get0_ech_retry_configs(JNIEnv* env, jclass, j
     if (ssl == nullptr) {
         return nullptr;
     }
-    const uint8_t *retry_configs;
+    const uint8_t* retry_configs;
     size_t retry_configs_len;
     SSL_get0_ech_retry_configs(ssl, &retry_configs, &retry_configs_len);
     if (retry_configs_len <= 0) {
@@ -11928,14 +11929,16 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
               keyJavaBytes, configJavaBytes);
     ScopedByteArrayRO keyBytes(env, keyJavaBytes);
     if (keyBytes.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
-                  "could not read key bytes");
+        JNI_TRACE(
+                "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
+                "could not read key bytes");
         return JNI_FALSE;
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
     if (configBytes.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
-                  "could not read config bytes");
+        JNI_TRACE(
+                "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
+                "could not read config bytes");
         return JNI_FALSE;
     }
     const uint8_t* ech_key = reinterpret_cast<const uint8_t*>(keyBytes.get());
@@ -11946,11 +11949,12 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
     bssl::ScopedEVP_HPKE_KEY key;
     if (!keys ||
         !EVP_HPKE_KEY_init(key.get(), EVP_hpke_x25519_hkdf_sha256(), ech_key, ech_key_size) ||
-        !SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*/1,
-                          ech_config, ech_config_size, key.get()) ||
+        !SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*/1, ech_config, ech_config_size,
+                          key.get()) ||
         !SSL_CTX_set1_ech_keys(ssl_ctx, keys.get())) {
-        JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server: "
-                  "Error setting server's ECHConfig and private key\n");
+        JNI_TRACE(
+                "NativeCrypto_SSL_CTX_ech_enable_server: "
+                "Error setting server's ECHConfig and private key\n");
         return JNI_FALSE;
     }
     return JNI_TRUE;
