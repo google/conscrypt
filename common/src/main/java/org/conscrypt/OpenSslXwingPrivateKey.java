@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
@@ -94,7 +95,7 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
             return false;
         }
         OpenSslXwingPrivateKey that = (OpenSslXwingPrivateKey) o;
-        return Arrays.equals(raw, that.raw);
+        return MessageDigest.isEqual(raw, that.raw);
     }
 
     @Override
