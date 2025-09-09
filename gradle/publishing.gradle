@@ -75,3 +75,20 @@ signMavenPublication.doFirst {
 tasks.withType(Sign) {
     onlyIf { isReleaseVersion } 
 }
+
+def signJar(String jarPath) {
+    if (rootProject.hasProperty('signingKeystore') && rootProject.hasProperty('signingPassword')) {
+        def command = 'jarsigner -keystore ' + rootProject.signingKeystore +
+                ' -storepass ' + rootProject.signingPassword +
+                ' ' + jarPath + ' signingcert'
+        def process = command.execute()
+        process.in.eachLine { line -> logger.info(line) }
+        process.err.eachLine { line -> logger.error(line) }
+        process.waitFor()
+        if (process.exitValue() != 0) {
+            throw new GradleException("jarsigner failed for " + jarPath + " (exit " + process.exitValue() + ")")
+        }
+    } else {
+        logger.lifecycle("Skipping jar signing for ${jarPath} (no signingKeystore/signingPassword)")
+    }
+}

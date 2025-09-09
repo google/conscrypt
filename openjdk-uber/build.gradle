@@ -1,3 +1,8 @@
+plugins {
+    id 'conventions.common'
+    id 'conventions.jvm'
+}
+
 description = 'Conscrypt: OpenJdk UberJAR'
 
 Directory buildTop = layout.buildDirectory.get()

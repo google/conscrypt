@@ -1,4 +1,9 @@
 plugins {
+    id 'conventions.common'
+    id 'conventions.versionprops'
+    id 'conventions.boringssl'
+    id 'conventions.jvm'
+    id 'conventions.cpp'
     alias libs.plugins.bnd
     alias libs.plugins.shadow
 }
