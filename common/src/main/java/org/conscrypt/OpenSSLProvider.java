@@ -216,8 +216,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyPairGenerator.1.3.101.112", "EdDSA");
         put("Alg.Alias.KeyPairGenerator.Ed25519", "EdDSA");
 
-        put("KeyPairGenerator.ML-DSA", PREFIX + "OpenSslMlDsaKeyPairGenerator");
-        put("Alg.Alias.KeyPairGenerator.ML-DSA-65", "ML-DSA");
+        put("KeyPairGenerator.ML-DSA", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa");
+        put("KeyPairGenerator.ML-DSA-65", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa65");
+        put("KeyPairGenerator.ML-DSA-87", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa87");
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyPairGenerator.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyPairGenerator");
@@ -240,8 +241,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyFactory.1.3.101.112", "EdDSA");
         put("Alg.Alias.KeyFactory.Ed25519", "EdDSA");
 
-        put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory");
-        put("Alg.Alias.KeyFactory.ML-DSA-65", "ML-DSA");
+        put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa");
+        put("KeyFactory.ML-DSA-65", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa65");
+        put("KeyFactory.ML-DSA-87", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa87");
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyFactory.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyFactory");
@@ -372,8 +374,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.1.3.101.112", "EdDSA");
         put("Alg.Alias.Signature.Ed25519", "EdDSA");
 
-        putSignatureImplClass("ML-DSA", "OpenSslSignatureMlDsa");
-        put("Alg.Alias.Signature.ML-DSA-65", "ML-DSA");
+        putSignatureImplClass("ML-DSA", "OpenSslSignatureMlDsa$MlDsa");
+        putSignatureImplClass("ML-DSA-65", "OpenSslSignatureMlDsa$MlDsa65");
+        putSignatureImplClass("ML-DSA-87", "OpenSslSignatureMlDsa$MlDsa87");
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         putSignatureImplClass("SLH-DSA-SHA2-128S", "OpenSslSignatureSlhDsa");

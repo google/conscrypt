@@ -98,6 +98,9 @@ public class SignatureTest {
                 .skipAlgorithm("EdDSA")
                 // ML-DSA is skipped because it doesn't yet support getFormat() and getEncoded().
                 .skipAlgorithm("ML-DSA")
+                .skipAlgorithm("ML-DSA-44")
+                .skipAlgorithm("ML-DSA-65")
+                .skipAlgorithm("ML-DSA-87")
                 // SLH-DSA-SHA2-128S is skipped because it doesn't yet support getFormat() and
                 // getEncoded().
                 .skipAlgorithm("SLH-DSA-SHA2-128S")
@@ -147,7 +150,7 @@ public class SignatureTest {
             kpAlgorithm = "RSA";
         } else if (sigAlgorithmUpperCase.equals("ED25519")) {
             kpAlgorithm = "ED25519";
-        } else if (sigAlgorithmUpperCase.equals("ML-DSA")) {
+        } else if (sigAlgorithmUpperCase.startsWith("ML-DSA")) {
             kpAlgorithm = "ML-DSA";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "

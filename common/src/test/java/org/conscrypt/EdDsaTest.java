@@ -27,7 +27,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -283,5 +288,126 @@ public class EdDsaTest {
             verifier.update(message);
             assertTrue(verifier.verify(sig));
         }
+    }
+
+    @Test
+    public void serializeAndDeserialize_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(keyPair.getPrivate());
+            oos.writeObject(keyPair.getPublic());
+        }
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+        PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+
+        assertEquals(inflatedPrivateKey, keyPair.getPrivate());
+        assertEquals(inflatedPublicKey, keyPair.getPublic());
+    }
+
+    @Test
+    public void serializePrivateKey_isEqualToTestVector() throws Exception {
+        byte[] pkcs8EncodedPrivateKey = decodeHex(
+                // PKCS#8 header
+                "302e020100300506032b657004220420"
+                // raw private key
+                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+        KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
+        PrivateKey privateKey =
+                keyFactory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedPrivateKey));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(privateKey);
+        }
+
+        String classNameHex = TestUtils.encodeHex(
+                privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+        String expectedHexEncoding = "aced000573720024" + classNameHex
+                + "d479f95a133abadc" // serialVersionUID
+                + "0200015b000f"
+                + "707269766174654b65794279746573" // hex("privateKeyBytes")
+                + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
+                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"; // private
+                                                                                        // key
+        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+    }
+
+    @Test
+    public void serializePublicKey_isEqualToTestVector() throws Exception {
+        byte[] x509EncodedPublicKey = decodeHex(
+                // X.509 header
+                "302a300506032b6570032100"
+                // raw public key
+                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
+
+        KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
+        PublicKey publicKey =
+                keyFactory.generatePublic(new X509EncodedKeySpec(x509EncodedPublicKey));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+            oos.writeObject(publicKey);
+        }
+
+        String classNameHex = TestUtils.encodeHex(
+                publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
+        String expectedHexEncoding = "aced000573720023" + classNameHex
+                + "064c7113d078e42d" // serialVersionUID
+                + "0200015b000e"
+                + "7075626c69634b65794279746573" // hex("publicKeyBytes")
+                + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
+                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"; // public
+                                                                                        // key
+        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+    }
+
+    @Test
+    public void deserializeInvalidPrivateKey_fails() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        String classNameHex = TestUtils.encodeHex(
+                keyPair.getPrivate().getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String invalidPrivateKeySerialized = "aced000573720024" + classNameHex
+                + "d479f95a133abadc" // serialVersionUID
+                + "0200015b000f"
+                + "707269766174654b65794279746573" // hex("privateKeyBytes")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "1f" // size of private key (is 31, which is invalid)
+                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f"; // private key
+
+        ByteArrayInputStream bais =
+                new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKeySerialized));
+        ObjectInputStream ois = new ObjectInputStream(bais);
+
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+    }
+
+    @Test
+    public void deserializeInvalidPublicKey_fails() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        String classNameHex = TestUtils.encodeHex(
+                keyPair.getPublic().getClass().getName().getBytes(StandardCharsets.UTF_8));
+
+        String invalidPublicKeySerialized = "aced000573720023" + classNameHex
+                + "064c7113d078e42d" // serialVersionUID
+                + "0200015b000e"
+                + "7075626c69634b65794279746573" // hex("publicKeyBytes")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "1f" // size of public key (is 31, which is invalid)
+                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f70751"; // public key
+
+        ByteArrayInputStream bais =
+                new ByteArrayInputStream(TestUtils.decodeHex(invalidPublicKeySerialized));
+        ObjectInputStream ois = new ObjectInputStream(bais);
+
+        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
     }
 }

@@ -24,6 +24,7 @@ import javax.net.ssl.SSLEngine;
 
 /**
  * Provider of key material for Spake2Plus
+ * @hide  This class is not part of the Android public SDK API
  */
 @Internal
 public class Spake2PlusKeyManager implements KeyManager {

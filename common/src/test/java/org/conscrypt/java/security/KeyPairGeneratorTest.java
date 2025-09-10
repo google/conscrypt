@@ -151,6 +151,9 @@ public class KeyPairGeneratorTest {
         putKeySize("XDH", 255);
         putKeySize("EdDSA", 255);
         putKeySize("ML-DSA", -1);
+        putKeySize("ML-DSA-44", -1);
+        putKeySize("ML-DSA-65", -1);
+        putKeySize("ML-DSA-87", -1);
         putKeySize("SLH-DSA-SHA2-128S", -1);
     }
 
@@ -233,6 +236,12 @@ public class KeyPairGeneratorTest {
         String expectedAlgorithm = kpg.getAlgorithm().toUpperCase(Locale.ROOT);
         if (StandardNames.IS_RI && expectedAlgorithm.equals("DIFFIEHELLMAN")) {
             expectedAlgorithm = "DH";
+        }
+        if (expectedAlgorithm.startsWith("ML-DSA")) {
+            // In OpenJDK, KeyPairGenerator.getInstance("ML-DSA-65") returns a
+            // KeyPairGenerator with algorithm "ML-DSA-65". But the key it generates
+            // have algorithm "ML-DSA".
+            expectedAlgorithm = "ML-DSA";
         }
         assertEquals(expectedAlgorithm, k.getAlgorithm().toUpperCase(Locale.ROOT));
         if (expectedAlgorithm.equals("DH")) {

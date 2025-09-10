@@ -1328,18 +1328,13 @@ public class SSLSocketVersionCompatibilityTest {
             server.close();
         }
 
-        // Second connection with client NPN already set on the SSL context, but
-        // without server NPN set.
+        // Second connection
         {
-            SSLServerSocket serverSocket = (SSLServerSocket) c.serverContext
-                    .getServerSocketFactory().createServerSocket(0);
-            InetAddress host = InetAddress.getLocalHost();
-            int port = serverSocket.getLocalPort();
-
             client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
-            client.connect(new InetSocketAddress(host, port));
 
-            final SSLSocket server = (SSLSocket) serverSocket.accept();
+            client.connect(new InetSocketAddress(c.host, c.port));
+
+            final SSLSocket server = (SSLSocket) c.serverSocket.accept();
 
             Future<Void> future = executor.submit(() -> {
                 server.startHandshake();
@@ -1350,7 +1345,6 @@ public class SSLSocketVersionCompatibilityTest {
             future.get();
             client.close();
             server.close();
-            serverSocket.close();
         }
 
         c.close();

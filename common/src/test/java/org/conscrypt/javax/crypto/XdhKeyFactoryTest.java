@@ -16,6 +16,7 @@
 package org.conscrypt.javax.crypto;
 
 import static org.conscrypt.TestUtils.decodeBase64;
+import static org.conscrypt.TestUtils.decodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -25,6 +26,17 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import org.conscrypt.OpenSSLX25519PrivateKey;
+import org.conscrypt.OpenSSLX25519PublicKey;
+import org.conscrypt.TestUtils;
+import org.conscrypt.XdhKeySpec;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -39,15 +51,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-
-import org.conscrypt.OpenSSLX25519PrivateKey;
-import org.conscrypt.OpenSSLX25519PublicKey;
-import org.conscrypt.TestUtils;
-import org.conscrypt.XdhKeySpec;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class XdhKeyFactoryTest {
@@ -65,8 +68,7 @@ public class XdhKeyFactoryTest {
     private final byte[] publicKeyRawBytes = ((OpenSSLX25519PublicKey) publicKey).getU();
     private final byte[] privateKeyRawBytes = ((OpenSSLX25519PrivateKey) privateKey).getU();
 
-    public XdhKeyFactoryTest() throws NoSuchAlgorithmException, InvalidKeySpecException {
-    }
+    public XdhKeyFactoryTest() throws NoSuchAlgorithmException, InvalidKeySpecException {}
 
     @Test
     public void constructor() {
@@ -77,7 +79,6 @@ public class XdhKeyFactoryTest {
 
         assertEquals("PKCS#8", privateKey.getFormat());
         assertArrayEquals(privateKeyPkcs8Bytes, privateKey.getEncoded());
-
     }
     @Test
     public void generatePublic() throws Exception {
@@ -97,7 +98,7 @@ public class XdhKeyFactoryTest {
     }
 
     @Test
-    public void generatePrivate() throws Exception{
+    public void generatePrivate() throws Exception {
         PrivateKey key = factory.generatePrivate(new XdhKeySpec(privateKeyRawBytes));
         assertTrue(key instanceof OpenSSLX25519PrivateKey);
         assertEquals("PKCS#8", key.getFormat());
@@ -149,16 +150,19 @@ public class XdhKeyFactoryTest {
                 () -> factory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class,
                 () -> factory.getKeySpec(privateKey, X509EncodedKeySpec.class));
-        assertThrows(InvalidKeySpecException.class, () -> factory.getKeySpec(
-                new TestPublicKeyWrongEncoding(), X509EncodedKeySpec.class));
-        assertThrows(InvalidKeySpecException.class, () -> factory.getKeySpec(
-                new TestPrivateKeyWrongEncoding(), PKCS8EncodedKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                ()
+                        -> factory.getKeySpec(
+                                new TestPublicKeyWrongEncoding(), X509EncodedKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                ()
+                        -> factory.getKeySpec(
+                                new TestPrivateKeyWrongEncoding(), PKCS8EncodedKeySpec.class));
 
         assertThrows(InvalidKeySpecException.class,
                 () -> factory.getKeySpec(publicKey, TestKeySpecWrongEncoding.class));
         assertThrows(InvalidKeySpecException.class,
                 () -> factory.getKeySpec(privateKey, TestKeySpecWrongEncoding.class));
-
 
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         KeyPair kp = kpg.generateKeyPair();
@@ -190,6 +194,33 @@ public class XdhKeyFactoryTest {
             assertEquals(publicKey, key);
         } catch (NoSuchProviderException e) {
             // Ignored
+        }
+    }
+
+    @Test
+    public void getKeySpec_xECPublicKeySpec_success() throws Exception {
+        TestUtils.assumeXecClassesAvailable();
+        @SuppressWarnings("unchecked")
+        Class<? extends KeySpec> javaClass = (Class<? extends KeySpec>) TestUtils.findClass(
+                "java.security.spec.XECPublicKeySpec");
+        Method getUMethod = javaClass.getMethod("getU");
+
+        // Test vector from https://datatracker.ietf.org/doc/html/rfc7748#section-5.2.
+        byte[][] uAsBytes = new byte[][] {
+                decodeHex("0900000000000000000000000000000000000000000000000000000000000000"),
+                decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c"),
+                decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493")};
+        BigInteger[] expectedUAsBigIntegers = new BigInteger[] {BigInteger.valueOf(9),
+                new BigInteger("34426434033919594451155107781188821651"
+                        + "316167215306631574996226621102155684838"),
+                new BigInteger("88838573511839298940907593866106493194"
+                        + "17338800022198945255395922347792736741")};
+        assertEquals(expectedUAsBigIntegers.length, uAsBytes.length);
+        for (int i = 0; i < uAsBytes.length; i++) {
+            PublicKey publicKey = factory.generatePublic(new XdhKeySpec(uAsBytes[i]));
+            KeySpec publicKeySpec = factory.getKeySpec(publicKey, javaClass);
+            BigInteger u = (BigInteger) getUMethod.invoke(publicKeySpec);
+            assertEquals(expectedUAsBigIntegers[i], u);
         }
     }
 
@@ -246,10 +277,8 @@ public class XdhKeyFactoryTest {
 
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         KeyPair kp = kpg.generateKeyPair();
-        assertThrows(InvalidKeyException.class,
-                () -> factory.translateKey(kp.getPublic()));
-        assertThrows(InvalidKeyException.class,
-                () -> factory.translateKey(kp.getPrivate()));
+        assertThrows(InvalidKeyException.class, () -> factory.translateKey(kp.getPublic()));
+        assertThrows(InvalidKeyException.class, () -> factory.translateKey(kp.getPrivate()));
     }
 
     /**

@@ -93,6 +93,7 @@ import org.junit.runners.Suite;
         DuckTypedHpkeSpiTest.class,
         DuckTypedPSKKeyManagerTest.class,
         EdDsaTest.class,
+        ExposedByteArrayOutputStreamTest.class,
         FileClientSessionCacheTest.class,
         HostnameVerifierTest.class,
         HpkeContextTest.class,

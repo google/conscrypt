@@ -20,23 +20,23 @@ import java.io.ByteArrayOutputStream;
 /**
  * ByteArrayOutputStream that exposes the underlying byte array.
  */
-final class ExposedByteArrayOutputStream extends ByteArrayOutputStream {
-    ExposedByteArrayOutputStream() {
+public final class ExposedByteArrayOutputStream extends ByteArrayOutputStream {
+    public ExposedByteArrayOutputStream() {
         super();
     }
 
-    ExposedByteArrayOutputStream(int initialCapacity) {
+    public ExposedByteArrayOutputStream(int initialCapacity) {
         super(initialCapacity);
     }
 
-    byte[] array() {
+    public byte[] array() {
         return buf;
     }
 
     /* Manually sets the count. This is only needed when data is written to array() without using
      * write.
      */
-    void setCountManually(int count) {
+    public void setCountManually(int count) {
         this.count = count;
     }
 }

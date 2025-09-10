@@ -41,6 +41,10 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     private static final byte[] PKCS7_MARKER = new byte[] {
             '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'
     };
+    private static final byte[] PEM_MARKER =
+            new byte[] {'-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' '};
+    private static final int DASH = 45; // Value of '-'
+    private static final int VALUE_0 = 0x30; // Value of '0'
 
     private static final int PUSHBACK_SIZE = 64;
 
@@ -62,7 +66,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
     private static boolean isMaybePkcs7(byte[] header) {
         // The outer tag must be SEQUENCE.
-        if (header.length < 2 || header[0] != 0x30) {
+        if (header.length < 2 || header[0] != VALUE_0) {
             return false;
         }
 
@@ -112,9 +116,9 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
             final PushbackInputStream pbis = new PushbackInputStream(inStream, PUSHBACK_SIZE);
             try {
-                final byte[] buffer = new byte[PKCS7_MARKER.length];
+                byte[] buffer = new byte[PKCS7_MARKER.length];
 
-                final int len = pbis.read(buffer);
+                int len = pbis.read(buffer);
                 if (len < 0) {
                     /* No need to reset here. The stream was empty or EOF. */
                     throw new ParsingException("inStream is empty");
@@ -124,16 +128,34 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                 if (buffer[0] == '-') {
                     return fromX509PemInputStream(pbis);
                 }
-
                 if (isMaybePkcs7(buffer)) {
                     List<? extends T> certs = fromPkcs7DerInputStream(pbis);
                     if (certs.size() == 0) {
                         return null;
                     }
                     return certs.get(0);
-                } else {
+                }
+                if (buffer[0] == VALUE_0) {
                     return fromX509DerInputStream(pbis);
                 }
+                int value = 0;
+                buffer = new byte[PEM_MARKER.length];
+                while (value != -1) {
+                    value = pbis.read();
+                    if (value == DASH) {
+                        pbis.unread(value);
+                        len = pbis.read(buffer);
+                        if (len < PEM_MARKER.length) {
+                            throw new ParsingException("No certificate found");
+                        }
+                        pbis.unread(buffer, 0, len);
+                        if (Arrays.equals(buffer, PEM_MARKER)) {
+                            return fromX509PemInputStream(pbis);
+                        }
+                        pbis.read();
+                    }
+                }
+                throw new ParsingException("No certificate found");
             } catch (Exception e) {
                 if (markable) {
                     try {
