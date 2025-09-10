@@ -10,7 +10,7 @@ repositories {
     gradlePluginPortal()
 }
 
-// Annoyingly, build-logic is pre-built before the rest of the subprojects to cannot
+// Annoyingly, build-logic is pre-built before the rest of the subprojects and so cannot
 // make use of the version catalogue in libs.versions.toml.
 dependencies {
     // AGP
