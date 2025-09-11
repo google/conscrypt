@@ -47,3 +47,6 @@ project(':conscrypt-constants').projectDir = "$rootDir/constants" as File
 project(':conscrypt-openjdk').projectDir = "$rootDir/openjdk" as File
 project(':conscrypt-openjdk-uber').projectDir = "$rootDir/openjdk-uber" as File
 project(':conscrypt-testing').projectDir = "$rootDir/testing" as File
+
+// Include convention plugins
+includeBuild 'build-logic'

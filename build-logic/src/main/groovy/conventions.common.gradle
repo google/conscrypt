@@ -1,0 +1,26 @@
+plugins {
+    id 'jacoco'
+    id 'net.ltgt.errorprone'
+    id 'com.dorongold.task-tree'
+}
+
+group = "org.conscrypt"
+
+repositories {
+    mavenCentral()
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco
+}
+
+configurations {
+    jacocoAnt
+    jacocoAgent
+}
+
+dependencies {
+    jacocoAnt libs.jacoco.ant
+    jacocoAgent libs.jacoco.agent
+    errorprone libs.errorprone
+}
