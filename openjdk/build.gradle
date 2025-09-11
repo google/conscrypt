@@ -132,6 +132,10 @@ ext {
     preferredNativeFileDir = buildToTest.nativeResourcesDir()
 }
 
+// Since we're not taking a direct dependency on the constants module, we need to add an
+// explicit task dependency to make sure the code is generated.
+evaluationDependsOn(':conscrypt-constants')
+
 sourceSets {
     main {
         java {
