@@ -73,7 +73,6 @@ public abstract class HpkeImpl implements HpkeSpi {
         if (recipientKey == null) {
             throw new InvalidKeyException("null recipient key");
         }
-
         final byte[] recipientKeyBytes = getRecipientPublicKeyBytes(recipientKey);
         final Object[] result =
                 NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
