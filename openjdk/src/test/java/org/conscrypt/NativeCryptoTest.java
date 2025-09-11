@@ -636,14 +636,9 @@ public class NativeCryptoTest {
         byte[] badConfigList = {
                 0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         boolean set = false;
-        try {
-            set = NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList);
-            NativeCrypto.SSL_free(s, null);
-            NativeCrypto.SSL_CTX_free(c, null);
-        } catch (AssertionError e) {
-            // ignored when running with checkErrorQueue
-        }
-        assertFalse(set);
+        assertThrows(ParsingException.class, () -> NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList));
+        NativeCrypto.SSL_free(s, null);
+        NativeCrypto.SSL_CTX_free(c, null);
     }
 
     @Test
@@ -671,7 +666,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        assertFalse(NativeCrypto.SSL_ech_accepted(s, null));
+        assertThrows(ParsingException.class, () -> assertFalse(NativeCrypto.SSL_ech_accepted(s, null)));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -3194,9 +3189,7 @@ public class NativeCryptoTest {
         assertNotEquals(NULL, groupCtx);
         NativeRef.EC_GROUP group = new NativeRef.EC_GROUP(groupCtx);
         NativeRef.EVP_PKEY ctx = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
-        // Test originally asserted a RuntimeException but actually threw InvalidKeyException
-        // If this tests how the wrong keys are handled, I assume InvalidKeyException is correct
-        assertThrows(InvalidKeyException.class, () -> NativeCrypto.get_RSA_public_params(ctx));
+        assertThrows(RuntimeException.class, () -> NativeCrypto.get_RSA_public_params(ctx));
     }
 
     @Test

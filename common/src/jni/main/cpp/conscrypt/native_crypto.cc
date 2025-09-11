@@ -1167,19 +1167,30 @@ static jint NativeCrypto_EVP_PKEY_cmp(JNIEnv* env, jclass, jobject pkey1Ref, job
     JNI_TRACE("EVP_PKEY_cmp(%p, %p)", pkey1Ref, pkey2Ref);
     EVP_PKEY* pkey1 = fromContextObject<EVP_PKEY>(env, pkey1Ref);
     if (pkey1 == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, key 1");
+        ERR_clear_error();
         JNI_TRACE("EVP_PKEY_cmp => pkey1 == null");
         return 0;
     }
     EVP_PKEY* pkey2 = fromContextObject<EVP_PKEY>(env, pkey2Ref);
     if (pkey2 == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, key 2");
+        ERR_clear_error();
         JNI_TRACE("EVP_PKEY_cmp => pkey2 == null");
         return 0;
     }
     JNI_TRACE("EVP_PKEY_cmp(%p, %p) <- ptr", pkey1, pkey2);
 
     int result = EVP_PKEY_cmp(pkey1, pkey2);
-    JNI_TRACE("EVP_PKEY_cmp(%p, %p) => %d", pkey1, pkey2, result);
-    return result;
+    if (result < 0) {
+        conscrypt::jniutil::throwInvalidKeyException(env, "Decoding error");
+        ERR_clear_error();
+        JNI_TRACE("VP_PKEY_cmp(%p, %p) => threw exception", pkey1, pkey2);
+        return result;
+    } else {
+        JNI_TRACE("EVP_PKEY_cmp(%p, %p) => %d", pkey1, pkey2, result);
+        return result;
+    }
 }
 
 /*
@@ -8289,6 +8300,7 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(TLS_with_buffers_method()));
     if (sslCtx.get() == nullptr) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_CTX_new");
+        ERR_clear_error();
         return 0;
     }
     SSL_CTX_set_options(
@@ -11816,17 +11828,28 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p)", ssl, configJavaBytes);
     if (ssl == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ssl address");
+        ERR_clear_error();
         return JNI_FALSE;
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
     if (configBytes.get() == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ech config");
+        ERR_clear_error();
         JNI_TRACE("NativeCrypto_SSL_set1_ech_config_list => could not read config bytes");
         return JNI_FALSE;
     }
     int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
                                        configBytes.size());
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => %d", ssl, configJavaBytes, ret);
-    return ret;
+    if (!ret) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing ECH config");
+        ERR_clear_error();
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => threw exception", ssl, configJavaBytes);
+        return JNI_FALSE;
+    } else {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => %d", ssl, configJavaBytes, ret);
+        return ret;
+    }
 }
 
 static jstring NativeCrypto_SSL_get0_ech_name_override(JNIEnv* env, jclass, jlong ssl_address,
@@ -11912,11 +11935,21 @@ static jboolean NativeCrypto_SSL_ech_accepted(JNIEnv* env, jclass, jlong ssl_add
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
     if (ssl == nullptr) {
-        return 0;
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ssl address");
+        ERR_clear_error();
+        return JNI_FALSE;
     }
     jboolean accepted = SSL_ech_accepted(ssl);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, accepted);
-    return accepted;
+
+    if (!accepted) {
+        conscrypt::jniutil::throwParsingException(env, "Invalid ECH config list");
+        ERR_clear_error();
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => threw exception", ssl);
+        return JNI_FALSE;
+    } else {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, accepted);
+        return accepted;
+    }
 }
 
 static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlong ssl_ctx_address,
