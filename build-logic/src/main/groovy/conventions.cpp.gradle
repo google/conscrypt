@@ -1,0 +1,31 @@
+plugins {
+    id 'cpp'
+}
+
+model {
+    toolChains {
+        visualCpp(VisualCpp)
+        // Prefer Clang over Gcc (order here matters!)
+        clang(Clang) {
+            // Gradle 7.x still seems to get confused about toolchains on Mac
+            // so explicitly add -arch args.
+            target("osx_aarch64") {
+                cppCompiler.withArguments { args ->
+                    args << "-arch" << "arm64"
+                }
+                linker.withArguments { args ->
+                    args << "-arch" << "arm64"
+                }
+            }
+            target("osx_x86-64") {
+                cppCompiler.withArguments { args ->
+                    args << "-arch" << "x86_64"
+                }
+                linker.withArguments { args ->
+                    args << "-arch" << "x86_64"
+                }
+            }
+        }
+        gcc(Gcc)
+    }
+}
