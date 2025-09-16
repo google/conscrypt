@@ -1,0 +1,69 @@
+plugins {
+    id 'com.google.osdetector'
+    id 'java-library'
+}
+
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
+[tasks.named("compileJava"), tasks.named("compileTestJava")].forEach { t ->
+    t.configure {
+        options.compilerArgs += ["-Xlint:all", "-Xlint:-options", '-Xmaxwarns', '9999999']
+        options.encoding = "UTF-8"
+        options.release = 8
+
+        if (rootProject.hasProperty('failOnWarnings') && rootProject.failOnWarnings.toBoolean()) {
+            options.compilerArgs += ["-Werror"]
+        }
+    }
+}
+
+tasks.named("compileTestJava").configure {
+    // serialVersionUID is basically guaranteed to be useless in our tests
+    options.compilerArgs += ["-Xlint:-serial"]
+}
+
+tasks.named("jar").configure {
+    manifest {
+        attributes('Implementation-Title': name,
+                'Implementation-Version': archiveVersion,
+                'Built-By': System.getProperty('user.name'),
+                'Built-JDK': System.getProperty('java.version'),
+                'Source-Compatibility': sourceCompatibility,
+                'Target-Compatibility': targetCompatibility)
+    }
+}
+
+javadoc.options {
+    encoding = 'UTF-8'
+    links 'https://docs.oracle.com/en/java/javase/21/docs/api/java.base/'
+}
+
+tasks.register("javadocJar", Jar) {
+    archiveClassifier = 'javadoc'
+    from javadoc
+}
+
+tasks.register("sourcesJar", Jar) {
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+// At a test failure, log the stack trace to the console so that we don't
+// have to open the HTML in a browser.
+test {
+    testLogging {
+        exceptionFormat = 'full'
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams = true
+    }
+    // Enable logging for all conscrypt classes while running tests.
+    systemProperty 'java.util.logging.config.file', "${rootDir}/test_logging.properties"
+    maxHeapSize = '1500m'
+}

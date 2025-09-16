@@ -1,3 +1,8 @@
+plugins {
+    id 'conventions.common'
+    id 'conventions.jvm'
+}
+
 description = 'Conscrypt: Base library for benchmarks'
 
 dependencies {
