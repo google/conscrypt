@@ -1,0 +1,12 @@
+import org.gradle.util.VersionNumber
+
+tasks.register("generateProperties", WriteProperties) {
+    ext {
+        parsedVersion = VersionNumber.parse(version)
+    }
+    property("org.conscrypt.version.major", parsedVersion.getMajor())
+    property("org.conscrypt.version.minor", parsedVersion.getMinor())
+    property("org.conscrypt.version.patch", parsedVersion.getMicro())
+    property("org.conscrypt.boringssl.version", boringSslVersion)
+    outputFile "build/generated/resources/org/conscrypt/conscrypt.properties"
+}
