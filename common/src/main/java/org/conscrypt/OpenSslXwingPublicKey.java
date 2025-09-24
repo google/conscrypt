@@ -33,7 +33,7 @@ public class OpenSslXwingPublicKey implements PublicKey {
 
     public OpenSslXwingPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+        if (keySpec.getFormat().equalsIgnoreCase("raw")) {
             if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }

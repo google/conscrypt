@@ -34,7 +34,7 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
 
     public OpenSslXwingPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+        if (keySpec.getFormat().equalsIgnoreCase("raw")) {
             if (encoded.length != PRIVATE_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }
