@@ -15,14 +15,19 @@
  */
 package org.conscrypt;
 
+import org.conscrypt.io.IoUtils;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -37,7 +42,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.conscrypt.io.IoUtils;
 
 /**
  * Core API for creating and configuring all Conscrypt types.
@@ -80,9 +84,15 @@ public final class Conscrypt {
             this.patch = patch;
         }
 
-        public int major() { return major; }
-        public int minor() { return minor; }
-        public int patch() { return patch; }
+        public int major() {
+            return major;
+        }
+        public int minor() {
+            return minor;
+        }
+        public int patch() {
+            return patch;
+        }
     }
 
     private static final Version VERSION;
@@ -215,8 +225,8 @@ public final class Conscrypt {
         }
 
         public Provider build() {
-            return new OpenSSLProvider(name, provideTrustManager,
-                defaultTlsProtocol, deprecatedTlsV1, enabledTlsV1);
+            return new OpenSSLProvider(
+                    name, provideTrustManager, defaultTlsProtocol, deprecatedTlsV1, enabledTlsV1);
         }
     }
 
@@ -441,9 +451,23 @@ public final class Conscrypt {
      *
      * @param socket the socket
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
+     * @throws IllegalArgumentException if the socket is not a Conscrypt socket.
      */
     public static String getApplicationProtocol(SSLSocket socket) {
-        return toConscrypt(socket).getApplicationProtocol();
+        if (isConscrypt(socket)) {
+            return toConscrypt(socket).getApplicationProtocol();
+        }
+        try {
+            if (!Class.forName("com.android.org.conscrypt.AbstractConscryptSocket")
+                            .isInstance(socket)) {
+                throw new IllegalArgumentException(
+                        "Not a conscrypt socket: " + socket.getClass().getName());
+            }
+            return invokeConscryptMethod(socket, "getApplicationProtocol");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt socket: " + socket.getClass().getName(), e);
+        }
     }
 
     /**
@@ -453,8 +477,8 @@ public final class Conscrypt {
      * @param socket the socket
      * @param selector the ALPN protocol selector
      */
-    public static void setApplicationProtocolSelector(SSLSocket socket,
-        ApplicationProtocolSelector selector) {
+    public static void setApplicationProtocolSelector(
+            SSLSocket socket, ApplicationProtocolSelector selector) {
         toConscrypt(socket).setApplicationProtocolSelector(selector);
     }
 
@@ -504,8 +528,8 @@ public final class Conscrypt {
      * completed or the connection has been closed.
      * @throws SSLException if the value could not be exported.
      */
-    public static byte[] exportKeyingMaterial(SSLSocket socket, String label, byte[] context,
-            int length) throws SSLException {
+    public static byte[] exportKeyingMaterial(
+            SSLSocket socket, String label, byte[] context, int length) throws SSLException {
         return toConscrypt(socket).exportKeyingMaterial(label, context, length);
     }
 
@@ -711,8 +735,8 @@ public final class Conscrypt {
      * @param engine the engine
      * @param selector the ALPN protocol selector
      */
-    public static void setApplicationProtocolSelector(SSLEngine engine,
-        ApplicationProtocolSelector selector) {
+    public static void setApplicationProtocolSelector(
+            SSLEngine engine, ApplicationProtocolSelector selector) {
         toConscrypt(engine).setApplicationProtocolSelector(selector);
     }
 
@@ -721,9 +745,23 @@ public final class Conscrypt {
      *
      * @param engine the engine
      * @return the selected protocol or {@code null} if no protocol was agreed upon.
+     * @throws IllegalArgumentException if the engine is not a Conscrypt engine.
      */
     public static String getApplicationProtocol(SSLEngine engine) {
-        return toConscrypt(engine).getApplicationProtocol();
+        if (isConscrypt(engine)) {
+            return toConscrypt(engine).getApplicationProtocol();
+        }
+        try {
+            if (!Class.forName("com.android.org.conscrypt.AbstractConscryptEngine")
+                            .isInstance(engine)) {
+                throw new IllegalArgumentException(
+                        "Not a conscrypt engine: " + engine.getClass().getName());
+            }
+            return invokeConscryptMethod(engine, "getApplicationProtocol");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(
+                    "Not a conscrypt engine: " + engine.getClass().getName(), e);
+        }
     }
 
     /**
@@ -748,8 +786,8 @@ public final class Conscrypt {
      * completed or the connection has been closed.
      * @throws SSLException if the value could not be exported.
      */
-    public static byte[] exportKeyingMaterial(SSLEngine engine, String label, byte[] context,
-            int length) throws SSLException {
+    public static byte[] exportKeyingMaterial(
+            SSLEngine engine, String label, byte[] context, int length) throws SSLException {
         return toConscrypt(engine).exportKeyingMaterial(label, context, length);
     }
 
@@ -764,7 +802,7 @@ public final class Conscrypt {
     private static TrustManagerImpl toConscrypt(TrustManager trustManager) {
         if (!isConscrypt(trustManager)) {
             throw new IllegalArgumentException(
-                "Not a Conscrypt trust manager: " + trustManager.getClass().getName());
+                    "Not a Conscrypt trust manager: " + trustManager.getClass().getName());
         }
         return (TrustManagerImpl) trustManager;
     }
@@ -784,19 +822,22 @@ public final class Conscrypt {
      *
      * @see #setDefaultHostnameVerifier(ConscryptHostnameVerifier)
      */
-    public synchronized static ConscryptHostnameVerifier getDefaultHostnameVerifier(TrustManager trustManager) {
+    public synchronized static ConscryptHostnameVerifier getDefaultHostnameVerifier(
+            TrustManager trustManager) {
         return TrustManagerImpl.getDefaultHostnameVerifier();
     }
 
     /**
      * Set the hostname verifier that will be used for HTTPS endpoint identification by the
      * given trust manager.  If {@code null} (the default), endpoint identification will use the
-     * default hostname verifier set in {@link #setDefaultHostnameVerifier(ConscryptHostnameVerifier)}.
+     * default hostname verifier set in {@link
+     * #setDefaultHostnameVerifier(ConscryptHostnameVerifier)}.
      *
      * @throws IllegalArgumentException if the provided trust manager is not a Conscrypt trust
      * manager per {@link #isConscrypt(TrustManager)}
      */
-    public static void setHostnameVerifier(TrustManager trustManager, ConscryptHostnameVerifier verifier) {
+    public static void setHostnameVerifier(
+            TrustManager trustManager, ConscryptHostnameVerifier verifier) {
         toConscrypt(trustManager).setHostnameVerifier(verifier);
     }
 
@@ -816,11 +857,58 @@ public final class Conscrypt {
      * Wraps the HttpsURLConnection.HostnameVerifier into a ConscryptHostnameVerifier
      */
     public static ConscryptHostnameVerifier wrapHostnameVerifier(final HostnameVerifier verifier) {
-        return  new ConscryptHostnameVerifier() {
+        return new ConscryptHostnameVerifier() {
             @Override
-            public boolean verify(X509Certificate[] certificates, String hostname, SSLSession session) {
+            public boolean verify(
+                    X509Certificate[] certificates, String hostname, SSLSession session) {
                 return verifier.verify(hostname, session);
             }
         };
+    }
+
+    /**
+     * Generic helper method for invoking methods on potentially non-Conscrypt SSLSocket/SSLEngine
+     * instances via reflection.
+     *
+     * @param instance The SSLSocket or SSLEngine instance.
+     * @param methodName The name of the method to invoke.
+     * @return String.
+     * @throws IllegalArgumentException if the method cannot be invoked or throws a checked
+     *         exception.
+     * @throws IllegalStateException if the method throws an IllegalStateException.
+     * @throws RuntimeException if the method throws a RuntimeException.
+     * @throws Error if the method throws an Error.
+     */
+    private static String invokeConscryptMethod(Object instance, String methodName)
+            throws IllegalArgumentException {
+        try {
+            Method method = instance.getClass().getMethod(methodName);
+            Object result = method.invoke(instance);
+            return (String) result;
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SSLException || cause instanceof IOException) {
+                IllegalArgumentException wrapped = new IllegalArgumentException(
+                        "Reflected method '" + methodName + "' threw a checked exception.", cause);
+                throw wrapped;
+            } else if (cause instanceof IllegalStateException) {
+                throw (IllegalStateException) cause;
+            } else if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else if (cause instanceof Error) {
+                throw (Error) cause;
+            } else {
+                throw new RuntimeException(
+                        "Reflected method '" + methodName + "' threw an unexpected exception",
+                        cause);
+            }
+        } catch (Exception e) {
+            String className = instance.getClass().getName();
+            IllegalArgumentException wrapped = new IllegalArgumentException(
+                    "Failed reflection fallback for method '" + methodName + "' on class '"
+                            + className + ", message: " + e.getMessage(),
+                    e);
+            throw wrapped;
+        }
     }
 }
