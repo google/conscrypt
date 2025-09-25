@@ -1141,7 +1141,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     private int writeEncryptedDataHeap(ByteBuffer src, int pos, int len) throws IOException {
         AllocatedBuffer allocatedBuffer = null;
         try {
-            final ByteBuffer allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+            final ByteBuffer buffer;
+            allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
             buffer = allocatedBuffer.nioBuffer();
 
             int limit = src.limit();
