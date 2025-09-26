@@ -303,6 +303,11 @@ public class OpaqueProvider extends Provider {
     }
 
     @Override
+    public AlgorithmParameterSpec getParams() {
+        return delegate.getParams();
+    }
+
+    @Override
     public String getAlgorithm() {
       return delegate.getAlgorithm();
     }
