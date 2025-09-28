@@ -1,3 +1,15 @@
+plugins {
+    id 'conventions.common'
+    id 'conventions.boringssl'
+    id 'conventions.jvm'
+}
+
+repositories {
+    mavenCentral()
+    // TODO(prb): Gate this on a property to ensure that local testing can't contaminate releases.
+    mavenLocal()
+}
+
 description = 'Conscrypt: OpenJdk UberJAR'
 
 Directory buildTop = layout.buildDirectory.get()

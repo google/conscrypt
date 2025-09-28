@@ -1,5 +1,7 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id 'conventions.common'
+    id 'conventions.boringssl'
+    id 'conventions.android'
 }
 
 description = 'Conscrypt: Android Platform'

@@ -39,8 +39,7 @@ import java.util.List;
 @Internal
 public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     private static final byte[] PKCS7_MARKER = new byte[] {
-            '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'
-    };
+            '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'};
     private static final byte[] PEM_MARKER =
             new byte[] {'-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' '};
     private static final int DASH = 45; // Value of '-'
@@ -152,7 +151,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                         if (Arrays.equals(buffer, PEM_MARKER)) {
                             return fromX509PemInputStream(pbis);
                         }
-                        pbis.read();
+                        int unused = pbis.read();
                     }
                 }
                 throw new ParsingException("No certificate found");
@@ -168,8 +167,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
             }
         }
 
-        Collection<? extends T> generateItems(InputStream inStream)
-                throws ParsingException {
+        Collection<? extends T> generateItems(InputStream inStream) throws ParsingException {
             if (inStream == null) {
                 throw new ParsingException("inStream == null");
             }
@@ -274,44 +272,41 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                 }
 
                 @Override
-                public List<? extends OpenSSLX509Certificate>
-                        fromPkcs7PemInputStream(InputStream is) throws ParsingException {
+                public List<? extends OpenSSLX509Certificate> fromPkcs7PemInputStream(
+                        InputStream is) throws ParsingException {
                     return OpenSSLX509Certificate.fromPkcs7PemInputStream(is);
                 }
 
                 @Override
-                public List<? extends OpenSSLX509Certificate>
-                        fromPkcs7DerInputStream(InputStream is) throws ParsingException {
+                public List<? extends OpenSSLX509Certificate> fromPkcs7DerInputStream(
+                        InputStream is) throws ParsingException {
                     return OpenSSLX509Certificate.fromPkcs7DerInputStream(is);
                 }
             };
 
-    private Parser<OpenSSLX509CRL> crlParser =
-            new Parser<OpenSSLX509CRL>() {
-                @Override
-                public OpenSSLX509CRL fromX509PemInputStream(InputStream is)
-                        throws ParsingException {
-                    return OpenSSLX509CRL.fromX509PemInputStream(is);
-                }
+    private Parser<OpenSSLX509CRL> crlParser = new Parser<OpenSSLX509CRL>() {
+        @Override
+        public OpenSSLX509CRL fromX509PemInputStream(InputStream is) throws ParsingException {
+            return OpenSSLX509CRL.fromX509PemInputStream(is);
+        }
 
-                @Override
-                public OpenSSLX509CRL fromX509DerInputStream(InputStream is)
-                        throws ParsingException {
-                    return OpenSSLX509CRL.fromX509DerInputStream(is);
-                }
+        @Override
+        public OpenSSLX509CRL fromX509DerInputStream(InputStream is) throws ParsingException {
+            return OpenSSLX509CRL.fromX509DerInputStream(is);
+        }
 
-                @Override
-                public List<? extends OpenSSLX509CRL> fromPkcs7PemInputStream(InputStream is)
-                        throws ParsingException {
-                    return OpenSSLX509CRL.fromPkcs7PemInputStream(is);
-                }
+        @Override
+        public List<? extends OpenSSLX509CRL> fromPkcs7PemInputStream(InputStream is)
+                throws ParsingException {
+            return OpenSSLX509CRL.fromPkcs7PemInputStream(is);
+        }
 
-                @Override
-                public List<? extends OpenSSLX509CRL> fromPkcs7DerInputStream(InputStream is)
-                        throws ParsingException {
-                    return OpenSSLX509CRL.fromPkcs7DerInputStream(is);
-                }
-            };
+        @Override
+        public List<? extends OpenSSLX509CRL> fromPkcs7DerInputStream(InputStream is)
+                throws ParsingException {
+            return OpenSSLX509CRL.fromPkcs7DerInputStream(is);
+        }
+    };
 
     public OpenSSLX509CertificateFactory() {}
 
@@ -325,8 +320,8 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     }
 
     @Override
-    public Collection<? extends Certificate> engineGenerateCertificates(
-            InputStream inStream) throws CertificateException {
+    public Collection<? extends Certificate> engineGenerateCertificates(InputStream inStream)
+            throws CertificateException {
         try {
             return certificateParser.generateItems(inStream);
         } catch (ParsingException e) {
