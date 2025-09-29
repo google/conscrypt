@@ -961,6 +961,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 int ssl_error_code = ssl.doHandshake();
                 switch (ssl_error_code) {
                     case SSL_ERROR_WANT_READ:
+
                         return pendingStatus(pendingOutboundEncryptedBytes());
                     case SSL_ERROR_WANT_WRITE: {
                         return NEED_WRAP;
