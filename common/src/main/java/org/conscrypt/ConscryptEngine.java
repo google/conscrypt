@@ -1394,8 +1394,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 AllocatedBuffer allocatedBuffer = null;
                 try {
                     boolean isCopy = false;
-                    ByteBuffer outputBuffer
-                            = BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
+                    ByteBuffer outputBuffer =
+                            BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
                     if (outputBuffer == null) {
                         allocatedBuffer = bufferAllocator.allocateDirectBuffer(dataLength);
                         outputBuffer = BufferUtils.copyNoConsume(
@@ -1405,8 +1405,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
 
                     final SSLEngineResult pendingNetResult;
                     // Write plaintext application data to the SSL engine
-                    int result = writePlaintextData(outputBuffer,
-                            min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
+                    int result = writePlaintextData(
+                            outputBuffer, min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
 
                     if (result > 0) {
                         bytesConsumed = result;
@@ -1433,7 +1433,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                 pendingNetResult = readPendingBytesFromBIO(
                                         dst, bytesConsumed, bytesProduced, handshakeStatus);
                                 return pendingNetResult != null ? pendingNetResult
-                                        : CLOSED_NOT_HANDSHAKING;
+                                        			: CLOSED_NOT_HANDSHAKING;
                             case SSL_ERROR_WANT_READ:
                                 // If there is no pending data to read from BIO we should go back to
                                 // event loop and try
@@ -1470,7 +1470,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                 pendingNetResult = readPendingBytesFromBIO(
                                         dst, bytesConsumed, bytesProduced, handshakeStatus);
                                 return pendingNetResult != null ? pendingNetResult
-                                        : NEED_WRAP_CLOSED;
+                                        			: NEED_WRAP_CLOSED;
                             default:
                                 // Everything else is considered as error
                                 closeAll();
