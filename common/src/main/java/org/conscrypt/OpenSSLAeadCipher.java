@@ -400,7 +400,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             } else if (input == output
                     && ((inputOffset + inputLen > outputOffset && inputOffset <= outputOffset)
                             || (inputOffset >= outputOffset
-                                    && outputOffset + inputLen + 8 > inputOffset))) {
+                                    && outputOffset + inputLen + tagLengthInBytes > inputOffset))) {
                 // BoringSSL requires that input and output do not overlap. To be on the safe side,
                 // we copy the input to a new array.
                 in = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen);
