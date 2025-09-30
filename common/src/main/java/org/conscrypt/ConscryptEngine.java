@@ -1446,7 +1446,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                 return pendingNetResult != null
                                         ? pendingNetResult
                                         : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
-                                                 bytesConsumed, bytesProduced);
+                                        	bytesConsumed, bytesProduced);
                             case SSL_ERROR_WANT_WRITE:
                                 // SSL_ERROR_WANT_WRITE typically means that the underlying
                                 // transport is not writable
@@ -1470,7 +1470,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                 pendingNetResult = readPendingBytesFromBIO(
                                         dst, bytesConsumed, bytesProduced, handshakeStatus);
                                 return pendingNetResult != null ? pendingNetResult
-                                                        : NEED_WRAP_CLOSED; 
+                                        			: NEED_WRAP_CLOSED; 
                             default:
                                 // Everything else is considered as error
                                 closeAll();
