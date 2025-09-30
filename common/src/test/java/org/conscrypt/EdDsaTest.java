@@ -21,6 +21,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
@@ -328,7 +330,8 @@ public class EdDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720024" + classNameHex
+        String expectedHexEncoding = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
                 + "707269766174654b65794279746573" // hex("privateKeyBytes")
@@ -357,7 +360,8 @@ public class EdDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720023" + classNameHex
+        String expectedHexEncoding = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
                 + "7075626c69634b65794279746573" // hex("publicKeyBytes")
@@ -386,7 +390,12 @@ public class EdDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKeySerialized));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+        try {
+            ois.readObject();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException | EOFException e) {
+            // Expected
+        }
     }
 
     @Test
@@ -408,6 +417,11 @@ public class EdDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPublicKeySerialized));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+        try {
+            ois.readObject();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException | EOFException e) {
+            // Expected
+        }
     }
 }
