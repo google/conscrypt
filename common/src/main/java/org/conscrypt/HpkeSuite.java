@@ -36,6 +36,11 @@ public final class HpkeSuite {
     public static final int KEM_DHKEM_X25519_HKDF_SHA256 = 0x0020;
 
     /**
+     * KEM: 0x647a X-Wing
+     */
+    public static final int KEM_XWING = 0x647a;
+
+    /**
      * KDF: 0x0001 HKDF-SHA256
      */
     public static final int KDF_HKDF_SHA256 = 0x0001;
@@ -135,10 +140,13 @@ public final class HpkeSuite {
      *
      * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-key-encapsulation-mechanism">
      *         rfc9180 </a>
+     * @see <a href="https://www.iana.org/assignments/hpke/hpke.xhtml">IANA HPKE</a>
      */
     public enum KEM {
         DHKEM_X25519_HKDF_SHA256(
-                /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32);
+                /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32),
+        XWING(/* id= */ 0x647a, /* nSecret= */ 32, /* nEnc= */ 1120, /* nPk= */ 1216,
+                /* nSk= */ 32);
 
         private final int id;
         private final int nSecret;
