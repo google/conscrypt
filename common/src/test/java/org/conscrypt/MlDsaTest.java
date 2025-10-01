@@ -473,6 +473,7 @@ public class MlDsaTest {
 
         String invalidPrivateKey = "aced0005737200"
                 + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
                 + "73656564" // hex("seed")
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
