@@ -111,12 +111,6 @@ final class ExternalSession implements ConscryptSession {
   }
 
   @Override
-  @SuppressWarnings("deprecation") // Public API
-  public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
-    return provider.provideSession().getPeerCertificateChain();
-  }
-
-  @Override
   public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
     return provider.provideSession().getPeerPrincipal();
   }
