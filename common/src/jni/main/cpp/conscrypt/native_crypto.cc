@@ -7835,12 +7835,7 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData,
         if (fds[1].revents & POLLIN) {
             char token;
             do {
-                // TEMP - fixes build error
-                int foo = 0;
-                foo = read(appData->fdsEmergency[0], &token, 1);
-                if (foo > 0) {
-                    CONSCRYPT_LOG_VERBOSE("FOO: %d", foo);
-                }
+                (void)read(appData->fdsEmergency[0], &token, 1);
             } while (errno == EINTR);
         }
     }
@@ -7871,12 +7866,7 @@ static void sslNotify(AppData* appData) {
     char token = '*';
     do {
         errno = 0;
-        // TEMP - fixes build error
-        int foo = 0;
-        foo = write(appData->fdsEmergency[1], &token, 1);
-        if (foo > 0) {
-            CONSCRYPT_LOG_VERBOSE("FOO: %d", foo);
-        }
+        (void)write(appData->fdsEmergency[1], &token, 1);
     } while (errno == EINTR);
     errno = errnoBackup;
 #endif

@@ -28,10 +28,4 @@
     <issue id="Assert">
         <ignore path="**/common/src/main/java/org/conscrypt/OpenSSLCipherChaCha20.java" />
     </issue>
-
-    <!-- Workaround for "Unexpected failure during lint analysis". -->
-    <issue id="LintError">
-        <ignore regexp=".*module-info\.class.*"/>
-    </issue>
-
 </lint>
