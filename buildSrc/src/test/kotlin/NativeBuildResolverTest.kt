@@ -44,13 +44,15 @@ class NativeBuildResolverTest {
         val project = ProjectBuilder.builder().withProjectDir(tmp).build()
         val info = NativeBuildInfo(project.layout.buildDirectory, NativeBuildVariant.OSX_X64)
 
-        assertTrue(info.nativeResourcesDir.endsWith("osx-x86_64/native-resources"))
-        assertTrue(info.jarNativeResourcesDir.endsWith("osx-x86_64/native-resources/META-INF/native"))
+        assertTrue(info.nativeResourcesDir.replace('\\', '/')
+            .endsWith("osx-x86_64/native-resources"))
+        assertTrue(info.jarNativeResourcesDir.replace('\\', '/')
+            .endsWith("osx-x86_64/native-resources/META-INF/native"))
         assertEquals("osx-x86_64", info.mavenClassifier)
         assertEquals("osx_x86-64", info.targetPlatform)
     }
 
-    @Test fun resolver_wraps_variants() {
+    @Test fun resolverWrapsVariants() {
         val project = ProjectBuilder.builder().build()
         val resolver = NativeBuildResolver(project.layout.buildDirectory)
 
