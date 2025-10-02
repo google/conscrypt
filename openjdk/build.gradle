@@ -314,7 +314,6 @@ model {
                 withType (SharedLibraryBinarySpec) {
                     cppCompiler.define "CONSCRYPT_OPENJDK"
                     def jdkIncludeDir = jniIncludeDir()
-                    def copy = targetPlatform
                     def nativeBuildInfo = nativeResolver.find(targetPlatform)
                     String libPath = boringsslHome + '/' + nativeBuildInfo.boringBuildDir
 
