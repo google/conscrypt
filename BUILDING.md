@@ -22,11 +22,7 @@ Conscrypt requires that you have __Java__, __BoringSSL__ and the __Android SDK__
 described below.
 
 #### Java
-The build uses a version of Gradle which requires a __Java 11__ JRE to run, however to ensure 
-backward compatibility Conscrypt itself is compiled with a __Java 8__ JDK using Gradle's
-recent Java toolchain support.  At the least, you will need to install __Java 11__ to run 
-Gradle, but if you do not also have __Java 8__ then depending on the OS, Gradle will
-try and install it automatically.
+The build uses a version of Gradle which requires a __Java 11__ JRE to run.
 
 #### Android SDK
 [Download and install](https://developer.android.com/studio/install.html) the latest Android SDK
