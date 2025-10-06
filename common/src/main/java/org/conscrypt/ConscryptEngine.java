@@ -137,13 +137,15 @@ private
 
     // @GuardedBy("ssl");
 private
-    int state = STATE_NEW;
-private
-    boolean handshakeFinished;
 
-    /**
-     * Wrapper around the underlying SSL object.
-     */
+        int state = STATE_NEW;
+private
+
+        boolean handshakeFinished;
+
+/**
+ * Wrapper around the underlying SSL object.
+ */
 private
     final NativeSsl ssl;
 
