@@ -97,86 +97,105 @@ import org.conscrypt.SSLParametersImpl.AliasChooser;
 /**
  * Implements the {@link SSLEngine} API using OpenSSL's non-blocking interfaces.
  */
-final class ConscryptEngine extends AbstractConscryptEngine implements NativeCrypto.SSLHandshakeCallbacks,
-                                                         SSLParametersImpl.AliasChooser,
-                                                         SSLParametersImpl.PSKCallbacks {
-
-    private static final SSLEngineResult NEED_UNWRAP_OK =
-            new SSLEngineResult(OK, NEED_UNWRAP, 0, 0);
-    private static final SSLEngineResult NEED_UNWRAP_CLOSED =
+final class ConscryptEngine extends AbstractConscryptEngine implements
+        NativeCrypto.SSLHandshakeCallbacks,
+        SSLParametersImpl.AliasChooser, SSLParametersImpl.PSKCallbacks {
+private
+    static final SSLEngineResult NEED_UNWRAP_OK = new SSLEngineResult(OK, NEED_UNWRAP, 0, 0);
+private
+    static final SSLEngineResult NEED_UNWRAP_CLOSED =
             new SSLEngineResult(CLOSED, NEED_UNWRAP, 0, 0);
-    private static final SSLEngineResult NEED_WRAP_OK = new SSLEngineResult(OK, NEED_WRAP, 0, 0);
-    private static final SSLEngineResult NEED_WRAP_CLOSED =
-            new SSLEngineResult(CLOSED, NEED_WRAP, 0, 0);
-    private static final SSLEngineResult CLOSED_NOT_HANDSHAKING =
+private
+    static final SSLEngineResult NEED_WRAP_OK = new SSLEngineResult(OK, NEED_WRAP, 0, 0);
+private
+    static final SSLEngineResult NEED_WRAP_CLOSED = new SSLEngineResult(CLOSED, NEED_WRAP, 0, 0);
+private
+    static final SSLEngineResult CLOSED_NOT_HANDSHAKING =
             new SSLEngineResult(CLOSED, NOT_HANDSHAKING, 0, 0);
 
-    private static BufferAllocator defaultBufferAllocator = null;
+private
+    static BufferAllocator defaultBufferAllocator = null;
 
-    private final SSLParametersImpl sslParameters;
-    private BufferAllocator bufferAllocator = defaultBufferAllocator;
+private
+    final SSLParametersImpl sslParameters;
+private
+    BufferAllocator bufferAllocator = defaultBufferAllocator;
 
     /**
      * A lazy-created direct buffer used as a bridge between heap buffers provided by the
      * application and JNI. This avoids the overhead of calling JNI with heap buffers.
      * Used only when no {@link #bufferAllocator} has been provided.
      */
-    private ByteBuffer lazyDirectBuffer;
+private
+    ByteBuffer lazyDirectBuffer;
 
     /**
      * Hostname used with the TLS extension SNI hostname.
      */
-    private String peerHostname;
+private
+    String peerHostname;
 
     // @GuardedBy("ssl");
-    private int state = STATE_NEW;
-    private boolean handshakeFinished;
+private
+    int state = STATE_NEW;
+private
+    boolean handshakeFinished;
 
     /**
      * Wrapper around the underlying SSL object.
      */
-    private final NativeSsl ssl;
+private
+    final NativeSsl ssl;
 
     /**
      * The BIO used for reading/writing encrypted bytes.
      */
     // @GuardedBy("ssl");
-    private final BioWrapper networkBio;
+private
+    final BioWrapper networkBio;
 
     /**
      * Set during startHandshake.
      */
-    private ActiveSession activeSession;
+private
+    ActiveSession activeSession;
 
     /**
      * A snapshot of the active session when the engine was closed.
      */
-    private SessionSnapshot closedSession;
+private
+    SessionSnapshot closedSession;
 
     /**
      * The session object exposed externally from this class.
      */
-    private final SSLSession externalSession =
-        Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
-            @Override
-            public ConscryptSession provideSession() {
-                return ConscryptEngine.this.provideSession();
-            }
-        }));
+private
+    final SSLSession externalSession =
+            Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
+                @Override public ConscryptSession provideSession() {
+                    return ConscryptEngine.this.provideSession();
+                }
+            }));
 
     /**
      * Private key for the TLS Channel ID extension. This field is client-side only. Set during
      * startHandshake.
      */
-    private OpenSSLKey channelIdPrivateKey;
+private
+    OpenSSLKey channelIdPrivateKey;
 
-    private int maxSealOverhead;
+private
+    int maxSealOverhead;
 
-    private HandshakeListener handshakeListener;
+private
+    HandshakeListener handshakeListener;
 
-    private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
-    private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
-    private final PeerInfoProvider peerInfoProvider;
+private
+    final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
+private
+    final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
+private
+    final PeerInfoProvider peerInfoProvider;
 
     ConscryptEngine(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
@@ -193,15 +212,16 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider,
-        AliasChooser aliasChooser) {
+                    AliasChooser aliasChooser) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this, aliasChooser);
         this.networkBio = ssl.newBio();
     }
 
-    private static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine,
-        AliasChooser aliasChooser) {
+private
+    static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine,
+                            AliasChooser aliasChooser) {
         try {
             return NativeSsl.newInstance(sslParameters, engine, aliasChooser, engine);
         } catch (SSLException e) {
@@ -225,9 +245,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return defaultBufferAllocator;
     }
 
-    @Override
-    void setBufferAllocator(BufferAllocator bufferAllocator) {
-        synchronized (ssl) {
+    @Override void setBufferAllocator(BufferAllocator bufferAllocator) {
+        synchronized(ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Could not set buffer allocator after the initial handshake has begun.");
@@ -239,8 +258,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
-    @Override
-    int maxSealOverhead() {
+    @Override int maxSealOverhead() {
         return maxSealOverhead;
     }
 
@@ -252,15 +270,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * @throws IllegalStateException if this is a client engine or if the handshake has already
      *         started.
      */
-    @Override
-    void setChannelIdEnabled(boolean enabled) {
-        synchronized (ssl) {
+    @Override void setChannelIdEnabled(boolean enabled) {
+        synchronized(ssl) {
             if (getUseClientMode()) {
                 throw new IllegalStateException("Not allowed in client mode");
             }
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
-                        "Could not enable/disable Channel ID after the initial handshake has begun.");
+                        "Could not enable/disable Channel ID after the initial handshake has "
+                        "begun.");
             }
             sslParameters.channelIdEnabled = enabled;
         }
@@ -276,9 +294,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * completed.
      * @throws SSLException if channel ID is available but could not be obtained.
      */
-    @Override
-    byte[] getChannelId() throws SSLException {
-        synchronized (ssl) {
+    @Override byte[] getChannelId() throws SSLException {
+        synchronized(ssl) {
             if (getUseClientMode()) {
                 throw new IllegalStateException("Not allowed in client mode");
             }
@@ -303,16 +320,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * @throws IllegalStateException if this is a server engine or if the handshake has already
      *         started.
      */
-    @Override
-    void setChannelIdPrivateKey(PrivateKey privateKey) {
+    @Override void setChannelIdPrivateKey(PrivateKey privateKey) {
         if (!getUseClientMode()) {
             throw new IllegalStateException("Not allowed in server mode");
         }
 
-        synchronized (ssl) {
+        synchronized(ssl) {
             if (isHandshakeStarted()) {
-                throw new IllegalStateException("Could not change Channel ID private key "
-                        + "after the initial handshake has begun.");
+                throw new IllegalStateException("Could not change Channel ID private key " +
+                                                "after the initial handshake has begun.");
             }
 
             if (privateKey == null) {
@@ -325,7 +341,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             try {
                 ECParameterSpec ecParams = null;
                 if (privateKey instanceof ECKey) {
-                    ecParams = ((ECKey) privateKey).getParams();
+                    ecParams = ((ECKey)privateKey).getParams();
                 }
                 if (ecParams == null) {
                     // Assume this is a P-256 key, as specified in the contract of this method.
@@ -343,9 +359,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Sets the listener for the completion of the TLS handshake.
      */
-    @Override
-    void setHandshakeListener(HandshakeListener handshakeListener) {
-        synchronized (ssl) {
+    @Override void setHandshakeListener(HandshakeListener handshakeListener) {
+        synchronized(ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Handshake listener must be set before starting the handshake.");
@@ -354,7 +369,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private boolean isHandshakeStarted() {
+private
+    boolean isHandshakeStarted() {
         switch (state) {
             case STATE_NEW:
             case STATE_MODE_SET:
@@ -369,8 +385,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * supplied during engine creation.  If the hostname is not a valid SNI hostname, the SNI
      * extension will be omitted from the handshake.
      */
-    @Override
-    void setHostname(String hostname) {
+    @Override void setHostname(String hostname) {
         sslParameters.setUseSni(hostname != null);
         this.peerHostname = hostname;
     }
@@ -380,29 +395,26 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      * {@link PeerInfoProvider} upon creation. No DNS resolution is attempted before
      * returning the hostname.
      */
-    @Override
-    String getHostname() {
+    @Override String getHostname() {
         return peerHostname != null ? peerHostname : peerInfoProvider.getHostname();
     }
 
-    @Override
-    public String getPeerHost() {
+    @Override public String getPeerHost() {
         return peerHostname != null ? peerHostname : peerInfoProvider.getHostnameOrIP();
     }
 
-    @Override
-    public int getPeerPort() {
+    @Override public int getPeerPort() {
         return peerInfoProvider.getPort();
     }
 
-    @Override
-    public void beginHandshake() throws SSLException {
-        synchronized (ssl) {
+    @Override public void beginHandshake() throws SSLException {
+        synchronized(ssl) {
             beginHandshakeInternal();
         }
     }
 
-    private void beginHandshakeInternal() throws SSLException {
+private
+    void beginHandshakeInternal() throws SSLException {
         switch (state) {
             case STATE_NEW: {
                 throw new IllegalStateException("Client/server mode must be set before handshake");
@@ -450,9 +462,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public void closeInbound() {
-        synchronized (ssl) {
+    @Override public void closeInbound() {
+        synchronized(ssl) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
                 return;
             }
@@ -470,9 +481,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public void closeOutbound() {
-        synchronized (ssl) {
+    @Override public void closeOutbound() {
+        synchronized(ssl) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND) {
                 return;
             }
@@ -491,48 +501,42 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public Runnable getDelegatedTask() {
+    @Override public Runnable getDelegatedTask() {
         // This implementation doesn't use any delegated tasks.
         return null;
     }
 
-    @Override
-    public String[] getEnabledCipherSuites() {
+    @Override public String[] getEnabledCipherSuites() {
         return sslParameters.getEnabledCipherSuites();
     }
 
-    @Override
-    public String[] getEnabledProtocols() {
+    @Override public String[] getEnabledProtocols() {
         return sslParameters.getEnabledProtocols();
     }
 
-    @Override
-    public boolean getEnableSessionCreation() {
+    @Override public boolean getEnableSessionCreation() {
         return sslParameters.getEnableSessionCreation();
     }
 
-    @Override
-    public SSLParameters getSSLParameters() {
+    @Override public SSLParameters getSSLParameters() {
         SSLParameters params = super.getSSLParameters();
         Platform.getSSLParameters(params, sslParameters, this);
         return params;
     }
 
-    @Override
-    public void setSSLParameters(SSLParameters p) {
+    @Override public void setSSLParameters(SSLParameters p) {
         super.setSSLParameters(p);
         Platform.setSSLParameters(p, sslParameters, this);
     }
 
-    @Override
-    public HandshakeStatus getHandshakeStatus() {
-        synchronized (ssl) {
+    @Override public HandshakeStatus getHandshakeStatus() {
+        synchronized(ssl) {
             return getHandshakeStatusInternal();
         }
     }
 
-    private HandshakeStatus getHandshakeStatusInternal() {
+private
+    HandshakeStatus getHandshakeStatusInternal() {
         if (handshakeFinished) {
             return HandshakeStatus.NOT_HANDSHAKING;
         }
@@ -559,30 +563,29 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return networkBio.getPendingWrittenBytes();
     }
 
-    private int pendingInboundCleartextBytes() {
+private
+    int pendingInboundCleartextBytes() {
         return ssl.getPendingReadableBytes();
     }
 
-    private static SSLEngineResult.HandshakeStatus pendingStatus(int pendingOutboundBytes) {
+private
+    static SSLEngineResult.HandshakeStatus pendingStatus(int pendingOutboundBytes) {
         // Depending on if there is something left in the BIO we need to WRAP or UNWRAP
         return pendingOutboundBytes > 0 ? NEED_WRAP : NEED_UNWRAP;
     }
 
-    @Override
-    public boolean getNeedClientAuth() {
+    @Override public boolean getNeedClientAuth() {
         return sslParameters.getNeedClientAuth();
     }
 
     /**
      * Work-around to allow this method to be called on older versions of Android.
      */
-    @Override
-    SSLSession handshakeSession() {
-        synchronized (ssl) {
+    @Override SSLSession handshakeSession() {
+        synchronized(ssl) {
             if (state == STATE_HANDSHAKE_STARTED) {
                 return Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
-                    @Override
-                    public ConscryptSession provideSession() {
+                    @Override public ConscryptSession provideSession() {
                         return ConscryptEngine.this.provideHandshakeSession();
                     }
                 }));
@@ -591,13 +594,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public SSLSession getSession() {
+    @Override public SSLSession getSession() {
         return externalSession;
     }
 
-    private ConscryptSession provideSession() {
-        synchronized (ssl) {
+private
+    ConscryptSession provideSession() {
+        synchronized(ssl) {
             if (state == STATE_CLOSED) {
                 return closedSession != null ? closedSession : SSLNullSession.getNullSession();
             }
@@ -609,84 +612,72 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private ConscryptSession provideHandshakeSession() {
-        synchronized (ssl) {
+private
+    ConscryptSession provideHandshakeSession() {
+        synchronized(ssl) {
             return state == STATE_HANDSHAKE_STARTED ? activeSession
-                : SSLNullSession.getNullSession();
+                                                    : SSLNullSession.getNullSession();
         }
     }
 
     // After handshake has started, provide active session otherwise a null session,
     // for code which needs to read session attributes without triggering the handshake.
-    private ConscryptSession provideAfterHandshakeSession() {
-        return (state < STATE_HANDSHAKE_STARTED)
-                ? SSLNullSession.getNullSession()
-                : provideSession();
+private
+    ConscryptSession provideAfterHandshakeSession() {
+        return (state < STATE_HANDSHAKE_STARTED) ? SSLNullSession.getNullSession()
+                                                 : provideSession();
     }
 
-    @Override
-    public String[] getSupportedCipherSuites() {
+    @Override public String[] getSupportedCipherSuites() {
         return NativeCrypto.getSupportedCipherSuites();
     }
 
-    @Override
-    public String[] getSupportedProtocols() {
+    @Override public String[] getSupportedProtocols() {
         return NativeCrypto.getSupportedProtocols();
     }
 
-    @Override
-    public boolean getUseClientMode() {
+    @Override public boolean getUseClientMode() {
         return sslParameters.getUseClientMode();
     }
 
-    @Override
-    public boolean getWantClientAuth() {
+    @Override public boolean getWantClientAuth() {
         return sslParameters.getWantClientAuth();
     }
 
-    @Override
-    public boolean isInboundDone() {
-        synchronized (ssl) {
-            return (state == STATE_CLOSED
-                    || state == STATE_CLOSED_INBOUND
-                    || ssl.wasShutdownReceived())
-                && (pendingInboundCleartextBytes() == 0);
+    @Override public boolean isInboundDone() {
+        synchronized(ssl) {
+            return (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND ||
+                    ssl.wasShutdownReceived()) &&
+                   (pendingInboundCleartextBytes() == 0);
         }
     }
 
-    @Override
-    public boolean isOutboundDone() {
-        synchronized (ssl) {
-            return (state == STATE_CLOSED
-                    || state == STATE_CLOSED_OUTBOUND
-                    || ssl.wasShutdownSent())
-                && (pendingOutboundEncryptedBytes() == 0);
+    @Override public boolean isOutboundDone() {
+        synchronized(ssl) {
+            return (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND ||
+                    ssl.wasShutdownSent()) &&
+                   (pendingOutboundEncryptedBytes() == 0);
         }
     }
 
-    @Override
-    public void setEnabledCipherSuites(String[] suites) {
+    @Override public void setEnabledCipherSuites(String[] suites) {
         sslParameters.setEnabledCipherSuites(suites);
     }
 
-    @Override
-    public void setEnabledProtocols(String[] protocols) {
+    @Override public void setEnabledProtocols(String[] protocols) {
         sslParameters.setEnabledProtocols(protocols);
     }
 
-    @Override
-    public void setEnableSessionCreation(boolean flag) {
+    @Override public void setEnableSessionCreation(boolean flag) {
         sslParameters.setEnableSessionCreation(flag);
     }
 
-    @Override
-    public void setNeedClientAuth(boolean need) {
+    @Override public void setNeedClientAuth(boolean need) {
         sslParameters.setNeedClientAuth(need);
     }
 
-    @Override
-    public void setUseClientMode(boolean mode) {
-        synchronized (ssl) {
+    @Override public void setUseClientMode(boolean mode) {
+        synchronized(ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalArgumentException(
                         "Can not change mode after handshake: state == " + state);
@@ -696,14 +687,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public void setWantClientAuth(boolean want) {
+    @Override public void setWantClientAuth(boolean want) {
         sslParameters.setWantClientAuth(want);
     }
 
-    @Override
-    public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
-        synchronized (ssl) {
+    @Override public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+        synchronized(ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), singleDstBuffer(dst));
             } finally {
@@ -713,9 +702,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts) throws SSLException {
-        synchronized (ssl) {
+    @Override public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts) throws SSLException {
+        synchronized(ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), dsts);
             } finally {
@@ -724,10 +712,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset,
-            final int length) throws SSLException {
-        synchronized (ssl) {
+    @Override public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts,
+                                            final int offset, final int length)
+            throws SSLException {
+        synchronized(ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), 0, 1, dsts, offset, length);
             } finally {
@@ -736,17 +724,16 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts) throws SSLException {
+    @Override SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts)
+            throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dsts != null, "dsts is null");
         return unwrap(srcs, 0, srcs.length, dsts, 0, dsts.length);
     }
 
-    @Override
-    SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
-            final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
-            throws SSLException {
+    @Override SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
+                                     final ByteBuffer[] dsts, final int dstsOffset,
+                                     final int dstsLength) throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dsts != null, "dsts is null");
         checkPositionIndexes(srcsOffset, srcsOffset + srcsLength, srcs.length);
@@ -759,7 +746,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         final int srcsEndOffset = srcsOffset + srcsLength;
         final long srcLength = calcSrcsLength(srcs, srcsOffset, srcsEndOffset);
 
-        synchronized (ssl) {
+        synchronized(ssl) {
             switch (state) {
                 case STATE_MODE_SET:
                     // Begin the handshake implicitly.
@@ -888,9 +875,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                                     // inbound direction as closed and shut down the SSL object
                                     closeAll();
                                     return new SSLEngineResult(Status.CLOSED,
-                                            pendingOutboundEncryptedBytes() > 0
-                                                    ? NEED_WRAP : NOT_HANDSHAKING,
-                                            bytesConsumed, bytesProduced);
+                                                               pendingOutboundEncryptedBytes() > 0
+                                                                       ? NEED_WRAP
+                                                                       : NOT_HANDSHAKING,
+                                                               bytesConsumed, bytesProduced);
                                 }
                                 default: {
                                     // Should never get here.
@@ -922,10 +910,11 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
             if (pendingCleartextBytes > 0) {
                 // We filled all buffers but there is still some data pending in the BIO buffer,
                 // return BUFFER_OVERFLOW.
-                return new SSLEngineResult(BUFFER_OVERFLOW,
+                return new SSLEngineResult(
+                        BUFFER_OVERFLOW,
                         mayFinishHandshake(handshakeStatus == FINISHED
-                                        ? handshakeStatus
-                                        : getHandshakeStatusInternal()),
+                                                   ? handshakeStatus
+                                                   : getHandshakeStatusInternal()),
                         bytesConsumed, bytesProduced);
             }
 
@@ -933,7 +922,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private static int calcDstsLength(ByteBuffer[] dsts, int dstsOffset, int dstsLength) {
+private
+    static int calcDstsLength(ByteBuffer[] dsts, int dstsOffset, int dstsLength) {
         int capacity = 0;
         for (int i = 0; i < dsts.length; i++) {
             ByteBuffer dst = dsts[i];
@@ -948,7 +938,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return capacity;
     }
 
-    private static long calcSrcsLength(ByteBuffer[] srcs, int srcsOffset, int srcsEndOffset) {
+private
+    static long calcSrcsLength(ByteBuffer[] srcs, int srcsOffset, int srcsEndOffset) {
         long len = 0;
         for (int i = srcsOffset; i < srcsEndOffset; i++) {
             ByteBuffer src = srcs[i];
@@ -960,7 +951,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return len;
     }
 
-    private SSLEngineResult.HandshakeStatus handshake() throws SSLException {
+private
+    SSLEngineResult.HandshakeStatus handshake() throws SSLException {
         try {
             // Only actually perform the handshake if we haven't already just completed it
             // via BIO operations.
@@ -995,7 +987,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private void finishHandshake() throws SSLException {
+private
+    void finishHandshake() throws SSLException {
         handshakeFinished = true;
         // Notify the listener, if provided.
         if (handshakeListener != null) {
@@ -1008,7 +1001,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      *
      * Calling this function with src.remaining == 0 is undefined.
      */
-    private int writePlaintextData(final ByteBuffer src, int len) throws SSLException {
+private
+    int writePlaintextData(final ByteBuffer src, int len) throws SSLException {
         try {
             final int pos = src.position();
             final int sslWrote;
@@ -1026,11 +1020,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private int writePlaintextDataDirect(ByteBuffer src, int pos, int len) throws IOException {
+private
+    int writePlaintextDataDirect(ByteBuffer src, int pos, int len) throws IOException {
         return ssl.writeDirectByteBuffer(directByteBufferAddress(src, pos), len);
     }
 
-    private int writePlaintextDataHeap(ByteBuffer src, int pos, int len) throws IOException {
+private
+    int writePlaintextDataHeap(ByteBuffer src, int pos, int len) throws IOException {
         AllocatedBuffer allocatedBuffer = null;
         try {
             final ByteBuffer buffer;
@@ -1066,7 +1062,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Read plaintext data from the OpenSSL internal BIO
      */
-    private int readPlaintextData(final ByteBuffer dst) throws IOException {
+private
+    int readPlaintextData(final ByteBuffer dst) throws IOException {
         try {
             final int pos = dst.position();
             final int limit = dst.limit();
@@ -1086,13 +1083,14 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private int readPlaintextDataDirect(ByteBuffer dst, int pos, int len)
-            throws IOException, CertificateException {
+private
+    int readPlaintextDataDirect(ByteBuffer dst, int pos, int len) throws IOException,
+            CertificateException {
         return ssl.readDirectByteBuffer(directByteBufferAddress(dst, pos), len);
     }
 
-    private int readPlaintextDataHeap(ByteBuffer dst, int len)
-            throws IOException, CertificateException {
+private
+    int readPlaintextDataHeap(ByteBuffer dst, int len) throws IOException, CertificateException {
         AllocatedBuffer allocatedBuffer = null;
         try {
             final ByteBuffer buffer;
@@ -1125,7 +1123,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private SSLException convertException(Throwable e) {
+private
+    SSLException convertException(Throwable e) {
         if (e instanceof SSLHandshakeException || !handshakeFinished) {
             return SSLUtils.toSSLHandshakeException(e);
         }
@@ -1135,7 +1134,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Write encrypted data to the OpenSSL network BIO.
      */
-    private int writeEncryptedData(final ByteBuffer src, int len) throws SSLException {
+private
+    int writeEncryptedData(final ByteBuffer src, int len) throws SSLException {
         try {
             final int pos = src.position();
             final int bytesWritten;
@@ -1156,11 +1156,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private int writeEncryptedDataDirect(ByteBuffer src, int pos, int len) throws IOException {
+private
+    int writeEncryptedDataDirect(ByteBuffer src, int pos, int len) throws IOException {
         return networkBio.writeDirectByteBuffer(directByteBufferAddress(src, pos), len);
     }
 
-    private int writeEncryptedDataHeap(ByteBuffer src, int pos, int len) throws IOException {
+private
+    int writeEncryptedDataHeap(ByteBuffer src, int pos, int len) throws IOException {
         AllocatedBuffer allocatedBuffer = null;
         try {
             final ByteBuffer buffer;
@@ -1198,7 +1200,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private ByteBuffer getOrCreateLazyDirectBuffer() {
+private
+    ByteBuffer getOrCreateLazyDirectBuffer() {
         if (lazyDirectBuffer == null) {
             lazyDirectBuffer = ByteBuffer.allocateDirect(
                     max(SSL3_RT_MAX_PLAIN_LENGTH, SSL3_RT_MAX_PACKET_SIZE));
@@ -1207,12 +1210,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return lazyDirectBuffer;
     }
 
-    private long directByteBufferAddress(ByteBuffer directBuffer, int pos) {
+private
+    long directByteBufferAddress(ByteBuffer directBuffer, int pos) {
         return NativeCrypto.getDirectBufferAddress(directBuffer) + pos;
     }
 
-    private SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed,
-            int bytesProduced, SSLEngineResult.HandshakeStatus status) throws SSLException {
+private
+    SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed, int bytesProduced,
+                                            SSLEngineResult.HandshakeStatus status)
+            throws SSLException {
         try {
             // Check to see if the engine wrote data into the network BIO
             int pendingNet = pendingOutboundEncryptedBytes();
@@ -1220,9 +1226,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 // Do we have enough room in dst to write encrypted data?
                 int capacity = dst.remaining();
                 if (capacity < pendingNet) {
-                    return new SSLEngineResult(BUFFER_OVERFLOW,
-                            mayFinishHandshake(
-                                    status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                    return new SSLEngineResult(
+                            BUFFER_OVERFLOW,
+                            mayFinishHandshake(status == FINISHED ? status
+                                                                  : getHandshakeStatus(pendingNet)),
                             bytesConsumed, bytesProduced);
                 }
 
@@ -1239,9 +1246,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                     pendingNet -= produced;
                 }
 
-                return new SSLEngineResult(getEngineStatus(),
-                        mayFinishHandshake(
-                                status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                return new SSLEngineResult(
+                        getEngineStatus(),
+                        mayFinishHandshake(status == FINISHED ? status
+                                                              : getHandshakeStatus(pendingNet)),
                         bytesConsumed, bytesProduced);
             }
             return null;
@@ -1253,7 +1261,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     /**
      * Read encrypted data from the OpenSSL network BIO
      */
-    private int readEncryptedData(final ByteBuffer dst, final int pending) throws SSLException {
+private
+    int readEncryptedData(final ByteBuffer dst, final int pending) throws SSLException {
         try {
             int bytesRead = 0;
             final int pos = dst.position();
@@ -1278,11 +1287,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private int readEncryptedDataDirect(ByteBuffer dst, int pos, int len) throws IOException {
+private
+    int readEncryptedDataDirect(ByteBuffer dst, int pos, int len) throws IOException {
         return networkBio.readDirectByteBuffer(directByteBufferAddress(dst, pos), len);
     }
 
-    private int readEncryptedDataHeap(ByteBuffer dst, int len) throws IOException {
+private
+    int readEncryptedDataHeap(ByteBuffer dst, int len) throws IOException {
         AllocatedBuffer allocatedBuffer = null;
         try {
             final ByteBuffer buffer;
@@ -1313,8 +1324,9 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private SSLEngineResult.HandshakeStatus mayFinishHandshake(
-            SSLEngineResult.HandshakeStatus status) throws SSLException {
+private
+    SSLEngineResult.HandshakeStatus mayFinishHandshake(SSLEngineResult.HandshakeStatus status)
+            throws SSLException {
         if (!handshakeFinished && status == NOT_HANDSHAKING) {
             // If the status was NOT_HANDSHAKING and we not finished the handshake we need to call
             // SSL_do_handshake() again
@@ -1323,12 +1335,14 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return status;
     }
 
-    private SSLEngineResult.HandshakeStatus getHandshakeStatus(int pending) {
+private
+    SSLEngineResult.HandshakeStatus getHandshakeStatus(int pending) {
         // Check if we are in the initial handshake phase or shutdown phase
         return !handshakeFinished ? pendingStatus(pending) : NOT_HANDSHAKING;
     }
 
-    private SSLEngineResult.Status getEngineStatus() {
+private
+    SSLEngineResult.Status getEngineStatus() {
         switch (state) {
             case STATE_CLOSED_INBOUND:
             case STATE_CLOSED_OUTBOUND:
@@ -1339,34 +1353,38 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private void closeAll() {
+private
+    void closeAll() {
         closeOutbound();
         closeInbound();
     }
 
-    private void freeIfDone() {
+private
+    void freeIfDone() {
         if (isInboundDone() && isOutboundDone()) {
             closeAndFreeResources();
         }
     }
 
-    private SSLException newSslExceptionWithMessage(String err) {
+private
+    SSLException newSslExceptionWithMessage(String err) {
         if (!handshakeFinished) {
             return new SSLException(err);
         }
         return new SSLHandshakeException(err);
     }
 
-    private SSLEngineResult newResult(int bytesConsumed, int bytesProduced,
-            SSLEngineResult.HandshakeStatus status) throws SSLException {
-        return new SSLEngineResult(getEngineStatus(),
+private
+    SSLEngineResult newResult(int bytesConsumed, int bytesProduced,
+                              SSLEngineResult.HandshakeStatus status) throws SSLException {
+        return new SSLEngineResult(
+                getEngineStatus(),
                 mayFinishHandshake(status == FINISHED ? status : getHandshakeStatusInternal()),
                 bytesConsumed, bytesProduced);
     }
 
-    @Override
-    public SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
-        synchronized (ssl) {
+    @Override public SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
+        synchronized(ssl) {
             try {
                 return wrap(singleSrcBuffer(src), dst);
             } finally {
@@ -1375,9 +1393,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public SSLEngineResult wrap(ByteBuffer[] srcs, int srcsOffset, int srcsLength, ByteBuffer dst)
-            throws SSLException {
+    @Override public SSLEngineResult wrap(ByteBuffer[] srcs, int srcsOffset, int srcsLength,
+                                          ByteBuffer dst) throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dst != null, "dst is null");
         checkPositionIndexes(srcsOffset, srcsOffset + srcsLength, srcs.length);
@@ -1390,7 +1407,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
         BufferUtils.checkNotNull(srcs);
 
-        synchronized (ssl) {
+        synchronized(ssl) {
             switch (state) {
                 case STATE_MODE_SET:
                     // Begin the handshake implicitly.
@@ -1429,10 +1446,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 // NEED_WRAP - just fall through to perform the wrap.
             }
 
-            int dataLength = (int) min(BufferUtils.remaining(srcs), SSL3_RT_MAX_PLAIN_LENGTH);
+            int dataLength = (int)min(BufferUtils.remaining(srcs), SSL3_RT_MAX_PLAIN_LENGTH);
             if (dst.remaining() < calculateOutNetBufSize(dataLength)) {
-                return new SSLEngineResult(
-                    Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
+                return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0,
+                                           0);
             }
 
             int bytesProduced = 0;
@@ -1443,8 +1460,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                 // data as possible from the source buffers to fill a record. Note the we can't
                 // mark the data as consumed until we see how much the TLS layer actually consumes.
                 boolean isCopy = false;
-                ByteBuffer outputBuffer
-                        = BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
+                ByteBuffer outputBuffer =
+                        BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
                 if (outputBuffer == null) {
                     // The buffer by getOrCreateLazyDirectBuffer() is also used by
                     // writePlainTextDataHeap(), but by filling it here the write path will go via
@@ -1453,14 +1470,14 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                     // direct one.
                     // TODO(): use bufferAllocator if set.
                     // https://github.com/google/conscrypt/issues/974
-                    outputBuffer = BufferUtils.copyNoConsume(
-                            srcs, getOrCreateLazyDirectBuffer(), SSL3_RT_MAX_PLAIN_LENGTH);
+                    outputBuffer = BufferUtils.copyNoConsume(srcs, getOrCreateLazyDirectBuffer(),
+                                                             SSL3_RT_MAX_PLAIN_LENGTH);
                     isCopy = true;
                 }
                 final SSLEngineResult pendingNetResult;
                 // Write plaintext application data to the SSL engine
-                int result = writePlaintextData(outputBuffer,
-                        min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
+                int result = writePlaintextData(
+                        outputBuffer, min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
                 if (result > 0) {
                     bytesConsumed = result;
                     if (isCopy) {
@@ -1468,8 +1485,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                         BufferUtils.consume(srcs, bytesConsumed);
                     }
 
-                    pendingNetResult = readPendingBytesFromBIO(
-                            dst, bytesConsumed, bytesProduced, handshakeStatus);
+                    pendingNetResult = readPendingBytesFromBIO(dst, bytesConsumed, bytesProduced,
+                                                               handshakeStatus);
                     if (pendingNetResult != null) {
                         if (pendingNetResult.getStatus() != OK) {
                             return pendingNetResult;
@@ -1486,7 +1503,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                             pendingNetResult = readPendingBytesFromBIO(
                                     dst, bytesConsumed, bytesProduced, handshakeStatus);
                             return pendingNetResult != null ? pendingNetResult
-                                    : CLOSED_NOT_HANDSHAKING;
+                                                            : CLOSED_NOT_HANDSHAKING;
                         case SSL_ERROR_WANT_READ:
                             // If there is no pending data to read from BIO we should go back to
                             // event loop and try
@@ -1497,9 +1514,9 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                             pendingNetResult = readPendingBytesFromBIO(
                                     dst, bytesConsumed, bytesProduced, handshakeStatus);
                             return pendingNetResult != null
-                                    ? pendingNetResult
-                                    : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
-                                    bytesConsumed, bytesProduced);
+                                           ? pendingNetResult
+                                           : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
+                                                                 bytesConsumed, bytesProduced);
                         case SSL_ERROR_WANT_WRITE:
                             // SSL_ERROR_WANT_WRITE typically means that the underlying
                             // transport is not writable
@@ -1522,8 +1539,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                             // [1] https://www.openssl.org/docs/manmaster/man3/SSL_write.html
                             pendingNetResult = readPendingBytesFromBIO(
                                     dst, bytesConsumed, bytesProduced, handshakeStatus);
-                            return pendingNetResult != null ? pendingNetResult
-                                    : NEED_WRAP_CLOSED;
+                            return pendingNetResult != null ? pendingNetResult : NEED_WRAP_CLOSED;
                         default:
                             // Everything else is considered as error
                             closeAll();
@@ -1545,19 +1561,16 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
+    @Override public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
         return ssl.clientPSKKeyRequested(identityHint, identity, key);
     }
 
-    @Override
-    public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
+    @Override public int serverPSKKeyRequested(String identityHint, String identity, byte[] key) {
         return ssl.serverPSKKeyRequested(identityHint, identity, key);
     }
 
-    @Override
-    public void onSSLStateChange(int type, int val) {
-        synchronized (ssl) {
+    @Override public void onSSLStateChange(int type, int val) {
+        synchronized(ssl) {
             switch (type) {
                 case SSL_CB_HANDSHAKE_START: {
                     // For clients, this will allow the NEED_UNWRAP status to be
@@ -1566,10 +1579,10 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
                     break;
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
-                    if (state != STATE_HANDSHAKE_STARTED
-                            && state != STATE_READY_HANDSHAKE_CUT_THROUGH) {
-                        throw new IllegalStateException(
-                                "Completed handshake while in mode " + state);
+                    if (state != STATE_HANDSHAKE_STARTED &&
+                        state != STATE_READY_HANDSHAKE_CUT_THROUGH) {
+                        throw new IllegalStateException("Completed handshake while in mode " +
+                                                        state);
                     }
                     transitionTo(STATE_HANDSHAKE_COMPLETED);
                     break;
@@ -1580,15 +1593,13 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public void serverCertificateRequested() throws IOException {
-        synchronized (ssl) {
+    @Override public void serverCertificateRequested() throws IOException {
+        synchronized(ssl) {
             ssl.configureServerCertificate();
         }
     }
 
-    @Override
-    public void onNewSessionEstablished(long sslSessionNativePtr) {
+    @Override public void onNewSessionEstablished(long sslSessionNativePtr) {
         try {
             // Increment the reference count to "take ownership" of the session resource.
             NativeCrypto.SSL_SESSION_up_ref(sslSessionNativePtr);
@@ -1608,14 +1619,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public long serverSessionRequested(byte[] id) {
+    @Override public long serverSessionRequested(byte[] id) {
         // TODO(nathanmittler): Implement server-side caching for TLS < 1.3
         return 0;
     }
 
-    @Override
-    public void verifyCertificateChain(byte[][] certChain, String authMethod)
+    @Override public void verifyCertificateChain(byte[][] certChain, String authMethod)
             throws CertificateException {
         try {
             if (certChain == null || certChain.length == 0) {
@@ -1644,14 +1653,15 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
-            byte[][] asn1DerEncodedPrincipals)
-            throws CertificateEncodingException, SSLException {
+    @Override public void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
+                                                     byte[][] asn1DerEncodedPrincipals)
+            throws CertificateEncodingException,
+            SSLException {
         ssl.chooseClientCertificate(keyTypeBytes, signatureAlgs, asn1DerEncodedPrincipals);
     }
 
-    private void sendSSLShutdown() {
+private
+    void sendSSLShutdown() {
         try {
             ssl.shutdown();
         } catch (IOException ignored) {
@@ -1660,7 +1670,8 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    private void closeAndFreeResources() {
+private
+    void closeAndFreeResources() {
         transitionTo(STATE_CLOSED);
         if (ssl != null) {
             ssl.close();
@@ -1670,14 +1681,12 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    @SuppressWarnings("Finalize")
-    protected void finalize() throws Throwable {
+    @Override @SuppressWarnings("Finalize") protected void finalize() throws Throwable {
         try {
             // If ssl is null, object must not be fully constructed so nothing for us to do here.
             if (ssl != null) {
                 // Otherwise closeAndFreeResources() and callees expect to synchronize on ssl.
-                synchronized (ssl) {
+                synchronized(ssl) {
                     closeAndFreeResources();
                 }
             }
@@ -1686,21 +1695,19 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         }
     }
 
-    @Override
-    public String chooseServerAlias(X509KeyManager keyManager, String keyType) {
+    @Override public String chooseServerAlias(X509KeyManager keyManager, String keyType) {
         if (keyManager instanceof X509ExtendedKeyManager) {
-            X509ExtendedKeyManager ekm = (X509ExtendedKeyManager) keyManager;
+            X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)keyManager;
             return ekm.chooseEngineServerAlias(keyType, null, this);
         } else {
             return keyManager.chooseServerAlias(keyType, null, null);
         }
     }
 
-    @Override
-    public String chooseClientAlias(
-            X509KeyManager keyManager, X500Principal[] issuers, String[] keyTypes) {
+    @Override public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
+                                              String[] keyTypes) {
         if (keyManager instanceof X509ExtendedKeyManager) {
-            X509ExtendedKeyManager ekm = (X509ExtendedKeyManager) keyManager;
+            X509ExtendedKeyManager ekm = (X509ExtendedKeyManager)keyManager;
             return ekm.chooseEngineClientAlias(keyTypes, issuers, this);
         } else {
             return keyManager.chooseClientAlias(keyTypes, issuers, null);
@@ -1708,20 +1715,21 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
     }
 
     @Override
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
+            @SuppressWarnings("deprecation")  // PSKKeyManager is deprecated, but in our own package
+            public String chooseServerPSKIdentityHint(PSKKeyManager keyManager) {
         return keyManager.chooseServerKeyIdentityHint(this);
     }
 
     @Override
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
+            @SuppressWarnings("deprecation")  // PSKKeyManager is deprecated, but in our own package
+            public String chooseClientPSKIdentity(PSKKeyManager keyManager, String identityHint) {
         return keyManager.chooseClientKeyIdentity(identityHint, this);
     }
 
     @Override
-    @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
+            @SuppressWarnings("deprecation")  // PSKKeyManager is deprecated, but in our own package
+            public SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint,
+                                       String identity) {
         return keyManager.getKey(identityHint, identity, this);
     }
 
@@ -1730,35 +1738,30 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
      *
      * @param useSessionTickets True to enable session tickets
      */
-    @Override
-    void setUseSessionTickets(boolean useSessionTickets) {
+    @Override void setUseSessionTickets(boolean useSessionTickets) {
         sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
-    @Override
-    String[] getApplicationProtocols() {
+    @Override String[] getApplicationProtocols() {
         return sslParameters.getApplicationProtocols();
     }
 
-    @Override
-    void setApplicationProtocols(String[] protocols) {
+    @Override void setApplicationProtocols(String[] protocols) {
         sslParameters.setApplicationProtocols(protocols);
     }
 
-    @Override
-    void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
+    @Override void setApplicationProtocolSelector(ApplicationProtocolSelector selector) {
         setApplicationProtocolSelector(
                 selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
-    @Override
-    byte[] getTlsUnique() {
+    @Override byte[] getTlsUnique() {
         return ssl.getTlsUnique();
     }
 
-    @Override
-    byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
-        synchronized (ssl) {
+    @Override byte[] exportKeyingMaterial(String label, byte[] context, int length)
+            throws SSLException {
+        synchronized(ssl) {
             if (state < STATE_HANDSHAKE_COMPLETED || state == STATE_CLOSED) {
                 return null;
             }
@@ -1770,8 +1773,7 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         sslParameters.setApplicationProtocolSelector(adapter);
     }
 
-    @Override
-    public int selectApplicationProtocol(byte[] protocols) {
+    @Override public int selectApplicationProtocol(byte[] protocols) {
         ApplicationProtocolSelectorAdapter adapter = sslParameters.getApplicationProtocolSelector();
         if (adapter == null) {
             return NativeConstants.SSL_TLSEXT_ERR_NOACK;
@@ -1779,45 +1781,50 @@ final class ConscryptEngine extends AbstractConscryptEngine implements NativeCry
         return adapter.selectApplicationProtocol(protocols);
     }
 
-    @Override
-    public String getApplicationProtocol() {
+    @Override public String getApplicationProtocol() {
         return provideAfterHandshakeSession().getApplicationProtocol();
     }
 
-    @Override
-    public String getHandshakeApplicationProtocol() {
-        synchronized (ssl) {
+    @Override public String getHandshakeApplicationProtocol() {
+        synchronized(ssl) {
             return state >= STATE_HANDSHAKE_STARTED ? getApplicationProtocol() : null;
         }
     }
 
-    private ByteBuffer[] singleSrcBuffer(ByteBuffer src) {
+private
+    ByteBuffer[] singleSrcBuffer(ByteBuffer src) {
         singleSrcBuffer[0] = src;
         return singleSrcBuffer;
     }
 
-    private void resetSingleSrcBuffer() {
+private
+    void resetSingleSrcBuffer() {
         singleSrcBuffer[0] = null;
     }
 
-    private ByteBuffer[] singleDstBuffer(ByteBuffer src) {
+private
+    ByteBuffer[] singleDstBuffer(ByteBuffer src) {
         singleDstBuffer[0] = src;
         return singleDstBuffer;
     }
 
-    private void resetSingleDstBuffer() {
+private
+    void resetSingleDstBuffer() {
         singleDstBuffer[0] = null;
     }
 
-    private ClientSessionContext clientSessionContext() {
+private
+    ClientSessionContext clientSessionContext() {
         return sslParameters.getClientSessionContext();
     }
 
-    private AbstractSessionContext sessionContext() {
+private
+    AbstractSessionContext sessionContext() {
         return sslParameters.getSessionContext();
     }
 
-    private void transitionTo(int newState) {
+private
+    void transitionTo(int newState) {
         switch (newState) {
             case STATE_HANDSHAKE_STARTED: {
                 handshakeFinished = false;
