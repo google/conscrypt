@@ -66,6 +66,8 @@ using conscrypt::CompatibilityCloseMonitor;
 using conscrypt::NativeCrypto;
 using conscrypt::SslError;
 
+// NOLINTBEGIN(*-use-auto)
+
 /**
  * Helper function that grabs the casts an ssl pointer and then checks for nullness.
  * If this function returns nullptr and <code>throwIfNull</code> is
@@ -8274,7 +8276,8 @@ static void debug_print_session_key(const SSL* ssl, const char* line) {
     JNI_TRACE_KEYS("ssl=%p KEY_LINE: %s", ssl, line);
 }
 
-static void debug_print_packet_data(const SSL* ssl, char direction, const char* data, size_t len) {
+CONSCRYPT_UNUSED static void debug_print_packet_data(const SSL* ssl, char direction,
+                                                     const char* data, size_t len) {
     static constexpr size_t kDataWidth = 16;
 
     struct timeval tv;
@@ -10504,7 +10507,7 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
     jlong result = SSL_get_timeout(ssl_session);
     result *= 1000;  // OpenSSL uses seconds, Java uses milliseconds.
     JNI_TRACE("ssl_session=%p NativeCrypto_SSL_get_timeout => %lld", ssl_session,
-              (long long)result)  // NOLINT(runtime/int);
+              (long long)result);  // NOLINT(runtime/int);
     return result;
 }
 
@@ -12020,11 +12023,8 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
 // TESTING METHODS END
 
 #define CONSCRYPT_NATIVE_METHOD(functionName, signature)             \
-    {                                                                \
-        /* NOLINTNEXTLINE */                                         \
-        (char*)#functionName, (char*)(signature),                    \
-                reinterpret_cast<void*>(NativeCrypto_##functionName) \
-    }
+    {const_cast<char*>(#functionName), const_cast<char*>(signature), \
+     reinterpret_cast<void*>(&NativeCrypto_##functionName)}
 
 #define FILE_DESCRIPTOR "Ljava/io/FileDescriptor;"
 #define SSL_CALLBACKS \
@@ -12400,6 +12400,7 @@ void NativeCrypto::registerNativeMethods(JNIEnv* env) {
             NELEM(sNativeCryptoMethods));
 }
 
+// NOLINTEND(*-use-auto)
 /* Local Variables: */
 /* mode: c++ */
 /* tab-width: 4 */
