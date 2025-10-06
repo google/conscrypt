@@ -263,7 +263,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
             }
             if (isHandshakeStarted()) {
                 throw new IllegalStateException("Could not enable/disable Channel ID after the "
-                                                + "initial handshake has begun.");
+                        + "initial handshake has begun.");
             }
             sslParameters.channelIdEnabled = enabled;
         }
