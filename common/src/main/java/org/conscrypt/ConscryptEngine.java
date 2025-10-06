@@ -168,9 +168,9 @@ private
 private
     SessionSnapshot closedSession;
 
-    /**
-     * The session object exposed externally from this class.
-     */
+/**
+ * The session object exposed externally from this class.
+ */
 private
     final SSLSession externalSession =
             Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
@@ -187,7 +187,8 @@ private
     OpenSSLKey channelIdPrivateKey;
 
 private
-    int maxSealOverhead;
+
+        int maxSealOverhead;
 
 private
     HandshakeListener handshakeListener;
@@ -214,7 +215,8 @@ private
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider,
-                    AliasChooser aliasChooser) {
+
+            AliasChooser aliasChooser) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this, aliasChooser);
@@ -224,16 +226,16 @@ private
 private
     static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine,
                             AliasChooser aliasChooser) {
-        try {
-            return NativeSsl.newInstance(sslParameters, engine, aliasChooser, engine);
-        } catch (SSLException e) {
-            throw new RuntimeException(e);
-        }
+    try {
+        return NativeSsl.newInstance(sslParameters, engine, aliasChooser, engine);
+    } catch (SSLException e) {
+        throw new RuntimeException(e);
+    }
     }
 
     /**
      * Configures the default {@link BufferAllocator} to be used by all future
-     * {@link SSLEngine} and {@link ConscryptEngineSocket} instances from this provider.
+     * {	@link SSLEngine} and {@link ConscryptEngineSocket} instances from this provider.
      */
     static void setDefaultBufferAllocator(BufferAllocator bufferAllocator) {
         defaultBufferAllocator = bufferAllocator;
@@ -248,7 +250,7 @@ private
     }
 
     @Override void setBufferAllocator(BufferAllocator bufferAllocator) {
-        synchronized(ssl) {
+        synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Could not set buffer allocator after the initial handshake has begun.");
