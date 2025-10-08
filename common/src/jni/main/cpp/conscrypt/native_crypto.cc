@@ -7835,7 +7835,7 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData,
         if (fds[1].revents & POLLIN) {
             char token;
             do {
-                (void)read(appData->fdsEmergency[0], &token, 1);
+                CONSCRYPT_UNUSED int n = read(appData->fdsEmergency[0], &token, 1);
             } while (errno == EINTR);
         }
     }
@@ -7866,7 +7866,7 @@ static void sslNotify(AppData* appData) {
     char token = '*';
     do {
         errno = 0;
-        (void)write(appData->fdsEmergency[1], &token, 1);
+        CONSCRYPT_UNUSED int n = write(appData->fdsEmergency[1], &token, 1);
     } while (errno == EINTR);
     errno = errnoBackup;
 #endif
