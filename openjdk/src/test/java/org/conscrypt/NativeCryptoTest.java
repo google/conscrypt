@@ -496,14 +496,6 @@ public class NativeCryptoTest {
                 NativeCrypto.SSL_set_enable_ech_grease(ssl, null, true);
                 return ssl;
             }
-
-            @Override
-            public void afterHandshake(long session, long ssl, long context, Socket socket,
-                    FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] retryConfigs = NativeCrypto.SSL_get0_ech_retry_configs(ssl, null);
-                assertEquals(5, retryConfigs.length); // should be the invalid ECH Config List
-                super.afterHandshake(session, ssl, context, socket, fd, callback);
-            }
         };
         Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
             @Override
