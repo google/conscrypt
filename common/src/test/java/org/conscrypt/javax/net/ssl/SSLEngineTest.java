@@ -22,8 +22,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.conscrypt.TestUtils;
+import org.conscrypt.TestUtils.BufferType;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -35,6 +44,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
@@ -49,13 +59,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.TestUtils;
-import org.conscrypt.TestUtils.BufferType;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
@@ -928,150 +931,253 @@ public class SSLEngineTest {
 
     @Test
     public void wrapPreconditions() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(10);
+        ByteBuffer buffer = ByteBuffer.allocate(128);
+        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
         ByteBuffer[] buffers = new ByteBuffer[] { buffer, buffer, buffer };
         ByteBuffer[] badBuffers = new ByteBuffer[] { buffer, buffer, null, buffer };
 
         // Client/server mode not set => IllegalStateException
-        try {
-            newUnconnectedEngine().wrap(buffer, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, 0, 1, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().wrap(buffer, buffer));
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().wrap(buffers, buffer));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers, 0, 1, buffer));
 
         // Read-only destination => ReadOnlyBufferException
-        try {
-            newConnectedEngine().wrap(buffer, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffer, readOnlyBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers, readOnlyBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, 1, readOnlyBuffer));
 
         // Null destination => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(buffer, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers,  null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffer, null));
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, 1, null));
 
         // Null source => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap((ByteBuffer) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap((ByteBuffer[]) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(null, 0, 1, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap((ByteBuffer) null, buffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap((ByteBuffer[]) null, buffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(null, 0, 1, buffer));
 
         // Null entries in buffer array => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(badBuffers, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(badBuffers, buffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer));
+        // But not if they are outside the selected offset and length
+        newConnectedEngine().wrap(badBuffers, 0, 2, buffer);
+        newConnectedEngine().wrap(badBuffers, 3, 1, buffer);
 
-        try {
-            newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
+        // Bad offset or length => IndexOutOfBoundsException
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, buffers.length + 1, buffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, buffers.length, 1, buffer));
+    }
+
+    @Test
+    public void unwrapPreconditions() throws Exception {
+        ByteBuffer buffer = ByteBuffer.allocate(128);
+        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = new ByteBuffer[] {buffer, buffer, buffer};
+        ByteBuffer[] badBuffers = new ByteBuffer[] {buffer, buffer, null, buffer};
+        ByteBuffer[] readOnlyBuffers = new ByteBuffer[] {buffer, readOnlyBuffer, buffer};
+
+        // Client/server mode not set => IllegalStateException
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().unwrap(buffer, buffer));
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().unwrap(buffer, buffers));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().unwrap(buffer, buffers, 0, 1));
+
+        // Read-only destination => ReadOnlyBufferException
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().unwrap(buffer, readOnlyBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().unwrap(buffer, readOnlyBuffers));
+        assertThrows(ReadOnlyBufferException.class,
+                ()
+                        -> newConnectedEngine().unwrap(
+                                buffer, readOnlyBuffers, 0, readOnlyBuffers.length));
+
+        // Null destination => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, (ByteBuffer) null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, (ByteBuffer[]) null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, null, 0, 1));
+
+        // Null source => IllegalArgumentException
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().unwrap(null, buffer));
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().unwrap(null, buffers));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(null, buffers, 0, 1));
+
+        // Null entries in buffer array => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, badBuffers));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, badBuffers, 0, badBuffers.length));
+        // But not if they are outside the selected offset and length
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            doUnwrap(pair, badBuffers, 0, 2);
+            doUnwrap(pair, badBuffers, 3, 1);
         }
 
         // Bad offset or length => IndexOutOfBoundsException
-        try {
-            newConnectedEngine().wrap(buffers, 0, 7, buffer);
-            fail();
-        } catch (IndexOutOfBoundsException e) {
-            // Expected
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffers, 0, buffers.length + 1));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffers, badBuffers.length, 1));
+    }
+
+    private void doUnwrap(TestSSLEnginePair pair, ByteBuffer[] dest, int offset, int length)
+            throws Exception {
+        int bufferSize = 128;
+        ByteBuffer src = ByteBuffer.allocate(bufferSize);
+        ByteBuffer tlsBuffer = ByteBuffer.allocate(bufferSize + 128);
+        tlsBuffer.clear();
+        SSLEngineResult result = pair.client.wrap(src, tlsBuffer);
+        assertEquals(Status.OK, result.getStatus());
+
+        tlsBuffer.flip();
+        for (int i = offset; i < offset + length; i++) {
+            dest[i].clear();
+        }
+        result = pair.server.unwrap(tlsBuffer, dest, offset, length);
+        assertEquals(Status.OK, result.getStatus());
+    }
+
+    @Test
+    public void bufferArrayOffsets_Wrap() throws Exception {
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            int dataSize = 1024; // Should be less than SSL3_RT_MAX_PLAIN_LENGTH
+            int bufferSize = 128;
+            int bufferArrayLength = dataSize / bufferSize;
+            int[] sizeArray = new int[bufferArrayLength];
+            Arrays.fill(sizeArray, bufferSize);
+            ByteBuffer tlsBuffer = ByteBuffer.allocate(dataSize);
+
+            for (BufferType bufferType : BufferType.values()) {
+                ByteBuffer[] sourceBuffers = bufferType.newRandomBuffers(sizeArray);
+                for (int offset = 0; offset < sourceBuffers.length; offset++) {
+                    for (int length = 1; length < sourceBuffers.length - offset; length++) {
+                        String statusMessage =
+                                String.format("offset=%d, length=%d", offset, length);
+                        // Reset source buffers (only some are emptied on each iteration)
+                        for (ByteBuffer buffer : sourceBuffers) {
+                            if (buffer.remaining() == 0) {
+                                buffer.flip();
+                            }
+                            assertEquals(bufferSize, buffer.remaining());
+                        }
+                        // Make an array copy of what we expect to send, for later comparison
+                        byte[] sourceBytes = copyDataFromBuffers(sourceBuffers, offset, length);
+                        byte[] destinationBytes = new byte[sourceBytes.length];
+                        ByteBuffer destination = ByteBuffer.wrap(destinationBytes);
+
+                        // Encrypt from the selected buffers
+                        tlsBuffer.clear();
+                        SSLEngineResult result =
+                                pair.client.wrap(sourceBuffers, offset, length, tlsBuffer);
+                        assertEquals(statusMessage, Status.OK, result.getStatus());
+                        assertEquals(statusMessage, sourceBytes.length, result.bytesConsumed());
+                        int produced = result.bytesProduced();
+
+                        // Decrypt and compare
+                        tlsBuffer.flip();
+                        result = pair.server.unwrap(tlsBuffer, destination);
+                        assertEquals(statusMessage, Status.OK, result.getStatus());
+                        assertEquals(statusMessage, sourceBytes.length, result.bytesProduced());
+                        assertEquals(statusMessage, produced, result.bytesConsumed());
+                        assertArrayEquals(sourceBytes, destinationBytes);
+                    }
+                }
+            }
         }
     }
 
     @Test
-    public void bufferArrayOffsets() throws Exception{
-        TestSSLEnginePair pair = TestSSLEnginePair.create();
-        ByteBuffer tlsBuffer = ByteBuffer.allocate(600);
-        int bufferSize = 100;
+    public void bufferArrayOffsets_Unwrap() throws Exception {
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            int dataSize = 1024; // Should be less than SSL3_RT_MAX_PLAIN_LENGTH - 1
+            int bufferSize = 128;
+            int bufferArrayLength = dataSize / bufferSize;
+            int[] sizeArray = new int[bufferArrayLength];
+            Arrays.fill(sizeArray, bufferSize);
 
-        for (BufferType bufferType : BufferType.values()) {
-            ByteBuffer[] sourceBuffers = bufferType.newRandomBuffers(
-                    bufferSize, bufferSize, bufferSize, bufferSize, bufferSize);
-            for (int offset = 0; offset < sourceBuffers.length; offset++) {
-                for (int length = 1; length < sourceBuffers.length - offset; length++) {
-                    // Reset source buffers
-                    for (ByteBuffer buffer : sourceBuffers) {
-                        if (buffer.remaining() == 0) {
+            for (BufferType bufferType : BufferType.values()) {
+                ByteBuffer[] destBuffers = bufferType.newEmptyBuffers(sizeArray);
+                for (int offset = 0; offset < destBuffers.length; offset++) {
+                    for (int length = 1; length < destBuffers.length - offset; length++) {
+                        String statusMessage =
+                                String.format("offset=%d, length=%d", offset, length);
+                        // Reset all the destination buffers
+                        for (ByteBuffer buffer : destBuffers) {
+                            buffer.clear();
+                        }
+                        int expectedSize = bufferSize * length;
+                        ByteBuffer sourceData = bufferType.newRandomBuffer(expectedSize);
+
+                        // Encrypt enough data to exactly fill our selected buffers
+                        ByteBuffer tlsBuffer = ByteBuffer.allocate(expectedSize + 128);
+                        SSLEngineResult result = pair.client.wrap(sourceData, tlsBuffer);
+                        assertEquals(statusMessage, Status.OK, result.getStatus());
+                        assertEquals(statusMessage, expectedSize, result.bytesConsumed());
+                        int produced = result.bytesProduced();
+
+                        // Decrypt into our selected destination buffers
+                        tlsBuffer.flip();
+                        result = pair.server.unwrap(tlsBuffer, destBuffers, offset, length);
+                        assertEquals(statusMessage, Status.OK, result.getStatus());
+                        assertEquals(statusMessage, expectedSize, result.bytesProduced());
+                        assertEquals(statusMessage, produced, result.bytesConsumed());
+
+                        // Copy data out and compare
+                        for (ByteBuffer buffer : destBuffers) {
                             buffer.flip();
                         }
-                        assertEquals(bufferSize, buffer.remaining());
+                        byte[] decrypted = copyDataFromBuffers(destBuffers, 0, destBuffers.length);
+                        byte[] expectedData = new byte[expectedSize];
+                        sourceData.flip();
+                        sourceData.get(expectedData);
+                        assertArrayEquals(expectedData, decrypted);
+
+                        // Ensure destination capacity is no bigger than expected
+                        // by sending more data than can fit in our selected buffers
+                        int extraBytes = 32;
+                        int overflowSize = expectedSize + extraBytes;
+                        sourceData = bufferType.newRandomBuffer(overflowSize);
+                        tlsBuffer.clear();
+                        result = pair.client.wrap(sourceData, tlsBuffer);
+                        assertEquals(statusMessage, Status.OK, result.getStatus());
+                        assertEquals(statusMessage, overflowSize, result.bytesConsumed());
+
+                        for (ByteBuffer buffer : destBuffers) {
+                            buffer.clear();
+                        }
+                        tlsBuffer.flip();
+                        result = pair.server.unwrap(tlsBuffer, destBuffers, offset, length);
+                        assertEquals(statusMessage, Status.BUFFER_OVERFLOW, result.getStatus());
+
+                        // Discard the rest of the data ready for the next iteration
+                        ByteBuffer discard = ByteBuffer.allocate(extraBytes);
+                        result = pair.server.unwrap(tlsBuffer, discard);
+                        assertEquals(statusMessage, Status.OK, result.getStatus());
+                        assertEquals(statusMessage, extraBytes, result.bytesProduced());
                     }
-                    // Make an array copy of what we expect to send
-                    byte[] sourceBytes = copyDataFromBuffers(sourceBuffers, offset, length);
-                    byte[] destinationBytes = new byte[sourceBytes.length];
-                    ByteBuffer destination = ByteBuffer.wrap(destinationBytes);
-                    // Send and compare
-                    tlsBuffer.clear();
-                    pair.client.wrap(sourceBuffers, offset, length, tlsBuffer);
-                    tlsBuffer.flip();
-                    pair.server.unwrap(tlsBuffer, destination);
-                    assertArrayEquals(sourceBytes, destinationBytes);
                 }
             }
         }
