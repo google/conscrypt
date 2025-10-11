@@ -159,14 +159,15 @@ void jniRegisterNativeMethods(JNIEnv* env, const char* className, const JNINativ
     ScopedLocalRef<jclass> c(env, env->FindClass(className));
     if (c.get() == nullptr) {
         char* msg;
-        (void)asprintf(&msg, "Native registration unable to find class '%s'; aborting...",
-                       className);
+        CONSCRYPT_UNUSED int n = asprintf(
+                &msg, "Native registration unable to find class '%s'; aborting...", className);
         env->FatalError(msg);
     }
 
     if (env->RegisterNatives(c.get(), gMethods, numMethods) < 0) {
         char* msg;
-        (void)asprintf(&msg, "RegisterNatives failed for '%s'; aborting...", className);
+        CONSCRYPT_UNUSED int n =
+                asprintf(&msg, "RegisterNatives failed for '%s'; aborting...", className);
         env->FatalError(msg);
     }
 }
