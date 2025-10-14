@@ -11857,7 +11857,7 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
                                        configBytes.size());
     if (!ret) {
-        conscrypt::jniutil::throwParsingException(env, "Error parsing ECH config");
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing ECH config");
         ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => threw exception", ssl,
                   configJavaBytes);
@@ -11955,8 +11955,6 @@ static jboolean NativeCrypto_SSL_ech_accepted(JNIEnv* env, jclass, jlong ssl_add
     JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
 
     if (!SSL_ech_accepted(ssl)) {
-        conscrypt::jniutil::throwParsingException(env, "Invalid ECH config list");
-        ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => threw exception", ssl);
         return JNI_FALSE;
     }

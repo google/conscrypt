@@ -632,7 +632,7 @@ public class NativeCryptoTest {
         byte[] badConfigList = {
                 0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         boolean set = false;
-        assertThrows(ParsingException.class,
+        assertThrows(SSLException.class,
                 () -> NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList));
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -663,8 +663,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        assertThrows(
-                ParsingException.class, () -> assertFalse(NativeCrypto.SSL_ech_accepted(s, null)));
+        assertFalse(NativeCrypto.SSL_ech_accepted(s, null));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);

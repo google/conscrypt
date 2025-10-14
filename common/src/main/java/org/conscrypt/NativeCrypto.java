@@ -1627,8 +1627,8 @@ public final class NativeCrypto {
 
     static native void SSL_set_enable_ech_grease(long ssl, NativeSsl ssl_holder, boolean enable);
 
-    static native boolean SSL_set1_ech_config_list(
-            long ssl, NativeSsl ssl_holder, byte[] echConfig);
+    static native boolean SSL_set1_ech_config_list(long ssl, NativeSsl ssl_holder, byte[] echConfig)
+            throws SSLException;
 
     static native String SSL_get0_ech_name_override(long ssl, NativeSsl ssl_holder);
 
