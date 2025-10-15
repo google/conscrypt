@@ -753,8 +753,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
         checkPositionIndexes(dstsOffset, dstsOffset + dstsLength, dsts.length);
 
         // Determine the output capacity.
-        final int dstLength = calcDstsLength(dsts, dstsOffset, dstsLength);
-        final int endOffset = dstsOffset + dstsLength;
+        final int dstsEndOffset = dstsOffset + dstsLength;
+        final long dstLength = calcDstsLength(dsts, dstsOffset, dstsEndOffset);
 
         final int srcsEndOffset = srcsOffset + srcsLength;
         final long srcLength = calcSrcsLength(srcs, srcsOffset, srcsEndOffset);
@@ -863,7 +863,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
             try {
                 if (dstLength > 0) {
                     // Write decrypted data to dsts buffers
-                    for (int idx = dstsOffset; idx < endOffset; ++idx) {
+                    for (int idx = dstsOffset; idx < dstsEndOffset; ++idx) {
                         ByteBuffer dst = dsts[idx];
                         if (!dst.hasRemaining()) {
                             continue;
@@ -933,17 +933,15 @@ final class ConscryptEngine extends AbstractConscryptEngine
         }
     }
 
-    private static int calcDstsLength(ByteBuffer[] dsts, int dstsOffset, int dstsLength) {
-        int capacity = 0;
-        for (int i = 0; i < dsts.length; i++) {
+    private static long calcDstsLength(ByteBuffer[] dsts, int dstsOffset, int dstsEndOffset) {
+        long capacity = 0;
+        for (int i = dstsOffset; i < dstsEndOffset; i++) {
             ByteBuffer dst = dsts[i];
             checkArgument(dst != null, "dsts[%d] is null", i);
             if (dst.isReadOnly()) {
                 throw new ReadOnlyBufferException();
             }
-            if (i >= dstsOffset && i < dstsOffset + dstsLength) {
-                capacity += dst.remaining();
-            }
+            capacity += dst.remaining();
         }
         return capacity;
     }
@@ -952,9 +950,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
         long len = 0;
         for (int i = srcsOffset; i < srcsEndOffset; i++) {
             ByteBuffer src = srcs[i];
-            if (src == null) {
-                throw new IllegalArgumentException("srcs[" + i + "] is null");
-            }
+            checkArgument(src != null, "srcs[%d] is null", i);
             len += src.remaining();
         }
         return len;
