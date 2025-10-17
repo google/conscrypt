@@ -314,28 +314,6 @@ final class SSLUtils {
     }
 
     /**
-     * Converts the peer certificates into a cert chain.
-     */
-    @SuppressWarnings("deprecation") // Used in public Conscrypt APIs
-    static javax.security.cert.X509Certificate[] toCertificateChain(X509Certificate[] certificates)
-            throws SSLPeerUnverifiedException {
-        try {
-            javax.security.cert.X509Certificate[] chain =
-                    new javax.security.cert.X509Certificate[certificates.length];
-
-            for (int i = 0; i < certificates.length; i++) {
-                byte[] encoded = certificates[i].getEncoded();
-                chain[i] = javax.security.cert.X509Certificate.getInstance(encoded);
-            }
-            return chain;
-        } catch (CertificateEncodingException | javax.security.cert.CertificateException e) {
-            SSLPeerUnverifiedException exception = new SSLPeerUnverifiedException(e.getMessage());
-            exception.initCause(e);
-            throw exception;
-        }
-    }
-
-    /**
      * Calculates the minimum bytes required in the encrypted output buffer for the given number of
      * plaintext source bytes.
      */
