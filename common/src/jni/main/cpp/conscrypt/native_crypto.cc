@@ -11845,8 +11845,6 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p)", ssl, configJavaBytes);
     if (ssl == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ssl address");
-        ERR_clear_error();
         return JNI_FALSE;
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
@@ -11859,7 +11857,7 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
                                        configBytes.size());
     if (!ret) {
-        conscrypt::jniutil::throwParsingException(env, "Error parsing ECH config");
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing ECH config");
         ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => threw exception", ssl,
                   configJavaBytes);
@@ -11951,23 +11949,18 @@ static jboolean NativeCrypto_SSL_ech_accepted(JNIEnv* env, jclass, jlong ssl_add
     JNI_TRACE("NativeCrypto_SSL_ech_accepted");
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
     if (ssl == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ssl address");
-        ERR_clear_error();
         return JNI_FALSE;
     }
-    jboolean accepted = SSL_ech_accepted(ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
 
-    if (!accepted) {
-        conscrypt::jniutil::throwParsingException(env, "Invalid ECH config list");
-        ERR_clear_error();
+    if (!SSL_ech_accepted(ssl)) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => threw exception", ssl);
         return JNI_FALSE;
     }
 
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, accepted);
-    return accepted;
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, JNI_TRUE);
+    return JNI_TRUE;
 }
 
 static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlong ssl_ctx_address,
