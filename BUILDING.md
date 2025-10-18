@@ -22,11 +22,7 @@ Conscrypt requires that you have __Java__, __BoringSSL__ and the __Android SDK__
 described below.
 
 #### Java
-The build uses a version of Gradle which requires a __Java 11__ JRE to run, however to ensure 
-backward compatibility Conscrypt itself is compiled with a __Java 8__ JDK using Gradle's
-recent Java toolchain support.  At the least, you will need to install __Java 11__ to run 
-Gradle, but if you do not also have __Java 8__ then depending on the OS, Gradle will
-try and install it automatically.
+The build uses a version of Gradle which requires a __Java 11__ JDK.
 
 #### Android SDK
 [Download and install](https://developer.android.com/studio/install.html) the latest Android SDK
@@ -62,9 +58,11 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
 ninja
 ```
 
+You can also use the `rebuild_boringssl.sh` script (see below) to automate this process.
+
 ##### Building on macOS.
 When building Conscrypt on macOS it will build libraries for both x86 and ARM, and so BoringSSL
-must also be build for each of these.
+must also be built for each of these.
 
 To build the x86_64 version:
 ```bash
@@ -90,22 +88,34 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
 ninja
 ```
 
+You can also use the `rebuild_boringssl.sh` script (see below) to automate this process.
 
 ##### Building on Windows
-This assumes that you have Microsoft Visual Studio 2017 installed along
-with both the Windows 8.1 and 10 SDKs and that your machine is capable of
-compiling 64-bit.
+This assumes that you have
+[Git for Windows](https://gitforwindows.org/) and
+[Microsoft Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)
+installed.
 
-Unlike earlier versions, Visual Studio 2017 doesn't appear to set an
-environment variable to simplify building from the command line. The
-instructions below assume the default installation of the community
-edition. To use another edition or a non-standard install path, you'll
-need to modify the paths below as appropriate.
+You'll also need `nasm`, `cmake` and `ninja` which can be usefully
+managed via a package tool such as
+[Chocolatey](https://chocolatey.org/).
 
-To build in 64-bit mode, set up with this command line:
-
+Like Visual Studio 2017, Visual Studio 2022 provides a batch file
+to set up the correct environment for the compiler which can be invoked
+as follows (assuming a default installation):
 ```bat
-call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64
+```
+
+However, Visual Studio 2022 also sets up a _Developer Command Prompt_
+in Windows Terminal which provides a simpler way of getting the
+correct compiler environment, defaulting to 64-bit mode.
+
+After either method, you can run Git for Windows' `bash` to get a
+more UNIX like environment with a working compiler.
+
+To build BoringSSL in 64-bit mode from a Command Prompt:
+```bat
 mkdir build64
 cd build64
 cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
@@ -115,7 +125,27 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE ^
 ninja
 ```
 
-32-bit mode is no longer supported.
+32-bit mode is no longer supported on Windows.
+
+If running `bash`, you can use the `rebuild_boringssl` script (see below)
+to automate this process.
+
+##### rebuild_boringssl.sh script
+
+The script `scripts/rebuild_boringssl.sh` will build or rebuild BoringSSL
+with the correct configuration for the current architecture.
+
+When run with no arguments, the script assumes that `BORINGSSL_HOME` is set
+correctly and will re-run `cmake` and `ninja` with the correct arguments.
+
+The following arguments can be used to modify its behaviour:
+
+* `--clone` May only be used if `BORINGSSL_HOME` is set but does not
+yet exist.  Will clone BoringSSL from Github and build it.
+
+* `--clean` Delete the current build directly and rebuild from scratch.
+* `--pull` or `--update` Updates the source tree to the latest revision and
+then builds. Note will not clean old builds unless `--clean` is also specified.
 
 Coverage
 --------
