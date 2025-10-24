@@ -398,6 +398,24 @@ final class ConscryptEngine extends AbstractConscryptEngine
         return peerInfoProvider.getPort();
     }
 
+    public void setEchParameters(EchParameters parameters) {
+        sslParameters.setEchParameters(parameters);
+    }
+
+    public EchParameters getEchParameters() {
+        return sslParameters.getEchParameters();
+    }
+
+    @Override
+    public String getEchNameOverride() {
+        return ssl.getEchNameOverride();
+    }
+
+    @Override
+    public boolean echAccepted() {
+        return ssl.echAccepted();
+    }
+
     @Override
     public void beginHandshake() throws SSLException {
         synchronized (ssl) {
