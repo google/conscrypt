@@ -92,6 +92,32 @@ public class SSLSocketTest {
     private final ExecutorService executor =
         Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
 
+    /** Returns the named groups, or null if the method is not available (older versions of Java/Android). */
+    String[] getNamedGroupsOrNull(SSLParameters params) {
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            return (String[]) getNamedGroupsMethod.invoke(params);
+    } catch (NoSuchMethodException
+        | SecurityException
+        | IllegalAccessException
+        | InvocationTargetException e) {
+            return null;
+        }
+    }
+
+    /** Sets the named groups, or does nothing if the method is not available. */
+    void setNamedGroups(SSLParameters params, String[] namedGroups) {
+        try {
+            Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) namedGroups);
+        } catch (NoSuchMethodException
+            | SecurityException
+            | IllegalAccessException
+            | InvocationTargetException e) {
+            // Ignored
+        }
+    }
+
     @After
     public void teardown() throws InterruptedException {
         executor.shutdownNow();
@@ -792,14 +818,14 @@ public class SSLSocketTest {
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters parameters = new SSLParameters(
                     new String[] {"TLS_AES_128_GCM_SHA256"}, new String[] {"TLSv1.3"});
-            parameters.setNamedGroups(new String[] {"foo", "bar"}); // this is ignored
+            setNamedGroups(parameters, new String[] {"foo", "bar"});
             ssl.setSSLParameters(parameters);
 
             SSLParameters sslParameters = ssl.getSSLParameters();
-            // This returns null because setNamedGroups is not supported.
-            // Returning null is the right behavior for this, see:
+            // getNamedGroups currently returns null because setNamedGroups is not supported.
+            // This is allowed, see:
             // https://docs.oracle.com/en/java/javase/24/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()
-            assertArrayEquals(null, sslParameters.getNamedGroups());
+            assertArrayEquals(null, getNamedGroupsOrNull(sslParameters));
         }
     }
 
