@@ -46,6 +46,7 @@ import org.junit.runners.JUnit4;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -100,8 +101,7 @@ public class SSLSocketTest {
         try {
             Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
             return (String[]) getNamedGroupsMethod.invoke(params);
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException
-                | InvocationTargetException e) {
+        } catch (ReflectiveOperationException | SecurityException e) {
             return null;
         }
     }
@@ -112,8 +112,7 @@ public class SSLSocketTest {
             Method setNamedGroupsMethod =
                     params.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(params, (Object) namedGroups);
-        } catch (NoSuchMethodException | SecurityException | IllegalAccessException
-                | InvocationTargetException e) {
+        } catch (ReflectiveOperationException | SecurityException e) {
             // Ignored
         }
     }
