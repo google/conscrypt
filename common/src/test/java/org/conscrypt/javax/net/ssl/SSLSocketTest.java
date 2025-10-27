@@ -781,7 +781,7 @@ public class SSLSocketTest {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters parameters =
-                new SSLParameters(new String[] {"invalid"}, new String[] {"TLSv1.3"});
+                    new SSLParameters(new String[] {"invalid"}, new String[] {"TLSv1.3"});
             assertThrows(IllegalArgumentException.class, () -> ssl.setSSLParameters(parameters));
         }
     }
