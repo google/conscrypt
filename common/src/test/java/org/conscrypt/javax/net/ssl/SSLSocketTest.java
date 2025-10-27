@@ -757,6 +757,62 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void setAndGetSSLParameters_alwaysSupportsDefaultCipherSuites() throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters inputParameters =
+                new SSLParameters(
+                    new String[] {"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"},
+                    new String[] {"TLSv1.3"});
+            ssl.setSSLParameters(inputParameters);
+
+            SSLParameters outputParameters = ssl.getSSLParameters();
+            // The default cipher suites (the first three entries) are always supported.
+            assertArrayEquals(
+                new String[] {
+                "TLS_AES_128_GCM_SHA256",
+                "TLS_AES_256_GCM_SHA384",
+                "TLS_CHACHA20_POLY1305_SHA256",
+                "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
+                },
+                outputParameters.getCipherSuites());
+            assertArrayEquals(new String[] {"TLSv1.3"}, outputParameters.getProtocols());
+        }
+    }
+
+    @Test
+    public void setSSLParameters_invalidCipherSuite_throwsIllegalArgumentException()
+        throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters parameters =
+                new SSLParameters(
+                    new String[] {"invalid"},
+                    new String[] {"TLSv1.3"});
+            assertThrows(IllegalArgumentException.class, () -> ssl.setSSLParameters(parameters));
+        }
+    }
+
+    @Test
+    public void setAndGetSSLParameters_withSetNamedGroups_isIgnored() throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters parameters =
+                new SSLParameters(
+                    new String[] {"TLS_AES_128_GCM_SHA256"},
+                    new String[] {"TLSv1.3"});
+            parameters.setNamedGroups(new String[] {"foo", "bar"}); // this is ignored
+            ssl.setSSLParameters(parameters);
+
+            SSLParameters sslParameters = ssl.getSSLParameters();
+            // This returns null because setNamedGroups is not supported.
+            // Returning null is the right behavior for this, see:
+            // https://docs.oracle.com/en/java/javase/24/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()
+            assertArrayEquals(null, sslParameters.getNamedGroups());
+        }
+    }
+
+    @Test
     public void test_SSLSocket_setSoTimeout_basic() throws Exception {
         try (ServerSocket listening = new ServerSocket(0)) {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
