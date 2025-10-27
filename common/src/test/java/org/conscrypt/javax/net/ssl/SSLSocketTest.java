@@ -102,8 +102,8 @@ public class SSLSocketTest {
             return (String[]) getNamedGroupsMethod.invoke(params);
         } catch (NoSuchMethodException | SecurityException | IllegalAccessException
                 | InvocationTargetException e) {
-             return null;
-         }
+            return null;
+        }
     }
 
     /** Sets the named groups, or does nothing if the method is not available. */
