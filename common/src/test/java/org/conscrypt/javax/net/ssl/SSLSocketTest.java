@@ -92,28 +92,28 @@ public class SSLSocketTest {
     private final ExecutorService executor =
         Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
 
-    /** Returns the named groups, or null if the method is not available (older versions of Java/Android). */
+    /**
+     * Returns the named groups, or null if the method is not available (older versions of
+     * Java/Android).
+     */
     String[] getNamedGroupsOrNull(SSLParameters params) {
         try {
             Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
             return (String[]) getNamedGroupsMethod.invoke(params);
-    } catch (NoSuchMethodException
-        | SecurityException
-        | IllegalAccessException
-        | InvocationTargetException e) {
-            return null;
-        }
+        } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+                | InvocationTargetException e) {
+             return null;
+         }
     }
 
     /** Sets the named groups, or does nothing if the method is not available. */
     void setNamedGroups(SSLParameters params, String[] namedGroups) {
         try {
-            Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+            Method setNamedGroupsMethod =
+                    params.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(params, (Object) namedGroups);
-        } catch (NoSuchMethodException
-            | SecurityException
-            | IllegalAccessException
-            | InvocationTargetException e) {
+        } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+                | InvocationTargetException e) {
             // Ignored
         }
     }
