@@ -9702,7 +9702,7 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
 }
 
 static jstring NativeCrypto_SSL_get_curve_name(JNIEnv* env, jclass, jlong sslAddress,
-                                                   CONSCRYPT_UNUSED jobject sslHolder) {
+                                               CONSCRYPT_UNUSED jobject sslHolder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, sslAddress, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_get_curve_name", ssl);
