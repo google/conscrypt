@@ -473,9 +473,9 @@ public class ConscryptSocketTest {
 
         // By default, BoringSSL supports curves "X25519", "P-256" and "P-384".
         // X25519 gets priority, so that curve will be used in the handshake here.
-        ConscryptEngineSocket serverSocket = (ConscryptEngineSocket) connection.server;
+        AbstractConscryptSocket serverSocket = (AbstractConscryptSocket) connection.server;
         assertEquals("X25519", serverSocket.getCurveNameForTesting());
-        ConscryptEngineSocket clientSocket = (ConscryptEngineSocket) connection.client;
+        AbstractConscryptSocket clientSocket = (AbstractConscryptSocket) connection.client;
         assertEquals("X25519", clientSocket.getCurveNameForTesting());
     }
 
