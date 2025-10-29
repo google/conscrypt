@@ -117,7 +117,7 @@
  * for the purposes of -Werror=unused-parameter. This can be needed when an
  * argument's use is based on an #ifdef.
  */
-#define UNUSED_ARGUMENT(x) ((void)(x));
+#define UNUSED_ARGUMENT(x) ((void)(x))
 
 /**
  * Check array bounds for arguments when an array and offset are given.
