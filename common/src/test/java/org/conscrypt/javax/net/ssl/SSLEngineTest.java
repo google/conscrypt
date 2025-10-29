@@ -929,9 +929,14 @@ public class SSLEngineTest {
 
     @Test
     public void wrapPreconditions() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(10);
-        ByteBuffer[] buffers = new ByteBuffer[] { buffer, buffer, buffer };
-        ByteBuffer[] badBuffers = new ByteBuffer[] { buffer, buffer, null, buffer };
+        int bufferSize = 128;
+        int arrayLength = 5;
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
+        ByteBuffer[] badBuffers = Arrays.copyOf(buffers, buffers.length);
+        int nullBufferIndex = 2;
+        badBuffers[nullBufferIndex] = null;
 
         // Client/server mode not set => IllegalStateException
         assertThrows(
@@ -943,18 +948,18 @@ public class SSLEngineTest {
 
         // Read-only destination => ReadOnlyBufferException
         assertThrows(ReadOnlyBufferException.class,
-                () -> newConnectedEngine().wrap(buffer, buffer.asReadOnlyBuffer()));
+                () -> newConnectedEngine().wrap(buffer, readOnlyBuffer));
         assertThrows(ReadOnlyBufferException.class,
-                () -> newConnectedEngine().wrap(buffers, buffer.asReadOnlyBuffer()));
+                () -> newConnectedEngine().wrap(buffers, readOnlyBuffer));
         assertThrows(ReadOnlyBufferException.class,
-                () -> newConnectedEngine().wrap(buffers, 0, 1, buffer.asReadOnlyBuffer()));
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, readOnlyBuffer));
 
         // Null destination => IllegalArgumentException
         assertThrows(IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffer, null));
         assertThrows(
                 IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers, null));
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(buffers, 0, 1, null));
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, null));
 
         // Null source => IllegalArgumentException
         assertThrows(IllegalArgumentException.class,
@@ -968,16 +973,16 @@ public class SSLEngineTest {
         assertThrows(IllegalArgumentException.class,
                 () -> newConnectedEngine().wrap(badBuffers, buffer));
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer));
+                () -> newConnectedEngine().wrap(badBuffers, 0, arrayLength, buffer));
         // But not if they are outside the selected offset and length
-        newConnectedEngine().wrap(badBuffers, 0, 2, buffer);
-        newConnectedEngine().wrap(badBuffers, 3, 1, buffer);
+        newConnectedEngine().wrap(badBuffers, 0, nullBufferIndex, buffer);
+        newConnectedEngine().wrap(badBuffers, nullBufferIndex + 1, 1, buffer);
 
         // Bad offset or length => IndexOutOfBoundsException
         assertThrows(IndexOutOfBoundsException.class,
-                () -> newConnectedEngine().wrap(buffers, 0, 7, buffer));
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, buffer));
         assertThrows(IndexOutOfBoundsException.class,
-                () -> newConnectedEngine().wrap(buffers, 3, 1, buffer));
+                () -> newConnectedEngine().wrap(buffers, arrayLength, 1, buffer));
     }
 
     @Test
