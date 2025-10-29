@@ -969,10 +969,15 @@ public class SSLEngineTest {
                 () -> newConnectedEngine().wrap(badBuffers, buffer));
         assertThrows(IllegalArgumentException.class,
                 () -> newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer));
+        // But not if they are outside the selected offset and length
+        newConnectedEngine().wrap(badBuffers, 0, 2, buffer);
+        newConnectedEngine().wrap(badBuffers, 3, 1, buffer);
 
         // Bad offset or length => IndexOutOfBoundsException
         assertThrows(IndexOutOfBoundsException.class,
                 () -> newConnectedEngine().wrap(buffers, 0, 7, buffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, 3, 1, buffer));
     }
 
     @Test
