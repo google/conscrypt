@@ -934,9 +934,9 @@ public class SSLEngineTest {
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
         ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
         ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
-        ByteBuffer[] badBuffers = Arrays.copyOf(buffers, buffers.length);
+        ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
         int nullBufferIndex = 2;
-        badBuffers[nullBufferIndex] = null;
+        buffersWithNullEntry[nullBufferIndex] = null;
 
         // Client/server mode not set => IllegalStateException
         assertThrows(
@@ -971,12 +971,12 @@ public class SSLEngineTest {
 
         // Null entries in buffer array => IllegalArgumentException
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(badBuffers, buffer));
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, buffer));
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(badBuffers, 0, arrayLength, buffer));
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, buffer));
         // But not if they are outside the selected offset and length
-        newConnectedEngine().wrap(badBuffers, 0, nullBufferIndex, buffer);
-        newConnectedEngine().wrap(badBuffers, nullBufferIndex + 1, 1, buffer);
+        newConnectedEngine().wrap(buffersWithNullEntry, 0, nullBufferIndex, buffer);
+        newConnectedEngine().wrap(buffersWithNullEntry, nullBufferIndex + 1, 1, buffer);
 
         // Bad offset or length => IndexOutOfBoundsException
         assertThrows(IndexOutOfBoundsException.class,
