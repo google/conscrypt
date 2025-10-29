@@ -985,6 +985,12 @@ public class SSLEngineTest {
                 () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, buffer));
         assertThrows(IndexOutOfBoundsException.class,
                 () -> newConnectedEngine().wrap(buffers, arrayLength, 1, buffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, buffer));
+        newConnectedEngine().wrap(buffers, 0, arrayLength, buffer);
+        // Zero length array is allowed
+        newConnectedEngine().wrap(buffers, 0, 0, buffer);
+        newConnectedEngine().wrap(buffers, arrayLength, 0, buffer);
     }
 
     @Test
