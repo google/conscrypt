@@ -109,6 +109,8 @@ final class SSLParametersImpl implements Cloneable {
     boolean useSessionTickets;
     private Boolean useSni;
 
+    private EchParameters echParameters;
+
     /**
      * Whether the TLS Channel ID extension is enabled. This field is
      * server-side only.
@@ -235,6 +237,7 @@ final class SSLParametersImpl implements Cloneable {
         this.useSessionTickets = sslParams.useSessionTickets;
         this.useSni = sslParams.useSni;
         this.channelIdEnabled = sslParams.channelIdEnabled;
+        this.echParameters = sslParams.echParameters;
     }
 
     /**
@@ -472,6 +475,17 @@ final class SSLParametersImpl implements Cloneable {
      */
     boolean getUseSni() {
         return useSni != null ? useSni : isSniEnabledByDefault();
+    }
+
+    /*
+     * Includes parameters for supporting ECH with this SSL connection
+     */
+    void setEchParameters(EchParameters parameters) {
+        this.echParameters = parameters;
+    }
+
+    EchParameters getEchParameters() {
+        return echParameters;
     }
 
     /*
