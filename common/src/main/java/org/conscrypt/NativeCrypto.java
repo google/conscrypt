@@ -1333,6 +1333,8 @@ public final class NativeCrypto {
 
     public static native String SSL_get_current_cipher(long ssl, NativeSsl ssl_holder);
 
+    public static native String SSL_get_curve_name(long ssl, NativeSsl sslHolder);
+
     public static native String SSL_get_version(long ssl, NativeSsl ssl_holder);
 
     /**

@@ -112,6 +112,10 @@ final class NativeSsl {
         return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl, this));
     }
 
+    String getCurveNameForTesting() {
+        return NativeCrypto.SSL_get_curve_name(ssl, this);
+    }
+
     X509Certificate[] getPeerCertificates() throws CertificateException {
         byte[][] encoded = NativeCrypto.SSL_get0_peer_certificates(ssl, this);
         return encoded == null ? null : SSLUtils.decodeX509CertificateChain(encoded);
