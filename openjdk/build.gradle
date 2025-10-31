@@ -20,7 +20,7 @@ ext {
 
     // Decide which targets we should build and test
     nativeResolver = new NativeBuildResolver(project.layout.buildDirectory)
-    nativeBuilds = nativeResolver.findAll("${osdetector.os}")
+    nativeBuilds = nativeResolver.findAll("${osdetector.os}", "${osdetector.arch}")
     buildToTest = nativeResolver.find("${osdetector.os}", "${osdetector.arch}")
 
     assert !nativeBuilds.isEmpty() : "No native builds selected."

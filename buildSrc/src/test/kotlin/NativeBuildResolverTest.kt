@@ -26,7 +26,7 @@ class NativeBuildResolverTest {
 
     @Test
     fun findAllByOs() {
-        val osx = NativeBuildVariant.findAll("osx").toSet()
+        val osx = NativeBuildVariant.findAll("osx", "aarch_64").toSet()
         assertEquals(setOf(NativeBuildVariant.OSX_X64, NativeBuildVariant.OSX_ARM64), osx)
     }
 
@@ -56,7 +56,8 @@ class NativeBuildResolverTest {
         val project = ProjectBuilder.builder().build()
         val resolver = NativeBuildResolver(project.layout.buildDirectory)
 
-        val info = resolver.findAll("linux").single() // Only one for now
+        // There should only be a single Linux variant for now.
+        val info = resolver.findAll("linux", "x86_64").single()
         assertEquals("linux-x86_64", info.mavenClassifier)
         assertEquals(project.layout.buildDirectory.get().asFile, info.buildDir.get().asFile)
     }

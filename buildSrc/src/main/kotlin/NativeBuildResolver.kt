@@ -18,11 +18,12 @@ enum class NativeBuildVariant(
     val mavenArch: String, // osdetector / Maven architecture name
     val gradleArch: String, // Gradle architecture, used for things like NDK or toolchain selection
     val boringBuildDir: String = "build64", // Where to find prebuilt libcrypto
+    val crossCompile: Boolean = false  // Whether to cross-compile on other archs for this OS
    ) {
     WINDOWS_X64("windows", "x86_64", "x86-64"),
     LINUX_X64("linux", "x86_64", "x86-64"),
-    OSX_X64("osx", "x86_64", "x86-64", "build.x86"),
-    OSX_ARM64("osx", "aarch_64", "aarch64", "build.arm");
+    OSX_X64("osx", "x86_64", "x86-64", "build.x86", true),
+    OSX_ARM64("osx", "aarch_64", "aarch64", "build.arm", true);
 
     override fun toString(): String
             = "<os=$os target=$mavenArch gradle=$gradleArch boring=$boringBuildDir>"
@@ -32,7 +33,9 @@ enum class NativeBuildVariant(
                 = values().find { it.os == os && it.mavenArch == arch }
         fun findForGradle(os: String, arch: String)
                 = values().find { it.os == os && it.gradleArch == arch }
-        fun findAll(os: String) = values().filter { it.os == os }
+        fun findAll(os: String, arch: String) = values().filter {
+            it.os == os &&  (it.mavenArch == arch || it.crossCompile)
+        }
     }
 }
 
@@ -67,7 +70,8 @@ class NativeBuildResolver(private val buildDir: Provider<Directory>) {
         nativePlatform.operatingSystem.name,
         nativePlatform.architecture.name))
 
-    fun findAll(os: String): List<NativeBuildInfo> = NativeBuildVariant.findAll(os). map {
-        NativeBuildInfo(buildDir, it)
-    }
+    fun findAll(os: String, arch: String): List<NativeBuildInfo> =
+        NativeBuildVariant.findAll(os, arch). map {
+            NativeBuildInfo(buildDir, it)
+        }
 }
