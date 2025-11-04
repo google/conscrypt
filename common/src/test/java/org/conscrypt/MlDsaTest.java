@@ -163,7 +163,7 @@ public class MlDsaTest {
     }
 
     @Test
-    public void mldsa_getKeySpecWorksButGenerateKeyFails() throws Exception {
+    public void mldsa_rawKeys_getKeySpecWorksButGenerateKeyFails() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
@@ -178,8 +178,9 @@ public class MlDsaTest {
         assertEquals("raw", publicKeySpec.getFormat());
         assertEquals(1952, publicKeySpec.getEncoded().length);
 
-    	assertThrows(InvalidKeySpecException.class, () -> keyFactory.generatePrivate(privateKeySpec));
-    	assertThrows(InvalidKeySpecException.class, () -> keyFactory.generatePublic(publicKeySpec));
+        assertThrows(
+                InvalidKeySpecException.class, () -> keyFactory.generatePrivate(privateKeySpec));
+        assertThrows(InvalidKeySpecException.class, () -> keyFactory.generatePublic(publicKeySpec));
     }
 
     @Test
