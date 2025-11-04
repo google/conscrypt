@@ -40,6 +40,7 @@ import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
