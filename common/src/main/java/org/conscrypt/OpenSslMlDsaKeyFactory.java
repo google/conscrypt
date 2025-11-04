@@ -43,7 +43,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
     /** ML-DSA */
     public static class MlDsa extends OpenSslMlDsaKeyFactory {
         public MlDsa() {
-            super(MlDsaAlgorithm.ML_DSA_65);
+            super(null);
         }
         @Override
         boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
@@ -79,6 +79,10 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
+        if (algorithm == null) {
+            throw new InvalidKeySpecException("ML-DSA key factory doesn't support public key"
+                    + " generation. Use ML-DSA-65 or ML-DSA-87 instead.");
+        }
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslMlDsaPublicKey((EncodedKeySpec) keySpec, algorithm);
         }
@@ -90,6 +94,10 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
     protected PrivateKey engineGeneratePrivate(KeySpec keySpec) throws InvalidKeySpecException {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
+        }
+        if (algorithm == null) {
+            throw new InvalidKeySpecException("ML-DSA key factory doesn't support private key"
+                    + " generation. Use ML-DSA-65 or ML-DSA-87 instead.");
         }
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslMlDsaPrivateKey((EncodedKeySpec) keySpec, algorithm);
