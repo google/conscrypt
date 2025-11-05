@@ -19,10 +19,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.security.PrivateKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Objects;
 
 /** An OpenSSL ML-DSA private key. */
 public class OpenSslMlDsaPrivateKey implements PrivateKey {
@@ -69,23 +66,6 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
             encodedSeed[32] = 87;
             return encodedSeed;
         }
-    }
-
-    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
-            throws InvalidKeySpecException {
-        byte[] rawKey = keySpec.getEncoded();
-        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-        if (rawKey.length != 32) {
-            throw new InvalidKeySpecException("Invalid key");
-        }
-        byte[] encodedSeed = encodeSeed(rawKey, algorithm);
-        if (!isValid(encodedSeed, algorithm)) {
-            throw new IllegalArgumentException("Invalid key");
-        }
-        this.algorithm = algorithm;
-        this.seed = encodedSeed;
     }
 
     public OpenSslMlDsaPrivateKey(byte[] seed, MlDsaAlgorithm algorithm) {
