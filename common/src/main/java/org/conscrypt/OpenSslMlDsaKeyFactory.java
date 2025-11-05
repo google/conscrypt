@@ -28,6 +28,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 /** An implementation of a {@link KeyFactorySpi} for MLDSA keys based on BoringSSL. */
 @Internal
@@ -184,8 +185,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                     + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if ("raw".equalsIgnoreCase(encodedKeySpec.getFormat())) {
+        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
+            if (raw.length != algorithm.publicKeySize()) {
+                throw new InvalidKeySpecException("Invalid raw public key");
+            }
             return new OpenSslMlDsaPublicKey(raw, algorithm);
         }
         if (!encodedKeySpec.getFormat().equals("X.509")) {
@@ -218,6 +222,9 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException(
                     "Only X.509 format for ML-DSA-65 and ML-DSA-87 is supported");
         }
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm");
+        }
         return new OpenSslMlDsaPublicKey(raw, algorithm);
     }
 
@@ -231,8 +238,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                     + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if ("raw".equalsIgnoreCase(encodedKeySpec.getFormat())) {
+        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
+            if (raw.length != 32) {
+                throw new InvalidKeySpecException("Invalid raw public key");
+            }
             return new OpenSslMlDsaPrivateKey(raw, algorithm);
         }
         if (!encodedKeySpec.getFormat().equals("PKCS#8")) {
