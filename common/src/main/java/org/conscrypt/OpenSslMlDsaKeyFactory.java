@@ -79,11 +79,19 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslMlDsaPublicKey((EncodedKeySpec) keySpec, algorithm);
+        if (!(keySpec instanceof EncodedKeySpec)) {
+            throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                    + keySpec.getClass().getName());
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
+        if (!encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+            throw new InvalidKeySpecException("Encoding must be in raw format");
+        }
+        byte[] raw = encodedKeySpec.getEncoded();
+        if (raw.length != algorithm.publicKeySize()) {
+            throw new InvalidKeySpecException("Invalid raw public key");
+        }
+        return new OpenSslMlDsaPublicKey(raw, algorithm);
     }
 
     @Override
@@ -91,11 +99,19 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslMlDsaPrivateKey((EncodedKeySpec) keySpec, algorithm);
+        if (!(keySpec instanceof EncodedKeySpec)) {
+            throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                    + keySpec.getClass().getName());
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
+        if (!encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+            throw new InvalidKeySpecException("Encoding must be in raw format");
+        }
+        byte[] raw = encodedKeySpec.getEncoded();
+        if (raw.length != 32) {
+            throw new InvalidKeySpecException("Invalid raw private key");
+        }
+        return new OpenSslMlDsaPrivateKey(raw, algorithm);
     }
 
     @Override
@@ -119,7 +135,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                 throw new UnsupportedOperationException(
                         "X509EncodedKeySpec is currently not supported");
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         } else if (key instanceof OpenSslMlDsaPrivateKey) {
             OpenSslMlDsaPrivateKey conscryptKey = (OpenSslMlDsaPrivateKey) key;
@@ -130,28 +146,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                 throw new UnsupportedOperationException(
                         "PKCS8EncodedKeySpec is currently not supported");
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getSeed(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getSeed(), keySpec);
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
                 + key.getClass().getName() + ", keySpec=" + keySpec.getName());
-    }
-
-    private <T extends KeySpec> T makeRawKeySpec(byte[] bytes, Class<T> keySpecClass)
-            throws InvalidKeySpecException {
-        try {
-            Constructor<T> constructor = keySpecClass.getConstructor(byte[].class);
-            T instance = constructor.newInstance((Object) bytes);
-            EncodedKeySpec spec = (EncodedKeySpec) instance;
-            if (!spec.getFormat().equalsIgnoreCase("raw")) {
-                throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
-            }
-            return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
-                | IllegalAccessException e) {
-            throw new InvalidKeySpecException(
-                    "Can't process KeySpec class " + keySpecClass.getName(), e);
-        }
     }
 
     @Override

@@ -19,8 +19,6 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.security.PublicKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 /** An OpenSSL ML-DSA public key. */
@@ -42,19 +40,6 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
             return MlDsaAlgorithm.ML_DSA_87;
         }
         throw new IllegalArgumentException("Invalid raw key of length " + raw.length);
-    }
-
-    public OpenSslMlDsaPublicKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
-            throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-        if (!isValid(encoded, algorithm)) {
-            throw new InvalidKeySpecException("Invalid key of length " + encoded.length);
-        }
-        this.raw = encoded;
-        this.algorithm = algorithm;
     }
 
     public OpenSslMlDsaPublicKey(byte[] raw, MlDsaAlgorithm algorithm) {
