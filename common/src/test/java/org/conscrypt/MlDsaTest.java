@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -32,6 +33,7 @@ import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -40,6 +42,7 @@ import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.EncodedKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
@@ -67,6 +70,7 @@ public class MlDsaTest {
     // Example from https://openjdk.org/jeps/497.
     @Test
     public void example_works() throws Exception {
+        // KeyPairGenerator with generic "ML-DSA" will use ML-DSA-65 by default.
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
         PrivateKey privateKey = keyPair.getPrivate();
@@ -115,7 +119,7 @@ public class MlDsaTest {
     }
 
     @Test
-    public void mldsa65_works() throws Exception {
+    public void mldsa65KeyPair_signVerify_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
         PrivateKey privateKey = keyPair.getPrivate();
@@ -124,22 +128,29 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        byte[] msg = new byte[123];
-        Signature ss = Signature.getInstance("ML-DSA-65", conscryptProvider);
-        ss.initSign(privateKey);
-        ss.update(msg);
-        byte[] sig = ss.sign();
-        assertEquals(3309, sig.length);
+        for (String signatureAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+            byte[] msg = new byte[123];
+            Signature ss = Signature.getInstance(signatureAlgorithm, conscryptProvider);
+            ss.initSign(privateKey);
+            ss.update(msg);
+            byte[] sig = ss.sign();
+            assertEquals(3309, sig.length);
 
-        Signature sv = Signature.getInstance("ML-DSA-65", conscryptProvider);
-        sv.initVerify(publicKey);
-        sv.update(msg);
-        boolean verified = sv.verify(sig);
-        assertTrue(verified);
+            Signature sv = Signature.getInstance(signatureAlgorithm, conscryptProvider);
+            sv.initVerify(publicKey);
+            sv.update(msg);
+            boolean verified = sv.verify(sig);
+            assertTrue(verified);
+        }
+
+        // ML-DSA-87 does not support ML-DSA-65 keys.
+        Signature s87 = Signature.getInstance("ML-DSA-87", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s87.initSign(privateKey));
+        assertThrows(InvalidKeyException.class, () -> s87.initVerify(publicKey));
     }
 
     @Test
-    public void mldsa87_works() throws Exception {
+    public void mldsa87KeyPair_signVerify_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
         PrivateKey privateKey = keyPair.getPrivate();
@@ -148,87 +159,131 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        byte[] msg = new byte[123];
-        Signature ss = Signature.getInstance("ML-DSA-87", conscryptProvider);
-        ss.initSign(privateKey);
-        ss.update(msg);
-        byte[] sig = ss.sign();
-        assertEquals(4627, sig.length);
+        for (String signatureAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+            byte[] msg = new byte[123];
+            Signature ss = Signature.getInstance(signatureAlgorithm, conscryptProvider);
+            ss.initSign(privateKey);
+            ss.update(msg);
+            byte[] sig = ss.sign();
+            assertEquals(4627, sig.length);
 
-        Signature sv = Signature.getInstance("ML-DSA-87", conscryptProvider);
-        sv.initVerify(publicKey);
-        sv.update(msg);
-        boolean verified = sv.verify(sig);
-        assertTrue(verified);
+            Signature sv = Signature.getInstance(signatureAlgorithm, conscryptProvider);
+            sv.initVerify(publicKey);
+            sv.update(msg);
+            boolean verified = sv.verify(sig);
+            assertTrue(verified);
+        }
+
+        // ML-DSA-65 does not support ML-DSA-87 signatures.
+        Signature s65 = Signature.getInstance("ML-DSA-65", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s65.initSign(privateKey));
+        assertThrows(InvalidKeyException.class, () -> s65.initVerify(publicKey));
     }
 
     @Test
-    public void getRawKey_works() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA", conscryptProvider);
-        KeyPair keyPair = keyGen.generateKeyPair();
-
-        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA", conscryptProvider);
-
-        EncodedKeySpec privateKeySpec =
-                keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
-        assertEquals("raw", privateKeySpec.getFormat());
-        assertEquals(32, privateKeySpec.getEncoded().length);
-
-        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
-        assertEquals("raw", publicKeySpec.getFormat());
-        assertEquals(1952, publicKeySpec.getEncoded().length);
-
-        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
-
-        assertEquals(privateKey, keyPair.getPrivate());
-        assertEquals(publicKey, keyPair.getPublic());
-    }
-
-    @Test
-    public void mldsa65_getRawKey_works() throws Exception {
+    public void mldsa65KeyPair_toAndFromRaw_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+            KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
-        EncodedKeySpec privateKeySpec =
-                keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
-        assertEquals("raw", privateKeySpec.getFormat());
-        assertEquals(32, privateKeySpec.getEncoded().length);
+            EncodedKeySpec privateKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
+            assertEquals("raw", privateKeySpec.getFormat());
+            assertEquals(32, privateKeySpec.getEncoded().length);
 
-        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
-        assertEquals("raw", publicKeySpec.getFormat());
-        assertEquals(1952, publicKeySpec.getEncoded().length);
+            EncodedKeySpec publicKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
+            assertEquals("raw", publicKeySpec.getFormat());
+            assertEquals(1952, publicKeySpec.getEncoded().length);
 
-        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+            PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+            PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 
-        assertEquals(privateKey, keyPair.getPrivate());
-        assertEquals(publicKey, keyPair.getPublic());
+            assertEquals(privateKey, keyPair.getPrivate());
+            assertEquals(publicKey, keyPair.getPublic());
+        }
+
+        // ML-DSA-87 key factory must not support ML-DSA-65 keys.
+        KeyFactory keyFactory87 = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory87.getKeySpec(keyPair.getPrivate(), RawKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory87.getKeySpec(keyPair.getPublic(), RawKeySpec.class));
     }
 
     @Test
-    public void mldsa87_getRawKey_works() throws Exception {
+    public void mldsa87KeyPair_toAndFromRaw_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        {
+            KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
 
-        EncodedKeySpec privateKeySpec =
-                keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
-        assertEquals("raw", privateKeySpec.getFormat());
-        assertEquals(32, privateKeySpec.getEncoded().length);
+            EncodedKeySpec privateKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
+            assertEquals("raw", privateKeySpec.getFormat());
+            assertEquals(32, privateKeySpec.getEncoded().length);
 
-        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
-        assertEquals("raw", publicKeySpec.getFormat());
-        assertEquals(2592, publicKeySpec.getEncoded().length);
+            EncodedKeySpec publicKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
+            assertEquals("raw", publicKeySpec.getFormat());
+            assertEquals(2592, publicKeySpec.getEncoded().length);
 
-        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+            PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+            PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 
-        assertEquals(privateKey, keyPair.getPrivate());
-        assertEquals(publicKey, keyPair.getPublic());
+            assertEquals(privateKey, keyPair.getPrivate());
+            assertEquals(publicKey, keyPair.getPublic());
+        }
+
+        {
+            // The generic ML-DSA algorithm supports exporting ML-DSA-87 keys.
+            KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA", conscryptProvider);
+
+            EncodedKeySpec privateKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
+            assertEquals("raw", privateKeySpec.getFormat());
+            assertEquals(32, privateKeySpec.getEncoded().length);
+
+            EncodedKeySpec publicKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPublic(), RawKeySpec.class);
+            assertEquals("raw", publicKeySpec.getFormat());
+            assertEquals(2592, publicKeySpec.getEncoded().length);
+
+            // Importing the private key works, but the generated key will be a ML-DSA-65 key.
+            PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+            assertNotEquals(privateKey, keyPair.getPrivate());
+
+            // This fails because the key factory expects a ML-DSA-65 key, which has a different
+            // length.
+            assertThrows(
+                    InvalidKeySpecException.class, () -> keyFactory.generatePublic(publicKeySpec));
+        }
+
+        // ML-DSA-65 key factory must not support ML-DSA-87 keys.
+        KeyFactory keyFactory65 = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory65.getKeySpec(keyPair.getPrivate(), RawKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory65.getKeySpec(keyPair.getPublic(), RawKeySpec.class));
+    }
+
+    @Test
+    public void generateFromInvalidRawKey_throws() throws Exception {
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-65", "ML-DSA-87", "ML-DSA"}) {
+            KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
+
+            assertThrows(InvalidKeySpecException.class, () -> keyFactory.generatePrivate(null));
+            assertThrows(InvalidKeySpecException.class, () -> keyFactory.generatePublic(null));
+
+            byte[] invalidRawKey = new byte[42];
+            assertThrows(InvalidKeySpecException.class,
+                    () -> keyFactory.generatePrivate(new RawKeySpec(invalidRawKey)));
+            assertThrows(InvalidKeySpecException.class,
+                    () -> keyFactory.generatePublic(new RawKeySpec(invalidRawKey)));
+        }
     }
 
     @Test
