@@ -128,19 +128,21 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        for (String signatureAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+        for (String signAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
             byte[] msg = new byte[123];
-            Signature ss = Signature.getInstance(signatureAlgorithm, conscryptProvider);
+            Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
             ss.initSign(privateKey);
             ss.update(msg);
             byte[] sig = ss.sign();
             assertEquals(3309, sig.length);
 
-            Signature sv = Signature.getInstance(signatureAlgorithm, conscryptProvider);
-            sv.initVerify(publicKey);
-            sv.update(msg);
-            boolean verified = sv.verify(sig);
-            assertTrue(verified);
+            for (String verifyAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+                Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
+                sv.initVerify(publicKey);
+                sv.update(msg);
+                boolean verified = sv.verify(sig);
+                assertTrue(verified);
+            }
         }
 
         // ML-DSA-87 does not support ML-DSA-65 keys.
@@ -159,19 +161,21 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        for (String signatureAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+        for (String signAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
             byte[] msg = new byte[123];
-            Signature ss = Signature.getInstance(signatureAlgorithm, conscryptProvider);
+            Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
             ss.initSign(privateKey);
             ss.update(msg);
             byte[] sig = ss.sign();
             assertEquals(4627, sig.length);
 
-            Signature sv = Signature.getInstance(signatureAlgorithm, conscryptProvider);
-            sv.initVerify(publicKey);
-            sv.update(msg);
-            boolean verified = sv.verify(sig);
-            assertTrue(verified);
+            for (String verifyAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+                Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
+                sv.initVerify(publicKey);
+                sv.update(msg);
+                boolean verified = sv.verify(sig);
+                assertTrue(verified);
+            }
         }
 
         // ML-DSA-65 does not support ML-DSA-87 signatures.
