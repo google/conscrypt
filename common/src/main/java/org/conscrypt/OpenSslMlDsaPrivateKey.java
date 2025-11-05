@@ -88,12 +88,21 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        if (seed == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.pkcs8PreambleMlDsa65, getSeed());
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.pkcs8PreambleMlDsa87, getSeed());
+        } else {
+            throw new IllegalStateException("unsupported algorithm: " + algorithm);
+        }
     }
 
     byte[] getSeed() {

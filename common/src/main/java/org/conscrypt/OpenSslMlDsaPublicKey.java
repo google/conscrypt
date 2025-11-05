@@ -61,7 +61,21 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "X.509";
+    }
+
+    @Override
+    public byte[] getEncoded() {
+        if (raw == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.x509PreambleMlDsa65, raw);
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.x509PreambleMlDsa87, raw);
+        } else {
+            throw new IllegalStateException("unsupported algorithm: " + algorithm);
+        }
     }
 
     @Override

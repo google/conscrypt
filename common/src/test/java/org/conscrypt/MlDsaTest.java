@@ -291,16 +291,61 @@ public class MlDsaTest {
     }
 
     @Test
-    public void x509AndPkcs8_areNotSupported() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA", conscryptProvider);
+    public void mldsa65_x509AndPkcs8_work() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
+        assertEquals("PKCS#8", keyPair.getPrivate().getFormat());
+        assertEquals(54, keyPair.getPrivate().getEncoded().length);
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA", conscryptProvider);
+        assertEquals("X.509", keyPair.getPublic().getFormat());
+        assertEquals(1974, keyPair.getPublic().getEncoded().length);
 
-        assertThrows(UnsupportedOperationException.class,
-                () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
-        assertThrows(UnsupportedOperationException.class,
-                () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+
+        PKCS8EncodedKeySpec privateKeySpec =
+                keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
+        assertEquals("PKCS#8", privateKeySpec.getFormat());
+        assertArrayEquals(privateKeySpec.getEncoded(), keyPair.getPrivate().getEncoded());
+
+        X509EncodedKeySpec publicKeySpec =
+                keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
+        assertEquals("X.509", publicKeySpec.getFormat());
+        assertArrayEquals(publicKeySpec.getEncoded(), keyPair.getPublic().getEncoded());
+
+        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        assertEquals(privateKey, keyPair.getPrivate());
+        assertEquals(publicKey, keyPair.getPublic());
+    }
+
+    @Test
+    public void mldsa87_x509AndPkcs8_work() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        assertEquals("PKCS#8", keyPair.getPrivate().getFormat());
+        assertEquals(54, keyPair.getPrivate().getEncoded().length);
+
+        assertEquals("X.509", keyPair.getPublic().getFormat());
+        assertEquals(2614, keyPair.getPublic().getEncoded().length);
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+
+        PKCS8EncodedKeySpec privateKeySpec =
+                keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
+        assertEquals("PKCS#8", privateKeySpec.getFormat());
+        assertArrayEquals(privateKeySpec.getEncoded(), keyPair.getPrivate().getEncoded());
+
+        X509EncodedKeySpec publicKeySpec =
+                keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
+        assertEquals("X.509", publicKeySpec.getFormat());
+        assertArrayEquals(publicKeySpec.getEncoded(), keyPair.getPublic().getEncoded());
+
+        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        assertEquals(privateKey, keyPair.getPrivate());
+        assertEquals(publicKey, keyPair.getPublic());
     }
 
     @Test
