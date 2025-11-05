@@ -88,6 +88,9 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("Encoding must be in raw format");
         }
         byte[] raw = encodedKeySpec.getEncoded();
+        if (raw.length != algorithm.publicKeySize()) {
+            throw new InvalidKeySpecException("Invalid raw public key");
+        }
         return new OpenSslMlDsaPublicKey(raw, algorithm);
     }
 
@@ -105,6 +108,9 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("Encoding must be in raw format");
         }
         byte[] raw = encodedKeySpec.getEncoded();
+        if (raw.length != 32) {
+            throw new InvalidKeySpecException("Invalid raw private key");
+        }
         return new OpenSslMlDsaPrivateKey(raw, algorithm);
     }
 
