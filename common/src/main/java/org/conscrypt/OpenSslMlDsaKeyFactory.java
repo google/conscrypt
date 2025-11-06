@@ -104,8 +104,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
     };
 
     static final byte[] pkcs8PreambleMlDsa65 = new byte[] {
-            0x30,
-            0x34,
+            0x30, 0x34,
             0x02,
             0x01,
             0x00,

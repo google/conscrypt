@@ -291,7 +291,7 @@ public class MlDsaTest {
     }
 
     @Test
-    public void mldsa65_x509AndPkcs8_work() throws Exception {
+    public void mldsa65KeyPair_x509AndPkcs8() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
         assertEquals("PKCS#8", keyPair.getPrivate().getFormat());
@@ -300,27 +300,41 @@ public class MlDsaTest {
         assertEquals("X.509", keyPair.getPublic().getFormat());
         assertEquals(1974, keyPair.getPublic().getEncoded().length);
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+        for (String algorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+            KeyFactory keyFactory = KeyFactory.getInstance(algorithm, conscryptProvider);
 
-        PKCS8EncodedKeySpec privateKeySpec =
-                keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
-        assertEquals("PKCS#8", privateKeySpec.getFormat());
-        assertArrayEquals(privateKeySpec.getEncoded(), keyPair.getPrivate().getEncoded());
+            PKCS8EncodedKeySpec privateKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
+            assertEquals("PKCS#8", privateKeySpec.getFormat());
+            assertArrayEquals(privateKeySpec.getEncoded(), keyPair.getPrivate().getEncoded());
 
-        X509EncodedKeySpec publicKeySpec =
-                keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
-        assertEquals("X.509", publicKeySpec.getFormat());
-        assertArrayEquals(publicKeySpec.getEncoded(), keyPair.getPublic().getEncoded());
+            X509EncodedKeySpec publicKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
+            assertEquals("X.509", publicKeySpec.getFormat());
+            assertArrayEquals(publicKeySpec.getEncoded(), keyPair.getPublic().getEncoded());
 
-        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+            PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+            PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 
-        assertEquals(privateKey, keyPair.getPrivate());
-        assertEquals(publicKey, keyPair.getPublic());
+            assertEquals(privateKey, keyPair.getPrivate());
+            assertEquals(publicKey, keyPair.getPublic());
+        }
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                ()
+                        -> keyFactory.generatePrivate(
+                                new RawKeySpec(keyPair.getPrivate().getEncoded())));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePublic(new RawKeySpec(keyPair.getPublic().getEncoded())));
     }
 
     @Test
-    public void mldsa87_x509AndPkcs8_work() throws Exception {
+    public void mldsa87KeyPair_x509AndPkcs8() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
         assertEquals("PKCS#8", keyPair.getPrivate().getFormat());
@@ -329,23 +343,37 @@ public class MlDsaTest {
         assertEquals("X.509", keyPair.getPublic().getFormat());
         assertEquals(2614, keyPair.getPublic().getEncoded().length);
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        for (String algorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+            KeyFactory keyFactory = KeyFactory.getInstance(algorithm, conscryptProvider);
 
-        PKCS8EncodedKeySpec privateKeySpec =
-                keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
-        assertEquals("PKCS#8", privateKeySpec.getFormat());
-        assertArrayEquals(privateKeySpec.getEncoded(), keyPair.getPrivate().getEncoded());
+            PKCS8EncodedKeySpec privateKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
+            assertEquals("PKCS#8", privateKeySpec.getFormat());
+            assertArrayEquals(privateKeySpec.getEncoded(), keyPair.getPrivate().getEncoded());
 
-        X509EncodedKeySpec publicKeySpec =
-                keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
-        assertEquals("X.509", publicKeySpec.getFormat());
-        assertArrayEquals(publicKeySpec.getEncoded(), keyPair.getPublic().getEncoded());
+            X509EncodedKeySpec publicKeySpec =
+                    keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
+            assertEquals("X.509", publicKeySpec.getFormat());
+            assertArrayEquals(publicKeySpec.getEncoded(), keyPair.getPublic().getEncoded());
 
-        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
-        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+            PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+            PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 
-        assertEquals(privateKey, keyPair.getPrivate());
-        assertEquals(publicKey, keyPair.getPublic());
+            assertEquals(privateKey, keyPair.getPrivate());
+            assertEquals(publicKey, keyPair.getPublic());
+        }
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
+        assertThrows(InvalidKeySpecException.class,
+                ()
+                        -> keyFactory.generatePrivate(
+                                new RawKeySpec(keyPair.getPrivate().getEncoded())));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePublic(new RawKeySpec(keyPair.getPublic().getEncoded())));
     }
 
     @Test
