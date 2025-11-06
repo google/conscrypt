@@ -78,11 +78,6 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         }
     }
 
-    @Override
-    public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
-    }
-
     byte[] getRaw() {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
