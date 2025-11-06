@@ -33,10 +33,10 @@ import java.util.Arrays;
 /** An implementation of a {@link KeyFactorySpi} for MLDSA keys based on BoringSSL. */
 @Internal
 public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
-    private final MlDsaAlgorithm algorithm;
+    private final MlDsaAlgorithm defaultAlgorithm;
 
-    private OpenSslMlDsaKeyFactory(MlDsaAlgorithm algorithm) {
-        this.algorithm = algorithm;
+    private OpenSslMlDsaKeyFactory(MlDsaAlgorithm defaultAlgorithm) {
+        this.defaultAlgorithm = defaultAlgorithm;
     }
 
     abstract boolean supportsAlgorithm(MlDsaAlgorithm algorithm);
@@ -198,7 +198,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
-            return makePublicKey(raw, algorithm);
+            return makePublicKey(raw, defaultAlgorithm);
         }
         if (!encodedKeySpec.getFormat().equals("X.509")) {
             throw new InvalidKeySpecException("Encoding must be in X.509 format");
@@ -239,7 +239,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
-            return makePrivateKey(raw, algorithm);
+            return makePrivateKey(raw, defaultAlgorithm);
         }
         if (!encodedKeySpec.getFormat().equals("PKCS#8")) {
             throw new InvalidKeySpecException("Encoding must be in PKCS#8 format");
