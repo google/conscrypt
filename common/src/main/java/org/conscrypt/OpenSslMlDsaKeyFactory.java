@@ -104,7 +104,8 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
     };
 
     static final byte[] pkcs8PreambleMlDsa65 = new byte[] {
-            0x30, 0x34,
+            0x30,
+            0x34,
             0x02,
             0x01,
             0x00,
@@ -174,6 +175,17 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
     }
 
+    private OpenSslMlDsaPublicKey makePublicKey(byte[] raw, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        if (raw.length != algorithm.publicKeySize()) {
+            throw new InvalidKeySpecException("Invalid raw public key");
+        }
+        return new OpenSslMlDsaPublicKey(raw, algorithm);
+    }
+
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
         if (keySpec == null) {
@@ -186,45 +198,33 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
-            if (raw.length != algorithm.publicKeySize()) {
-                throw new InvalidKeySpecException("Invalid raw public key");
-            }
-            return new OpenSslMlDsaPublicKey(raw, algorithm);
+            return makePublicKey(raw, algorithm);
         }
         if (!encodedKeySpec.getFormat().equals("X.509")) {
             throw new InvalidKeySpecException("Encoding must be in X.509 format");
         }
         byte[] encoded = encodedKeySpec.getEncoded();
-        byte[] raw;
-        MlDsaAlgorithm algorithm;
         if (ArrayUtils.startsWith(encoded, x509PreambleMlDsa65)) {
-            int totalLength = x509PreambleMlDsa65.length + 1952;
-            if (encoded.length != totalLength) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            raw = Arrays.copyOfRange(encoded, x509PreambleMlDsa65.length, totalLength);
-            if (raw.length != 1952) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            algorithm = MlDsaAlgorithm.ML_DSA_65;
+            byte[] raw = Arrays.copyOfRange(encoded, x509PreambleMlDsa65.length, encoded.length);
+            return makePublicKey(raw, MlDsaAlgorithm.ML_DSA_65);
         } else if (ArrayUtils.startsWith(encoded, x509PreambleMlDsa87)) {
-            int totalLength = x509PreambleMlDsa87.length + 2592;
-            if (encoded.length != totalLength) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            raw = Arrays.copyOfRange(encoded, x509PreambleMlDsa65.length, totalLength);
-            if (raw.length != 2592) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            algorithm = MlDsaAlgorithm.ML_DSA_87;
+            byte[] raw = Arrays.copyOfRange(encoded, x509PreambleMlDsa65.length, encoded.length);
+            return makePublicKey(raw, MlDsaAlgorithm.ML_DSA_87);
         } else {
             throw new InvalidKeySpecException(
                     "Only X.509 format for ML-DSA-65 and ML-DSA-87 is supported");
         }
+    }
+
+    private OpenSslMlDsaPrivateKey makePrivateKey(byte[] raw, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
         if (!supportsAlgorithm(algorithm)) {
-            throw new InvalidKeySpecException("Unsupported algorithm");
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
         }
-        return new OpenSslMlDsaPublicKey(raw, algorithm);
+        if (raw.length != 32) {
+            throw new InvalidKeySpecException("Invalid raw public key");
+        }
+        return new OpenSslMlDsaPrivateKey(raw, algorithm);
     }
 
     @Override
@@ -239,34 +239,22 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
-            if (raw.length != 32) {
-                throw new InvalidKeySpecException("Invalid raw public key");
-            }
-            return new OpenSslMlDsaPrivateKey(raw, algorithm);
+            return makePrivateKey(raw, algorithm);
         }
         if (!encodedKeySpec.getFormat().equals("PKCS#8")) {
             throw new InvalidKeySpecException("Encoding must be in PKCS#8 format");
         }
 
         byte[] encoded = encodedKeySpec.getEncoded();
-        byte[] raw;
-        MlDsaAlgorithm algorithm;
         if (ArrayUtils.startsWith(encoded, pkcs8PreambleMlDsa65)) {
-            algorithm = MlDsaAlgorithm.ML_DSA_65;
-            raw = Arrays.copyOfRange(encoded, pkcs8PreambleMlDsa65.length, encoded.length);
+            byte[] raw = Arrays.copyOfRange(encoded, pkcs8PreambleMlDsa65.length, encoded.length);
+            return makePrivateKey(raw, MlDsaAlgorithm.ML_DSA_65);
         } else if (ArrayUtils.startsWith(encoded, pkcs8PreambleMlDsa87)) {
-            algorithm = MlDsaAlgorithm.ML_DSA_87;
-            raw = Arrays.copyOfRange(encoded, pkcs8PreambleMlDsa87.length, encoded.length);
+            byte[] raw = Arrays.copyOfRange(encoded, pkcs8PreambleMlDsa87.length, encoded.length);
+            return makePrivateKey(raw, MlDsaAlgorithm.ML_DSA_87);
         } else {
             throw new InvalidKeySpecException("Unsupported PKCS8 key preamble");
         }
-        if (raw.length != 32) {
-            throw new InvalidKeySpecException("Invalid key");
-        }
-        if (!supportsAlgorithm(algorithm)) {
-            throw new InvalidKeySpecException("Unsupported algorithm");
-        }
-        return new OpenSslMlDsaPrivateKey(raw, algorithm);
     }
 
     @Override
