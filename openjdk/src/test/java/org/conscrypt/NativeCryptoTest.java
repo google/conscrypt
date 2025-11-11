@@ -3093,6 +3093,35 @@ public class NativeCryptoTest {
                 () -> NativeCrypto.ED25519_keypair(publicKeyBytes, privateKeyBytes));
     }
 
+
+    @Test
+    public void mldsaPrivateKey_fromAndToSeed_works() throws Exception {
+        for (int keyType : new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                NativeConstants.EVP_PKEY_ML_DSA_87}) {
+            byte[] seed = new byte[32];
+            NativeCrypto.RAND_bytes(seed);
+            NativeRef.EVP_PKEY privateKey =
+                    new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, seed));
+            assertEquals(keyType, NativeCrypto.EVP_PKEY_type(privateKey));
+
+            byte[] output = NativeCrypto.EVP_PKEY_get_private_seed(privateKey);
+            assertArrayEquals(seed, output);
+        }
+    }
+
+    @Test
+    public void evpKeyFromPrivateSeed_invalidSeedLength_throws() throws Exception {
+        for (int keyType : new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                NativeConstants.EVP_PKEY_ML_DSA_87}) {
+            final byte[] shortSeed = new byte[31];
+            assertThrows(ParsingException.class, () ->
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, shortSeed)));
+            final byte[] longSeed = new byte[33];
+            assertThrows(ParsingException.class, () ->
+                    new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, longSeed)));
+        }
+    }
+
     @Test
     public void test_EVP_DigestSign_Ed25519_works() throws Exception {
         // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
