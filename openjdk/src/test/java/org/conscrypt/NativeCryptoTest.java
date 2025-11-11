@@ -3093,11 +3093,10 @@ public class NativeCryptoTest {
                 () -> NativeCrypto.ED25519_keypair(publicKeyBytes, privateKeyBytes));
     }
 
-
     @Test
     public void mldsaPrivateKey_fromAndToSeed_works() throws Exception {
-        for (int keyType : new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
-                NativeConstants.EVP_PKEY_ML_DSA_87}) {
+        for (int keyType : new int[] {
+                     NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
             byte[] seed = new byte[32];
             NativeCrypto.RAND_bytes(seed);
             NativeRef.EVP_PKEY privateKey =
@@ -3111,14 +3110,18 @@ public class NativeCryptoTest {
 
     @Test
     public void evpKeyFromPrivateSeed_invalidSeedLength_throws() throws Exception {
-        for (int keyType : new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
-                NativeConstants.EVP_PKEY_ML_DSA_87}) {
+        for (int keyType : new int[] {
+                     NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
             final byte[] shortSeed = new byte[31];
-            assertThrows(ParsingException.class, () ->
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, shortSeed)));
+            assertThrows(ParsingException.class,
+                    ()
+                            -> new NativeRef.EVP_PKEY(
+                                    NativeCrypto.EVP_PKEY_from_private_seed(keyType, shortSeed)));
             final byte[] longSeed = new byte[33];
-            assertThrows(ParsingException.class, () ->
-                    new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, longSeed)));
+            assertThrows(ParsingException.class,
+                    ()
+                            -> new NativeRef.EVP_PKEY(
+                                    NativeCrypto.EVP_PKEY_from_private_seed(keyType, longSeed)));
         }
     }
 
