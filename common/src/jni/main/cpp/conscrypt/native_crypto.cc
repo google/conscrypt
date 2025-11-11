@@ -1268,7 +1268,6 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-
 static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls, jobject pkeyRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_get_private_seed(%p)", pkeyRef);
