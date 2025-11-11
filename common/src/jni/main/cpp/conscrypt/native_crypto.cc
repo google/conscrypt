@@ -1233,7 +1233,8 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint pkeyType, jbyteArray javaSeedBytes) {
+static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint pkeyType,
+                                                     jbyteArray javaSeedBytes) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_private_seed(%p)", javaSeedBytes);
 
@@ -1243,7 +1244,7 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
         return 0;
     }
 
-    const EVP_PKEY_ALG *alg;
+    const EVP_PKEY_ALG* alg;
     if (pkeyType == EVP_PKEY_ML_DSA_65) {
         alg = EVP_pkey_ml_dsa_65();
     } else if (pkeyType == EVP_PKEY_ML_DSA_87) {
@@ -1254,8 +1255,8 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
     }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_private_seed(
-        alg, reinterpret_cast<const uint8_t*>(seed.get()),
-        seed.size()));
+            alg, reinterpret_cast<const uint8_t*>(seed.get()), seed.size()));
+
     if (!pkey) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
         ERR_clear_error();
@@ -1268,8 +1269,7 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
 }
 
 
-static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(
-        JNIEnv* env, jclass cls, jobject pkeyRef) {
+static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls, jobject pkeyRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_get_private_seed(%p)", pkeyRef);
 
@@ -1279,8 +1279,7 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(
     }
 
     size_t seed_length = 0;
-    if (EVP_PKEY_get_private_seed(
-            pkey, nullptr, &seed_length) == 0) {
+    if (EVP_PKEY_get_private_seed(pkey, nullptr, &seed_length) == 0) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_private_seed");
         return nullptr;
     }
@@ -1296,8 +1295,8 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(
         return nullptr;
     }
 
-    if (EVP_PKEY_get_private_seed(
-            pkey, reinterpret_cast<uint8_t *>(seed.get()), &seed_length) == 0) {
+    if (EVP_PKEY_get_private_seed(pkey, reinterpret_cast<uint8_t*>(seed.get()), &seed_length) ==
+        0) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_private_seed");
         return nullptr;
     }
