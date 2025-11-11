@@ -9701,6 +9701,20 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
     return env->NewStringUTF(name);
 }
 
+static jstring NativeCrypto_SSL_get_curve_name(JNIEnv* env, jclass, jlong sslAddress,
+                                               CONSCRYPT_UNUSED jobject sslHolder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, sslAddress, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_curve_name", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+    uint16_t curve_id = SSL_get_curve_id(ssl);
+    const char* name = SSL_get_curve_name(curve_id);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_curve_name => %s", ssl, name);
+    return env->NewStringUTF(name);
+}
+
 static jstring NativeCrypto_SSL_get_version(JNIEnv* env, jclass, jlong ssl_address,
                                             CONSCRYPT_UNUSED jobject ssl_holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -11845,8 +11859,6 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     SSL* ssl = to_SSL(env, ssl_address, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p)", ssl, configJavaBytes);
     if (ssl == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ssl address");
-        ERR_clear_error();
         return JNI_FALSE;
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
@@ -11859,7 +11871,7 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
                                        configBytes.size());
     if (!ret) {
-        conscrypt::jniutil::throwParsingException(env, "Error parsing ECH config");
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing ECH config");
         ERR_clear_error();
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => threw exception", ssl,
                   configJavaBytes);
@@ -11951,23 +11963,18 @@ static jboolean NativeCrypto_SSL_ech_accepted(JNIEnv* env, jclass, jlong ssl_add
     JNI_TRACE("NativeCrypto_SSL_ech_accepted");
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
     if (ssl == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ssl address");
-        ERR_clear_error();
         return JNI_FALSE;
     }
-    jboolean accepted = SSL_ech_accepted(ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
 
-    if (!accepted) {
-        conscrypt::jniutil::throwParsingException(env, "Invalid ECH config list");
-        ERR_clear_error();
+    if (!SSL_ech_accepted(ssl)) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => threw exception", ssl);
         return JNI_FALSE;
     }
 
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, accepted);
-    return accepted;
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, JNI_TRUE);
+    return JNI_TRUE;
 }
 
 static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlong ssl_ctx_address,
@@ -12326,6 +12333,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_servername, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_do_handshake, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "I)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_current_cipher, "(J" REF_SSL ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get_curve_name, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_version, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_peer_certificates, "(J" REF_SSL ")[[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_read, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
