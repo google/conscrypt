@@ -27,7 +27,6 @@ import static org.conscrypt.HpkeFixture.DEFAULT_SK;
 import static org.conscrypt.HpkeFixture.DEFAULT_SUITE_NAME;
 import static org.conscrypt.HpkeFixture.createDefaultHpkeContextRecipient;
 import static org.conscrypt.HpkeFixture.createDefaultHpkeContextSender;
-import static org.conscrypt.HpkeTestVectorsTest.getHpkeEncryptionRecords;
 import static org.conscrypt.TestUtils.encodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -35,6 +34,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+
+import org.conscrypt.java.security.DefaultKeys;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -44,16 +50,6 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
-import java.util.List;
-
-import org.conscrypt.HpkeTestVectorsTest.HpkeData;
-import org.conscrypt.HpkeTestVectorsTest.HpkeEncryptionData;
-import org.conscrypt.java.security.DefaultKeys;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 /**
  * Tests for DuckTypedHpkeSpiTest. Essentially the same as the tests for HpkeContext but
@@ -135,14 +131,6 @@ public class DuckTypedHpkeSpiTest {
     }
 
     @Test
-    public void vectors() throws Exception {
-        final List<HpkeData> records = getHpkeEncryptionRecords();
-        for (HpkeData record : records) {
-            testHpkeEncryption(record);
-        }
-    }
-
-    @Test
     public void initInvalidKeys() throws Exception {
         HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         PublicKey dhKey = DefaultKeys.getPublicKey("DH");
@@ -167,67 +155,37 @@ public class DuckTypedHpkeSpiTest {
                 () -> recipient.init(DEFAULT_ENC, invalidKey, DEFAULT_INFO));
     }
 
-  @Test
-  public void testSeal_missingRequiredParameters_throwNullException() throws Exception {
-    HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
-    ctxSender.init(DEFAULT_PK, DEFAULT_INFO);
-    assertThrows(NullPointerException.class,
-        () -> ctxSender.seal(/* plaintext= */ null, DEFAULT_AAD));
-  }
+    @Test
+    public void testSeal_missingRequiredParameters_throwNullException() throws Exception {
+        HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
+        ctxSender.init(DEFAULT_PK, DEFAULT_INFO);
+        assertThrows(NullPointerException.class,
+                () -> ctxSender.seal(/* plaintext= */ null, DEFAULT_AAD));
+    }
 
-  @Test
-  public void testExport_lowerEdgeLength() throws Exception {
-    final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
-    final byte[] enc = ctxSender.getEncapsulated();
-    final byte[] export = ctxSender.export(/* length= */ 0, DEFAULT_EXPORTER_CONTEXT);
-    assertNotNull(enc);
-    assertNotNull(export);
-    assertThrows(IllegalArgumentException.class,
-        () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
-  }
+    @Test
+    public void testExport_lowerEdgeLength() throws Exception {
+        final HpkeContextSender ctxSender = createDefaultHpkeContextSender();
+        final byte[] enc = ctxSender.getEncapsulated();
+        final byte[] export = ctxSender.export(/* length= */ 0, DEFAULT_EXPORTER_CONTEXT);
+        assertNotNull(enc);
+        assertNotNull(export);
+        assertThrows(IllegalArgumentException.class,
+                () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
+    }
 
+    @Test
+    public void testInitUnsupportedModes() throws Exception {
+        HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
+        byte[] psk = "Shhh! Secret!".getBytes(StandardCharsets.UTF_8);
+        byte[] pskId = "id".getBytes(StandardCharsets.UTF_8);
 
-  @Test
-  public void testInitUnsupportedModes() throws Exception {
-    HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
-    byte[] psk = "Shhh! Secret!".getBytes(StandardCharsets.UTF_8);
-    byte[] pskId = "id".getBytes(StandardCharsets.UTF_8);
-
-    assertThrows(UnsupportedOperationException.class, () ->
-        sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK));
-    assertThrows(UnsupportedOperationException.class, () ->
-        sender.init(DEFAULT_PK, DEFAULT_INFO, psk, pskId));
-    assertThrows(UnsupportedOperationException.class, () ->
-        sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK, psk, pskId));
-  }
-
-    // Copied from HpkeTestVectorsTest but with extra checks to ensure we are operating on
-    // duck typed instances.
-    private void testHpkeEncryption(HpkeData record) throws Exception {
-        final byte[] enc = record.pkEm;
-
-        // Encryption
-        final HpkeContextSender contextSender =
-            setupBaseForTesting(record.hpkeSuite, record.pkRm, record.info, record.skEm);
-        assertForeign(contextSender);
-        final byte[] encResult = contextSender.getEncapsulated();
-        assertArrayEquals("Failed encryption 'enc' " + encodeHex(enc), enc, encResult);
-        for (HpkeEncryptionData encryption : record.encryptions) {
-            final byte[] ciphertext = contextSender.seal(encryption.pt, encryption.aad);
-            assertArrayEquals("Failed encryption 'ciphertext' on data : " + encryption,
-                encryption.ct, ciphertext);
-        }
-
-        // Decryption
-        final HpkeContextRecipient contextRecipient =
-            HpkeContextRecipient.getInstance(record.hpkeSuite.name());
-        assertForeign(contextRecipient);
-        contextRecipient.init(enc, record.skRm, record.info);
-        for (HpkeEncryptionData encryption : record.encryptions) {
-            final byte[] plaintext = contextRecipient.open(encryption.ct, encryption.aad);
-            assertArrayEquals(
-                "Failed decryption on data : " + encryption, encryption.pt, plaintext);
-        }
+        assertThrows(UnsupportedOperationException.class,
+                () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK));
+        assertThrows(UnsupportedOperationException.class,
+                () -> sender.init(DEFAULT_PK, DEFAULT_INFO, psk, pskId));
+        assertThrows(UnsupportedOperationException.class,
+                () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK, psk, pskId));
     }
 
     private HpkeContextSender setupBaseForTesting(

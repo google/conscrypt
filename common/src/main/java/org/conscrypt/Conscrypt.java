@@ -457,17 +457,11 @@ public final class Conscrypt {
         if (isConscrypt(socket)) {
             return toConscrypt(socket).getApplicationProtocol();
         }
-        try {
-            if (!Class.forName("com.android.org.conscrypt.AbstractConscryptSocket")
-                            .isInstance(socket)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt socket: " + socket.getClass().getName());
-            }
-            return invokeConscryptMethod(socket, "getApplicationProtocol");
-        } catch (ClassNotFoundException e) {
+        if (!socket.getClass().getName().contains("conscrypt")) {
             throw new IllegalArgumentException(
-                    "Not a conscrypt socket: " + socket.getClass().getName(), e);
+                    "Not a conscrypt socket: " + socket.getClass().getName());
         }
+        return invokeConscryptMethod(socket, "getApplicationProtocol");
     }
 
     /**
@@ -751,17 +745,11 @@ public final class Conscrypt {
         if (isConscrypt(engine)) {
             return toConscrypt(engine).getApplicationProtocol();
         }
-        try {
-            if (!Class.forName("com.android.org.conscrypt.AbstractConscryptEngine")
-                            .isInstance(engine)) {
-                throw new IllegalArgumentException(
-                        "Not a conscrypt engine: " + engine.getClass().getName());
-            }
-            return invokeConscryptMethod(engine, "getApplicationProtocol");
-        } catch (ClassNotFoundException e) {
+        if (!engine.getClass().getName().contains("conscrypt")) {
             throw new IllegalArgumentException(
-                    "Not a conscrypt engine: " + engine.getClass().getName(), e);
+                    "Not a conscrypt engine: " + engine.getClass().getName());
         }
+        return invokeConscryptMethod(engine, "getApplicationProtocol");
     }
 
     /**
