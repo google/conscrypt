@@ -1434,9 +1434,6 @@ public class NativeCryptoTest {
     // Helper to get native pointer from SSLSession via reflection
     private static long getNativeSession(SSLSession session) {
         try {
-            if (session instanceof ConscryptSession) {
-                return ((ConscryptSession) session).getNativePointer();
-            }
             Method m = session.getClass().getDeclaredMethod("getNativePointer");
             m.setAccessible(true);
             return (long) m.invoke(session);
@@ -1446,14 +1443,10 @@ public class NativeCryptoTest {
     }
 
     private void setSession(SSLEngine engine, SSLSession session) throws Exception {
-        if (engine instanceof ConscryptEngine) {
-            ((ConscryptEngine) engine).setSession(session);
-        } else {
-            // Fallback reflection
-            Method m = engine.getClass().getDeclaredMethod("setSession", SSLSession.class);
-            m.setAccessible(true);
-            m.invoke(engine, session);
-        }
+        // Fallback reflection
+        Method m = engine.getClass().getDeclaredMethod("setSession", SSLSession.class);
+        m.setAccessible(true);
+        m.invoke(engine, session);
     }
 
     private static void setClientSessionCallbacks(SSLEngine engine, SSLHandshakeCallbacks callbacks) throws Exception {
