@@ -47,10 +47,10 @@ import static org.mockito.Mockito.when;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import org.conscrypt.io.IoUtils;
-import org.conscrypt.javax.net.ssl.TestSSLContext;
-import org.conscrypt.javax.net.ssl.TestSSLEnginePair;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
+import org.conscrypt.javax.net.ssl.TestSSLContext;
+import org.conscrypt.javax.net.ssl.TestSSLEnginePair;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -485,7 +485,6 @@ public class NativeCryptoTest {
         final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
 
         TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
-            @Override
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 long clientSsl = getNativeSsl(client);
                 NativeSsl clientHolder = getNativeSslHolder(client);
@@ -509,7 +508,8 @@ public class NativeCryptoTest {
 
         // Verify client certificates
         assertNotNull(pair.client.getSession().getPeerCertificates());
-        assertEquals(ENCODED_SERVER_CERTIFICATES.length, pair.client.getSession().getPeerCertificates().length);
+        assertEquals(ENCODED_SERVER_CERTIFICATES.length,
+                pair.client.getSession().getPeerCertificates().length);
 
         pair.close();
     }
@@ -533,14 +533,14 @@ public class NativeCryptoTest {
         final byte[] clientConfigList = readTestFile("boringssl-ech-config-list.bin");
 
         TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
-            @Override
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 long clientSsl = getNativeSsl(client);
                 NativeSsl clientHolder = getNativeSslHolder(client);
                 assertEquals(1,
                         NativeCrypto.SSL_set_protocol_versions(
                                 clientSsl, clientHolder, TLS1_VERSION, TLS1_3_VERSION));
-                assertTrue(NativeCrypto.SSL_set1_ech_config_list(clientSsl, clientHolder, clientConfigList));
+                assertTrue(NativeCrypto.SSL_set1_ech_config_list(
+                        clientSsl, clientHolder, clientConfigList));
             }
         });
 
@@ -549,7 +549,8 @@ public class NativeCryptoTest {
 
         long clientSsl = getNativeSsl(pair.client);
         NativeSsl clientHolder = getNativeSslHolder(pair.client);
-        assertFalse(NativeCrypto.SSL_ech_accepted(clientSsl, clientHolder)); // Server wasn't configured for ECH
+        assertFalse(NativeCrypto.SSL_ech_accepted(
+                clientSsl, clientHolder)); // Server wasn't configured for ECH
 
         pair.close();
     }
@@ -902,8 +903,7 @@ public class NativeCryptoTest {
         public byte[] pskKey;
         public String pskIdentity;
 
-        TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer,
-                Object hooks,
+        TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Object hooks,
                 ApplicationProtocolSelectorAdapter alpnSelector) {
             this.socket = socket;
             this.sslNativePointer = sslNativePointer;
@@ -912,16 +912,26 @@ public class NativeCryptoTest {
         }
 
         // Minimal constructor for DUMMY_CB
-        TestSSLHandshakeCallbacks(long sslNativePointer, Object hooks, ApplicationProtocolSelectorAdapter alpnSelector) {
+        TestSSLHandshakeCallbacks(long sslNativePointer, Object hooks,
+                ApplicationProtocolSelectorAdapter alpnSelector) {
             this(null, sslNativePointer, hooks, alpnSelector);
         }
 
-        @Override public void verifyCertificateChain(byte[][] certs, String authMethod) {}
-        @Override public void clientCertificateRequested(byte[] keyTypes, int[] signatureAlgs, byte[][] asn1DerEncodedX500Principals) {}
-        @Override public void onSSLStateChange(int type, int val) {}
-        @Override public void onNewSessionEstablished(long sslSessionNativePtr) {}
-        @Override public long serverSessionRequested(byte[] id) { return 0; }
-        @Override public void serverCertificateRequested() {}
+        @Override
+        public void verifyCertificateChain(byte[][] certs, String authMethod) {}
+        @Override
+        public void clientCertificateRequested(
+                byte[] keyTypes, int[] signatureAlgs, byte[][] asn1DerEncodedX500Principals) {}
+        @Override
+        public void onSSLStateChange(int type, int val) {}
+        @Override
+        public void onNewSessionEstablished(long sslSessionNativePtr) {}
+        @Override
+        public long serverSessionRequested(byte[] id) {
+            return 0;
+        }
+        @Override
+        public void serverCertificateRequested() {}
 
         @Override
         public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
@@ -949,9 +959,6 @@ public class NativeCryptoTest {
             return 0;
         }
     }
-
-    static class ClientHooks extends Hooks {}
-    static class ServerHooks extends Hooks {}
 
     // Helper to get native pointer from SSLEngine via reflection
     private static long getNativeSsl(SSLEngine engine) {
@@ -1071,7 +1078,8 @@ public class NativeCryptoTest {
             });
             fail();
         } catch (IOException expected) {
-            if (!(expected.getCause() instanceof SSLHandshakeException)) throw expected;
+            if (!(expected.getCause() instanceof SSLHandshakeException))
+                throw expected;
         }
     }
 
@@ -1085,7 +1093,8 @@ public class NativeCryptoTest {
                 try {
                     Conscrypt.setChannelIdEnabled(client, true);
                     Conscrypt.setChannelIdPrivateKey(client, CHANNEL_ID_PRIVATE_KEY.getPrivateKey());
-                    NativeCrypto.SSL_enable_tls_channel_id(getNativeSsl(server), getNativeSslHolder(server));
+                    NativeCrypto.SSL_enable_tls_channel_id(
+                            getNativeSsl(server), getNativeSslHolder(server));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -1141,21 +1150,26 @@ public class NativeCryptoTest {
             @Override
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 try {
-                    NativeCrypto.SSL_set_tlsext_host_name(getNativeSsl(client), getNativeSslHolder(client), hostname);
+                    NativeCrypto.SSL_set_tlsext_host_name(
+                            getNativeSsl(client), getNativeSslHolder(client), hostname);
                 } catch (SSLException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
-        assertEquals(hostname, NativeCrypto.SSL_get_servername(getNativeSsl(pair.server), getNativeSslHolder(pair.server)));
+        assertEquals(hostname,
+                NativeCrypto.SSL_get_servername(
+                        getNativeSsl(pair.server), getNativeSslHolder(pair.server)));
         pair.close();
     }
 
     @Test
     public void test_SSL_get0_peer_certificates() throws Exception {
-        TestSSLContext c = TestSSLContext.create(TestKeyStore.getClient(), TestKeyStore.getServer());
+        TestSSLContext c =
+                TestSSLContext.create(TestKeyStore.getClient(), TestKeyStore.getServer());
         TestSSLEnginePair pair = TestSSLEnginePair.create(c);
-        byte[][] cc = NativeCrypto.SSL_get0_peer_certificates(getNativeSsl(pair.client), getNativeSslHolder(pair.client));
+        byte[][] cc = NativeCrypto.SSL_get0_peer_certificates(
+                getNativeSsl(pair.client), getNativeSslHolder(pair.client));
         assertEqualByteArrays(ENCODED_SERVER_CERTIFICATES, cc);
         pair.close();
     }
