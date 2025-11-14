@@ -212,6 +212,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
         }
     }
 
+    String getCurveNameForTesting() {
+        return ssl.getCurveNameForTesting();
+    }
+
     /**
      * Configures the default {@link BufferAllocator} to be used by all future
      * {@link SSLEngine} and {@link ConscryptEngineSocket} instances from this provider.

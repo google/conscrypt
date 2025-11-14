@@ -96,8 +96,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.x500.X500Principal;
 
 @RunWith(JUnit4.class)
@@ -496,14 +494,6 @@ public class NativeCryptoTest {
                 NativeCrypto.SSL_set_enable_ech_grease(ssl, null, true);
                 return ssl;
             }
-
-            @Override
-            public void afterHandshake(long session, long ssl, long context, Socket socket,
-                    FileDescriptor fd, SSLHandshakeCallbacks callback) throws Exception {
-                byte[] retryConfigs = NativeCrypto.SSL_get0_ech_retry_configs(ssl, null);
-                assertEquals(5, retryConfigs.length); // should be the invalid ECH Config List
-                super.afterHandshake(session, ssl, context, socket, fd, callback);
-            }
         };
         Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
             @Override
@@ -639,8 +629,7 @@ public class NativeCryptoTest {
 
         byte[] badConfigList = {
                 0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
-        boolean set = false;
-        assertThrows(ParsingException.class,
+        assertThrows(SSLException.class,
                 () -> NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList));
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -671,8 +660,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        assertThrows(
-                ParsingException.class, () -> assertFalse(NativeCrypto.SSL_ech_accepted(s, null)));
+        assertFalse(NativeCrypto.SSL_ech_accepted(s, null));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);

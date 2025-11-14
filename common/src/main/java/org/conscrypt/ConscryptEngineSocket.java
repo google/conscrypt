@@ -431,6 +431,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         engine.setEnabledProtocols(protocols);
     }
 
+    @Override
+    final String getCurveNameForTesting() {
+        return engine.getCurveNameForTesting();
+    }
+
     /**
      * This method enables Server Name Indication.  If the hostname is not a valid SNI hostname,
      * the SNI extension will be omitted from the handshake.

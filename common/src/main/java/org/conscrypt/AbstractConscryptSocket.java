@@ -512,6 +512,8 @@ abstract class AbstractConscryptSocket extends SSLSocket {
         return builder.toString();
     }
 
+    abstract String getCurveNameForTesting();
+
     /**
      * Returns the hostname that was supplied during socket creation. No DNS resolution is
      * attempted before returning the hostname.
