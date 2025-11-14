@@ -279,7 +279,13 @@ final class NativeSsl {
     }
 
     boolean echAccepted() {
-        return NativeCrypto.SSL_ech_accepted(ssl, this);
+        byte[] echConfig = parameters.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return NativeCrypto.SSL_ech_accepted(ssl, this);
+        }
     }
 
     void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
@@ -301,9 +307,11 @@ final class NativeSsl {
             if (parameters.isCTVerificationEnabled(hostname)) {
                 NativeCrypto.SSL_enable_signed_cert_timestamps(ssl, this);
             }
-            NativeCrypto.SSL_set_enable_ech_grease(ssl, this, parameters.getEchParameters().useEchGrease);
+            NativeCrypto.SSL_set_enable_ech_grease(
+                    ssl, this, parameters.getEchParameters().useEchGrease);
             if (parameters.getEchParameters().configList != null
-                    && !NativeCrypto.SSL_set1_ech_config_list(ssl, this, parameters.getEchParameters().configList)) {
+                    && !NativeCrypto.SSL_set1_ech_config_list(
+                            ssl, this, parameters.getEchParameters().configList)) {
                 throw new SSLHandshakeException("Error setting ECHConfigList");
             }
         } else {

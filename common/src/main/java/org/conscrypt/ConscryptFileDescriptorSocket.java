@@ -895,7 +895,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return ssl.exportKeyingMaterial(label, context, length);
     }
 
-
     @Override
     public void setEchParameters(EchParameters parameters) {
         sslParameters.setEchParameters(parameters);
@@ -913,7 +912,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public boolean echAccepted() {
-        return ssl.echAccepted();
+        byte[] echConfig = sslParameters.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return ssl.echAccepted();
+        }
     }
 
     @Override

@@ -1,7 +1,6 @@
 package org.conscrypt;
 
 public class EchParameters {
-
     public boolean useEchGrease;
 
     public byte[] configList;
@@ -25,5 +24,4 @@ public class EchParameters {
         this.useEchGrease = useEchGrease;
         this.configList = configList;
     }
-
 }

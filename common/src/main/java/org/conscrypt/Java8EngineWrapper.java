@@ -131,7 +131,13 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
 
     @Override
     public boolean echAccepted() {
-        return delegate.echAccepted();
+        byte[] echConfig = delegate.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return delegate.echAccepted();
+        }
     }
 
     @Override

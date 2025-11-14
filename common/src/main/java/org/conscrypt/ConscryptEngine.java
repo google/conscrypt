@@ -413,7 +413,13 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public boolean echAccepted() {
-        return ssl.echAccepted();
+        byte[] echConfig = sslParameters.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return ssl.echAccepted();
+        }
     }
 
     @Override

@@ -57,30 +57,27 @@ public class EchInteropTest {
     private static String[] hostsNonEch = {
             "www.yandex.ru",
             "en.wikipedia.org",
-            // TEMP - causes prefetch exception "web.wechat.com",
+            "web.wechat.com",
             "mirrors.kernel.org",
             "www.google.com",
-            "check-tls.akamaized.net",    // uses SNI
-            "duckduckgo.com",             // TLS 1.3
-            "deb.debian.org",             // TLS 1.3 Fastly
-            "tls13.1d.pw",                // TLS 1.3 only, no ECH
-            "cloudflareresearch.com",     // no ECH
-
-            "enabled.tls13.com",          // no longer supports ECH
-            "crypto.cloudflare.com",      // no longer supports ECH
+            "check-tls.akamaized.net",       // uses SNI
+            "duckduckgo.com",                // TLS 1.3
+            "deb.debian.org",                // TLS 1.3 Fastly
+            // "tls13.1d.pw",                // TLS 1.3 only, no ECH (fails to connect)
+            "cloudflareresearch.com",        // no ECH
+            "enabled.tls13.com",             // no longer supports ECH
+            "crypto.cloudflare.com",         // no longer supports ECH
     };
     private static String[] hostsEch = {
-            "openstreetmap.org",          // now supports ECH
-            "cloudflare-esni.com",        // now supports ECH
-
-            // TEMP - commented out to avoid issues with unique formatting
-            //"draft-13.esni.defo.ie:8413", // OpenSSL s_server
-            //"draft-13.esni.defo.ie:8414", // OpenSSL s_server, likely forces HRR as it only likes P-384 for TLS =09
-            // TEMP - causes prefetch exception "draft-13.esni.defo.ie:9413",
-            //"draft-13.esni.defo.ie:10413", // nginx
-            //"draft-13.esni.defo.ie:11413", // apache
-            //"draft-13.esni.defo.ie:12413", // haproxy shared mode (haproxy terminates TLS)
-            //"draft-13.esni.defo.ie:12414", // haproxy split mode (haproxy only decrypts ECH)
+            "openstreetmap.org",             // now supports ECH
+            "cloudflare-esni.com",           // now supports ECH
+            "draft-13.esni.defo.ie:8413",    // OpenSSL s_server
+            "draft-13.esni.defo.ie:8414",    // OpenSSL s_server, likely forces HRR as it only likes P-384 for TLS =09
+            // "draft-13.esni.defo.ie:9413", // (array out of bounds)
+            "draft-13.esni.defo.ie:10413",   // nginx
+            "draft-13.esni.defo.ie:11413",   // apache
+            "draft-13.esni.defo.ie:12413",   // haproxy shared mode (haproxy terminates TLS)
+            "draft-13.esni.defo.ie:12414",   // haproxy split mode (haproxy only decrypts ECH)
     };
 
     private static String[] hosts = new String[hostsNonEch.length + hostsEch.length];
@@ -109,7 +106,7 @@ public class EchInteropTest {
     public void testConnectSocket() throws IOException {
         boolean hostFailed = false;
         for (String h : hosts) {
-            System.out.println(" = TEST CONNECT SOCKET FOR " + h);
+            System.out.println(" = RUNNING testConnectSocket FOR " + h);
             String[] hostPort = h.split(":");
             String host = hostPort[0];
             int port = 443;
@@ -119,43 +116,48 @@ public class EchInteropTest {
 
             SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
             assertTrue(Conscrypt.isConscrypt(sslSocketFactory));
-            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
-            assertTrue(Conscrypt.isConscrypt(sslSocket));
-            boolean setUpEch = false;
             try {
-                byte[] echConfigList = getEchConfigListFromDns(h);
-                if (echConfigList != null) {
-                    Conscrypt.setEchParameters(sslSocket, new EchParameters(true, echConfigList));
-                    System.out.println("ENABLED ECH GREASE AND CONFIG LIST");
-                    setUpEch = true;
-                } else {
-                    Conscrypt.setEchParameters(sslSocket, new EchParameters(true));
-                    System.out.println("ENABLED ECH GREASE");
+                SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
+                assertTrue(Conscrypt.isConscrypt(sslSocket));
+                boolean setUpEch = false;
+                try {
+                    byte[] echConfigList = getEchConfigListFromDns(h);
+                    if (echConfigList != null) {
+                        Conscrypt.setEchParameters(sslSocket, new EchParameters(true, echConfigList));
+                        setUpEch = true;
+                    } else {
+                        Conscrypt.setEchParameters(sslSocket, new EchParameters(true));
+                    }
+                } catch (NamingException e) {
+                    System.out.println("getEchConfigListFromDns THREW NamingException FOR " + h);
+                    System.out.println(e.getMessage());
+                    hostFailed = true;
+                    continue;
                 }
-            } catch (NamingException e) {
-                System.out.println("GET CONFIG LIST THREW EXCEPTION FOR " + host);
+                sslSocket.setSoTimeout(TIMEOUT_MILLISECONDS);
+                try {
+                    sslSocket.startHandshake();
+                } catch (Exception e) {
+                    System.out.println("startHandshake THREW Exception FOR " + h);
+                    System.out.println(e.getMessage());
+                    hostFailed = true;
+                    continue;
+                }
+                assertTrue(sslSocket.isConnected());
+                AbstractConscryptSocket abstractConscryptSocket = (AbstractConscryptSocket) sslSocket;
+                if (setUpEch) {
+                    assertTrue(abstractConscryptSocket.echAccepted());
+                } else {
+                    assertFalse(abstractConscryptSocket.echAccepted());
+                }
+                sslSocket.close();
+            } catch (ConnectException e) {
+                System.out.println("createSocket THREW ConnectException FOR " + h);
                 System.out.println(e.getMessage());
                 hostFailed = true;
                 continue;
             }
-            sslSocket.setSoTimeout(TIMEOUT_MILLISECONDS);
-            try {
-                sslSocket.startHandshake();
-                System.out.println("HANDSHAKE OK FOR " + host);
-            } catch (Exception e) {
-                System.out.println("HANDSHAKE THREW EXCEPTION FOR " + host);
-                System.out.println(e.getMessage());
-            }
-            assertTrue(sslSocket.isConnected());
-            AbstractConscryptSocket abstractConscryptSocket = (AbstractConscryptSocket) sslSocket;
-            if (setUpEch) {
-                assertTrue(abstractConscryptSocket.echAccepted());
-            } else {
-                assertFalse(abstractConscryptSocket.echAccepted());
-            }
-            sslSocket.close();
         }
-        System.out.println("TEST FAILED FOR ONE OR MORE HOSTS: " + hostFailed);
         assertFalse(hostFailed);
     }
 
@@ -165,7 +167,7 @@ public class EchInteropTest {
     @Test
     public void testEchConfigOnNonEchHosts() throws IOException {
         for (String h : hostsNonEch) {
-            System.out.println(" = TEST ECH CONFIG ON NON ECH HOSTS FOR " + h);
+            System.out.println(" = RUNNING testEchConfigOnNonEchHosts FOR " + h);
             String[] hostPort = h.split(":");
             String host = hostPort[0];
             int port = 443;
@@ -197,8 +199,8 @@ public class EchInteropTest {
     public void testConnectHttpsURLConnection() throws IOException {
         boolean hostFailed = false;
         for (String host : hosts) {
+            System.out.println(" = RUNNING testConnectHttpsURLConnection FOR " + host);
             URL url = new URL("https://" + host);
-            System.out.println(" = TEST CONNECT HTTPS URL CONNECTION FOR " + url);
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
             SSLSocketFactory delegateSocketFactory = connection.getSSLSocketFactory();
             assertTrue(Conscrypt.isConscrypt(delegateSocketFactory));
@@ -206,13 +208,16 @@ public class EchInteropTest {
                 byte[] echConfigList = getEchConfigListFromDns(host);
                 if (echConfigList != null) {
                     connection.setSSLSocketFactory(new EchSSLSocketFactory(delegateSocketFactory, echConfigList));
-                    System.out.println("CREATED SOCKET FACTORY WITH ECH GREASE AND CONFIG LIST");
                 } else {
                     connection.setSSLSocketFactory(new EchSSLSocketFactory(delegateSocketFactory, true));
-                    System.out.println("CREATED SOCKET FACTORY WITH ECH GREASE");
                 }
             } catch (NamingException e) {
-                System.out.println("GET CONFIG LIST THREW EXCEPTION FOR " + host);
+                System.out.println("getEchConfigListFromDns THREW NamingException FOR " + host);
+                System.out.println(e.getMessage());
+                hostFailed = true;
+                continue;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                System.out.println("getEchConfigListFromDns THREW ArrayIndexOutOfBoundsException FOR " + host);
                 System.out.println(e.getMessage());
                 hostFailed = true;
                 continue;
@@ -229,12 +234,20 @@ public class EchInteropTest {
                 responseCode = connection.getResponseCode();
                 contentType = connection.getContentType().split(";")[0];
                 cipherSuite = connection.getCipherSuite();
-                System.out.println("GET CONNECTION INFO OK FOR " + url + " -> " + responseCode + " | " + contentType + " | " + cipherSuite);
             } catch (Exception e) {
-                System.out.println("GET CONNECTION INFO THREW EXCEPTION FOR " + url);
+                System.out.println("getResponseCode/getContentType/getCipherSuite THREW Exception FOR " + host);
                 System.out.println(e.getMessage());
+                hostFailed = true;
+                continue;
             }
-            connection.getContent();
+            try {
+                connection.getContent();
+            } catch (ConnectException e) {
+                System.out.println("getContent THREW ConnectException FOR " + host);
+                System.out.println(e.getMessage());
+                hostFailed = true;
+                continue;
+            }
             assertEquals(200, responseCode);
             String[] options = {"text/html", "text/plain"};
             List<String> contentTypes = Arrays.asList(options);
@@ -243,14 +256,14 @@ public class EchInteropTest {
             assertTrue(cipherSuite.startsWith("TLS"));
             connection.disconnect();
         }
-        System.out.println("TEST FAILED FOR ONE OR MORE HOSTS: " + hostFailed);
         assertFalse(hostFailed);
     }
 
     @Test
     public void testParseDnsAndConnect() throws IOException, NamingException {
+        boolean hostFailed = false;
         for (String h : hosts) {
-            System.out.println(" = TEST PARSE DNS AND CONNECT FOR " + h);
+            System.out.println(" = RUNNING testParseDnsAndConnect FOR " + h);
             String[] hostPort = h.split(":");
             String host = hostPort[0];
             int port = 443;
@@ -261,10 +274,11 @@ public class EchInteropTest {
             byte[] echConfigList = null;
             try {
                 echConfigList = getEchConfigListFromDns(h);
-                System.out.println("ECH CONFIG LIST OK FOR " + h);
             } catch (Exception e) {
-                System.out.println("ECH CONFIG LIST THREW EXCEPTION FOR " + h);
+                System.out.println("getEchConfigListFromDns THREW Exception FOR " + h);
                 System.out.println(e.getMessage());
+                hostFailed = true;
+                continue;
             }
 
             if (echConfigList != null) {
@@ -272,39 +286,43 @@ public class EchInteropTest {
                         echConfigList[1] + 2,  // leading 0x00 and length bytes
                         echConfigList.length
                 );
-            } else {
-                System.out.println("NO ECH CONFIG LIST FOUND IN DNS FOR " + h);
             }
 
             SSLSocketFactory sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
             assertTrue(Conscrypt.isConscrypt(sslSocketFactory));
-            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
-            assertTrue(Conscrypt.isConscrypt(sslSocket));
-            if (echConfigList != null) {
-                Conscrypt.setEchParameters(sslSocket, new EchParameters(true, echConfigList));
-                System.out.println("ENABLED ECH GREASE AND CONFIG LIST");
-            } else {
-                Conscrypt.setEchParameters(sslSocket, new EchParameters(true));
-                System.out.println("ENABLED ECH GREASE");
+            try {
+                SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(host, port);
+                assertTrue(Conscrypt.isConscrypt(sslSocket));
+                if (echConfigList != null) {
+                    Conscrypt.setEchParameters(sslSocket, new EchParameters(true, echConfigList));
+                } else {
+                    Conscrypt.setEchParameters(sslSocket, new EchParameters(true));
+                }
+                sslSocket.setSoTimeout(TIMEOUT_MILLISECONDS);
+                sslSocket.startHandshake();
+                assertTrue(sslSocket.isConnected());
+                AbstractConscryptSocket abstractConscryptSocket = (AbstractConscryptSocket) sslSocket;
+                if (echConfigList != null) {
+                    assertTrue(abstractConscryptSocket.echAccepted());
+                } else {
+                    assertFalse(abstractConscryptSocket.echAccepted());
+                }
+                sslSocket.close();
+            } catch (ConnectException e) {
+                System.out.println("createSocket THREW ConnectException FOR " + h);
+                System.out.println(e.getMessage());
+                hostFailed = true;
+                continue;
             }
-            sslSocket.setSoTimeout(TIMEOUT_MILLISECONDS);
-            sslSocket.startHandshake();
-            assertTrue(sslSocket.isConnected());
-            AbstractConscryptSocket abstractConscryptSocket = (AbstractConscryptSocket) sslSocket;
-            System.out.println("ECHACCEPTED SET TO " + abstractConscryptSocket.echAccepted() + " FOR " + host);
-            if (echConfigList != null) {
-                assertTrue(abstractConscryptSocket.echAccepted());
-            } else {
-                assertFalse(abstractConscryptSocket.echAccepted());
-            }
-            sslSocket.close();
         }
+        assertFalse(hostFailed);
     }
 
     @Test
     public void testParseDnsFromFiles() {
+        boolean hostFailed = false;
         for (String hostString : hosts) {
-            System.out.println(" = TEST PARSE DNS FROM FILES FOR " + hostString);
+            System.out.println(" = RUNNING testParseDnsFromFiles FOR " + hostString);
             String[] h = hostString.split(":");
             String host = h[0];
             if (h.length > 1) {
@@ -317,19 +335,24 @@ public class EchInteropTest {
                 echPbuf("DNS ANSWER", dnsAnswer);
                 try {
                     DnsEchAnswer dnsEchAnswer = new DnsEchAnswer(dnsAnswer);
-                    if (dnsEchAnswer.getEchConfigList() == null) {
-                        System.out.println("ECH CONFIG LIST NULL FOR " + host);
-                    } else {
+                    if (dnsEchAnswer.getEchConfigList() != null) {
                         echPbuf("ECH CONFIG LIST", dnsEchAnswer.getEchConfigList());
                     }
                 } catch (DnsPacket.ParseException e) {
-                    e.printStackTrace();
+                    System.out.println("DnsEchAnswer THREW ParseException FOR " + hostString);
+                    System.out.println(e.getMessage());
+                    hostFailed = true;
+                    continue;
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("readTestFile THREW IOException FOR " + hostString);
+                System.out.println(e.getMessage());
+                hostFailed = true;
+                continue;
             }
 
         }
+        assertFalse(hostFailed);
     }
 
     static byte[] getEchConfigListFromDns(String hostPort) throws NamingException {
@@ -492,30 +515,35 @@ public class EchInteropTest {
      * Prime the DNS cache with the hosts that are used in these tests.
      */
     private static void prefetchDns(String[] hosts) {
-        System.out.println("========== PREFETCH BEGIN ============================================================");
         for (final String host : hosts) {
-            new Thread() {
+            // the reformatted host strings with ports for defo don't return ips
+            final String actualHost = (host.contains(":")) ? host.split(":")[0] : host;
+            Thread t = new Thread() {
                 @Override
                 public void run() {
-                    String actualHost = host;
-                    if (actualHost.contains(":")) {
-                        // the reformatted host strings with ports for defo don't return ips
-                        actualHost = actualHost.split(":")[0];
-                    }
                     try {
                         InetAddress.getByName(actualHost);
                         getEchConfigListFromDns(host);
-                        System.out.println("PREFETCH OK FOR " + actualHost);
+                        System.out.println("PREFETCH OK FOR " + host);
                     } catch (NamingException e) {
-                        System.out.println("PREFETCH FAILED FOR " + actualHost + ", GET ECH LIST THREW EXCEPTION");
+                        System.out.println("getEchConfigListFromDns THREW NamingException FOR " + host);
+                        System.out.println(e.getMessage());
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        System.out.println("getEchConfigListFromDns THREW ArrayIndexOutOfBoundsException FOR " + host);
                         System.out.println(e.getMessage());
                     } catch (UnknownHostException e) {
-                        System.out.println("PREFETCH FAILED FOR " + actualHost + ", IP LOOKUP THREW EXCEPTION");
+                        System.out.println("getByName THREW UnknownHostException FOR " + host);
                         System.out.println(e.getMessage());
                     }
                 }
-            }.start();
+            };
+            t.start();
+            try {
+                // wait for each prefetch to complete before running actual tests
+                t.join();
+            } catch (InterruptedException e) {
+                System.out.println("PREFETCH THREAD INTERRUPTED FOR " + host);
+            }
         }
-        System.out.println("========== PREFETCH END ==============================================================");
     }
 }

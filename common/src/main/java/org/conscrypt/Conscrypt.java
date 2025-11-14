@@ -573,7 +573,14 @@ public final class Conscrypt {
      * @param socket the socket (instance of ConscryptSocket)
      */
     public static boolean echAccepted(SSLSocket socket) {
-        return toConscrypt(socket).echAccepted();
+        AbstractConscryptSocket conSocket = toConscrypt(socket);
+        byte[] echConfig = conSocket.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return conSocket.echAccepted();
+        }
     }
 
     /**
@@ -840,7 +847,8 @@ public final class Conscrypt {
      * @param engine the engine
      * @param enabled Whether to enable TLSv1.3 ECH GREASE
      *
-     * @see <a href="https://www.ietf.org/archive/id/draft-ietf-tls-esni-13.html#section-6.2">TLS Encrypted Client Hello 6.2. GREASE ECH</a>
+     * @see <a href="https://www.ietf.org/archive/id/draft-ietf-tls-esni-13.html#section-6.2">TLS
+     *         Encrypted Client Hello 6.2. GREASE ECH</a>
      */
 
     public static void setEchParameters(SSLEngine engine, EchParameters parameters) {
@@ -856,7 +864,14 @@ public final class Conscrypt {
     }
 
     public static boolean echAccepted(SSLEngine engine) {
-        return toConscrypt(engine).echAccepted();
+        AbstractConscryptEngine conEngine = toConscrypt(engine);
+        byte[] echConfig = conEngine.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return conEngine.echAccepted();
+        }
     }
 
 
@@ -903,14 +918,14 @@ public final class Conscrypt {
      * using the num_echs output.
      *
      * @param rrval is the binary encoded RData
-     * @return is 1 for success, error otherwise
+     * @return is a byte array with the copied config or null
      */
     public static byte[] getEchConfigListFromDnsRR(byte[] rrval) {
         int rv = 0;
         int binlen = 0; /* the RData */
         byte[] binbuf = null;
         int pos = 0;
-        int remaining = rrval.length;;
+        int remaining = rrval.length;
         String dnsname = null;
         int plen = 0;
         boolean done = false;
@@ -937,7 +952,7 @@ public final class Conscrypt {
                 rv = 1;
                 break;
             }
-            for (int i =pos; i < clen; i++) {
+            for (int i = pos; i < clen; i++) {
                 thename.write(DnsPacket.byteToUnsignedInt(rrval[pos + i]));
             }
             thename.write('.');
@@ -968,7 +983,7 @@ public final class Conscrypt {
         if (!done) {
             return null;
         }
-        if (plen <=0) {
+        if (plen <= 0) {
             return null;
         }
         byte[] ret = new byte[plen];
