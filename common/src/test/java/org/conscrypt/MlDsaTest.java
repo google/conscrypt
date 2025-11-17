@@ -54,6 +54,9 @@ import java.util.List;
 public class MlDsaTest {
     private final Provider conscryptProvider = TestUtils.getConscryptProvider();
 
+    private static final String ML_DSA_65_OID = "2.16.840.1.101.3.4.3.18";
+    private static final String ML_DSA_87_OID = "2.16.840.1.101.3.4.3.19";
+
     @BeforeClass
     public static void setUp() {
         TestUtils.assumeAllowsUnsignedCrypto();
@@ -131,7 +134,7 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        for (String signAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+        for (String signAlgorithm : new String[] {"ML-DSA-65", "ML-DSA", ML_DSA_65_OID}) {
             byte[] msg = new byte[123];
             Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
             ss.initSign(privateKey);
@@ -139,7 +142,7 @@ public class MlDsaTest {
             byte[] sig = ss.sign();
             assertEquals(3309, sig.length);
 
-            for (String verifyAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+            for (String verifyAlgorithm : new String[] {"ML-DSA-65", "ML-DSA", ML_DSA_65_OID}) {
                 Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
                 sv.initVerify(publicKey);
                 sv.update(msg);
@@ -164,7 +167,7 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        for (String signAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+        for (String signAlgorithm : new String[] {"ML-DSA-87", "ML-DSA", ML_DSA_87_OID}) {
             byte[] msg = new byte[123];
             Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
             ss.initSign(privateKey);
@@ -172,7 +175,7 @@ public class MlDsaTest {
             byte[] sig = ss.sign();
             assertEquals(4627, sig.length);
 
-            for (String verifyAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+            for (String verifyAlgorithm : new String[] {"ML-DSA-87", "ML-DSA", ML_DSA_87_OID}) {
                 Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
                 sv.initVerify(publicKey);
                 sv.update(msg);
@@ -192,7 +195,7 @@ public class MlDsaTest {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-65", "ML-DSA", ML_DSA_65_OID}) {
             KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
             EncodedKeySpec privateKeySpec =
@@ -225,8 +228,8 @@ public class MlDsaTest {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        {
-            KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-87", "ML-DSA", ML_DSA_87_OID}) {
+            KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
             EncodedKeySpec privateKeySpec =
                     keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
