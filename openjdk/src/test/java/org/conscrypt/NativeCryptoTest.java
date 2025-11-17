@@ -3135,26 +3135,34 @@ public class NativeCryptoTest {
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
         NativeRef.EVP_PKEY parsedPrivateKey =
-                 new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_65}));
-        assertEquals(NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey));
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_key_info(
+                        pkcs8EncodedPrivateKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey));
         byte[] outputSeed = NativeCrypto.EVP_PKEY_get_private_seed(parsedPrivateKey);
         assertArrayEquals(expectedSeed, outputSeed);
 
         // Using two key types works.
-        NativeRef.EVP_PKEY parsedPrivateKey2 =
-                 new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_87, NativeConstants.EVP_PKEY_ML_DSA_65}));
-        assertEquals(NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey2));
+        NativeRef.EVP_PKEY parsedPrivateKey2 = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey,
+                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87,
+                                NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey2));
 
         // But using the wrong key type throws a null pointer exception.
-        assertThrows(NullPointerException.class, () -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_87})));
+        assertThrows(NullPointerException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(
+                                NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey,
+                                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87})));
     }
-
 
     @Test
     public void parseMldsaPublicKeyFromRfc9881_works() throws Exception {
         // From:
         // https://datatracker.ietf.org/doc/html/rfc9881#name-example-public-keys
-               String publicKeyBase64 = "MIIHsjALBglghkgBZQMEAxIDggehAEhoPZGXjjHrPd24sEc0gtK4il9iWUn9j1il"
+        String publicKeyBase64 = "MIIHsjALBglghkgBZQMEAxIDggehAEhoPZGXjjHrPd24sEc0gtK4il9iWUn9j1il"
                 + "YeaWvUwn0Fs427Lt8B5mTv2Bvh6ok2iM5oqi1RxZWPi7xutOie5n0sAyCVTVchLK"
                 + "xyKf8dbq8DkovVFRH42I2EdzbH3icw1ZeOVBBxMWCXiGdxG/VTmgv8TDUMK+Vyuv"
                 + "DuLi+xbM/qCAKNmaxJrrt1k33c4RHNq2L/886ouiIz0eVvvFxaHnJt5j+t0q8Bax"
@@ -3199,16 +3207,26 @@ public class NativeCryptoTest {
         byte[] x509EncodedPublicKey = TestUtils.decodeBase64(publicKeyBase64);
 
         NativeRef.EVP_PKEY parsedPublicKey =
-                 new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_subject_public_key_info(x509EncodedPublicKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_65}));
-        assertEquals(NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPublicKey));
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+                        x509EncodedPublicKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPublicKey));
 
         // Using two key types works.
-        NativeRef.EVP_PKEY parsedPrivateKey2 =
-                 new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_subject_public_key_info(x509EncodedPublicKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_87, NativeConstants.EVP_PKEY_ML_DSA_65}));
-        assertEquals(NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey2));
+        NativeRef.EVP_PKEY parsedPublicKey2 = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_subject_public_key_info(x509EncodedPublicKey,
+                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87,
+                                NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPublicKey2));
 
         // But using the wrong key type throws a null pointer exception.
-        assertThrows(NullPointerException.class, () -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_subject_public_key_info(x509EncodedPublicKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_87})));
+        assertThrows(NullPointerException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(
+                                NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+                                        x509EncodedPublicKey,
+                                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87})));
     }
 
     @Test

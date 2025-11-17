@@ -1248,7 +1248,8 @@ static const EVP_PKEY_ALG* get_alg(int pkeyType) {
     }
 }
 
-static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass, jbyteArray keyJavaBytes, jintArray algs) {
+static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
+                                                         jbyteArray keyJavaBytes, jintArray algs) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_private_key_info(%p, %p)", keyJavaBytes, algs);
 
@@ -1276,7 +1277,7 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass, jb
     }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_private_key_info(
-     reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), algPtrs.data(), numAlgs));
+            reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), algPtrs.data(), numAlgs));
     if (pkey.get() == nullptr) {
         JNI_TRACE("bytes=%p EVP_PKEY_from_private_key_info => threw exception", keyJavaBytes);
         return 0;
@@ -1286,13 +1287,16 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass, jb
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jclass, jbyteArray keyJavaBytes, jintArray algs) {
+static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jclass,
+                                                                jbyteArray keyJavaBytes,
+                                                                jintArray algs) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_subject_public_key_info(%p, %p)", keyJavaBytes, algs);
 
     ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception", keyJavaBytes);
+        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
+                  keyJavaBytes);
         return 0;
     }
 
@@ -1314,10 +1318,10 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_subject_public_key_info(
-     reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), algPtrs.data(), numAlgs));
-
+            reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), algPtrs.data(), numAlgs));
     if (pkey.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception", keyJavaBytes);
+        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
+                  keyJavaBytes);
         return 0;
     }
 
