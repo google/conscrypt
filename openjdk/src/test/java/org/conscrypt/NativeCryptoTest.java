@@ -3150,8 +3150,8 @@ public class NativeCryptoTest {
         assertEquals(
                 NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey2));
 
-        // But using the wrong key type throws a null pointer exception.
-        assertThrows(NullPointerException.class,
+        // But using the wrong key type throws a parsing exception.
+        assertThrows(ParsingException.class,
                 ()
                         -> new NativeRef.EVP_PKEY(
                                 NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey,
@@ -3220,8 +3220,8 @@ public class NativeCryptoTest {
         assertEquals(
                 NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPublicKey2));
 
-        // But using the wrong key type throws a null pointer exception.
-        assertThrows(NullPointerException.class,
+        // But using the wrong key type throws a parsing exception.
+        assertThrows(ParsingException.class,
                 ()
                         -> new NativeRef.EVP_PKEY(
                                 NativeCrypto.EVP_PKEY_from_subject_public_key_info(

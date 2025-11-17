@@ -1270,7 +1270,8 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
     for (size_t i = 0; i < numAlgs; ++i) {
         const EVP_PKEY_ALG* alg = get_alg(algsRO.get()[i]);
         if (alg == nullptr) {
-            conscrypt::jniutil::throwInvalidKeyException(env, "unsupported pkeyType");
+            conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                               "unsupported pkeyType");
             return 0;
         }
         algPtrs[i] = alg;
@@ -1279,6 +1280,8 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_private_key_info(
             reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), algPtrs.data(), numAlgs));
     if (pkey.get() == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
+        ERR_clear_error();
         JNI_TRACE("bytes=%p EVP_PKEY_from_private_key_info => threw exception", keyJavaBytes);
         return 0;
     }
@@ -1311,7 +1314,8 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     for (size_t i = 0; i < numAlgs; ++i) {
         const EVP_PKEY_ALG* alg = get_alg(algsRO.get()[i]);
         if (alg == nullptr) {
-            conscrypt::jniutil::throwInvalidKeyException(env, "unsupported pkeyType");
+            conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                               "unsupported pkeyType");
             return 0;
         }
         algPtrs[i] = alg;
@@ -1320,6 +1324,8 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_subject_public_key_info(
             reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), algPtrs.data(), numAlgs));
     if (pkey.get() == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
+        ERR_clear_error();
         JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
                   keyJavaBytes);
         return 0;
