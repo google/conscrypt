@@ -1233,6 +1233,74 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
+static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint pkeyType,
+                                                     jbyteArray javaSeedBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_from_private_seed(%p)", javaSeedBytes);
+
+    ScopedByteArrayRO seed(env, javaSeedBytes);
+    if (seed.get() == nullptr) {
+        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
+        return 0;
+    }
+
+    const EVP_PKEY_ALG* alg;
+    if (pkeyType == EVP_PKEY_ML_DSA_65) {
+        alg = EVP_pkey_ml_dsa_65();
+    } else if (pkeyType == EVP_PKEY_ML_DSA_87) {
+        alg = EVP_pkey_ml_dsa_87();
+    } else {
+        conscrypt::jniutil::throwInvalidKeyException(env, "unsupported pkeyType");
+        return 0;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_private_seed(
+            alg, reinterpret_cast<const uint8_t*>(seed.get()), seed.size()));
+
+    if (!pkey) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
+        ERR_clear_error();
+        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
+        return 0;
+    }
+
+    JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => %p", javaSeedBytes, pkey.get());
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls, jobject pkeyRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_get_private_seed(%p)", pkeyRef);
+
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
+    if (pkey == nullptr) {
+        return nullptr;
+    }
+
+    size_t seed_length = 0;
+    if (EVP_PKEY_get_private_seed(pkey, nullptr, &seed_length) == 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_private_seed");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> seedArray(env, env->NewByteArray(static_cast<jsize>(seed_length)));
+    if (seedArray.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_get_raw_private_key: creating byte array failed");
+        return nullptr;
+    }
+    ScopedByteArrayRW seed(env, seedArray.get());
+    if (seed.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
+        return nullptr;
+    }
+
+    if (EVP_PKEY_get_private_seed(pkey, reinterpret_cast<uint8_t*>(seed.get()), &seed_length) ==
+        0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_private_seed");
+        return nullptr;
+    }
+    return seedArray.release();
+}
 
 static jbyteArray NativeCrypto_EVP_raw_X25519_private_key(
         JNIEnv* env, jclass cls, jbyteArray keyJavaBytes) {
@@ -12070,6 +12138,8 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_cmp, "(" REF_EVP_PKEY REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(EVP_marshal_private_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_parse_private_key, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_from_private_seed, "(I[B)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_get_private_seed, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_raw_X25519_private_key, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_marshal_public_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_parse_public_key, "([B)J"),
