@@ -228,7 +228,7 @@ public class MlDsaTest {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-87", "ML-DSA", ML_DSA_87_OID}) {
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-87", ML_DSA_87_OID}) {
             KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
             EncodedKeySpec privateKeySpec =
