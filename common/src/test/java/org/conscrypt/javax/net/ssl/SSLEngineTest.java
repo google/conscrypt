@@ -62,6 +62,10 @@ import javax.net.ssl.X509ExtendedTrustManager;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
+    // Copied from NativeConstants, but we don't want to make these public just for tests.
+    private static final int SSL3_RT_MAX_PACKET_SIZE = 16709;
+    private static final int SSL3_RT_MAX_PLAIN_LENGTH = 16384;
+
     @Test
     public void test_SSLEngine_defaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLEngineDefaultConfiguration(
@@ -933,9 +937,15 @@ public class SSLEngineTest {
     public void wrapPreconditions() throws Exception {
         int bufferSize = 128;
         int arrayLength = 5;
+        assertTrue(bufferSize * arrayLength < SSL3_RT_MAX_PLAIN_LENGTH);
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
         ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
-        ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
+        ByteBuffer[] dataBuffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
+        ByteBuffer[] buffers = new ByteBuffer[arrayLength];
+        for (int i = 0; i < arrayLength; i++) {
+            // Source data should be immutable.
+            buffers[i] = dataBuffers[i].asReadOnlyBuffer();
+        }
         ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
         int nullBufferIndex = 2;
         buffersWithNullEntry[nullBufferIndex] = null;
@@ -977,8 +987,10 @@ public class SSLEngineTest {
         assertThrows(IllegalArgumentException.class,
                 () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, buffer));
         // But not if they are outside the selected offset and length
-        newConnectedEngine().wrap(buffersWithNullEntry, 0, nullBufferIndex, buffer);
-        newConnectedEngine().wrap(buffersWithNullEntry, nullBufferIndex + 1, 1, buffer);
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            wrapAndCheck(pair, buffersWithNullEntry, 0, nullBufferIndex);
+            wrapAndCheck(pair, buffersWithNullEntry, nullBufferIndex + 1, 1);
+        }
 
         // Bad offset or length => IndexOutOfBoundsException
         assertThrows(IndexOutOfBoundsException.class,
@@ -987,10 +999,25 @@ public class SSLEngineTest {
                 () -> newConnectedEngine().wrap(buffers, arrayLength, 1, buffer));
         assertThrows(IndexOutOfBoundsException.class,
                 () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, buffer));
-        newConnectedEngine().wrap(buffers, 0, arrayLength, buffer);
-        // Zero length array is allowed
-        newConnectedEngine().wrap(buffers, 0, 0, buffer);
-        newConnectedEngine().wrap(buffers, arrayLength, 0, buffer);
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            wrapAndCheck(pair, buffers, 0, arrayLength);
+            // Zero length array is allowed
+            wrapAndCheck(pair, buffers, 0, 0);
+            wrapAndCheck(pair, buffers, arrayLength, 0);
+        }
+    }
+
+    private void wrapAndCheck(TestSSLEnginePair pair, ByteBuffer[] buffers, int offset, int length)
+            throws SSLException {
+        int dataSize = 0;
+        for (int i = offset; i < offset + length; i++) {
+            buffers[i].position(0);
+            dataSize += buffers[i].remaining();
+        }
+        ByteBuffer ciphertext = ByteBuffer.allocate(SSL3_RT_MAX_PACKET_SIZE);
+        SSLEngineResult result = pair.client.wrap(buffers, offset, length, ciphertext);
+        assertEquals(Status.OK, result.getStatus());
+        assertEquals(dataSize, result.bytesConsumed());
     }
 
     @Test
