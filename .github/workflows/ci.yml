@@ -313,7 +313,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+        platform: [ubuntu-latest, macos-14, macos-latest, windows-latest]
         java: [8, 11, 17, 21]
         dist: ['temurin', 'zulu']
         include:
@@ -321,7 +321,7 @@ jobs:
             separator: ':'
           - platform: macos-latest
             separator: ':'
-          - platform: macos-13
+          - platform: macos-14
             separator: ':'
           - platform: windows-latest
             separator: ';'
