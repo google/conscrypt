@@ -218,7 +218,11 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyPairGenerator.ML-DSA", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa");
         put("KeyPairGenerator.ML-DSA-65", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa65");
+        put("Alg.Alias.KeyPairGenerator.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
+        put("Alg.Alias.KeyPairGenerator.OID.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
         put("KeyPairGenerator.ML-DSA-87", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa87");
+        put("Alg.Alias.KeyPairGenerator.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
+        put("Alg.Alias.KeyPairGenerator.OID.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyPairGenerator.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyPairGenerator");
@@ -245,7 +249,11 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa");
         put("KeyFactory.ML-DSA-65", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa65");
+        put("Alg.Alias.KeyFactory.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
+        put("Alg.Alias.KeyFactory.OID.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
         put("KeyFactory.ML-DSA-87", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa87");
+        put("Alg.Alias.KeyFactory.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
+        put("Alg.Alias.KeyFactory.OID.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyFactory.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyFactory");
@@ -380,7 +388,11 @@ public final class OpenSSLProvider extends Provider {
 
         putSignatureImplClass("ML-DSA", "OpenSslSignatureMlDsa$MlDsa");
         putSignatureImplClass("ML-DSA-65", "OpenSslSignatureMlDsa$MlDsa65");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
+        put("Alg.Alias.Signature.OID.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
         putSignatureImplClass("ML-DSA-87", "OpenSslSignatureMlDsa$MlDsa87");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
+        put("Alg.Alias.Signature.OID.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         putSignatureImplClass("SLH-DSA-SHA2-128S", "OpenSslSignatureSlhDsa");
