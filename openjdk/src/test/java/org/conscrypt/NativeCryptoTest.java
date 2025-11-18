@@ -46,10 +46,10 @@ import static org.mockito.Mockito.when;
 
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.javax.net.ssl.TestSSLContext;
 import org.conscrypt.javax.net.ssl.TestSSLEnginePair;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -132,13 +132,12 @@ public class NativeCryptoTest {
     private static OpenSSLKey CHANNEL_ID_PRIVATE_KEY;
     private static byte[] CHANNEL_ID;
     private static RSAPrivateCrtKey TEST_RSA_KEY;
-
-    // Helper managers for the SSLEngine harness
     private static TrustManager[] TRUST_ALL;
 
     @BeforeClass
     @SuppressWarnings("JdkObsolete") // Public API KeyStore.aliases() uses Enumeration
     public static void initStatics() throws Exception {
+
         PrivateKeyEntry serverPrivateKeyEntry =
                 TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
         SERVER_PRIVATE_KEY = OpenSSLKey.fromPrivateKey(serverPrivateKeyEntry.getPrivateKey());
@@ -179,16 +178,14 @@ public class NativeCryptoTest {
         // RSA keys are slow to generate, so prefer to reuse the key when possible.
         TEST_RSA_KEY = generateRsaKey();
 
-        TRUST_ALL = new TrustManager[] {new X509TrustManager(){
-                @Override public void checkClientTrusted(X509Certificate[] chain, String authType){}
-                @Override public void checkServerTrusted(X509Certificate[] chain, String authType){}
-                @Override public X509Certificate[] getAcceptedIssuers(){
-                        return new X509Certificate[0];
+        TRUST_ALL = new TrustManager[] {
+            new X509TrustManager() {
+                @Override public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+                @Override public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+                @Override public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+            }
+        };
     }
-}
-}
-;
-}
 
     private static long[] getCertificateReferences(OpenSSLX509Certificate[] certs) {
         final long[] certRefs = new long[certs.length];
@@ -516,17 +513,12 @@ public class NativeCryptoTest {
                 assertEquals(1,
                         NativeCrypto.SSL_set_protocol_versions(
                                 serverSsl, serverHolder, TLS1_VERSION, TLS1_3_VERSION));
-
-                // NOTE: Server ECH config requires SSL_get_SSL_CTX/SSL_CTX_ech_enable_server
-                // which are difficult to reach here without the raw CTX.
-                // Test coverage for ECH is primarily client-side in this refactor.
             }
         });
 
         // Verify client certificates
         assertNotNull(pair.client.getSession().getPeerCertificates());
-        assertEquals(ENCODED_SERVER_CERTIFICATES.length,
-                pair.client.getSession().getPeerCertificates().length);
+        assertEquals(ENCODED_SERVER_CERTIFICATES.length, pair.client.getSession().getPeerCertificates().length);
 
         pair.close();
     }
@@ -545,6 +537,8 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_client_server() throws Exception {
+        final byte[] key = readTestFile("boringssl-ech-private-key.bin");
+        final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
         final byte[] clientConfigList = readTestFile("boringssl-ech-config-list.bin");
 
         TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
@@ -555,9 +549,8 @@ public class NativeCryptoTest {
                         NativeCrypto.SSL_set_protocol_versions(
                                 clientSsl, clientHolder, TLS1_VERSION, TLS1_3_VERSION));
                 try {
-                    NativeCrypto.SSL_set1_ech_config_list(
-                            clientSsl, clientHolder, clientConfigList);
-                } catch (SSLException e) {
+                    NativeCrypto.SSL_set1_ech_config_list(clientSsl, clientHolder, clientConfigList);
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -568,8 +561,7 @@ public class NativeCryptoTest {
 
         long clientSsl = getNativeSsl(pair.client);
         NativeSsl clientHolder = getNativeSslHolder(pair.client);
-        assertFalse(NativeCrypto.SSL_ech_accepted(
-                clientSsl, clientHolder)); // Server wasn't configured for ECH
+        assertFalse(NativeCrypto.SSL_ech_accepted(clientSsl, clientHolder)); // Server wasn't configured for ECH
 
         pair.close();
     }
@@ -682,6 +674,8 @@ public class NativeCryptoTest {
     @Test
     public void test_SSL_CTX_ech_enable_server_ssl_withNullConfigShouldThrow() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
+        // TODO running this with checkErrorQueue after
+        // test_SSL_CTX_ech_enable_server_ssl_with_bad_config fails here
         final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
         try {
             NativeCrypto.SSL_CTX_ech_enable_server(c, null, null, serverConfig);
@@ -917,14 +911,16 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create(TestKeyStore.getClient(), TestKeyStore.getServer());
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                // Ensure TLS 1.2 to match the cipher suite expectation
+                client.setEnabledProtocols(new String[] { "TLSv1.2" });
+                server.setEnabledProtocols(new String[] { "TLSv1.2" });
                 client.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"});
                 server.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"});
             }
         });
         assertNotNull(pair.client.getSession().getPeerCertificates());
         assertEquals(ENCODED_SERVER_CERTIFICATES.length, pair.client.getSession().getPeerCertificates().length);
-        assertEquals(
-                "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", pair.client.getSession().getCipherSuite());
+        assertEquals("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", pair.client.getSession().getCipherSuite());
         pair.close();
     }
 
@@ -965,7 +961,7 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_missing_required_certificate() throws Exception {
-        // required client certificate negative case
+        // required client certificate negative case. Use a client context WITHOUT keys.
         TestSSLContext c = TestSSLContext.create(TestKeyStore.getClient(), TestKeyStore.getServer());
         try {
             TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
@@ -975,8 +971,7 @@ public class NativeCryptoTest {
             });
             fail("Should have thrown SSLHandshakeException");
         } catch (IOException e) {
-            if (!(e.getCause() instanceof SSLHandshakeException))
-                throw e;
+            if (!(e.getCause() instanceof SSLHandshakeException)) throw e;
         }
     }
 
@@ -989,8 +984,7 @@ public class NativeCryptoTest {
                 try {
                     Conscrypt.setChannelIdEnabled(client, true);
                     Conscrypt.setChannelIdPrivateKey(client, CHANNEL_ID_PRIVATE_KEY.getPrivateKey());
-                    NativeCrypto.SSL_enable_tls_channel_id(
-                            getNativeSsl(server), getNativeSslHolder(server));
+                    NativeCrypto.SSL_enable_tls_channel_id(getNativeSsl(server), getNativeSslHolder(server));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -1011,6 +1005,9 @@ public class NativeCryptoTest {
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 client.setEnabledCipherSuites(new String[] {"TLS_PSK_WITH_AES_128_CBC_SHA"});
                 server.setEnabledCipherSuites(new String[] {"TLS_PSK_WITH_AES_128_CBC_SHA"});
+                // Force TLS 1.2 for PSK
+                client.setEnabledProtocols(new String[] { "TLSv1.2" });
+                server.setEnabledProtocols(new String[] { "TLSv1.2" });
                 installPskCallbacks(client, pskKey, "identity");
                 installPskCallbacks(server, pskKey, null);
             }
@@ -1045,16 +1042,13 @@ public class NativeCryptoTest {
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 try {
-                    NativeCrypto.SSL_set_tlsext_host_name(
-                            getNativeSsl(client), getNativeSslHolder(client), hostname);
+                    NativeCrypto.SSL_set_tlsext_host_name(getNativeSsl(client), getNativeSslHolder(client), hostname);
                 } catch (SSLException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
-        assertEquals(hostname,
-                NativeCrypto.SSL_get_servername(
-                        getNativeSsl(pair.server), getNativeSslHolder(pair.server)));
+        assertEquals(hostname, NativeCrypto.SSL_get_servername(getNativeSsl(pair.server), getNativeSslHolder(pair.server)));
         pair.close();
     }
 
@@ -1063,6 +1057,8 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create();
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                client.setEnabledProtocols(new String[] { "TLSv1.2" });
+                server.setEnabledProtocols(new String[] { "TLSv1.2" });
                 client.setEnabledCipherSuites(new String[] {"ECDHE-RSA-AES128-GCM-SHA256"});
                 server.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"});
             }
@@ -1211,13 +1207,6 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_interrupt(s, null);
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
-    }
-
-    @Test
-    public void test_SSL_interrupt() throws Exception {
-        // This test relies on threads blocking on I/O. TestSSLEnginePair is
-        // synchronous/non-blocking. Interruption testing logic is specific to blocking I/O
-        // behavior.
     }
 
     private static abstract class SSLSessionWrappedTask {
@@ -1408,65 +1397,105 @@ public class NativeCryptoTest {
         assertThrows(IOException.class, () -> NativeCrypto.d2i_SSL_SESSION(new byte[1]));
     }
 
-    // Helper method using reflection to get the native pointer since it's package-private
     private static long getNativeSsl(SSLEngine engine) {
         try {
-            Method m = engine.getClass().getDeclaredMethod("getNativeSsl");
-            m.setAccessible(true);
-            return (long) m.invoke(engine);
+            Class<?> clazz = engine.getClass();
+            while (clazz != null) {
+                try {
+                    Method m = clazz.getDeclaredMethod("getNativeSsl");
+                    m.setAccessible(true);
+                    return (long) m.invoke(engine);
+                } catch (NoSuchMethodException ignored) {
+                }
+                clazz = clazz.getSuperclass();
+            }
+            throw new RuntimeException("Method getNativeSsl not found on " + engine.getClass());
         } catch (Exception e) {
             throw new RuntimeException("Failed to get native SSL pointer", e);
         }
     }
 
-    // Helper to get NativeSsl holder via reflection
     private static NativeSsl getNativeSslHolder(SSLEngine engine) {
         try {
-            Field f = engine.getClass().getDeclaredField("ssl");
-            f.setAccessible(true);
-            return (NativeSsl) f.get(engine);
+            Class<?> clazz = engine.getClass();
+            while (clazz != null) {
+                try {
+                    Field f = clazz.getDeclaredField("ssl");
+                    f.setAccessible(true);
+                    return (NativeSsl) f.get(engine);
+                } catch (NoSuchFieldException ignored) {
+                }
+                clazz = clazz.getSuperclass();
+            }
+            return null;
         } catch (Exception e) {
-            // Some engine implementations might not have this field or it might be different
             return null;
         }
     }
 
-    // Helper to get native pointer from SSLSession via reflection
     private static long getNativeSession(SSLSession session) {
         try {
-            Method m = session.getClass().getDeclaredMethod("getNativePointer");
-            m.setAccessible(true);
-            return (long) m.invoke(session);
+            Class<?> clazz = session.getClass();
+            while (clazz != null) {
+                try {
+                    Method m = clazz.getDeclaredMethod("getNativePointer");
+                    m.setAccessible(true);
+                    return (long) m.invoke(session);
+                } catch (NoSuchMethodException ignored) {
+                }
+                clazz = clazz.getSuperclass();
+            }
+             throw new RuntimeException("Method getNativePointer not found on " + session.getClass());
         } catch (Exception e) {
             throw new RuntimeException("Failed to get native session pointer", e);
         }
     }
 
     private void setSession(SSLEngine engine, SSLSession session) throws Exception {
-        // Fallback reflection
-        Method m = engine.getClass().getDeclaredMethod("setSession", SSLSession.class);
-        m.setAccessible(true);
-        m.invoke(engine, session);
+        Class<?> clazz = engine.getClass();
+        while (clazz != null) {
+            try {
+                Method m = clazz.getDeclaredMethod("setSession", SSLSession.class);
+                m.setAccessible(true);
+                m.invoke(engine, session);
+                return;
+            } catch (NoSuchMethodException ignored) {
+            }
+            clazz = clazz.getSuperclass();
+        }
+        throw new RuntimeException("setSession not found on " + engine.getClass());
     }
 
     private static void setClientSessionCallbacks(SSLEngine engine, SSLHandshakeCallbacks callbacks) throws Exception {
-        Method m = engine.getClass().getDeclaredMethod(
-                "setClientSessionCallbacks", long.class, SSLHandshakeCallbacks.class);
-        m.setAccessible(true);
-        long ssl = getNativeSsl(engine);
-        m.invoke(null, ssl, callbacks);
+        Class<?> clazz = engine.getClass();
+        while (clazz != null) {
+            try {
+                Method m = clazz.getDeclaredMethod("setClientSessionCallbacks", long.class, SSLHandshakeCallbacks.class);
+                m.setAccessible(true);
+                long ssl = getNativeSsl(engine);
+                m.invoke(null, ssl, callbacks);
+                return;
+            } catch (NoSuchMethodException ignored) {
+            }
+            clazz = clazz.getSuperclass();
+        }
     }
 
     private static void setServerSessionCallbacks(SSLEngine engine, SSLHandshakeCallbacks callbacks) throws Exception {
-        Method m = engine.getClass().getDeclaredMethod(
-                "setServerSessionCallbacks", long.class, SSLHandshakeCallbacks.class);
-        m.setAccessible(true);
-        long ssl = getNativeSsl(engine);
-        m.invoke(null, ssl, callbacks);
+        Class<?> clazz = engine.getClass();
+        while (clazz != null) {
+            try {
+                Method m = clazz.getDeclaredMethod("setServerSessionCallbacks", long.class, SSLHandshakeCallbacks.class);
+                m.setAccessible(true);
+                long ssl = getNativeSsl(engine);
+                m.invoke(null, ssl, callbacks);
+                return;
+            } catch (NoSuchMethodException ignored) {
+            }
+            clazz = clazz.getSuperclass();
+        }
     }
 
-    // Restored and fixed TestSSLHandshakeCallbacks
-    // Used for unit tests of NativeCrypto methods and PSK simulation
     static class TestSSLHandshakeCallbacks implements SSLHandshakeCallbacks {
         private final long sslNativePointer;
         private final Object hooks;
@@ -1475,28 +1504,20 @@ public class NativeCryptoTest {
         public byte[] pskKey;
         public String pskIdentity;
 
-        TestSSLHandshakeCallbacks(long sslNativePointer, Object hooks,
+        TestSSLHandshakeCallbacks(long sslNativePointer,
+                Object hooks,
                 ApplicationProtocolSelectorAdapter alpnSelector) {
             this.sslNativePointer = sslNativePointer;
             this.hooks = hooks;
             this.alpnSelector = alpnSelector;
         }
 
-        @Override
-        public void verifyCertificateChain(byte[][] certs, String authMethod) {}
-        @Override
-        public void clientCertificateRequested(
-                byte[] keyTypes, int[] signatureAlgs, byte[][] asn1DerEncodedX500Principals) {}
-        @Override
-        public void onSSLStateChange(int type, int val) {}
-        @Override
-        public void onNewSessionEstablished(long sslSessionNativePtr) {}
-        @Override
-        public long serverSessionRequested(byte[] id) {
-            return 0;
-        }
-        @Override
-        public void serverCertificateRequested() {}
+        @Override public void verifyCertificateChain(byte[][] certs, String authMethod) {}
+        @Override public void clientCertificateRequested(byte[] keyTypes, int[] signatureAlgs, byte[][] asn1DerEncodedX500Principals) {}
+        @Override public void onSSLStateChange(int type, int val) {}
+        @Override public void onNewSessionEstablished(long sslSessionNativePtr) {}
+        @Override public long serverSessionRequested(byte[] id) { return 0; }
+        @Override public void serverCertificateRequested() {}
 
         @Override
         public int clientPSKKeyRequested(String identityHint, byte[] identity, byte[] key) {
