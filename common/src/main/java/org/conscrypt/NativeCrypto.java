@@ -105,6 +105,10 @@ public final class NativeCrypto {
 
     static native byte[] EVP_marshal_public_key(NativeRef.EVP_PKEY pkey);
 
+    static native long EVP_PKEY_from_private_seed(int type, byte[] seed) throws ParsingException;
+
+    static native byte[] EVP_PKEY_get_private_seed(NativeRef.EVP_PKEY pkey);
+
     static native byte[] EVP_raw_X25519_private_key(byte[] data)
             throws ParsingException, InvalidKeyException;
 
@@ -1333,6 +1337,8 @@ public final class NativeCrypto {
 
     public static native String SSL_get_current_cipher(long ssl, NativeSsl ssl_holder);
 
+    public static native String SSL_get_curve_name(long ssl, NativeSsl sslHolder);
+
     public static native String SSL_get_version(long ssl, NativeSsl ssl_holder);
 
     /**
@@ -1627,8 +1633,8 @@ public final class NativeCrypto {
 
     static native void SSL_set_enable_ech_grease(long ssl, NativeSsl ssl_holder, boolean enable);
 
-    static native boolean SSL_set1_ech_config_list(
-            long ssl, NativeSsl ssl_holder, byte[] echConfig);
+    static native boolean SSL_set1_ech_config_list(long ssl, NativeSsl ssl_holder, byte[] echConfig)
+            throws SSLException;
 
     static native String SSL_get0_ech_name_override(long ssl, NativeSsl ssl_holder);
 

@@ -46,6 +46,7 @@ import org.junit.runners.JUnit4;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -91,6 +92,30 @@ public class SSLSocketTest {
     private final ThreadGroup threadGroup = new ThreadGroup("SSLSocketTest");
     private final ExecutorService executor =
         Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
+
+    /**
+     * Returns the named groups, or null if the method is not available (older versions of
+     * Java/Android).
+     */
+    String[] getNamedGroupsOrNull(SSLParameters params) {
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            return (String[]) getNamedGroupsMethod.invoke(params);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            return null;
+        }
+    }
+
+    /** Sets the named groups, or does nothing if the method is not available. */
+    void setNamedGroups(SSLParameters params, String[] namedGroups) {
+        try {
+            Method setNamedGroupsMethod =
+                    params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) namedGroups);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Ignored
+        }
+    }
 
     @After
     public void teardown() throws InterruptedException {
@@ -753,6 +778,53 @@ public class SSLSocketTest {
                 assertFalse(ssl.getNeedClientAuth());
                 assertFalse(ssl.getWantClientAuth());
             }
+        }
+    }
+
+    @Test
+    public void setAndGetSSLParameters_alwaysSupportsDefaultCipherSuites() throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters inputParameters = new SSLParameters(
+                    new String[] {"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"},
+                    new String[] {"TLSv1.3"});
+            ssl.setSSLParameters(inputParameters);
+
+            SSLParameters outputParameters = ssl.getSSLParameters();
+            // The default cipher suites (the first three entries) are always supported.
+            assertArrayEquals(new String[] {"TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384",
+                                      "TLS_CHACHA20_POLY1305_SHA256",
+                                      "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"},
+                    outputParameters.getCipherSuites());
+            assertArrayEquals(new String[] {"TLSv1.3"}, outputParameters.getProtocols());
+        }
+    }
+
+    @Test
+    public void setSSLParameters_invalidCipherSuite_throwsIllegalArgumentException()
+            throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters parameters =
+                    new SSLParameters(new String[] {"invalid"}, new String[] {"TLSv1.3"});
+            assertThrows(IllegalArgumentException.class, () -> ssl.setSSLParameters(parameters));
+        }
+    }
+
+    @Test
+    public void setAndGetSSLParameters_withSetNamedGroups_isIgnored() throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters parameters = new SSLParameters(
+                    new String[] {"TLS_AES_128_GCM_SHA256"}, new String[] {"TLSv1.3"});
+            setNamedGroups(parameters, new String[] {"foo", "bar"});
+            ssl.setSSLParameters(parameters);
+
+            SSLParameters sslParameters = ssl.getSSLParameters();
+            // getNamedGroups currently returns null because setNamedGroups is not supported.
+            // This is allowed, see:
+            // https://docs.oracle.com/en/java/javase/24/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()
+            assertArrayEquals(null, getNamedGroupsOrNull(sslParameters));
         }
     }
 

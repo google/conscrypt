@@ -19,8 +19,6 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.security.PublicKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 /** An OpenSSL ML-DSA public key. */
@@ -44,19 +42,6 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         throw new IllegalArgumentException("Invalid raw key of length " + raw.length);
     }
 
-    public OpenSslMlDsaPublicKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
-            throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-        if (!isValid(encoded, algorithm)) {
-            throw new InvalidKeySpecException("Invalid key of length " + encoded.length);
-        }
-        this.raw = encoded;
-        this.algorithm = algorithm;
-    }
-
     public OpenSslMlDsaPublicKey(byte[] raw, MlDsaAlgorithm algorithm) {
         if (!isValid(raw, algorithm)) {
             throw new IllegalArgumentException("Invalid key of length " + raw.length);
@@ -76,12 +61,21 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "X.509";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        if (raw == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.x509PreambleMlDsa65, raw);
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.x509PreambleMlDsa87, raw);
+        } else {
+            throw new IllegalStateException("unsupported algorithm: " + algorithm);
+        }
     }
 
     byte[] getRaw() {

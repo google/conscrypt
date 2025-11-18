@@ -22,8 +22,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.conscrypt.TestUtils;
+import org.conscrypt.TestUtils.BufferType;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -35,6 +44,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
@@ -49,13 +59,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.TestUtils;
-import org.conscrypt.TestUtils.BufferType;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
@@ -928,120 +931,66 @@ public class SSLEngineTest {
 
     @Test
     public void wrapPreconditions() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(10);
-        ByteBuffer[] buffers = new ByteBuffer[] { buffer, buffer, buffer };
-        ByteBuffer[] badBuffers = new ByteBuffer[] { buffer, buffer, null, buffer };
+        int bufferSize = 128;
+        int arrayLength = 5;
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
+        ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
+        int nullBufferIndex = 2;
+        buffersWithNullEntry[nullBufferIndex] = null;
 
         // Client/server mode not set => IllegalStateException
-        try {
-            newUnconnectedEngine().wrap(buffer, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, 0, 1, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().wrap(buffer, buffer));
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().wrap(buffers, buffer));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers, 0, 1, buffer));
 
         // Read-only destination => ReadOnlyBufferException
-        try {
-            newConnectedEngine().wrap(buffer, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffer, readOnlyBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers, readOnlyBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, readOnlyBuffer));
 
         // Null destination => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(buffer, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers,  null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffer, null));
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, null));
 
         // Null source => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap((ByteBuffer) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap((ByteBuffer[]) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(null, 0, 1, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap((ByteBuffer) null, buffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap((ByteBuffer[]) null, buffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(null, 0, 1, buffer));
 
         // Null entries in buffer array => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(badBuffers, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, buffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, buffer));
+        // But not if they are outside the selected offset and length
+        newConnectedEngine().wrap(buffersWithNullEntry, 0, nullBufferIndex, buffer);
+        newConnectedEngine().wrap(buffersWithNullEntry, nullBufferIndex + 1, 1, buffer);
 
         // Bad offset or length => IndexOutOfBoundsException
-        try {
-            newConnectedEngine().wrap(buffers, 0, 7, buffer);
-            fail();
-        } catch (IndexOutOfBoundsException e) {
-            // Expected
-        }
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, buffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, arrayLength, 1, buffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, buffer));
+        newConnectedEngine().wrap(buffers, 0, arrayLength, buffer);
+        // Zero length array is allowed
+        newConnectedEngine().wrap(buffers, 0, 0, buffer);
+        newConnectedEngine().wrap(buffers, arrayLength, 0, buffer);
     }
 
     @Test

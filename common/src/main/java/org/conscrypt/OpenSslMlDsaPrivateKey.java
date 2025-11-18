@@ -19,10 +19,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.security.PrivateKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Objects;
 
 /** An OpenSSL ML-DSA private key. */
 public class OpenSslMlDsaPrivateKey implements PrivateKey {
@@ -71,23 +68,6 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
         }
     }
 
-    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
-            throws InvalidKeySpecException {
-        byte[] rawKey = keySpec.getEncoded();
-        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-        if (rawKey.length != 32) {
-            throw new InvalidKeySpecException("Invalid key");
-        }
-        byte[] encodedSeed = encodeSeed(rawKey, algorithm);
-        if (!isValid(encodedSeed, algorithm)) {
-            throw new IllegalArgumentException("Invalid key");
-        }
-        this.algorithm = algorithm;
-        this.seed = encodedSeed;
-    }
-
     public OpenSslMlDsaPrivateKey(byte[] seed, MlDsaAlgorithm algorithm) {
         byte[] encodedSeed = encodeSeed(seed, algorithm);
         if (!isValid(encodedSeed, algorithm)) {
@@ -108,12 +88,21 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        if (seed == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.pkcs8PreambleMlDsa65, getSeed());
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.pkcs8PreambleMlDsa87, getSeed());
+        } else {
+            throw new IllegalStateException("unsupported algorithm: " + algorithm);
+        }
     }
 
     byte[] getSeed() {
