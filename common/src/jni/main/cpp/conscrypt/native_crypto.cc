@@ -4157,7 +4157,7 @@ static void NativeCrypto_EVP_CipherInit_ex(JNIEnv* env, jclass, jobject ctxRef, 
               encrypting ? 1 : 0);
 
     if (ctx == nullptr) {
-        JNI_TRACE("EVP_CipherUpdate => ctx == null");
+        JNI_TRACE("EVP_CipherInit_ex => ctx == null");
         return;
     }
 
