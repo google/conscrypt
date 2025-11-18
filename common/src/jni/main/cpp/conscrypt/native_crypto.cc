@@ -1249,7 +1249,8 @@ static const EVP_PKEY_ALG* GetAlg(int pkeyType) {
 }
 
 static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
-                                                         jbyteArray key_java_bytes, jintArray algs) {
+                                                         jbyteArray key_java_bytes,
+                                                         jintArray algs) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_private_key_info(_, %p)", algs);
 
@@ -1277,8 +1278,9 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
         alg_pointers[i] = alg;
     }
 
-    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_private_key_info(
-            reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), alg_pointers.data(), alg_pointers.size()));
+    bssl::UniquePtr<EVP_PKEY> pkey(
+            EVP_PKEY_from_private_key_info(reinterpret_cast<const uint8_t*>(bytes.get()),
+                                           bytes.size(), alg_pointers.data(), alg_pointers.size()));
     if (pkey.get() == nullptr) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
         ERR_clear_error();
@@ -1321,7 +1323,8 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_subject_public_key_info(
-            reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), alg_pointers.data(), alg_pointers.size()));
+            reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), alg_pointers.data(),
+            alg_pointers.size()));
     if (pkey.get() == nullptr) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
         ERR_clear_error();
