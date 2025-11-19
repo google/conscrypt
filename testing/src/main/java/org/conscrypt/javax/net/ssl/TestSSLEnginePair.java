@@ -99,6 +99,7 @@ public final class TestSSLEnginePair implements Closeable {
         client.setUseClientMode(true);
         server.setUseClientMode(false);
         hooks.beforeBeginHandshake(client, server);
+
         client.beginHandshake();
         server.beginHandshake();
 
@@ -133,7 +134,7 @@ public final class TestSSLEnginePair implements Closeable {
     }
 
     public static class Hooks {
-        void beforeBeginHandshake(SSLEngine client, SSLEngine server) {}
+        public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {}
     }
 
     @Override

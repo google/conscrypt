@@ -177,11 +177,11 @@ public class NativeCryptoTest {
         // RSA keys are slow to generate, so prefer to reuse the key when possible.
         TEST_RSA_KEY = generateRsaKey();
 
-        TRUST_ALL = new TrustManager[] {
-            new X509TrustManager() {
-                @Override public void checkClientTrusted(X509Certificate[] chain, String authType) {}
-                @Override public void checkServerTrusted(X509Certificate[] chain, String authType) {}
-                @Override public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0];
+        TRUST_ALL = new TrustManager[] {new X509TrustManager(){
+                @Override public void checkClientTrusted(X509Certificate[] chain, String authType){}
+                @Override public void checkServerTrusted(X509Certificate[] chain, String authType){}
+                @Override public X509Certificate[] getAcceptedIssuers(){
+                        return new X509Certificate[0];
     }
             }
         };
@@ -229,7 +229,6 @@ public class NativeCryptoTest {
                 privKey.getModulus().toByteArray(), privKey.getPublicExponent().toByteArray(),
                 privKey.getPrivateExponent().toByteArray(), privKey.getPrimeP().toByteArray(),
                 privKey.getPrimeQ().toByteArray(), privKey.getPrimeExponentP().toByteArray(),
-                privKey.getPrimeExponentQ().toByteArray(),
                 privKey.getPrimeExponentQ().toByteArray(),
                 privKey.getCrtCoefficient().toByteArray()));
     }
@@ -501,7 +500,7 @@ public class NativeCryptoTest {
 
         TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 long clientSsl = getNativeSsl(client);
                 NativeSsl clientHolder = getNativeSslHolder(client);
                 long serverSsl = getNativeSsl(server);
@@ -545,7 +544,7 @@ public class NativeCryptoTest {
 
         TestSSLEnginePair pair = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 long clientSsl = getNativeSsl(client);
                 NativeSsl clientHolder = getNativeSslHolder(client);
                 assertEquals(1,
@@ -600,7 +599,6 @@ public class NativeCryptoTest {
 
         byte[] badConfigList = {
                 0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
-        boolean set = false;
         assertThrows(SSLException.class,
                 () -> NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList));
         NativeCrypto.SSL_free(s, null);
@@ -915,8 +913,8 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create(TestKeyStore.getClient(), TestKeyStore.getServer());
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                // Force TLS 1.2 to match legacy test expectations for cipher suites
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                // Force TLS 1.2 to match cipher suite expectation
                 client.setEnabledProtocols(new String[] { "TLSv1.2" });
                 server.setEnabledProtocols(new String[] { "TLSv1.2" });
                 client.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"});
@@ -939,7 +937,7 @@ public class NativeCryptoTest {
 
         TestSSLEnginePair pair2 = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 // Use reflection to set session if possible, or just rely on context
                 try {
                     setSession(client, session1);
@@ -958,7 +956,7 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create(TestKeyStore.getClientCertificate(), TestKeyStore.getServer());
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 server.setWantClientAuth(true);
             }
         });
@@ -970,12 +968,11 @@ public class NativeCryptoTest {
     public void test_SSL_do_handshake_missing_required_certificate() throws Exception {
         // required client certificate negative case.
         // Create a client context with NO keys by passing null for client KeyStore.
-        TestSSLContext c =
-                TestSSLContext.newBuilder().client(null).server(TestKeyStore.getServer()).build();
+        TestSSLContext c = TestSSLContext.create(null, TestKeyStore.getServer());
         try {
             TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
                 @Override
-                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                     server.setNeedClientAuth(true);
                 }
             });
@@ -991,7 +988,7 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create(TestKeyStore.getClient(), TestKeyStore.getServer());
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 try {
                     Conscrypt.setChannelIdEnabled(client, true);
                     Conscrypt.setChannelIdPrivateKey(client, CHANNEL_ID_PRIVATE_KEY.getPrivateKey());
@@ -1014,7 +1011,7 @@ public class NativeCryptoTest {
         final byte[] pskKey = "1, 2, 3, 4, Testing...".getBytes(StandardCharsets.UTF_8);
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 // Force TLS 1.2 for PSK
                 client.setEnabledProtocols(new String[] { "TLSv1.2" });
                 server.setEnabledProtocols(new String[] { "TLSv1.2" });
@@ -1053,7 +1050,7 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create();
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 try {
                     NativeCrypto.SSL_set_tlsext_host_name(getNativeSsl(client), getNativeSslHolder(client), hostname);
                 } catch (SSLException e) {
@@ -1070,8 +1067,7 @@ public class NativeCryptoTest {
         TestSSLContext c = TestSSLContext.create();
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                // Force TLS 1.2 to match cipher suite
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 client.setEnabledProtocols(new String[] { "TLSv1.2" });
                 server.setEnabledProtocols(new String[] { "TLSv1.2" });
                 client.setEnabledCipherSuites(new String[] {"ECDHE-RSA-AES128-GCM-SHA256"});
@@ -1412,30 +1408,7 @@ public class NativeCryptoTest {
         assertThrows(IOException.class, () -> NativeCrypto.d2i_SSL_SESSION(new byte[1]));
     }
 
-    private static Object unwrap(Object obj) {
-        try {
-            Class<?> clazz = obj.getClass();
-            while (clazz != Object.class) {
-                try {
-                    Field f = clazz.getDeclaredField("delegate");
-                    f.setAccessible(true);
-                    return unwrap(f.get(obj));
-                } catch (NoSuchFieldException e) {
-                }
-                try {
-                    Field f = clazz.getDeclaredField("engine");
-                    f.setAccessible(true);
-                    return unwrap(f.get(obj));
-                } catch (NoSuchFieldException e) {
-                }
-                clazz = clazz.getSuperclass();
-            }
-            return obj;
-        } catch (Exception e) {
-            return obj;
-        }
-    }
-
+    // Helper method using reflection to get the native pointer since it's package-private
     private static long getNativeSsl(SSLEngine engine) {
         try {
             Object unwrapped = unwrap(engine);
@@ -1466,6 +1439,32 @@ public class NativeCryptoTest {
             return (long) m.invoke(unwrapped);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get native session pointer", e);
+        }
+    }
+
+    private static Object unwrap(Object obj) {
+        try {
+            Class<?> clazz = obj.getClass();
+            while (clazz != Object.class) {
+                try {
+                    Field f = clazz.getDeclaredField("delegate");
+                    f.setAccessible(true);
+                    return unwrap(f.get(obj));
+                } catch (NoSuchFieldException e) {
+                    // Try next
+                }
+                try {
+                    Field f = clazz.getDeclaredField("engine");
+                    f.setAccessible(true);
+                    return unwrap(f.get(obj));
+                } catch (NoSuchFieldException e) {
+                    // Try next
+                }
+                clazz = clazz.getSuperclass();
+            }
+            return obj;
+        } catch (Exception e) {
+            return obj;
         }
     }
 
