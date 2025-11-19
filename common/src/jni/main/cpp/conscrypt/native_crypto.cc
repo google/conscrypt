@@ -1337,7 +1337,6 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-
 static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint pkey_type,
                                                        jbyteArray key_java_bytes) {
     CHECK_ERROR_QUEUE_ON_RETURN;
