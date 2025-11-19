@@ -3523,12 +3523,15 @@ static jlong evpDigestSignVerifyInit(JNIEnv* env,
     }
     JNI_TRACE("%s(%p, %p, %p) <- ptr", jniName, mdCtx, md, pkey);
 
-    // For ED25519, md must be null, see
+    // Allow md to be null for ED25519, ML_DSA_65, and ML_DSA_87. See
     // https://github.com/google/boringssl/blob/main/include/openssl/evp.h
-    if (md == nullptr && (EVP_PKEY_id(pkey) != EVP_PKEY_ED25519)) {
-        JNI_TRACE("ctx=%p %s => md == null", mdCtx, jniName);
-        conscrypt::jniutil::throwNullPointerException(env, "md == null");
-        return 0;
+    int pkey_id = EVP_PKEY_id(pkey);
+    if (md == nullptr && (pkey_id != EVP_PKEY_ED25519 &&
+                          pkey_id != EVP_PKEY_ML_DSA_65 &&
+                          pkey_id != EVP_PKEY_ML_DSA_87)) {
+      JNI_TRACE("ctx=%p %s => md == null", mdCtx, jniName);
+      conscrypt::jniutil::throwNullPointerException(env, "md == null");
+      return 0;
     }
 
     EVP_PKEY_CTX* pctx = nullptr;
