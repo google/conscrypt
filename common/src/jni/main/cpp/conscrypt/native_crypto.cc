@@ -1338,7 +1338,8 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
 }
 
 
-static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint pkey_type, jbyteArray key_java_bytes) {
+static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint pkey_type,
+                                                       jbyteArray key_java_bytes) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_raw_public_key(%p)", key_java_bytes);
 
@@ -1356,8 +1357,7 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint
     }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_raw_public_key(
-        alg, reinterpret_cast<const uint8_t*>(bytes.get()),
-        bytes.size()));
+            alg, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size()));
     if (!pkey) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
         ERR_clear_error();
@@ -1369,8 +1369,7 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(
-        JNIEnv* env, jclass, jobject pkey_ref) {
+static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(JNIEnv* env, jclass, jobject pkey_ref) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_get_raw_public_key(%p)", pkey_ref);
 
@@ -1380,13 +1379,13 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(
     }
 
     size_t key_length = 0;
-    if (EVP_PKEY_get_raw_public_key(
-            pkey, nullptr, &key_length) == 0) {
+    if (EVP_PKEY_get_raw_public_key(pkey, nullptr, &key_length) == 0) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_public_key");
         return nullptr;
     }
 
-    ScopedLocalRef<jbyteArray> raw_key_array(env, env->NewByteArray(static_cast<jsize>(key_length)));
+    ScopedLocalRef<jbyteArray> raw_key_array(env,
+                                             env->NewByteArray(static_cast<jsize>(key_length)));
     if (raw_key_array.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_get_raw_public_key: creating byte array failed");
         return nullptr;
@@ -1397,8 +1396,8 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(
         return nullptr;
     }
 
-    if (EVP_PKEY_get_raw_public_key(
-            pkey, reinterpret_cast<uint8_t *>(raw_key.get()), &key_length) == 0) {
+    if (EVP_PKEY_get_raw_public_key(pkey, reinterpret_cast<uint8_t*>(raw_key.get()), &key_length) ==
+        0) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_public_key");
         return nullptr;
     }

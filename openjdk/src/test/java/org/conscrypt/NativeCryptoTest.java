@@ -3279,14 +3279,13 @@ public class NativeCryptoTest {
         assertTrue(result);
     }
 
-
     @Test
     public void mldsa65_evpDigestSign_works() throws Exception {
         byte[] seed = new byte[32];
         byte[] data = new byte[100];
 
-        NativeRef.EVP_PKEY privateKey =
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_65, seed));
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_65, seed));
 
         NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
 
@@ -3297,7 +3296,8 @@ public class NativeCryptoTest {
         // verify that sig is correct
         byte[] rawPublicKey = NativeCrypto.MLDSA65_public_key_from_seed(seed);
         NativeRef.EVP_PKEY publicKey =
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey));
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                        NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey));
         NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
         boolean result =
                 NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
@@ -3308,7 +3308,10 @@ public class NativeCryptoTest {
         assertArrayEquals(rawPublicKey, rawPublicKeyCopy);
 
         // check that parsing with the wrong key type fails.
-        assertThrows(ParsingException.class, () -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey)));
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                                NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey)));
     }
 
     @Test
@@ -3316,8 +3319,8 @@ public class NativeCryptoTest {
         byte[] seed = new byte[32];
         byte[] data = new byte[100];
 
-        NativeRef.EVP_PKEY privateKey =
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_87, seed));
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_87, seed));
 
         NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
 
@@ -3327,7 +3330,8 @@ public class NativeCryptoTest {
 
         byte[] rawPublicKey = NativeCrypto.MLDSA87_public_key_from_seed(seed);
         NativeRef.EVP_PKEY publicKey =
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey));
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                        NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey));
         NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
         boolean result =
                 NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
@@ -3337,9 +3341,12 @@ public class NativeCryptoTest {
         // also verify that EVP_PKEY_get_raw_public_key works
         byte[] rawPublicKeyCopy = NativeCrypto.EVP_PKEY_get_raw_public_key(publicKey);
         assertArrayEquals(rawPublicKey, rawPublicKeyCopy);
-        
+
         // check that parsing with the wrong key type fails.
-        assertThrows(ParsingException.class, () -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey)));
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                                NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey)));
     }
 
     @Test
