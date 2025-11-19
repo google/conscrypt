@@ -331,7 +331,7 @@ jobs:
             dist: 'temurin'
           - platform: macos-14
             java: 8
-            dist: 'temurin''
+            dist: 'temurin'
 
 
     runs-on: ${{ matrix.platform }}
