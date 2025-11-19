@@ -640,7 +640,7 @@ public class MlDsaTest {
     }
 
     @Test
-    public void serializePrivateKey_65_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePrivateKey_65_withTestVectors_works() throws Exception {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
@@ -664,10 +664,38 @@ public class MlDsaTest {
                 + "20" // hex(32), size of the raw private key
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"; // rawPrivateKey
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "20" // hex(32), size of the raw private key
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
+                + "78"; // TC_ENDBLOCKDATA
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
     }
 
     @Test
-    public void serializePrivateKey_87_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePrivateKey_87_withTestVectors_works() throws Exception {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
@@ -692,10 +720,39 @@ public class MlDsaTest {
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
                 + "57"; // hex(87)
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "21" // hex(33), size of "seed", which is 32 + 1
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
+                + "57" // hex(87)
+                + "78"; // TC_ENDBLOCKDATA
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
     }
 
     @Test
-    public void serializePublicKey_65_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePublicKey_65_withTestVectors_works() throws Exception {
         byte[] rawPublicKey = new byte[1952];
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
@@ -717,10 +774,36 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "07a0" + TestUtils.encodeHex(rawPublicKey);
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "07a0" + TestUtils.encodeHex(rawPublicKey) + "78"; // TC_ENDBLOCKDATA
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
     }
 
     @Test
-    public void serializePublicKey_87_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePublicKey_87_withTestVectors_works() throws Exception {
         byte[] rawPublicKey = new byte[2592];
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
@@ -743,6 +826,33 @@ public class MlDsaTest {
                 + "0a20" // hex(2592), size of the raw public key
                 + TestUtils.encodeHex(rawPublicKey);
         assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "0a20" // hex(2592), size of the raw public key
+                + TestUtils.encodeHex(rawPublicKey) + "78"; // TC_ENDBLOCKDATA
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
     }
 
     @Test
