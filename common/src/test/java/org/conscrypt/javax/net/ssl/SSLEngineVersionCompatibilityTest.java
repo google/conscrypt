@@ -299,7 +299,7 @@ public class SSLEngineVersionCompatibilityTest {
         TestSSLEnginePair p =
                 TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
                     @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                         server.setWantClientAuth(true);
                     }
                 });
