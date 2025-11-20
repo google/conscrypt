@@ -325,7 +325,7 @@ public class SSLEngineVersionCompatibilityTest {
         try {
             p = TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
                 @Override
-                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                     server.setNeedClientAuth(true);
                 }
             });
@@ -353,7 +353,7 @@ public class SSLEngineVersionCompatibilityTest {
                     .serverProtocol(serverVersion).build();
             TestSSLEnginePair p = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
                 @Override
-                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                     SSLParameters p = client.getSSLParameters();
                     p.setEndpointIdentificationAlgorithm("HTTPS");
                     client.setSSLParameters(p);
@@ -783,7 +783,7 @@ public class SSLEngineVersionCompatibilityTest {
                         .build(),
                 new TestSSLEnginePair.Hooks() {
                     @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                         Conscrypt.setHostname(client, host);
 
                         SSLParameters sslParameters = server.getSSLParameters();

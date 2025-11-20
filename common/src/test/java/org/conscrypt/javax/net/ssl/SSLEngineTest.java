@@ -235,7 +235,7 @@ public class SSLEngineTest {
                 try {
                     pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
                         @Override
-                        void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                        public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                             client.setEnabledCipherSuites(cipherSuiteArray);
                             server.setEnabledCipherSuites(cipherSuiteArray);
                         }
@@ -800,7 +800,7 @@ public class SSLEngineTest {
 
         return TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 client.setUseClientMode(clientClientMode);
                 server.setUseClientMode(serverClientMode);
             }
@@ -822,7 +822,7 @@ public class SSLEngineTest {
         try {
             p = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
                 @Override
-                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                     server.setEnableSessionCreation(false);
                 }
             });
@@ -842,7 +842,7 @@ public class SSLEngineTest {
         try {
             p = TestSSLEnginePair.create(new TestSSLEnginePair.Hooks() {
                 @Override
-                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                     client.setEnableSessionCreation(false);
                 }
             });
