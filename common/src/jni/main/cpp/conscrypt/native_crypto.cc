@@ -1345,6 +1345,7 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => threw exception", key_java_bytes);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key_java_bytes");
         return 0;
     }
 
@@ -1387,11 +1388,13 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(JNIEnv* env, jclass, 
                                              env->NewByteArray(static_cast<jsize>(key_length)));
     if (raw_key_array.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_get_raw_public_key: creating byte array failed");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
         return nullptr;
     }
     ScopedByteArrayRW raw_key(env, raw_key_array.get());
     if (raw_key.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_get_raw_public_key: using byte array failed");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key");
         return nullptr;
     }
 
