@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
@@ -122,5 +123,9 @@ public class OpenSslEdDsaPublicKey implements PublicKey {
         if (publicKeyBytes.length != ED25519_PUBLIC_KEY_SIZE_BYTES) {
             throw new IllegalArgumentException("Invalid key size");
         }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
     }
 }
