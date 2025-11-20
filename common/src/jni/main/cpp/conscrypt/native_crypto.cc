@@ -1342,6 +1342,11 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_raw_public_key(%p)", key_java_bytes);
 
+    if (key_java_bytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "key_java_bytes == null");
+        return 0;
+    }
+
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => threw exception", key_java_bytes);
