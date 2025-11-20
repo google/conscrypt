@@ -655,7 +655,7 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
@@ -663,7 +663,6 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
                 + "20" // hex(32), size of the raw private key
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"; // rawPrivateKey
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
 
         // Expected serialization when the key class implements a writeObject method.
         String serializationWithWriteMethod = "aced0005737200"
@@ -677,10 +676,12 @@ public class MlDsaTest {
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
                 + "78"; // TC_ENDBLOCKDATA
 
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
         // Verify that deserialization of both formats work.
         {
             ByteArrayInputStream bais =
-                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
             ObjectInputStream ois = new ObjectInputStream(bais);
             PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
             assertEquals(inflatedPrivateKey, privateKey);
@@ -710,7 +711,7 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
@@ -719,7 +720,6 @@ public class MlDsaTest {
                 + "21" // hex(33), size of "seed", which is 32 + 1
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
                 + "57"; // hex(87)
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
 
         // Expected serialization when the key class implements a writeObject method.
         String serializationWithWriteMethod = "aced0005737200"
@@ -734,10 +734,12 @@ public class MlDsaTest {
                 + "57" // hex(87)
                 + "78"; // TC_ENDBLOCKDATA
 
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
         // Verify that deserialization of both formats work.
         {
             ByteArrayInputStream bais =
-                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
             ObjectInputStream ois = new ObjectInputStream(bais);
             PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
             assertEquals(inflatedPrivateKey, privateKey);
@@ -766,14 +768,13 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "07a0" + TestUtils.encodeHex(rawPublicKey);
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
 
         // Expected serialization when the key class implements a writeObject method.
         String serializationWithWriteMethod = "aced0005737200"
@@ -785,10 +786,12 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "07a0" + TestUtils.encodeHex(rawPublicKey) + "78"; // TC_ENDBLOCKDATA
 
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
         // Verify that deserialization of both formats work.
         {
             ByteArrayInputStream bais =
-                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
             ObjectInputStream ois = new ObjectInputStream(bais);
             PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
             assertEquals(inflatedPublicKey, publicKey);
@@ -817,7 +820,7 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
@@ -825,7 +828,6 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "0a20" // hex(2592), size of the raw public key
                 + TestUtils.encodeHex(rawPublicKey);
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
 
         // Expected serialization when the key class implements a writeObject method.
         String serializationWithWriteMethod = "aced0005737200"
@@ -838,10 +840,12 @@ public class MlDsaTest {
                 + "0a20" // hex(2592), size of the raw public key
                 + TestUtils.encodeHex(rawPublicKey) + "78"; // TC_ENDBLOCKDATA
 
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
         // Verify that deserialization of both formats work.
         {
             ByteArrayInputStream bais =
-                    new ByteArrayInputStream(TestUtils.decodeHex(expectedHexEncoding));
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
             ObjectInputStream ois = new ObjectInputStream(bais);
             PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
             assertEquals(inflatedPublicKey, publicKey);

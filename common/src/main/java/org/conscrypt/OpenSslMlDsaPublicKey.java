@@ -119,4 +119,8 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
             throw new IOException("Invalid key");
         }
     }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
+    }
 }

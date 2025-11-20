@@ -123,4 +123,8 @@ public class OpenSslEdDsaPublicKey implements PublicKey {
             throw new IllegalArgumentException("Invalid key size");
         }
     }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
+    }
 }

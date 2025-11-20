@@ -151,4 +151,8 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
             throw new IOException("Invalid key");
         }
     }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
+    }
 }

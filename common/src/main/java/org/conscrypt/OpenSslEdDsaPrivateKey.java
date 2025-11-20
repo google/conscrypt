@@ -126,4 +126,8 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey {
             throw new IllegalArgumentException("Invalid key size");
         }
     }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
+    }
 }
