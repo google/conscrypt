@@ -1519,9 +1519,17 @@ public class NativeCryptoTest {
     private static long getNativeSsl(SSLEngine engine) {
         try {
             Object unwrapped = unwrap(engine);
-            Method m = unwrapped.getClass().getDeclaredMethod("getNativeSsl");
-            m.setAccessible(true);
-            return (long) m.invoke(unwrapped);
+            Class<?> clazz = unwrapped.getClass();
+            while (clazz != null) {
+                try {
+                    Method m = clazz.getDeclaredMethod("getNativeSsl");
+                    m.setAccessible(true);
+                    return (long) m.invoke(unwrapped);
+                } catch (NoSuchMethodException e) {
+                    clazz = clazz.getSuperclass();
+                }
+            }
+            throw new RuntimeException("getNativeSsl not found on " + unwrapped.getClass());
         } catch (Exception e) {
             throw new RuntimeException("Failed to get native SSL pointer", e);
         }
@@ -1530,9 +1538,17 @@ public class NativeCryptoTest {
     private static NativeSsl getNativeSslHolder(SSLEngine engine) {
         try {
             Object unwrapped = unwrap(engine);
-            Field f = unwrapped.getClass().getDeclaredField("ssl");
-            f.setAccessible(true);
-            return (NativeSsl) f.get(unwrapped);
+            Class<?> clazz = unwrapped.getClass();
+            while (clazz != null) {
+                try {
+                    Field f = clazz.getDeclaredField("ssl");
+                    f.setAccessible(true);
+                    return (NativeSsl) f.get(unwrapped);
+                } catch (NoSuchFieldException e) {
+                    clazz = clazz.getSuperclass();
+                }
+            }
+            return null;
         } catch (Exception e) {
             return null;
         }
