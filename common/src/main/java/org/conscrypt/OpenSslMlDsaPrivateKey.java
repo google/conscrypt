@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PrivateKey;
 import java.util.Arrays;
 
