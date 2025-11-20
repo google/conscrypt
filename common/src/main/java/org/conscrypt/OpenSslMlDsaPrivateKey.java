@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PrivateKey;
 import java.util.Arrays;
 
@@ -150,5 +151,9 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
         if (!isValid(this.seed, this.algorithm)) {
             throw new IOException("Invalid key");
         }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
     }
 }
