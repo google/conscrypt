@@ -271,7 +271,7 @@ public class SSLEngineVersionCompatibilityTest {
         TestSSLEnginePair p =
                 TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
                     @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                         server.setWantClientAuth(true);
                     }
                 });
@@ -585,13 +585,13 @@ public class SSLEngineVersionCompatibilityTest {
     public void test_SSLEngine_TlsUnique() throws Exception {
         // tls_unique isn't supported in TLS 1.3
         assumeTlsV1_2Connection();
-        TestSSLEnginePair pair = TestSSLEnginePair.create(
-                TestSSLContext.newBuilder()
-                        .clientProtocol(clientVersion)
-                        .serverProtocol(serverVersion).build(),
+        TestSSLEnginePair pair = TestSSLEnginePair.create(TestSSLContext.newBuilder()
+                                                                  .clientProtocol(clientVersion)
+                                                                  .serverProtocol(serverVersion)
+                                                                  .build(),
                 new TestSSLEnginePair.Hooks() {
                     @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                         assertNull(Conscrypt.getTlsUnique(client));
                         assertNull(Conscrypt.getTlsUnique(server));
                     }
@@ -611,13 +611,13 @@ public class SSLEngineVersionCompatibilityTest {
 
     @Test
     public void test_SSLEngine_EKM() throws Exception {
-        TestSSLEnginePair pair = TestSSLEnginePair.create(
-                TestSSLContext.newBuilder()
-                        .clientProtocol(clientVersion)
-                        .serverProtocol(serverVersion).build(),
+        TestSSLEnginePair pair = TestSSLEnginePair.create(TestSSLContext.newBuilder()
+                                                                  .clientProtocol(clientVersion)
+                                                                  .serverProtocol(serverVersion)
+                                                                  .build(),
                 new TestSSLEnginePair.Hooks() {
                     @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                         try {
                             assertNull(Conscrypt.exportKeyingMaterial(client, "FOO", null, 20));
                             assertNull(Conscrypt.exportKeyingMaterial(server, "FOO", null, 20));
@@ -746,7 +746,7 @@ public class SSLEngineVersionCompatibilityTest {
                                              .build(),
                     new TestSSLEnginePair.Hooks() {
                         @Override
-                        void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                        public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                             Conscrypt.setHostname(client, "any.host");
 
                             SSLParameters sslParameters = server.getSSLParameters();

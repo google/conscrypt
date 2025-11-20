@@ -503,7 +503,8 @@ public class NativeCryptoTest {
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
         final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
 
-        Future<HandshakeResult> result = handshake(new Hooks() {
+        TestSSLContext c = TestSSLContext.create();
+        Future<HandshakeResult> result = handshake(c, new Hooks() {
             @Override
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 long clientSsl = getNativeSsl(client);
@@ -545,7 +546,8 @@ public class NativeCryptoTest {
         final byte[] serverConfig = readTestFile("boringssl-server-ech-config.bin");
         final byte[] clientConfigList = readTestFile("boringssl-ech-config-list.bin");
 
-        Future<HandshakeResult> result = handshake(new Hooks() {
+        TestSSLContext c = TestSSLContext.create();
+        Future<HandshakeResult> result = handshake(c, new Hooks() {
             @Override
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 long clientSsl = getNativeSsl(client);
@@ -972,12 +974,11 @@ public class NativeCryptoTest {
     public void test_SSL_do_handshake_missing_required_certificate() throws Exception {
         // required client certificate negative case.
         // Create a client context with NO keys by passing null for client KeyStore.
-        TestSSLContext c =
-                TestSSLContext.newBuilder().client(null).server(TestKeyStore.getServer()).build();
+        TestSSLContext c = TestSSLContext.create(null, TestKeyStore.getServer());
         try {
             Future<HandshakeResult> result = handshake(c, new Hooks() {
                 @Override
-                public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                     server.setNeedClientAuth(true);
                 }
             });
@@ -991,6 +992,7 @@ public class NativeCryptoTest {
                 throw e;
             }
         }
+        c.close();
     }
 
     @Test

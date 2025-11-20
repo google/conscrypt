@@ -272,7 +272,8 @@ public class SSLEngineTest {
                         p = TestSSLEnginePair.create(
                                 cWithWrongPrivateKeys, new TestSSLEnginePair.Hooks() {
                                     @Override
-                                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                                    public void beforeBeginHandshake(
+                                            SSLEngine client, SSLEngine server) {
                                         client.setEnabledCipherSuites(cipherSuiteArray);
                                         server.setEnabledCipherSuites(cipherSuiteArray);
                                     }
@@ -709,7 +710,7 @@ public class SSLEngineTest {
             }).build();
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
-            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+            public void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                 server.setNeedClientAuth(true);
             }
         });
