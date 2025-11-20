@@ -1433,7 +1433,7 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
         conscrypt::jniutil::throwNullPointerException(env, "javaSeedBytes == null");
         return 0;
     }
-    
+
     ScopedByteArrayRO seed(env, javaSeedBytes);
     if (seed.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_from_private_seed => threw exception");
