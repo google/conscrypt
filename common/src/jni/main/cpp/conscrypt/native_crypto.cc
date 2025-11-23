@@ -1233,6 +1233,252 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
+static const EVP_PKEY_ALG* GetAlg(int pkeyType) {
+    switch (pkeyType) {
+        case EVP_PKEY_ED25519:
+            return EVP_pkey_ed25519();
+        case EVP_PKEY_X25519:
+            return EVP_pkey_x25519();
+        case EVP_PKEY_ML_DSA_65:
+            return EVP_pkey_ml_dsa_65();
+        case EVP_PKEY_ML_DSA_87:
+            return EVP_pkey_ml_dsa_87();
+        default:
+            return nullptr;
+    }
+}
+
+static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
+                                                         jbyteArray key_java_bytes,
+                                                         jintArray algs) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_from_private_key_info(_, %p)", algs);
+
+    ScopedByteArrayRO bytes(env, key_java_bytes);
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_from_private_key_info => threw exception");
+        return 0;
+    }
+
+    size_t num_algs = static_cast<size_t>(env->GetArrayLength(algs));
+    if (num_algs == 0) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "algs.length == 0");
+        return 0;
+    }
+    ScopedIntArrayRO algs_ro(env, algs);
+    std::vector<const EVP_PKEY_ALG*> alg_pointers(num_algs);
+    for (size_t i = 0; i < num_algs; ++i) {
+        const EVP_PKEY_ALG* alg = GetAlg(algs_ro.get()[i]);
+        if (alg == nullptr) {
+            conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                               "unsupported pkeyType");
+            return 0;
+        }
+        alg_pointers[i] = alg;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(
+            EVP_PKEY_from_private_key_info(reinterpret_cast<const uint8_t*>(bytes.get()),
+                                           bytes.size(), alg_pointers.data(), alg_pointers.size()));
+    if (pkey.get() == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
+        ERR_clear_error();
+        JNI_TRACE("EVP_PKEY_from_private_key_info => threw exception");
+        return 0;
+    }
+
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jclass,
+                                                                jbyteArray key_java_bytes,
+                                                                jintArray algs) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_from_subject_public_key_info(%p, %p)", key_java_bytes, algs);
+
+    ScopedByteArrayRO bytes(env, key_java_bytes);
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
+                  key_java_bytes);
+        return 0;
+    }
+
+    size_t num_algs = static_cast<size_t>(env->GetArrayLength(algs));
+    if (num_algs == 0) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "algs.length == 0");
+        return 0;
+    }
+    ScopedIntArrayRO algs_ro(env, algs);
+    std::vector<const EVP_PKEY_ALG*> alg_pointers(num_algs);
+    for (size_t i = 0; i < num_algs; ++i) {
+        const EVP_PKEY_ALG* alg = GetAlg(algs_ro.get()[i]);
+        if (alg == nullptr) {
+            conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                               "unsupported pkeyType");
+            return 0;
+        }
+        alg_pointers[i] = alg;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_subject_public_key_info(
+            reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size(), alg_pointers.data(),
+            alg_pointers.size()));
+    if (pkey.get() == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
+        ERR_clear_error();
+        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
+                  key_java_bytes);
+        return 0;
+    }
+
+    JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => %p", key_java_bytes, pkey.get());
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint pkey_type,
+                                                       jbyteArray key_java_bytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_from_raw_public_key(%p)", key_java_bytes);
+
+    if (key_java_bytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "key_java_bytes == null");
+        return 0;
+    }
+
+    ScopedByteArrayRO bytes(env, key_java_bytes);
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => threw exception", key_java_bytes);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key_java_bytes");
+        return 0;
+    }
+
+    const EVP_PKEY_ALG* alg = GetAlg(pkey_type);
+    if (alg == nullptr) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "unsupported pkeyType");
+        return 0;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_raw_public_key(
+            alg, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size()));
+    if (!pkey) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
+        ERR_clear_error();
+        JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => threw exception", key_java_bytes);
+        return 0;
+    }
+
+    JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => %p", key_java_bytes, pkey.get());
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(JNIEnv* env, jclass, jobject pkey_ref) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_get_raw_public_key(%p)", pkey_ref);
+
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkey_ref);
+    if (pkey == nullptr) {
+        return nullptr;
+    }
+
+    size_t key_length = 0;
+    if (EVP_PKEY_get_raw_public_key(pkey, nullptr, &key_length) == 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_public_key");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> raw_key_array(env,
+                                             env->NewByteArray(static_cast<jsize>(key_length)));
+    if (raw_key_array.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_get_raw_public_key: creating byte array failed");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
+        return nullptr;
+    }
+    ScopedByteArrayRW raw_key(env, raw_key_array.get());
+    if (raw_key.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_get_raw_public_key: using byte array failed");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key");
+        return nullptr;
+    }
+
+    if (EVP_PKEY_get_raw_public_key(pkey, reinterpret_cast<uint8_t*>(raw_key.get()), &key_length) ==
+        0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_public_key");
+        return nullptr;
+    }
+    return raw_key_array.release();
+}
+
+static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint pkeyType,
+                                                     jbyteArray javaSeedBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_from_private_seed(%p)", javaSeedBytes);
+
+    ScopedByteArrayRO seed(env, javaSeedBytes);
+    if (seed.get() == nullptr) {
+        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
+        return 0;
+    }
+
+    const EVP_PKEY_ALG* alg;
+    if (pkeyType == EVP_PKEY_ML_DSA_65) {
+        alg = EVP_pkey_ml_dsa_65();
+    } else if (pkeyType == EVP_PKEY_ML_DSA_87) {
+        alg = EVP_pkey_ml_dsa_87();
+    } else {
+        conscrypt::jniutil::throwInvalidKeyException(env, "unsupported pkeyType");
+        return 0;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_private_seed(
+            alg, reinterpret_cast<const uint8_t*>(seed.get()), seed.size()));
+
+    if (!pkey) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
+        ERR_clear_error();
+        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
+        return 0;
+    }
+
+    JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => %p", javaSeedBytes, pkey.get());
+    return reinterpret_cast<uintptr_t>(pkey.release());
+}
+
+static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls, jobject pkeyRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("EVP_PKEY_get_private_seed(%p)", pkeyRef);
+
+    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
+    if (pkey == nullptr) {
+        return nullptr;
+    }
+
+    size_t seed_length = 0;
+    if (EVP_PKEY_get_private_seed(pkey, nullptr, &seed_length) == 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_private_seed");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> seedArray(env, env->NewByteArray(static_cast<jsize>(seed_length)));
+    if (seedArray.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_get_raw_private_key: creating byte array failed");
+        return nullptr;
+    }
+    ScopedByteArrayRW seed(env, seedArray.get());
+    if (seed.get() == nullptr) {
+        JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
+        return nullptr;
+    }
+
+    if (EVP_PKEY_get_private_seed(pkey, reinterpret_cast<uint8_t*>(seed.get()), &seed_length) ==
+        0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_private_seed");
+        return nullptr;
+    }
+    return seedArray.release();
+}
 
 static jbyteArray NativeCrypto_EVP_raw_X25519_private_key(
         JNIEnv* env, jclass cls, jbyteArray keyJavaBytes) {
@@ -3285,9 +3531,11 @@ static jlong evpDigestSignVerifyInit(JNIEnv* env,
     }
     JNI_TRACE("%s(%p, %p, %p) <- ptr", jniName, mdCtx, md, pkey);
 
-    // For ED25519, md must be null, see
+    // Allow md to be null for ED25519, ML_DSA_65, and ML_DSA_87. See
     // https://github.com/google/boringssl/blob/main/include/openssl/evp.h
-    if (md == nullptr && (EVP_PKEY_id(pkey) != EVP_PKEY_ED25519)) {
+    int pkey_id = EVP_PKEY_id(pkey);
+    if (md == nullptr && (pkey_id != EVP_PKEY_ED25519 && pkey_id != EVP_PKEY_ML_DSA_65 &&
+                          pkey_id != EVP_PKEY_ML_DSA_87)) {
         JNI_TRACE("ctx=%p %s => md == null", mdCtx, jniName);
         conscrypt::jniutil::throwNullPointerException(env, "md == null");
         return 0;
@@ -3985,7 +4233,7 @@ static void NativeCrypto_EVP_CipherInit_ex(JNIEnv* env, jclass, jobject ctxRef, 
               encrypting ? 1 : 0);
 
     if (ctx == nullptr) {
-        JNI_TRACE("EVP_CipherUpdate => ctx == null");
+        JNI_TRACE("EVP_CipherInit_ex => ctx == null");
         return;
     }
 
@@ -12070,6 +12318,12 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_cmp, "(" REF_EVP_PKEY REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(EVP_marshal_private_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_parse_private_key, "([B)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_from_private_key_info, "([B[I)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_from_subject_public_key_info, "([B[I)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_from_raw_public_key, "(I[B)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_get_raw_public_key, "(" REF_EVP_PKEY ")[B"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_from_private_seed, "(I[B)J"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_get_private_seed, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_raw_X25519_private_key, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_marshal_public_key, "(" REF_EVP_PKEY ")[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_parse_public_key, "([B)J"),

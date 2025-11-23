@@ -69,7 +69,7 @@ jobs:
       - name: Set up JDK 11 for toolchains
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: 11
 
       - name: Set runner-specific environment variables
@@ -313,7 +313,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+        platform: [ubuntu-latest, macos-14, macos-latest, windows-latest]
         java: [8, 11, 17, 21]
         dist: ['temurin', 'zulu']
         include:
@@ -321,12 +321,15 @@ jobs:
             separator: ':'
           - platform: macos-latest
             separator: ':'
-          - platform: macos-13
+          - platform: macos-14
             separator: ':'
           - platform: windows-latest
             separator: ';'
         exclude: # Not available on Github runners
           - platform: macos-latest
+            java: 8
+            dist: 'temurin'
+          - platform: macos-14
             java: 8
             dist: 'temurin'
 

@@ -54,6 +54,9 @@ import java.util.List;
 public class MlDsaTest {
     private final Provider conscryptProvider = TestUtils.getConscryptProvider();
 
+    private static final String ML_DSA_65_OID = "2.16.840.1.101.3.4.3.18";
+    private static final String ML_DSA_87_OID = "2.16.840.1.101.3.4.3.19";
+
     @BeforeClass
     public static void setUp() {
         TestUtils.assumeAllowsUnsignedCrypto();
@@ -131,7 +134,7 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        for (String signAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+        for (String signAlgorithm : new String[] {"ML-DSA-65", "ML-DSA", ML_DSA_65_OID}) {
             byte[] msg = new byte[123];
             Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
             ss.initSign(privateKey);
@@ -139,7 +142,7 @@ public class MlDsaTest {
             byte[] sig = ss.sign();
             assertEquals(3309, sig.length);
 
-            for (String verifyAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+            for (String verifyAlgorithm : new String[] {"ML-DSA-65", "ML-DSA", ML_DSA_65_OID}) {
                 Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
                 sv.initVerify(publicKey);
                 sv.update(msg);
@@ -164,7 +167,7 @@ public class MlDsaTest {
         assertEquals("ML-DSA", privateKey.getAlgorithm());
         assertEquals("ML-DSA", publicKey.getAlgorithm());
 
-        for (String signAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+        for (String signAlgorithm : new String[] {"ML-DSA-87", "ML-DSA", ML_DSA_87_OID}) {
             byte[] msg = new byte[123];
             Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
             ss.initSign(privateKey);
@@ -172,7 +175,7 @@ public class MlDsaTest {
             byte[] sig = ss.sign();
             assertEquals(4627, sig.length);
 
-            for (String verifyAlgorithm : new String[] {"ML-DSA-87", "ML-DSA"}) {
+            for (String verifyAlgorithm : new String[] {"ML-DSA-87", "ML-DSA", ML_DSA_87_OID}) {
                 Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
                 sv.initVerify(publicKey);
                 sv.update(msg);
@@ -192,7 +195,7 @@ public class MlDsaTest {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-65", "ML-DSA", ML_DSA_65_OID}) {
             KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
             EncodedKeySpec privateKeySpec =
@@ -225,8 +228,8 @@ public class MlDsaTest {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
-        {
-            KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-87", ML_DSA_87_OID}) {
+            KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
             EncodedKeySpec privateKeySpec =
                     keyFactory.getKeySpec(keyPair.getPrivate(), RawKeySpec.class);
@@ -637,7 +640,7 @@ public class MlDsaTest {
     }
 
     @Test
-    public void serializePrivateKey_65_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePrivateKey_65_withTestVectors_works() throws Exception {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
@@ -652,7 +655,7 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
@@ -660,11 +663,40 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e00200007870000000"
                 + "20" // hex(32), size of the raw private key
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"; // rawPrivateKey
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "20" // hex(32), size of the raw private key
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
+                + "78"; // TC_ENDBLOCKDATA
+
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
     }
 
     @Test
-    public void serializePrivateKey_87_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePrivateKey_87_withTestVectors_works() throws Exception {
         byte[] rawPrivateKey = TestUtils.decodeHex(
                 "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
 
@@ -679,7 +711,7 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
                 + "3bacc385e8e106a3" // serialVersionUID
                 + "0200015b0004"
@@ -688,11 +720,41 @@ public class MlDsaTest {
                 + "21" // hex(33), size of "seed", which is 32 + 1
                 + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
                 + "57"; // hex(87)
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + hexClassName
+                + "3bacc385e8e106a3" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0004"
+                + "73656564" // hex("seed")
+                + "7400025b427870757200025b42acf317f8060854e00200007870000000"
+                + "21" // hex(33), size of "seed", which is 32 + 1
+                + "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" // rawPrivateKey
+                + "57" // hex(87)
+                + "78"; // TC_ENDBLOCKDATA
+
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
     }
 
     @Test
-    public void serializePublicKey_65_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePublicKey_65_withTestVectors_works() throws Exception {
         byte[] rawPublicKey = new byte[1952];
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
@@ -706,18 +768,45 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
                 + "726177" // hex("raw")
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "07a0" + TestUtils.encodeHex(rawPublicKey);
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "07a0" + TestUtils.encodeHex(rawPublicKey) + "78"; // TC_ENDBLOCKDATA
+
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
     }
 
     @Test
-    public void serializePublicKey_87_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePublicKey_87_withTestVectors_works() throws Exception {
         byte[] rawPublicKey = new byte[2592];
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
@@ -731,7 +820,7 @@ public class MlDsaTest {
         String hexClassName = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
 
-        String expectedHexEncoding = "aced0005737200"
+        String serializationWithoutWriteMethod = "aced0005737200"
                 + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b0003"
@@ -739,7 +828,35 @@ public class MlDsaTest {
                 + "7400025b427870757200025b42acf317f8060854e002000078700000"
                 + "0a20" // hex(2592), size of the raw public key
                 + TestUtils.encodeHex(rawPublicKey);
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + hexClassName
+                + "064c7113d078e42d" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b0003"
+                + "726177" // hex("raw")
+                + "7400025b427870757200025b42acf317f8060854e002000078700000"
+                + "0a20" // hex(2592), size of the raw public key
+                + TestUtils.encodeHex(rawPublicKey) + "78"; // TC_ENDBLOCKDATA
+
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
     }
 
     @Test
