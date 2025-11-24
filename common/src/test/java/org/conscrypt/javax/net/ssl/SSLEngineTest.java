@@ -62,10 +62,6 @@ import javax.net.ssl.X509ExtendedTrustManager;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
-    // Copied from NativeConstants, but we don't want to make these public just for tests.
-    private static final int SSL3_RT_MAX_PACKET_SIZE = 16709;
-    private static final int SSL3_RT_MAX_PLAIN_LENGTH = 16384;
-
     @Test
     public void test_SSLEngine_defaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLEngineDefaultConfiguration(
@@ -933,41 +929,46 @@ public class SSLEngineTest {
         c.close();
     }
 
+    /*
+     * The preconditions for the wrap() methods of SSLEngine have a relatively
+     * complex mapping from precondition to the exception thrown on failure.  This method
+     * checks that all the failure cases throw the correct exception and that
+     * corner cases which should not throw are also are handled correctly.
+     */
     @Test
     public void wrapPreconditions() throws Exception {
         int bufferSize = 128;
         int arrayLength = 5;
-        assertTrue(bufferSize * arrayLength < SSL3_RT_MAX_PLAIN_LENGTH);
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
-        ByteBuffer[] dataBuffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
-        ByteBuffer[] buffers = new ByteBuffer[arrayLength];
+        ByteBuffer destBuffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyDestBuffer = destBuffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
         for (int i = 0; i < arrayLength; i++) {
-            // Source data should be immutable.
-            buffers[i] = dataBuffers[i].asReadOnlyBuffer();
+            buffers[i] = buffers[i].asReadOnlyBuffer();
         }
         ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
         int nullBufferIndex = 2;
         buffersWithNullEntry[nullBufferIndex] = null;
 
+        // Failure cases
         // Client/server mode not set => IllegalStateException
-        assertThrows(
-                IllegalStateException.class, () -> newUnconnectedEngine().wrap(buffer, buffer));
-        assertThrows(
-                IllegalStateException.class, () -> newUnconnectedEngine().wrap(buffers, buffer));
         assertThrows(IllegalStateException.class,
-                () -> newUnconnectedEngine().wrap(buffers, 0, 1, buffer));
+                () -> newUnconnectedEngine().wrap(buffers[0], destBuffer));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers, destBuffer));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers, 0, 1, destBuffer));
 
         // Read-only destination => ReadOnlyBufferException
         assertThrows(ReadOnlyBufferException.class,
-                () -> newConnectedEngine().wrap(buffer, readOnlyBuffer));
+                () -> newConnectedEngine().wrap(buffers[0], readOnlyDestBuffer));
         assertThrows(ReadOnlyBufferException.class,
-                () -> newConnectedEngine().wrap(buffers, readOnlyBuffer));
+                () -> newConnectedEngine().wrap(buffers, readOnlyDestBuffer));
         assertThrows(ReadOnlyBufferException.class,
-                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, readOnlyBuffer));
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, readOnlyDestBuffer));
 
         // Null destination => IllegalArgumentException
-        assertThrows(IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffer, null));
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers[0], null));
         assertThrows(
                 IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers, null));
         assertThrows(IllegalArgumentException.class,
@@ -975,49 +976,61 @@ public class SSLEngineTest {
 
         // Null source => IllegalArgumentException
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap((ByteBuffer) null, buffer));
+                () -> newConnectedEngine().wrap((ByteBuffer) null, destBuffer));
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap((ByteBuffer[]) null, buffer));
+                () -> newConnectedEngine().wrap((ByteBuffer[]) null, destBuffer));
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(null, 0, 1, buffer));
+                () -> newConnectedEngine().wrap(null, 0, 1, destBuffer));
 
         // Null entries in buffer array => IllegalArgumentException
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(buffersWithNullEntry, buffer));
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, destBuffer));
         assertThrows(IllegalArgumentException.class,
-                () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, buffer));
-        // But not if they are outside the selected offset and length
-        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
-            wrapAndCheck(pair, buffersWithNullEntry, 0, nullBufferIndex);
-            wrapAndCheck(pair, buffersWithNullEntry, nullBufferIndex + 1, 1);
-        }
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, destBuffer));
 
         // Bad offset or length => IndexOutOfBoundsException
         assertThrows(IndexOutOfBoundsException.class,
-                () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, buffer));
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, destBuffer));
         assertThrows(IndexOutOfBoundsException.class,
-                () -> newConnectedEngine().wrap(buffers, arrayLength, 1, buffer));
+                () -> newConnectedEngine().wrap(buffers, arrayLength, 1, destBuffer));
         assertThrows(IndexOutOfBoundsException.class,
-                () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, buffer));
-        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
-            wrapAndCheck(pair, buffers, 0, arrayLength);
-            // Zero length array is allowed
-            wrapAndCheck(pair, buffers, 0, 0);
-            wrapAndCheck(pair, buffers, arrayLength, 0);
-        }
+                () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, destBuffer));
+
+        // Corner cases which should not throw
+        // Null entries should not throw if they are outside the selected offset and length
+        assertWrapSucceeds(buffersWithNullEntry, 0, nullBufferIndex);
+        assertWrapSucceeds(buffersWithNullEntry, nullBufferIndex + 1, 1);
+
+        // Zero length arrays of input buffers should not throw
+        assertWrapSucceeds(buffers, 0, 0);
+        assertWrapSucceeds(buffers, arrayLength, 0);
     }
 
-    private void wrapAndCheck(TestSSLEnginePair pair, ByteBuffer[] buffers, int offset, int length)
-            throws SSLException {
-        int dataSize = 0;
-        for (int i = offset; i < offset + length; i++) {
-            buffers[i].position(0);
-            dataSize += buffers[i].remaining();
+    // Asserts that a wrap call with the given arguments succeeds and wraps the expected
+    // amount of data.
+    private void assertWrapSucceeds(ByteBuffer[] buffers, int offset, int length) throws Exception {
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            assertConnected(pair);
+
+            // Reset the selected buffers to their initial (unread) state and calculate the
+            // total amount of data that will be wrapped.
+            int dataSize = 0;
+            for (int i = offset; i < offset + length; i++) {
+                buffers[i].position(0);
+                dataSize += buffers[i].remaining();
+            }
+
+            // Ensure the data will fit into one TLS record so that only a single wrap is needed.
+            assertTrue(dataSize <= pair.client.getSession().getApplicationBufferSize());
+            ByteBuffer ciphertext =
+                    ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+
+            // Wrap the data and ensure the expected amount of data was consumed.
+            SSLEngineResult result = pair.client.wrap(buffers, offset, length, ciphertext);
+            assertEquals(Status.OK, result.getStatus());
+            assertEquals(dataSize, result.bytesConsumed());
+            // This method is only used for checking wrap preconditions so no need to unwrap.
         }
-        ByteBuffer ciphertext = ByteBuffer.allocate(SSL3_RT_MAX_PACKET_SIZE);
-        SSLEngineResult result = pair.client.wrap(buffers, offset, length, ciphertext);
-        assertEquals(Status.OK, result.getStatus());
-        assertEquals(dataSize, result.bytesConsumed());
     }
 
     @Test
