@@ -25,7 +25,7 @@ import java.security.PrivateKey;
 import java.util.Arrays;
 
 /** An OpenSSL ML-DSA private key. */
-public class OpenSslMlDsaPrivateKey implements PrivateKey {
+public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 0x3bacc385e8e106a3L;
 
     // To preserve the serialization format, "seed" is the only variable that gets

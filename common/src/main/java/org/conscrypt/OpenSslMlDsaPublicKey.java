@@ -25,7 +25,7 @@ import java.security.PublicKey;
 import java.util.Arrays;
 
 /** An OpenSSL ML-DSA public key. */
-public class OpenSslMlDsaPublicKey implements PublicKey {
+public class OpenSslMlDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 453861992373478445L;
 
     private byte[] raw = null; // only set when the key is serialized or deserialized.
