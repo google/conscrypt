@@ -1426,7 +1426,7 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(JNIEnv* env, jclass, 
 static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint pkeyType,
                                                      jbyteArray javaSeedBytes) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("EVP_PKEY_from_private_seed(_)");
+    JNI_TRACE("EVP_PKEY_from_private_seed(%p)", javaSeedBytes);
 
     if (javaSeedBytes == nullptr) {
         JNI_TRACE("EVP_PKEY_from_private_seed => threw exception");
@@ -1436,7 +1436,7 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
 
     ScopedByteArrayRO seed(env, javaSeedBytes);
     if (seed.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_from_private_seed => threw exception");
+        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return 0;
     }
@@ -1457,16 +1457,17 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
     if (!pkey) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
         ERR_clear_error();
-        JNI_TRACE("EVP_PKEY_from_private_seed => threw exception");
+        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
         return 0;
     }
 
+    JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => %p", javaSeedBytes, pkey.get());
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
 static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls, jobject pkeyRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("EVP_PKEY_get_private_seed(_)");
+    JNI_TRACE("EVP_PKEY_get_private_seed(%p)", pkeyRef);
 
     EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
     if (pkey == nullptr) {
