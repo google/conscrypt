@@ -92,6 +92,11 @@ public class OpenSslMlDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
         return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
+    @Override
+    public OpenSSLKey getOpenSSLKey() {
+        return key;
+    }
+
     byte[] getRaw() {
         if (key == null) {
             throw new IllegalStateException("key is destroyed");
