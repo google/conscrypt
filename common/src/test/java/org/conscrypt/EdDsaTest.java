@@ -140,6 +140,39 @@ public class EdDsaTest {
     }
 
     @Test
+    public void init_resetsState() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        byte[] message = decodeHex("00112233");
+
+        Signature signature = Signature.getInstance("Ed25519", conscryptProvider);
+
+        // Call initSign and update, so that the buffer is not empty.
+        signature.initSign(keyPair.getPrivate());
+        signature.update(decodeHex("aaaa"));
+
+        // This call to initSign should reset the state.
+        signature.initSign(keyPair.getPrivate());
+        signature.update(message);
+
+        // This should only sign message.
+        byte[] sig = signature.sign();
+
+        assertEquals(64, sig.length);
+
+        // Call initVerify and update, so that the buffer is not empty.
+        signature.initVerify(keyPair.getPublic());
+        signature.update(decodeHex("bbbb"));
+
+        // This call to initVerify should reset the state.
+        signature.initVerify(keyPair.getPublic());
+        signature.update(message);
+
+        // This should return true, because sig should be a valid signature for message.
+        assertTrue(signature.verify(sig));
+    }
+
+    @Test
     public void generateKeyPairWithWrongKeySize_throws() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
         assertThrows(IllegalArgumentException.class, () -> keyGen.initialize(256));

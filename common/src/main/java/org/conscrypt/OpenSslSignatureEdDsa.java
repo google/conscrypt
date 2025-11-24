@@ -69,6 +69,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_DigestSignInit(ctxLocal, 0, key.getNativeRef());
         this.ctx = ctxLocal;
+        buffer.reset();
     }
 
     @Override
@@ -77,6 +78,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_DigestVerifyInit(ctxLocal, 0, key.getNativeRef());
         this.ctx = ctxLocal;
+        buffer.reset();
     }
 
     @Override
