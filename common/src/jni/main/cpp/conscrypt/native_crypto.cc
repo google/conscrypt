@@ -1254,9 +1254,15 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_private_key_info(_, %p)", algs);
 
+    if (key_java_bytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "key_java_bytes == null");
+        return 0;
+    }
+
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_from_private_key_info => threw exception");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1297,10 +1303,16 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_subject_public_key_info(%p, %p)", key_java_bytes, algs);
 
+    if (key_java_bytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "key_java_bytes == null");
+        return 0;
+    }
+
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
                   key_java_bytes);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1416,9 +1428,16 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_private_seed(%p)", javaSeedBytes);
 
+    if (javaSeedBytes == nullptr) {
+        JNI_TRACE("EVP_PKEY_from_private_seed => threw exception");
+        conscrypt::jniutil::throwNullPointerException(env, "javaSeedBytes == null");
+        return 0;
+    }
+
     ScopedByteArrayRO seed(env, javaSeedBytes);
     if (seed.get() == nullptr) {
         JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return 0;
     }
 
@@ -1464,11 +1483,13 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls
     ScopedLocalRef<jbyteArray> seedArray(env, env->NewByteArray(static_cast<jsize>(seed_length)));
     if (seedArray.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_get_raw_private_key: creating byte array failed");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seedArray");
         return nullptr;
     }
     ScopedByteArrayRW seed(env, seedArray.get());
     if (seed.get() == nullptr) {
         JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return nullptr;
     }
 
