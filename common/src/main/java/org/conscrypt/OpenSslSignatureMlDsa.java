@@ -15,7 +15,6 @@
  */
 package org.conscrypt;
 
-import java.io.ByteArrayOutputStream;
 import java.security.InvalidKeyException;
 import java.security.InvalidParameterException;
 import java.security.PrivateKey;
@@ -32,8 +31,9 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
     /**
      * The current OpenSSL key we're operating on.
      */
-    private OpenSslMlDsaPrivateKey privateKey;
-    private OpenSslMlDsaPublicKey publicKey;
+
+    private OpenSSLKey key;
+    private NativeRef.EVP_MD_CTX ctx;
 
     /**
      * Buffer to hold value to be signed or verified.
@@ -94,30 +94,27 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
 
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
-        if (!(privateKey instanceof OpenSslMlDsaPrivateKey)) {
-            throw new InvalidKeyException("PrivateKey must be OpenSslMlDsaPrivateKey");
+        key = OpenSSLKey.fromPrivateKey(privateKey);
+        MlDsaAlgorithm algorithm = OpenSslMlDsaKeyFactory.getMlDsaAlgorithm(key);
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeyException("Key version mismatch: " + algorithm);
         }
-        OpenSslMlDsaPrivateKey conscryptPrivateKey = (OpenSslMlDsaPrivateKey) privateKey;
-        if (!supportsAlgorithm(conscryptPrivateKey.getMlDsaAlgorithm())) {
-            throw new InvalidKeyException(
-                    "Key version mismatch: " + conscryptPrivateKey.getMlDsaAlgorithm());
-        }
-        this.privateKey = conscryptPrivateKey;
-        this.publicKey = null;
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_DigestSignInit(ctxLocal, 0, key.getNativeRef());
+        this.ctx = ctxLocal;
         buffer.reset();
     }
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-        if (!(publicKey instanceof OpenSslMlDsaPublicKey)) {
-            throw new InvalidKeyException("PublicKey must be OpenSslMlDsaPublicKey");
+        key = OpenSSLKey.fromPublicKey(publicKey);
+        MlDsaAlgorithm algorithm = OpenSslMlDsaKeyFactory.getMlDsaAlgorithm(key);
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeyException("Key version mismatch: " + algorithm);
         }
-        OpenSslMlDsaPublicKey conscryptPublicKey = (OpenSslMlDsaPublicKey) publicKey;
-        if (!supportsAlgorithm(conscryptPublicKey.getMlDsaAlgorithm())) {
-            throw new InvalidKeyException("Key algorithm mismatch");
-        }
-        this.publicKey = conscryptPublicKey;
-        this.privateKey = null;
+        NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_DigestVerifyInit(ctxLocal, 0, key.getNativeRef());
+        this.ctx = ctxLocal;
         buffer.reset();
     }
 
@@ -128,45 +125,26 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
 
     @Override
     protected byte[] engineSign() throws SignatureException {
-        if (privateKey == null) {
-            // This can't actually happen, but you never know...
-            throw new SignatureException("No privateKey provided");
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
+        if (key == null) {
+            throw new SignatureException("No key provided");
         }
-        byte[] sig;
-        switch (privateKey.getMlDsaAlgorithm()) {
-            case ML_DSA_65:
-                sig = NativeCrypto.MLDSA65_sign(
-                        buffer.array(), buffer.size(), privateKey.getSeed());
-                buffer.reset();
-                return sig;
-            case ML_DSA_87:
-                sig = NativeCrypto.MLDSA87_sign(
-                        buffer.array(), buffer.size(), privateKey.getSeed());
-                buffer.reset();
-                return sig;
-        }
-        throw new SignatureException("Unsupported algorithm: " + privateKey.getMlDsaAlgorithm());
+        byte[] sig = NativeCrypto.EVP_DigestSign(ctxLocal, buffer.array(), 0, buffer.size());
+        buffer.reset();
+        return sig;
     }
 
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-        if (publicKey == null) {
+        final NativeRef.EVP_MD_CTX ctxLocal = ctx;
+        if (key == null) {
             // This can't actually happen, but you never know...
-            throw new SignatureException("No publicKey provided");
+            throw new SignatureException("No key provided");
         }
-        int result;
-        switch (publicKey.getMlDsaAlgorithm()) {
-            case ML_DSA_65:
-                result = NativeCrypto.MLDSA65_verify(
-                        buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
-                buffer.reset();
-                return result == 1;
-            case ML_DSA_87:
-                result = NativeCrypto.MLDSA87_verify(
-                        buffer.array(), buffer.size(), sigBytes, publicKey.getRaw());
-                buffer.reset();
-                return result == 1;
-        }
-        throw new SignatureException("Unsupported algorithm: " + publicKey.getMlDsaAlgorithm());
+
+        boolean result = NativeCrypto.EVP_DigestVerify(
+                ctxLocal, sigBytes, 0, sigBytes.length, buffer.array(), 0, buffer.size());
+        buffer.reset();
+        return result;
     }
 }

@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -26,8 +28,9 @@ import java.util.Arrays;
 public class OpenSslMlDsaPublicKey implements PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
-    private byte[] raw;
+    private byte[] raw = null; // only set when the key is serialized or deserialized.
     private transient MlDsaAlgorithm algorithm;
+    private transient OpenSSLKey key;
 
     private static boolean isValid(byte[] raw, MlDsaAlgorithm algorithm) {
         return raw.length == algorithm.publicKeySize();
@@ -43,12 +46,28 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         throw new IllegalArgumentException("Invalid raw key of length " + raw.length);
     }
 
-    public OpenSslMlDsaPublicKey(byte[] raw, MlDsaAlgorithm algorithm) {
-        if (!isValid(raw, algorithm)) {
-            throw new IllegalArgumentException("Invalid key of length " + raw.length);
+    private static OpenSSLKey getOpenSslKeyFromRaw(byte[] raw, MlDsaAlgorithm algorithm)
+            throws ParsingException {
+        return new OpenSSLKey(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                OpenSslMlDsaKeyFactory.getPKeyType(algorithm), raw));
+    }
+
+    OpenSslMlDsaPublicKey(OpenSSLKey key, MlDsaAlgorithm algorithm) {
+        if (NativeCrypto.EVP_PKEY_type(key.getNativeRef())
+                != OpenSslMlDsaKeyFactory.getPKeyType(algorithm)) {
+            throw new IllegalArgumentException("Invalid key type");
         }
-        this.raw = raw.clone();
         this.algorithm = algorithm;
+        this.key = key;
+    }
+
+    public OpenSslMlDsaPublicKey(byte[] raw, MlDsaAlgorithm algorithm) {
+        this.algorithm = algorithm;
+        try {
+            this.key = getOpenSslKeyFromRaw(raw, algorithm);
+        } catch (ParsingException e) {
+            throw new IllegalArgumentException("Invalid key", e);
+        }
     }
 
     @Override
@@ -67,28 +86,22 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
 
     @Override
     public byte[] getEncoded() {
-        if (raw == null) {
+        if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
-            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.x509PreambleMlDsa65, raw);
-        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
-            return ArrayUtils.concat(OpenSslMlDsaKeyFactory.x509PreambleMlDsa87, raw);
-        } else {
-            throw new IllegalStateException("unsupported algorithm: " + algorithm);
-        }
+        return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
     byte[] getRaw() {
-        if (raw == null) {
+        if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        return raw.clone();
+        return NativeCrypto.EVP_PKEY_get_raw_public_key(key.getNativeRef());
     }
 
     @Override
     public boolean equals(Object o) {
-        if (raw == null) {
+        if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
 
@@ -102,15 +115,15 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
 
         // different algorithms have different raw key lengths, so we only need to compare the raw
         // key.
-        return Arrays.equals(raw, that.raw);
+        return Arrays.equals(getRaw(), that.getRaw());
     }
 
     @Override
     public int hashCode() {
-        if (raw == null) {
+        if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        return Arrays.hashCode(raw);
+        return Arrays.hashCode(getRaw());
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
@@ -119,9 +132,19 @@ public class OpenSslMlDsaPublicKey implements PublicKey {
         if (!isValid(this.raw, this.algorithm)) {
             throw new IOException("Invalid key");
         }
+        try {
+            this.key = getOpenSslKeyFromRaw(this.raw, this.algorithm);
+        } catch (ParsingException e) {
+            throw new IOException("Invalid key", e);
+        }
+        this.raw = null;
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        stream.defaultWriteObject();
+        synchronized (this) {
+            this.raw = NativeCrypto.EVP_PKEY_get_raw_public_key(key.getNativeRef());
+            stream.defaultWriteObject(); // writes "raw"
+            this.raw = null;
+        }
     }
 }
