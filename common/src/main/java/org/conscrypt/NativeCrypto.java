@@ -229,17 +229,9 @@ public final class NativeCrypto {
 
     static native byte[] MLDSA65_public_key_from_seed(byte[] privateKeySeed);
 
-    static native byte[] MLDSA65_sign(byte[] data, int dataLen, byte[] privateKeySeed);
-
-    static native int MLDSA65_verify(byte[] data, int dataLen, byte[] sig, byte[] publicKey);
-
     // --- MLDSA87 --------------------------------------------------------------
 
     static native byte[] MLDSA87_public_key_from_seed(byte[] privateKeySeed);
-
-    static native byte[] MLDSA87_sign(byte[] data, int dataLen, byte[] privateKeySeed);
-
-    static native int MLDSA87_verify(byte[] data, int dataLen, byte[] sig, byte[] publicKey);
 
     // --- SLHDSA_SHA2_128S --------------------------------------------------------------
 
