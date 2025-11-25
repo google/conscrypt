@@ -119,7 +119,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         try {
             return new OpenSslMlDsaPublicKey(key, algorithm);
         } catch (IllegalArgumentException e) {
-            throw new InvalidKeySpecException("Invalid raw public key", e);
+            throw new InvalidKeySpecException("Invalid public key", e);
         }
     }
 
