@@ -41,7 +41,7 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
     private static OpenSSLKey getOpenSslKeyFromSeed(byte[] seed, MlDsaAlgorithm algorithm)
             throws ParsingException {
         if (seed.length != 32) {
-            throw new IllegalArgumentException("Invalid key size");
+            throw new ParsingException("Invalid key size");
         }
         return new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_seed(
                 OpenSslMlDsaKeyFactory.getPKeyType(algorithm), seed));
@@ -57,14 +57,15 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
         return false;
     }
 
-    private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed) {
+    private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed)
+            throws IOException {
         if (encodedSeed.length == 32) {
             return MlDsaAlgorithm.ML_DSA_65;
         }
         if (encodedSeed.length == 33 && encodedSeed[32] == 87) {
             return MlDsaAlgorithm.ML_DSA_87;
         }
-        throw new IllegalArgumentException("Invalid encoded seed");
+        throw new IOException("Invalid encoded seed");
     }
 
     private static byte[] encodeSeed(byte[] unencodedSeed, MlDsaAlgorithm algorithm) {

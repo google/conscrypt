@@ -53,106 +53,6 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
     }
 
-    static final byte[] x509PreambleMlDsa65 = new byte[] {
-            0x30,
-            (byte) 0x82,
-            0x07,
-            (byte) 0xb2,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x12,
-            0x03,
-            (byte) 0x82,
-            0x07,
-            (byte) 0xa1,
-            0x00,
-    };
-
-    static final byte[] x509PreambleMlDsa87 = new byte[] {
-            0x30,
-            (byte) 0x82,
-            0x0a,
-            0x32,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x13,
-            0x03,
-            (byte) 0x82,
-            0x0a,
-            0x21,
-            0x00,
-    };
-
-    static final byte[] pkcs8PreambleMlDsa65 = new byte[] {
-            0x30,
-            0x34,
-            0x02,
-            0x01,
-            0x00,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x12,
-            0x04,
-            0x22,
-            (byte) 0x80,
-            0x20,
-    };
-
-    static final byte[] pkcs8PreambleMlDsa87 = new byte[] {
-            0x30,
-            0x34,
-            0x02,
-            0x01,
-            0x00,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x13,
-            0x04,
-            0x22,
-            (byte) 0x80,
-            0x20,
-    };
-
     /** ML-DSA-65 */
     public static class MlDsa65 extends OpenSslMlDsaKeyFactory {
         public MlDsa65() {
@@ -183,7 +83,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (raw.length != algorithm.publicKeySize()) {
             throw new InvalidKeySpecException("Invalid raw public key");
         }
-        return new OpenSslMlDsaPublicKey(raw, algorithm);
+        try {
+            return new OpenSslMlDsaPublicKey(raw, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw public key", e);
+        }
     }
 
     static MlDsaAlgorithm getMlDsaAlgorithm(OpenSSLKey key) {
@@ -212,7 +116,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
         }
-        return new OpenSslMlDsaPublicKey(key, algorithm);
+        try {
+            return new OpenSslMlDsaPublicKey(key, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw public key", e);
+        }
     }
 
     @Override
@@ -250,9 +158,13 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
         }
         if (seed.length != 32) {
-            throw new InvalidKeySpecException("Invalid raw public key");
+            throw new InvalidKeySpecException("Invalid raw private key");
         }
-        return new OpenSslMlDsaPrivateKey(seed, algorithm);
+        try {
+            return new OpenSslMlDsaPrivateKey(seed, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw private key", e);
+        }
     }
 
     private OpenSslMlDsaPrivateKey makePrivateKey(OpenSSLKey key) throws InvalidKeySpecException {
@@ -260,7 +172,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
         }
-        return new OpenSslMlDsaPrivateKey(key, algorithm);
+        try {
+            return new OpenSslMlDsaPrivateKey(key, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid private key", e);
+        }
     }
 
     @Override

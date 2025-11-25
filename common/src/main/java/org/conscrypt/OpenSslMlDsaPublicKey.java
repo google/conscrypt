@@ -36,14 +36,14 @@ public class OpenSslMlDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
         return raw.length == algorithm.publicKeySize();
     }
 
-    private static MlDsaAlgorithm getAlgorithmFromRaw(byte[] raw) {
+    private static MlDsaAlgorithm getAlgorithmFromRaw(byte[] raw) throws IOException {
         if (raw.length == MlDsaAlgorithm.ML_DSA_65.publicKeySize()) {
             return MlDsaAlgorithm.ML_DSA_65;
         }
         if (raw.length == MlDsaAlgorithm.ML_DSA_87.publicKeySize()) {
             return MlDsaAlgorithm.ML_DSA_87;
         }
-        throw new IllegalArgumentException("Invalid raw key of length " + raw.length);
+        throw new IOException("Invalid raw key of length " + raw.length);
     }
 
     private static OpenSSLKey getOpenSslKeyFromRaw(byte[] raw, MlDsaAlgorithm algorithm)
