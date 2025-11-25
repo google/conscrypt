@@ -3095,50 +3095,65 @@ public class NativeCryptoTest {
 
     @Test
     public void x25519_fromToRaw_works() throws Exception {
-        byte[] privateKeyBytes = decodeHex(
-                "0900000000000000000000000000000000000000000000000000000000000000");
+        byte[] privateKeyBytes =
+                decodeHex("0900000000000000000000000000000000000000000000000000000000000000");
 
         NativeRef.EVP_PKEY privateKey =
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(NativeConstants.EVP_PKEY_X25519, privateKeyBytes));
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                        NativeConstants.EVP_PKEY_X25519, privateKeyBytes));
         assertEquals(NativeConstants.EVP_PKEY_X25519, NativeCrypto.EVP_PKEY_type(privateKey));
         byte[] rawPrivateKey = NativeCrypto.EVP_PKEY_get_raw_private_key(privateKey);
         assertArrayEquals(privateKeyBytes, rawPrivateKey);
+
+        // At the same time, test that getting the seed fails.
+        assertThrows(
+                RuntimeException.class, () -> NativeCrypto.EVP_PKEY_get_private_seed(privateKey));
     }
 
     @Test
     public void ed25519_fromToRaw_works() throws Exception {
         // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
-        byte[] rawEd25519PrivateKey = decodeHex(
-                "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+        byte[] rawEd25519PrivateKey =
+                decodeHex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
         NativeRef.EVP_PKEY privateKey =
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(NativeConstants.EVP_PKEY_ED25519, rawEd25519PrivateKey));
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                        NativeConstants.EVP_PKEY_ED25519, rawEd25519PrivateKey));
         assertEquals(NativeConstants.EVP_PKEY_ED25519, NativeCrypto.EVP_PKEY_type(privateKey));
 
         byte[] output = NativeCrypto.EVP_PKEY_get_raw_private_key(privateKey);
         assertArrayEquals(rawEd25519PrivateKey, output);
 
         // At the same time, test that getting the seed fails.
-        assertThrows(RuntimeException.class, () -> NativeCrypto.EVP_PKEY_get_private_seed(privateKey));
+        assertThrows(
+                RuntimeException.class, () -> NativeCrypto.EVP_PKEY_get_private_seed(privateKey));
     }
 
     @Test
     public void evpKeyFromRawPrivateKey_ed25519WithInvalidKeyLength_throws() throws Exception {
         final byte[] shortKey = new byte[31];
-        assertThrows(ParsingException.class, () ->
-            new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(NativeConstants.EVP_PKEY_ED25519, shortKey)));
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_ED25519, shortKey)));
         final byte[] longKey = new byte[33];
-        assertThrows(ParsingException.class, () ->
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(NativeConstants.EVP_PKEY_ED25519, longKey)));
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_ED25519, longKey)));
     }
 
     @Test
     public void evpKeyFromRawPrivateKey_x25519WithInvalidKeyLength_throws() throws Exception {
         final byte[] shortKey = new byte[31];
-        assertThrows(Exception.class, () ->
-            new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(NativeConstants.EVP_PKEY_X25519, shortKey)));
+        assertThrows(Exception.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_X25519, shortKey)));
         final byte[] longKey = new byte[33];
-        assertThrows(Exception.class, () ->
-                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(NativeConstants.EVP_PKEY_X25519, longKey)));
+        assertThrows(Exception.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_X25519, longKey)));
     }
 
     @Test

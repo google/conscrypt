@@ -1349,8 +1349,8 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-
-static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jint pkey_type, jbyteArray key_java_bytes) {
+static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jint pkey_type,
+                                                        jbyteArray key_java_bytes) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_from_raw_private_key(%p)", key_java_bytes);
 
@@ -1361,29 +1361,30 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jin
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception", key_java_bytes);
+        JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception",
+                  key_java_bytes);
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
-    const EVP_PKEY_ALG *alg;
+    const EVP_PKEY_ALG* alg;
     if (pkey_type == EVP_PKEY_ED25519) {
         alg = EVP_pkey_ed25519();
     } else if (pkey_type == EVP_PKEY_X25519) {
         alg = EVP_pkey_x25519();
     } else {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
-                                               "unsupported pkey_type");
+                                           "unsupported pkey_type");
         return 0;
     }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_from_raw_private_key(
-        alg, reinterpret_cast<const uint8_t*>(bytes.get()),
-        bytes.size()));
+            alg, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size()));
     if (!pkey) {
         conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
         ERR_clear_error();
-        JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception", key_java_bytes);
+        JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception",
+                  key_java_bytes);
         return 0;
     }
 
@@ -1391,8 +1392,7 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jin
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jbyteArray NativeCrypto_EVP_PKEY_get_raw_private_key(
-        JNIEnv* env, jclass, jobject pkey_ref) {
+static jbyteArray NativeCrypto_EVP_PKEY_get_raw_private_key(JNIEnv* env, jclass, jobject pkey_ref) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_get_raw_private_key(%p)", pkey_ref);
 
@@ -1402,14 +1402,15 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_private_key(
     }
 
     size_t key_length = 0;
-    if (EVP_PKEY_get_raw_private_key(
-            pkey, nullptr, &key_length) == 0) {
+    if (EVP_PKEY_get_raw_private_key(pkey, nullptr, &key_length) == 0) {
         JNI_TRACE("key=%p EVP_PKEY_get_raw_private_key => error", pkey);
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_private_key");
         return nullptr;
     }
 
-    ScopedLocalRef<jbyteArray> raw_key_array(env, env->NewByteArray(static_cast<jsize>(key_length)));
+    ScopedLocalRef<jbyteArray> raw_key_array(env,
+                                             env->NewByteArray(static_cast<jsize>(key_length)));
+
     if (raw_key_array.get() == nullptr) {
         JNI_TRACE("key=%p EVP_PKEY_get_raw_private_key: creating byte array failed", pkey);
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
@@ -1422,8 +1423,8 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_private_key(
         return nullptr;
     }
 
-    if (EVP_PKEY_get_raw_private_key(
-            pkey, reinterpret_cast<uint8_t *>(raw_key.get()), &key_length) == 0) {
+    if (EVP_PKEY_get_raw_private_key(pkey, reinterpret_cast<uint8_t*>(raw_key.get()),
+                                     &key_length) == 0) {
         JNI_TRACE("key=%p EVP_PKEY_get_raw_private_key => error", pkey);
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_get_raw_private_key");
         return nullptr;
