@@ -1381,7 +1381,7 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jin
         alg, reinterpret_cast<const uint8_t*>(bytes.get()),
         bytes.size()));
     if (!pkey) {
-        conscrypt::jniutil::throwParsingException(env, "Error parsing public key");
+        conscrypt::jniutil::throwParsingException(env, "Error parsing private key");
         ERR_clear_error();
         JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception", key_java_bytes);
         return 0;
