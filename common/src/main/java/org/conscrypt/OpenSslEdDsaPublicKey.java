@@ -30,7 +30,7 @@ import java.util.Arrays;
 public class OpenSslEdDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 453861992373478445L;
 
-    private byte[] publicKeyBytes = null;
+    private byte[] publicKeyBytes = null;  // only set when the key is serialized or deserialized.
     private transient OpenSSLKey key;
 
     private static OpenSSLKey getOpenSslKeyFromX509(byte[] x509Encoded) throws ParsingException {
