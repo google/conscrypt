@@ -296,8 +296,7 @@ public class EdDsaTest {
                 () -> keyFactory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
     }
 
-
-	@Test
+    @Test
     public void generateKey_invalidEncoding_throwsInvalidKeySpecException() throws Exception {
         byte[] invalidEncoding = decodeHex("012345");
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
@@ -310,7 +309,6 @@ public class EdDsaTest {
         assertThrows(InvalidKeySpecException.class,
                 () -> keyFactory.generatePublic(new RawKeySpec(invalidEncoding)));
     }
-
 
     @Test
     public void testVectors() throws Exception {
