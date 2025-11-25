@@ -53,106 +53,6 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
     }
 
-    static final byte[] x509PreambleMlDsa65 = new byte[] {
-            0x30,
-            (byte) 0x82,
-            0x07,
-            (byte) 0xb2,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x12,
-            0x03,
-            (byte) 0x82,
-            0x07,
-            (byte) 0xa1,
-            0x00,
-    };
-
-    static final byte[] x509PreambleMlDsa87 = new byte[] {
-            0x30,
-            (byte) 0x82,
-            0x0a,
-            0x32,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x13,
-            0x03,
-            (byte) 0x82,
-            0x0a,
-            0x21,
-            0x00,
-    };
-
-    static final byte[] pkcs8PreambleMlDsa65 = new byte[] {
-            0x30,
-            0x34,
-            0x02,
-            0x01,
-            0x00,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x12,
-            0x04,
-            0x22,
-            (byte) 0x80,
-            0x20,
-    };
-
-    static final byte[] pkcs8PreambleMlDsa87 = new byte[] {
-            0x30,
-            0x34,
-            0x02,
-            0x01,
-            0x00,
-            0x30,
-            0x0b,
-            0x06,
-            0x09,
-            0x60,
-            (byte) 0x86,
-            0x48,
-            0x01,
-            0x65,
-            0x03,
-            0x04,
-            0x03,
-            0x13,
-            0x04,
-            0x22,
-            (byte) 0x80,
-            0x20,
-    };
-
     /** ML-DSA-65 */
     public static class MlDsa65 extends OpenSslMlDsaKeyFactory {
         public MlDsa65() {
@@ -175,7 +75,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
     }
 
-    private OpenSslMlDsaPublicKey makePublicKey(byte[] raw, MlDsaAlgorithm algorithm)
+    private OpenSslMlDsaPublicKey makePublicKeyFromRaw(byte[] raw, MlDsaAlgorithm algorithm)
             throws InvalidKeySpecException {
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
@@ -183,7 +83,44 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (raw.length != algorithm.publicKeySize()) {
             throw new InvalidKeySpecException("Invalid raw public key");
         }
-        return new OpenSslMlDsaPublicKey(raw, algorithm);
+        try {
+            return new OpenSslMlDsaPublicKey(raw, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw public key", e);
+        }
+    }
+
+    static MlDsaAlgorithm getMlDsaAlgorithm(OpenSSLKey key) {
+        int keyType = NativeCrypto.EVP_PKEY_type(key.getNativeRef());
+        if (keyType == NativeConstants.EVP_PKEY_ML_DSA_65) {
+            return MlDsaAlgorithm.ML_DSA_65;
+        } else if (keyType == NativeConstants.EVP_PKEY_ML_DSA_87) {
+            return MlDsaAlgorithm.ML_DSA_87;
+        } else {
+            throw new IllegalArgumentException("Unsupported key type");
+        }
+    }
+
+    static int getPKeyType(MlDsaAlgorithm algorithm) {
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return NativeConstants.EVP_PKEY_ML_DSA_65;
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return NativeConstants.EVP_PKEY_ML_DSA_87;
+        } else {
+            throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
+        }
+    }
+
+    private OpenSslMlDsaPublicKey makePublicKey(OpenSSLKey key) throws InvalidKeySpecException {
+        MlDsaAlgorithm algorithm = getMlDsaAlgorithm(key);
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        try {
+            return new OpenSslMlDsaPublicKey(key, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid public key", e);
+        }
     }
 
     @Override
@@ -198,33 +135,48 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
-            return makePublicKey(raw, defaultAlgorithm);
+            return makePublicKeyFromRaw(raw, defaultAlgorithm);
         }
         if (!encodedKeySpec.getFormat().equals("X.509")) {
             throw new InvalidKeySpecException("Encoding must be in X.509 format");
         }
         byte[] encoded = encodedKeySpec.getEncoded();
-        if (ArrayUtils.startsWith(encoded, x509PreambleMlDsa65)) {
-            byte[] raw = Arrays.copyOfRange(encoded, x509PreambleMlDsa65.length, encoded.length);
-            return makePublicKey(raw, MlDsaAlgorithm.ML_DSA_65);
-        } else if (ArrayUtils.startsWith(encoded, x509PreambleMlDsa87)) {
-            byte[] raw = Arrays.copyOfRange(encoded, x509PreambleMlDsa65.length, encoded.length);
-            return makePublicKey(raw, MlDsaAlgorithm.ML_DSA_87);
-        } else {
-            throw new InvalidKeySpecException(
-                    "Only X.509 format for ML-DSA-65 and ML-DSA-87 is supported");
+        try {
+            OpenSSLKey key =
+                    new OpenSSLKey(NativeCrypto.EVP_PKEY_from_subject_public_key_info(encoded,
+                            new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                                    NativeConstants.EVP_PKEY_ML_DSA_87}));
+            return makePublicKey(key);
+        } catch (OpenSSLX509CertificateFactory.ParsingException e) {
+            throw new InvalidKeySpecException("Invalid X.509 encoding", e);
         }
     }
 
-    private OpenSslMlDsaPrivateKey makePrivateKey(byte[] raw, MlDsaAlgorithm algorithm)
+    private OpenSslMlDsaPrivateKey makePrivateKeyFromSeed(byte[] seed, MlDsaAlgorithm algorithm)
             throws InvalidKeySpecException {
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
         }
-        if (raw.length != 32) {
-            throw new InvalidKeySpecException("Invalid raw public key");
+        if (seed.length != 32) {
+            throw new InvalidKeySpecException("Invalid raw private key");
         }
-        return new OpenSslMlDsaPrivateKey(raw, algorithm);
+        try {
+            return new OpenSslMlDsaPrivateKey(seed, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw private key", e);
+        }
+    }
+
+    private OpenSslMlDsaPrivateKey makePrivateKey(OpenSSLKey key) throws InvalidKeySpecException {
+        MlDsaAlgorithm algorithm = getMlDsaAlgorithm(key);
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        try {
+            return new OpenSslMlDsaPrivateKey(key, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid private key", e);
+        }
     }
 
     @Override
@@ -239,21 +191,20 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
-            return makePrivateKey(raw, defaultAlgorithm);
+            return makePrivateKeyFromSeed(raw, defaultAlgorithm);
         }
         if (!encodedKeySpec.getFormat().equals("PKCS#8")) {
             throw new InvalidKeySpecException("Encoding must be in PKCS#8 format");
         }
 
         byte[] encoded = encodedKeySpec.getEncoded();
-        if (ArrayUtils.startsWith(encoded, pkcs8PreambleMlDsa65)) {
-            byte[] raw = Arrays.copyOfRange(encoded, pkcs8PreambleMlDsa65.length, encoded.length);
-            return makePrivateKey(raw, MlDsaAlgorithm.ML_DSA_65);
-        } else if (ArrayUtils.startsWith(encoded, pkcs8PreambleMlDsa87)) {
-            byte[] raw = Arrays.copyOfRange(encoded, pkcs8PreambleMlDsa87.length, encoded.length);
-            return makePrivateKey(raw, MlDsaAlgorithm.ML_DSA_87);
-        } else {
-            throw new InvalidKeySpecException("Unsupported PKCS8 key preamble");
+        try {
+            OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_key_info(encoded,
+                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                            NativeConstants.EVP_PKEY_ML_DSA_87}));
+            return makePrivateKey(key);
+        } catch (OpenSSLX509CertificateFactory.ParsingException e) {
+            throw new InvalidKeySpecException("Invalid PKCS8 encoding", e);
         }
     }
 
