@@ -2837,102 +2837,6 @@ static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
     return publicKeyRef.release();
 }
 
-static jbyteArray NativeCrypto_MLDSA65_sign(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
-                                            jbyteArray privateKeySeed) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-
-    ScopedByteArrayRO seedArray(env, privateKeySeed);
-    if (seedArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA65_sign => privateKeySeed == null");
-        return nullptr;
-    }
-
-    MLDSA65_private_key privateKey;
-    if (!MLDSA65_private_key_from_seed(
-                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
-        JNI_TRACE("MLDSA65_private_key_from_seed failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_private_key_from_seed");
-        return nullptr;
-    }
-
-    ScopedByteArrayRO dataArray(env, data);
-    if (dataArray.get() == nullptr) {
-        return nullptr;
-    }
-
-    if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                           "dataLen");
-        return nullptr;
-    }
-
-    ScopedLocalRef<jbyteArray> resultRef(
-            env, env->NewByteArray(static_cast<jsize>(MLDSA65_SIGNATURE_BYTES)));
-    if (resultRef.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA65_sign: byte array creation failed");
-        return nullptr;
-    }
-
-    ScopedByteArrayRW resultArray(env, resultRef.get());
-    if (resultArray.get() == nullptr) {
-        return nullptr;
-    }
-
-    if (!MLDSA65_sign(reinterpret_cast<unsigned char*>(resultArray.get()), &privateKey,
-                      reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
-                      /* context */ NULL, /* context_len */ 0)) {
-        JNI_TRACE("MLDSA65_sign failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA65_sign");
-        return nullptr;
-    }
-
-    return resultRef.release();
-}
-
-static jint NativeCrypto_MLDSA65_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
-                                        jbyteArray sig, jbyteArray publicKey) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-
-    ScopedByteArrayRO publicKeyArray(env, publicKey);
-    if (publicKeyArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA65_verify => publicKey == null");
-        return -1;
-    }
-
-    CBS cbs;
-    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(publicKeyArray.get()), publicKeyArray.size());
-    MLDSA65_public_key pubkey;
-    if (!MLDSA65_parse_public_key(&pubkey, &cbs)) {
-        JNI_TRACE("MLDSA65_parse_public_key failed");
-        conscrypt::jniutil::throwIllegalArgumentException(env, "MLDSA65_parse_public_key failed");
-        return -1;
-    }
-
-    ScopedByteArrayRO dataArray(env, data);
-    if (dataArray.get() == nullptr) {
-        return -1;
-    }
-
-    if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                           "dataLen");
-        return -1;
-    }
-
-    ScopedByteArrayRO sigArray(env, sig);
-    if (sigArray.get() == nullptr) {
-        return -1;
-    }
-
-    int result =
-            MLDSA65_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
-                           sigArray.size(), reinterpret_cast<const unsigned char*>(dataArray.get()),
-                           dataLen, /*context=*/NULL, /*context_len=*/0);
-
-    JNI_TRACE("MLDSA65_verify(%p, %p, %p, %d) => %d", publicKey, sig, data, dataLen, result);
-    return static_cast<jint>(result);
-}
-
 static jbyteArray NativeCrypto_MLDSA87_public_key_from_seed(JNIEnv* env, jclass,
                                                             jbyteArray privateKeySeed) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -2980,102 +2884,6 @@ static jbyteArray NativeCrypto_MLDSA87_public_key_from_seed(JNIEnv* env, jclass,
         return nullptr;
     }
     return publicKeyRef.release();
-}
-
-static jbyteArray NativeCrypto_MLDSA87_sign(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
-                                            jbyteArray privateKeySeed) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-
-    ScopedByteArrayRO seedArray(env, privateKeySeed);
-    if (seedArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA87_sign => privateKeySeed == null");
-        return nullptr;
-    }
-
-    MLDSA87_private_key privateKey;
-    if (!MLDSA87_private_key_from_seed(
-                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
-        JNI_TRACE("MLDSA87_private_key_from_seed failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_private_key_from_seed");
-        return nullptr;
-    }
-
-    ScopedByteArrayRO dataArray(env, data);
-    if (dataArray.get() == nullptr) {
-        return nullptr;
-    }
-
-    if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                           "dataLen");
-        return nullptr;
-    }
-
-    ScopedLocalRef<jbyteArray> resultRef(
-            env, env->NewByteArray(static_cast<jsize>(MLDSA87_SIGNATURE_BYTES)));
-    if (resultRef.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA87_sign: byte array creation failed");
-        return nullptr;
-    }
-
-    ScopedByteArrayRW resultArray(env, resultRef.get());
-    if (resultArray.get() == nullptr) {
-        return nullptr;
-    }
-
-    if (!MLDSA87_sign(reinterpret_cast<unsigned char*>(resultArray.get()), &privateKey,
-                      reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
-                      /* context */ NULL, /* context_len */ 0)) {
-        JNI_TRACE("MLDSA87_sign failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA87_sign");
-        return nullptr;
-    }
-
-    return resultRef.release();
-}
-
-static jint NativeCrypto_MLDSA87_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
-                                        jbyteArray sig, jbyteArray publicKey) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-
-    ScopedByteArrayRO publicKeyArray(env, publicKey);
-    if (publicKeyArray.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_MLDSA87_verify => publicKey == null");
-        return -1;
-    }
-
-    CBS cbs;
-    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(publicKeyArray.get()), publicKeyArray.size());
-    MLDSA87_public_key pubkey;
-    if (!MLDSA87_parse_public_key(&pubkey, &cbs)) {
-        JNI_TRACE("MLDSA87_parse_public_key failed");
-        conscrypt::jniutil::throwIllegalArgumentException(env, "MLDSA87_parse_public_key failed");
-        return -1;
-    }
-
-    ScopedByteArrayRO dataArray(env, data);
-    if (dataArray.get() == nullptr) {
-        return -1;
-    }
-
-    if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
-                                           "dataLen");
-        return -1;
-    }
-
-    ScopedByteArrayRO sigArray(env, sig);
-    if (sigArray.get() == nullptr) {
-        return -1;
-    }
-
-    int result =
-            MLDSA87_verify(&pubkey, reinterpret_cast<const unsigned char*>(sigArray.get()),
-                           sigArray.size(), reinterpret_cast<const unsigned char*>(dataArray.get()),
-                           dataLen, /*context=*/NULL, /*context_len=*/0);
-
-    JNI_TRACE("MLDSA87_verify(%p, %p, %p, %d) => %d", publicKey, sig, data, dataLen, result);
-    return static_cast<jint>(result);
 }
 
 static void NativeCrypto_SLHDSA_SHA2_128S_generate_key(JNIEnv* env, jclass,
@@ -12388,11 +12196,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ECDSA_sign, "([BI[B" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(ECDSA_verify, "([BI[B" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(MLDSA65_public_key_from_seed, "([B)[B"),
-        CONSCRYPT_NATIVE_METHOD(MLDSA65_sign, "([BI[B)[B"),
-        CONSCRYPT_NATIVE_METHOD(MLDSA65_verify, "([BI[B[B)I"),
         CONSCRYPT_NATIVE_METHOD(MLDSA87_public_key_from_seed, "([B)[B"),
-        CONSCRYPT_NATIVE_METHOD(MLDSA87_sign, "([BI[B)[B"),
-        CONSCRYPT_NATIVE_METHOD(MLDSA87_verify, "([BI[B[B)I"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_generate_key, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_sign, "([BI[B)[B"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_verify, "([BI[B[B)I"),
