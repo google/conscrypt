@@ -57,15 +57,14 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
         return false;
     }
 
-    private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed)
-            throws IOException {
+    private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed) {
         if (encodedSeed.length == 32) {
             return MlDsaAlgorithm.ML_DSA_65;
         }
         if (encodedSeed.length == 33 && encodedSeed[32] == 87) {
             return MlDsaAlgorithm.ML_DSA_87;
         }
-        throw new IOException("Invalid encoded seed");
+        throw new IllegalArgumentException("Invalid encoded seed");
     }
 
     private static byte[] encodeSeed(byte[] unencodedSeed, MlDsaAlgorithm algorithm) {
