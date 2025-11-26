@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -24,7 +26,6 @@ import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
     private static final long serialVersionUID = -3136201500221850916L;
