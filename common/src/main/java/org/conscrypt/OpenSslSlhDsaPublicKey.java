@@ -97,6 +97,9 @@ public class OpenSslSlhDsaPublicKey implements PublicKey {
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject(); // reads "raw"
+        if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
     }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
