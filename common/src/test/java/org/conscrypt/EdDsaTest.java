@@ -297,6 +297,20 @@ public class EdDsaTest {
     }
 
     @Test
+    public void generateKey_invalidEncoding_throwsInvalidKeySpecException() throws Exception {
+        byte[] invalidEncoding = decodeHex("012345");
+        KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePrivate(new PKCS8EncodedKeySpec(invalidEncoding)));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePublic(new X509EncodedKeySpec(invalidEncoding)));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePrivate(new RawKeySpec(invalidEncoding)));
+        assertThrows(InvalidKeySpecException.class,
+                () -> keyFactory.generatePublic(new RawKeySpec(invalidEncoding)));
+    }
+
+    @Test
     public void testVectors() throws Exception {
         List<TestVector> vectors = TestUtils.readTestVectors("crypto/eddsa.txt");
 
