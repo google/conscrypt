@@ -108,4 +108,15 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
         }
         return Arrays.hashCode(uCoordinate);
     }
+    
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "uCoordinate"
+        if (uCoordinate.length != X25519_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject(); // writes "uCoordinate"
+    }
 }
