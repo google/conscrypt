@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;

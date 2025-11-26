@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
