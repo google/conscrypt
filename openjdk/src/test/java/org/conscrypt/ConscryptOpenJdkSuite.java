@@ -115,6 +115,7 @@ import org.junit.runners.Suite;
         SlhDsaTest.class,
         TestSessionBuilderTest.class,
         TrustManagerImplTest.class,
+        X25519Test.class,
         XwingTest.class,
         // org.conscrypt.ct tests
         VerifierTest.class,

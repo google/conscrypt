@@ -18,6 +18,9 @@ package org.conscrypt;
 
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
@@ -113,5 +116,16 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
     @Override
     public int hashCode() {
         return Arrays.hashCode(uCoordinate);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "uCoordinate"
+        if (uCoordinate.length != X25519_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject(); // writes "uCoordinate"
     }
 }
