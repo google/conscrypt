@@ -64,21 +64,31 @@ constexpr bool kWithJniTracePackets = false;
 }  // namespace trace
 }  // namespace conscrypt
 
-#define JNI_TRACE(...)                                        \
-    if (conscrypt::trace::kWithJniTrace) {                    \
-        CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
-    }
-#define JNI_TRACE_MD(...)                                     \
-    if (conscrypt::trace::kWithJniTraceMd) {                  \
-        CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
-    }
-#define JNI_TRACE_KEYS(...)                                   \
-    if (conscrypt::trace::kWithJniTraceKeys) {                \
-        CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
-    }
-#define JNI_TRACE_PACKET_DATA(ssl, dir, data, len)    \
-    if (conscrypt::trace::kWithJniTracePackets) {     \
-        debug_print_packet_data(ssl, dir, data, len); \
-    }
+#define JNI_TRACE(...)                                            \
+    do {                                                          \
+        if constexpr (conscrypt::trace::kWithJniTrace) {          \
+            CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+        }                                                         \
+    } while (0)
 
+#define JNI_TRACE_MD(...)                                         \
+    do {                                                          \
+        if constexpr (conscrypt::trace::kWithJniTraceMd) {        \
+            CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+        }                                                         \
+    } while (0)
+
+#define JNI_TRACE_KEYS(...)                                       \
+    do {                                                          \
+        if constexpr (conscrypt::trace::kWithJniTraceKeys) {      \
+            CONSCRYPT_LOG(LOG_INFO, LOG_TAG "-jni", __VA_ARGS__); \
+        }                                                         \
+    } while (0)
+
+#define JNI_TRACE_PACKET_DATA(ssl, dir, data, len)              \
+    do {                                                        \
+        if constexpr (conscrypt::trace::kWithJniTracePackets) { \
+            debug_print_packet_data(ssl, dir, data, len);       \
+        }                                                       \
+    } while (0)
 #endif  // CONSCRYPT_TRACE_H_
