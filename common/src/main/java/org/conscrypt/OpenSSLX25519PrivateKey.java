@@ -36,9 +36,8 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
         byte[] encoded = keySpec.getEncoded();
         if ("PKCS#8".equals(keySpec.getFormat())) {
             try {
-                OpenSSLKey key = new OpenSSLKey(
-                    NativeCrypto.EVP_PKEY_from_private_key_info(
-                        encoded, new int[] {NativeConstants.EVP_PKEY_X25519}));
+                OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_key_info(
+                         encoded, new int[] {NativeConstants.EVP_PKEY_X25519}));
                 uCoordinate = NativeCrypto.EVP_PKEY_get_raw_private_key(key.getNativeRef());
             } catch (ParsingException e) {
                 throw new InvalidKeySpecException(e);

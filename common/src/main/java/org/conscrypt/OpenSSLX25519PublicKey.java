@@ -32,10 +32,8 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
     public OpenSSLX25519PublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
         if ("X.509".equals(keySpec.getFormat())) {
-            try{
-                OpenSSLKey key =
-                new OpenSSLKey(
-                    NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+            try {
+                OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_subject_public_key_info(
                         encoded, new int[] {NativeConstants.EVP_PKEY_X25519}));
                 uCoordinate = NativeCrypto.EVP_PKEY_get_raw_public_key(key.getNativeRef());
             } catch (ParsingException e) {
