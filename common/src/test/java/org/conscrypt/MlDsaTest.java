@@ -296,6 +296,54 @@ public class MlDsaTest {
         }
     }
 
+    /** Helper class to test KeyFactory.translateKey. */
+    static class TestPublicKey implements PublicKey {
+        public TestPublicKey(byte[] x509encoded) {
+            this.x509encoded = x509encoded;
+        }
+
+        private final byte[] x509encoded;
+
+        @Override
+        public String getAlgorithm() {
+            return "ML-DSA";
+        }
+
+        @Override
+        public String getFormat() {
+            return "X.509";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return x509encoded;
+        }
+    }
+
+    /** Helper class to test KeyFactory.translateKey. */
+    static class TestPrivateKey implements PrivateKey {
+        public TestPrivateKey(byte[] pkcs8encoded) {
+            this.pkcs8encoded = pkcs8encoded;
+        }
+
+        private final byte[] pkcs8encoded;
+
+        @Override
+        public String getAlgorithm() {
+            return "ML-DSA";
+        }
+
+        @Override
+        public String getFormat() {
+            return "PKCS#8";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return pkcs8encoded;
+        }
+    }
+
     @Test
     public void mldsa65KeyPair_x509AndPkcs8() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
@@ -324,6 +372,13 @@ public class MlDsaTest {
 
             assertEquals(privateKey, keyPair.getPrivate());
             assertEquals(publicKey, keyPair.getPublic());
+
+            assertEquals(keyPair.getPrivate(), keyFactory.translateKey(keyPair.getPrivate()));
+            assertEquals(keyPair.getPrivate(),
+                    keyFactory.translateKey(new TestPrivateKey(keyPair.getPrivate().getEncoded())));
+            assertEquals(keyPair.getPublic(), keyFactory.translateKey(keyPair.getPublic()));
+            assertEquals(keyPair.getPublic(),
+                    keyFactory.translateKey(new TestPublicKey(keyPair.getPublic().getEncoded())));
         }
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
@@ -337,6 +392,16 @@ public class MlDsaTest {
                                 new RawKeySpec(keyPair.getPrivate().getEncoded())));
         assertThrows(InvalidKeySpecException.class,
                 () -> keyFactory.generatePublic(new RawKeySpec(keyPair.getPublic().getEncoded())));
+
+        assertThrows(
+                InvalidKeyException.class, () -> keyFactory.translateKey(keyPair.getPrivate()));
+        assertThrows(InvalidKeyException.class,
+                ()
+                        -> keyFactory.translateKey(
+                                new TestPrivateKey(keyPair.getPrivate().getEncoded())));
+        assertThrows(InvalidKeyException.class, () -> keyFactory.translateKey(keyPair.getPublic()));
+        assertThrows(InvalidKeyException.class,
+                () -> keyFactory.translateKey(new TestPublicKey(keyPair.getPublic().getEncoded())));
     }
 
     @Test
@@ -367,6 +432,13 @@ public class MlDsaTest {
 
             assertEquals(privateKey, keyPair.getPrivate());
             assertEquals(publicKey, keyPair.getPublic());
+
+            assertEquals(keyPair.getPrivate(), keyFactory.translateKey(keyPair.getPrivate()));
+            assertEquals(keyPair.getPrivate(),
+                    keyFactory.translateKey(new TestPrivateKey(keyPair.getPrivate().getEncoded())));
+            assertEquals(keyPair.getPublic(), keyFactory.translateKey(keyPair.getPublic()));
+            assertEquals(keyPair.getPublic(),
+                    keyFactory.translateKey(new TestPublicKey(keyPair.getPublic().getEncoded())));
         }
 
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
@@ -380,6 +452,16 @@ public class MlDsaTest {
                                 new RawKeySpec(keyPair.getPrivate().getEncoded())));
         assertThrows(InvalidKeySpecException.class,
                 () -> keyFactory.generatePublic(new RawKeySpec(keyPair.getPublic().getEncoded())));
+
+        assertThrows(
+                InvalidKeyException.class, () -> keyFactory.translateKey(keyPair.getPrivate()));
+        assertThrows(InvalidKeyException.class,
+                ()
+                        -> keyFactory.translateKey(
+                                new TestPrivateKey(keyPair.getPrivate().getEncoded())));
+        assertThrows(InvalidKeyException.class, () -> keyFactory.translateKey(keyPair.getPublic()));
+        assertThrows(InvalidKeyException.class,
+                () -> keyFactory.translateKey(new TestPublicKey(keyPair.getPublic().getEncoded())));
     }
 
     @Test
