@@ -251,13 +251,34 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
 
     @Override
     protected Key engineTranslateKey(Key key) throws InvalidKeyException {
-        if (key == null) {
-            throw new InvalidKeyException("key == null");
-        }
-        if ((key instanceof OpenSslMlDsaPublicKey) || (key instanceof OpenSslMlDsaPrivateKey)) {
+        if ((key instanceof OpenSslMlDsaPublicKey)) {
+            OpenSslMlDsaPublicKey conscryptKey = (OpenSslMlDsaPublicKey) key;
+            if (!supportsAlgorithm(conscryptKey.getMlDsaAlgorithm())) {
+                throw new InvalidKeyException("Key algorithm mismatch");
+            }
+            return conscryptKey;
+        } else if (key instanceof OpenSslMlDsaPrivateKey) {
+            OpenSslMlDsaPrivateKey conscryptKey = (OpenSslMlDsaPrivateKey) key;
+            if (!supportsAlgorithm(conscryptKey.getMlDsaAlgorithm())) {
+                throw new InvalidKeyException("Key algorithm mismatch");
+            }
             return key;
+        } else if ((key instanceof PrivateKey) && key.getFormat().equals("PKCS#8")) {
+            byte[] encoded = key.getEncoded();
+            try {
+                return engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else if ((key instanceof PublicKey) && key.getFormat().equals("X.509")) {
+            byte[] encoded = key.getEncoded();
+            try {
+                return engineGeneratePublic(new X509EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else {
+            throw new InvalidKeyException("Unable to translate key into ML-DSA key");
         }
-        throw new InvalidKeyException(
-                "Key must be OpenSslMlDsaPublicKey or OpenSslMlDsaPrivateKey");
     }
 }
