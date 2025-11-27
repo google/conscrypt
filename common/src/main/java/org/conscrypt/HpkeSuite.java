@@ -109,6 +109,7 @@ public final class HpkeSuite {
      * @return {@link KEM} representation.
      */
     @Deprecated // Use KEM.forId()
+    @SuppressWarnings("InlineMeSuggester")
     public KEM convertKem(int kem) {
         return KEM.forId(kem);
     }
@@ -120,6 +121,7 @@ public final class HpkeSuite {
      * @return {@link KDF} representation.
      */
     @Deprecated // Use KDF.forId()
+    @SuppressWarnings("InlineMeSuggester")
     public KDF convertKdf(int kdf) {
         return KDF.forId(kdf);
     }
@@ -131,6 +133,7 @@ public final class HpkeSuite {
      * @return {@link AEAD} representation.
      */
     @Deprecated // Use AEAD.forId()
+    @SuppressWarnings("InlineMeSuggester")
     public AEAD convertAead(int aead) {
         return AEAD.forId(aead);
     }
@@ -178,9 +181,11 @@ public final class HpkeSuite {
          * Returns the  length in bytes of an encapsulated key produced by this KEM.
          */
         @Deprecated // Use getEncapsulatedLength
+        @SuppressWarnings("InlineMeSuggester")
         public int getnEnc() {
             return getEncapsulatedLength();
         }
+
         public int getEncapsulatedLength() {
             return nEnc;
         }
@@ -258,7 +263,9 @@ public final class HpkeSuite {
         public int getMacLength() {
             return hLength;
         }
+
         @Deprecated // Use getMacLength
+        @SuppressWarnings("InlineMeSuggester")
         public int getHLength() {
             return getMacLength();
         }
@@ -278,10 +285,12 @@ public final class HpkeSuite {
          *
          * @return name of mac algorithm used by the kdf.
          */
-        @Deprecated // Use getMacName
+        @Deprecated // Use getMacName()
+        @SuppressWarnings("InlineMeSuggester")
         public String getMacAlgorithmName() {
             return getMacName();
         }
+
         public String getMacName() {
             return hName;
         }
@@ -342,9 +351,11 @@ public final class HpkeSuite {
          *         AEAD ids</a>
          */
         @Deprecated // Use getKeyLength()
+        @SuppressWarnings("InlineMeSuggester")
         public int getNk() {
             return getKeyLength();
         }
+
         public int getKeyLength() {
             return nk;
         }
@@ -357,9 +368,11 @@ public final class HpkeSuite {
          *         AEAD ids</a>
          */
         @Deprecated // Use getNonceLength()
+        @SuppressWarnings("InlineMeSuggester")
         public int getNn() {
             return getNonceLength();
         }
+
         public int getNonceLength() {
             return nn;
         }
@@ -372,9 +385,11 @@ public final class HpkeSuite {
          *         AEAD ids</a>
          */
         @Deprecated // Use getTagLength()
+        @SuppressWarnings("InlineMeSuggester")
         public int getNt() {
             return nt;
         }
+
         public int getTagLength() {
             return nt;
         }
@@ -392,3 +407,4 @@ public final class HpkeSuite {
         }
     }
 }
+
