@@ -124,6 +124,55 @@ public class MlDsaTest {
         assertTrue(signature.verify(sig2));
     }
 
+
+    /** Helper class to test KeyFactory.translateKey. */
+    static class TestPublicKey implements PublicKey {
+        public TestPublicKey(byte[] x509encoded) {
+            this.x509encoded = x509encoded;
+        }
+
+        private final byte[] x509encoded;
+
+        @Override
+        public String getAlgorithm() {
+            return "ML-DSA";
+        }
+
+        @Override
+        public String getFormat() {
+            return "X.509";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return x509encoded;
+        }
+    }
+
+    /** Helper class to test KeyFactory.translateKey. */
+    static class TestPrivateKey implements PrivateKey {
+        public TestPrivateKey(byte[] pkcs8encoded) {
+            this.pkcs8encoded = pkcs8encoded;
+        }
+
+        private final byte[] pkcs8encoded;
+
+        @Override
+        public String getAlgorithm() {
+            return "ML-DSA";
+        }
+
+        @Override
+        public String getFormat() {
+            return "PKCS#8";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return pkcs8encoded;
+        }
+    }
+
     @Test
     public void mldsa65KeyPair_signVerify_works() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
@@ -188,6 +237,37 @@ public class MlDsaTest {
         Signature s65 = Signature.getInstance("ML-DSA-65", conscryptProvider);
         assertThrows(InvalidKeyException.class, () -> s65.initSign(privateKey));
         assertThrows(InvalidKeyException.class, () -> s65.initVerify(publicKey));
+    }
+    
+
+    @Test
+    public void foreignMldsa65KeyPair_signVerify_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        PrivateKey privateKey = new TestPrivateKey(keyPair.getPrivate().getEncoded());
+        PublicKey publicKey = new TestPublicKey(keyPair.getPublic().getEncoded());
+
+        for (String signAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+            byte[] msg = new byte[123];
+            Signature ss = Signature.getInstance(signAlgorithm, conscryptProvider);
+            ss.initSign(privateKey);
+            ss.update(msg);
+            byte[] sig = ss.sign();
+            assertEquals(3309, sig.length);
+
+            for (String verifyAlgorithm : new String[] {"ML-DSA-65", "ML-DSA"}) {
+                Signature sv = Signature.getInstance(verifyAlgorithm, conscryptProvider);
+                sv.initVerify(publicKey);
+                sv.update(msg);
+                boolean verified = sv.verify(sig);
+                assertTrue(verified);
+            }
+        }
+
+        // ML-DSA-87 does not support ML-DSA-65 keys.
+        Signature s87 = Signature.getInstance("ML-DSA-87", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s87.initSign(privateKey));
+        assertThrows(InvalidKeyException.class, () -> s87.initVerify(publicKey));
     }
 
     @Test
@@ -293,54 +373,6 @@ public class MlDsaTest {
                     () -> keyFactory.generatePrivate(new RawKeySpec(invalidRawKey)));
             assertThrows(InvalidKeySpecException.class,
                     () -> keyFactory.generatePublic(new RawKeySpec(invalidRawKey)));
-        }
-    }
-
-    /** Helper class to test KeyFactory.translateKey. */
-    static class TestPublicKey implements PublicKey {
-        public TestPublicKey(byte[] x509encoded) {
-            this.x509encoded = x509encoded;
-        }
-
-        private final byte[] x509encoded;
-
-        @Override
-        public String getAlgorithm() {
-            return "ML-DSA";
-        }
-
-        @Override
-        public String getFormat() {
-            return "X.509";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            return x509encoded;
-        }
-    }
-
-    /** Helper class to test KeyFactory.translateKey. */
-    static class TestPrivateKey implements PrivateKey {
-        public TestPrivateKey(byte[] pkcs8encoded) {
-            this.pkcs8encoded = pkcs8encoded;
-        }
-
-        private final byte[] pkcs8encoded;
-
-        @Override
-        public String getAlgorithm() {
-            return "ML-DSA";
-        }
-
-        @Override
-        public String getFormat() {
-            return "PKCS#8";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            return pkcs8encoded;
         }
     }
 
