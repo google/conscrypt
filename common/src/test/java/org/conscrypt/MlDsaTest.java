@@ -124,7 +124,6 @@ public class MlDsaTest {
         assertTrue(signature.verify(sig2));
     }
 
-
     /** Helper class to test KeyFactory.translateKey. */
     static class TestPublicKey implements PublicKey {
         public TestPublicKey(byte[] x509encoded) {
@@ -238,7 +237,6 @@ public class MlDsaTest {
         assertThrows(InvalidKeyException.class, () -> s65.initSign(privateKey));
         assertThrows(InvalidKeyException.class, () -> s65.initVerify(publicKey));
     }
-    
 
     @Test
     public void foreignMldsa65KeyPair_signVerify_works() throws Exception {
