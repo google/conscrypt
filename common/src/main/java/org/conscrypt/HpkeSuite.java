@@ -71,8 +71,7 @@ public final class HpkeSuite {
     }
 
     public String name() {
-        return String.format("%s/%s/%s",
-            mKem.name(), mKdf.name(), mAead.name());
+        return String.format("%s/%s/%s", mKem.name(), mKdf.name(), mAead.name());
     }
 
     /**
@@ -347,7 +346,8 @@ public final class HpkeSuite {
          * Returns the length in bytes of a key for this algorithm.
          *
          * @return AEAD Nk
-         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
+         * @see <a
+         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
          *         AEAD ids</a>
          */
         @Deprecated // Use getKeyLength()
@@ -364,7 +364,8 @@ public final class HpkeSuite {
          * Returns the length in bytes of a nonce for this algorithm.
          *
          * @return AEAD Nn
-         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
+         * @see <a
+         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
          *         AEAD ids</a>
          */
         @Deprecated // Use getNonceLength()
@@ -381,7 +382,8 @@ public final class HpkeSuite {
          * Returns the length in bytes of the AEAD authentication tag for this algorithm.
          *
          * @return AEAD Nt
-         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
+         * @see <a
+         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
          *         AEAD ids</a>
          */
         @Deprecated // Use getTagLength()
@@ -407,4 +409,3 @@ public final class HpkeSuite {
         }
     }
 }
-
