@@ -27,27 +27,20 @@ import java.util.Arrays;
 public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
-    private static final byte[] X509_PREAMBLE = new byte[] {
-            0x30, 0x2a,                       // Sequence: 42 bytes
-                0x30, 0x05,                   // Sequence: 5 bytes
-                0x06, 0x03, 0x2b, 0x65, 0x6e, // OID: 1.3.101.110 (X25519)
-            0x03, 0x21, 0x00,                 // Bit string: 256 bits
-            // Key bytes follow directly
-    };
-
     private final byte[] uCoordinate;
 
     public OpenSSLX25519PublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
         if ("X.509".equals(keySpec.getFormat())) {
-            if (!ArrayUtils.startsWith(encoded, X509_PREAMBLE)) {
-                throw new InvalidKeySpecException("Invalid format");
+            try{
+                OpenSSLKey key =
+                new OpenSSLKey(
+                    NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+                        encoded, new int[] {NativeConstants.EVP_PKEY_X25519}));
+                uCoordinate = NativeCrypto.EVP_PKEY_get_raw_public_key(key.getNativeRef());
+            } catch (ParsingException e) {
+                throw new InvalidKeySpecException("Invalid format", e);
             }
-            int totalLength = X509_PREAMBLE.length + X25519_KEY_SIZE_BYTES;
-            if (encoded.length < totalLength) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            uCoordinate = Arrays.copyOfRange(encoded, X509_PREAMBLE.length, totalLength);
         } else if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
             if (encoded.length != X25519_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
@@ -80,8 +73,13 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
         if (uCoordinate == null) {
             throw new IllegalStateException("key is destroyed");
         }
-
-        return ArrayUtils.concat(X509_PREAMBLE, uCoordinate);
+        try {
+            OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                    NativeConstants.EVP_PKEY_X25519, uCoordinate));
+            return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
+        } catch (ParsingException e) {
+            throw new IllegalStateException("unable to create key", e);
+        }
     }
 
     @Override

@@ -123,9 +123,6 @@ public final class NativeCrypto {
 
     static native byte[] EVP_PKEY_get_private_seed(NativeRef.EVP_PKEY pkey);
 
-    static native byte[] EVP_raw_X25519_private_key(byte[] data)
-            throws ParsingException, InvalidKeyException;
-
     static native long EVP_parse_public_key(byte[] data) throws ParsingException;
 
     static native long PEM_read_bio_PUBKEY(long bioCtx);
