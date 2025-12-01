@@ -97,7 +97,7 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         OpenSslMlDsaPrivateKey conscryptPrivateKey =
                 (OpenSslMlDsaPrivateKey) keyFactory.engineTranslateKey(privateKey);
-        key = conscryptPublicKey.getOpenSSLKey();
+        key = conscryptPrivateKey.getOpenSSLKey();
         MlDsaAlgorithm algorithm = OpenSslMlDsaKeyFactory.getMlDsaAlgorithm(key);
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeyException("Key version mismatch: " + algorithm);
