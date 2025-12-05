@@ -28,10 +28,11 @@ import java.security.SignatureSpi;
  */
 @Internal
 public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
+    private static OpenSslMlDsaKeyFactory keyFactory = new OpenSslMlDsaKeyFactory.MlDsa();
+
     /**
      * The current OpenSSL key we're operating on.
      */
-
     private OpenSSLKey key;
     private NativeRef.EVP_MD_CTX ctx;
 
@@ -94,7 +95,9 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
 
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
-        key = OpenSSLKey.fromPrivateKey(privateKey);
+        OpenSslMlDsaPrivateKey conscryptPrivateKey =
+                (OpenSslMlDsaPrivateKey) keyFactory.engineTranslateKey(privateKey);
+        key = conscryptPrivateKey.getOpenSSLKey();
         MlDsaAlgorithm algorithm = OpenSslMlDsaKeyFactory.getMlDsaAlgorithm(key);
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeyException("Key version mismatch: " + algorithm);
@@ -107,7 +110,9 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
 
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-        key = OpenSSLKey.fromPublicKey(publicKey);
+        OpenSslMlDsaPublicKey conscryptPublicKey =
+                (OpenSslMlDsaPublicKey) keyFactory.engineTranslateKey(publicKey);
+        key = conscryptPublicKey.getOpenSSLKey();
         MlDsaAlgorithm algorithm = OpenSslMlDsaKeyFactory.getMlDsaAlgorithm(key);
         if (!supportsAlgorithm(algorithm)) {
             throw new InvalidKeyException("Key version mismatch: " + algorithm);
