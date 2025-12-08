@@ -9861,6 +9861,37 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
     return env->NewStringUTF(name);
 }
 
+
+static void NativeCrypto_SSL_set1_curve_list(JNIEnv* env, jclass, jlong sslAddress,
+                                              CONSCRYPT_UNUSED jobject sslHolder,
+                                              jstring curveNameList) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, sslAddress, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_curve_list curves=%p", ssl,
+              curveNameList);
+    if (ssl == nullptr) {
+        return;
+    }
+    if (curveNameList == nullptr) {
+      conscrypt::jniutil::throwNullPointerException(env,
+                                                    "curveNameList == null");
+      return;
+    }
+
+    ScopedLocalRef<jstring> curve(env, curveNameList);
+    ScopedUtfChars c(env, curve.get());
+    if (c.c_str() == nullptr) {
+      conscrypt::jniutil::throwNullPointerException(env, "c.c_str() == null");
+      return;
+    }
+
+    if (!SSL_set1_curves_list(ssl, c.c_str())) {
+      ERR_clear_error();
+      conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing curve list");
+      return;
+    }
+}
+
 static jstring NativeCrypto_SSL_get_curve_name(JNIEnv* env, jclass, jlong sslAddress,
                                                CONSCRYPT_UNUSED jobject sslHolder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -12497,6 +12528,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_servername, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_do_handshake, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "I)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_current_cipher, "(J" REF_SSL ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set1_curve_list, "(J" REF_SSL "Ljava/lang/String;)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_curve_name, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_version, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_peer_certificates, "(J" REF_SSL ")[[B"),
