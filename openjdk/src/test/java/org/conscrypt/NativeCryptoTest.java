@@ -380,7 +380,8 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void setCurveList_unsupportedCurvesOrInvalid_throwsIllegalArgumentException() throws Exception {
+    public void setCurveList_unsupportedCurvesOrInvalid_throwsIllegalArgumentException()
+            throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
