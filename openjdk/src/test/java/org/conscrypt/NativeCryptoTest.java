@@ -385,34 +385,20 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c, null);
 
         String[] unsupportedOrInvalid = {
-            "SecP256r1MLKEM768",
-            "SecP384r1MLKEM1024",
-            "secp256r1", // This alias for P-256 is not supported.
-            "x448",
-            "MLKEM768",
-            "ffdhe2048",
-            "ffdhe3072",
-            "ffdhe4096",
-            "ffdhe6144",
-            "ffdhe8192",
-            "P-224",
-            // invalid
-            "",
-            ":",
-            ":P-256",
-            "P-256 ",
-            " P-256",
-            "P-256:",
-            "P-256:",
-            "P-256: P-384",
-            "P-256:P-256", // duplicate are not allowed
-            "x25519:X25519", // the same curve with different names is not allowed
-            "P-384:secp384r1", // the same curve with different names is not allowed
+                "SecP256r1MLKEM768", "SecP384r1MLKEM1024",
+                "secp256r1", // This alias for P-256 is not supported.
+                "x448", "MLKEM768", "ffdhe2048", "ffdhe3072", "ffdhe4096", "ffdhe6144", "ffdhe8192",
+                "P-224",
+                // invalid
+                "", ":", ":P-256", "P-256 ", " P-256", "P-256:", "P-256:", "P-256: P-384",
+                "P-256:P-256", // duplicate are not allowed
+                "x25519:X25519", // the same curve with different names is not allowed
+                "P-384:secp384r1", // the same curve with different names is not allowed
         };
 
         for (String curve : unsupportedOrInvalid) {
             assertThrows(curve, SSLException.class,
-                () -> NativeCrypto.SSL_set1_curve_list(s, null, curve));
+                    () -> NativeCrypto.SSL_set1_curve_list(s, null, curve));
         }
 
         NativeCrypto.SSL_free(s, null);

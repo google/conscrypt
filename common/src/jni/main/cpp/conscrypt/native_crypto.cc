@@ -9861,7 +9861,6 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
     return env->NewStringUTF(name);
 }
 
-
 static void NativeCrypto_SSL_set1_curve_list(JNIEnv* env, jclass, jlong sslAddress,
                                               CONSCRYPT_UNUSED jobject sslHolder,
                                               jstring curveNameList) {
