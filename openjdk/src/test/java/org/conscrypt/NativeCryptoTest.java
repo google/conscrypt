@@ -357,38 +357,40 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void setGroupsList_colonSeparatedListsOfSupportedGroups_noErrors() throws Exception {
+    public void setGroupsList_validGroups_works() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        NativeCrypto.SSL_set1_groups_list(s, null, "X25519");
-        NativeCrypto.SSL_set1_groups_list(s, null, "x25519"); // alias for X25519
-        NativeCrypto.SSL_set1_groups_list(s, null, "P-256");
-        NativeCrypto.SSL_set1_groups_list(s, null, "prime256v1"); // alias for P-256
-        NativeCrypto.SSL_set1_groups_list(s, null, "P-384");
-        NativeCrypto.SSL_set1_groups_list(s, null, "secp384r1"); // alias for P-384
-        NativeCrypto.SSL_set1_groups_list(s, null, "P-521");
-        NativeCrypto.SSL_set1_groups_list(s, null, "secp521r1"); // alias for P-521
-        NativeCrypto.SSL_set1_groups_list(s, null, "X25519MLKEM768");
-        NativeCrypto.SSL_set1_groups_list(s, null, "X25519Kyber768Draft00");
-        NativeCrypto.SSL_set1_groups_list(s, null, "MLKEM1024");
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X9_62_prime256v1});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_secp384r1});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_secp521r1});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519MLKEM768});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519Kyber768Draft00});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_ML_KEM_1024});
 
-        NativeCrypto.SSL_set1_groups_list(s, null, "x25519:X25519MLKEM768:P-256:secp384r1:P-521");
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {
+            NativeConstants.NID_X25519,
+            NativeConstants.NID_X9_62_prime256v1,
+            NativeConstants.NID_secp384r1,
+            NativeConstants.NID_secp521r1,
+            NativeConstants.NID_X25519MLKEM768,
+            NativeConstants.NID_X25519Kyber768Draft00,
+            NativeConstants.NID_ML_KEM_1024
+        });
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
     @Test
-    public void setGroupsList_invalidInput_throwsIllegalArgumentException() throws Exception {
+    public void setGroupsList_invalidGroups_throwsSSLException() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        String[] invalidInputs = {"", ":", ":P-256", "P-256:", "P-256:"};
-        for (String groupsList : invalidInputs) {
-            assertThrows(groupsList, SSLException.class,
-                    () -> NativeCrypto.SSL_set1_groups_list(s, null, groupsList));
-        }
+        assertThrows(
+                SSLException.class,
+                () -> NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.EVP_PKEY_RSA}));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);

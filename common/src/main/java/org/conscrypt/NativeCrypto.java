@@ -1343,14 +1343,7 @@ public final class NativeCrypto {
 
     public static native String SSL_get_current_cipher(long ssl, NativeSsl ssl_holder);
 
-    /**
-     * Sets the curves that are enabled in the SSL.
-     *
-     * <p>The format of the curve list is a colon separated list of curves. For example,
-     * "x25519:X25519MLKEM768".
-     */
-    public static native void SSL_set1_groups_list(
-            long ssl, NativeSsl sslHolder, String groupsList);
+    public static native void SSL_set1_groups(long ssl, NativeSsl sslHolder, int[] groups);
 
     public static native String SSL_get_curve_name(long ssl, NativeSsl sslHolder);
 
