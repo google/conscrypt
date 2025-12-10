@@ -65,9 +65,15 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
         }
     }
 
+    // This intentionally diverges from the OpenJDK implementation and JEP 339 (which return
+    // "EdDSA") to achieve backwards compatibility with the "AndroidKeyStore" provider, which
+    // supported generation of Ed25519 keys before Conscrypt did. Conscrypt's `getSigAlgName()`
+    // method returns the OID if there is no mapping to an algorithm name and the "AndroidKeyStore"
+    // provider therefore expects the OID as the algorithm name, even if Conscrypt now supports
+    // Ed25519 key generation (which otherwise aligns with JEP 339).
     @Override
     public String getAlgorithm() {
-        return "EdDSA";
+        return "1.3.101.112";
     }
 
     @Override
