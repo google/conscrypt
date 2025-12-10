@@ -386,14 +386,12 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
+        assertThrows(NullPointerException.class, () -> NativeCrypto.SSL_set1_groups(s, null, null));
+
         assertThrows(SSLException.class,
                 ()
                         -> NativeCrypto.SSL_set1_groups(
                                 s, null, new int[] {NativeConstants.EVP_PKEY_RSA}));
-
-        assertThrows(NullPointerException.class,
-                ()
-                        -> NativeCrypto.SSL_set1_groups(s, null, null));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
