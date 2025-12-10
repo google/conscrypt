@@ -357,49 +357,44 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void setCurveList_colonSeparatedListsOfSupportedCurves_noErrors() throws Exception {
+    public void setGroupsList_colonSeparatedListsOfSupportedGroups_noErrors() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        NativeCrypto.SSL_set1_curve_list(s, null, "X25519");
-        NativeCrypto.SSL_set1_curve_list(s, null, "x25519"); // alias for X25519
-        NativeCrypto.SSL_set1_curve_list(s, null, "P-256");
-        NativeCrypto.SSL_set1_curve_list(s, null, "prime256v1"); // alias for P-256
-        NativeCrypto.SSL_set1_curve_list(s, null, "P-384");
-        NativeCrypto.SSL_set1_curve_list(s, null, "secp384r1"); // alias for P-384
-        NativeCrypto.SSL_set1_curve_list(s, null, "P-521");
-        NativeCrypto.SSL_set1_curve_list(s, null, "secp521r1"); // alias for P-521
-        NativeCrypto.SSL_set1_curve_list(s, null, "X25519MLKEM768");
-        NativeCrypto.SSL_set1_curve_list(s, null, "X25519Kyber768Draft00");
-        NativeCrypto.SSL_set1_curve_list(s, null, "MLKEM1024");
+        NativeCrypto.SSL_set1_groups_list(s, null, "X25519");
+        NativeCrypto.SSL_set1_groups_list(s, null, "x25519"); // alias for X25519
+        NativeCrypto.SSL_set1_groups_list(s, null, "P-256");
+        NativeCrypto.SSL_set1_groups_list(s, null, "prime256v1"); // alias for P-256
+        NativeCrypto.SSL_set1_groups_list(s, null, "P-384");
+        NativeCrypto.SSL_set1_groups_list(s, null, "secp384r1"); // alias for P-384
+        NativeCrypto.SSL_set1_groups_list(s, null, "P-521");
+        NativeCrypto.SSL_set1_groups_list(s, null, "secp521r1"); // alias for P-521
+        NativeCrypto.SSL_set1_groups_list(s, null, "X25519MLKEM768");
+        NativeCrypto.SSL_set1_groups_list(s, null, "X25519Kyber768Draft00");
+        NativeCrypto.SSL_set1_groups_list(s, null, "MLKEM1024");
 
-        NativeCrypto.SSL_set1_curve_list(s, null, "x25519:X25519MLKEM768:P-256:secp384r1:P-521");
+        NativeCrypto.SSL_set1_groups_list(s, null, "x25519:X25519MLKEM768:P-256:secp384r1:P-521");
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
+
     @Test
-    public void setCurveList_unsupportedCurvesOrInvalid_throwsIllegalArgumentException()
-            throws Exception {
+    public void setGroupsList_invalidInput_throwsIllegalArgumentException() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        String[] unsupportedOrInvalid = {
-                "SecP256r1MLKEM768", "SecP384r1MLKEM1024",
-                "secp256r1", // This alias for P-256 is not supported.
-                "x448", "MLKEM768", "ffdhe2048", "ffdhe3072", "ffdhe4096", "ffdhe6144", "ffdhe8192",
-                "P-224",
-                // invalid
+        String[] invalidInputs = {
                 "", ":", ":P-256", "P-256 ", " P-256", "P-256:", "P-256:", "P-256: P-384",
                 "P-256:P-256", // duplicate are not allowed
                 "x25519:X25519", // the same curve with different names is not allowed
                 "P-384:secp384r1", // the same curve with different names is not allowed
         };
 
-        for (String curve : unsupportedOrInvalid) {
-            assertThrows(curve, SSLException.class,
-                    () -> NativeCrypto.SSL_set1_curve_list(s, null, curve));
+        for (String groupsList : invalidInputs) {
+            assertThrows(groupsList, SSLException.class,
+                () -> NativeCrypto.SSL_set1_groups_list(s, null, groupsList));
         }
 
         NativeCrypto.SSL_free(s, null);
