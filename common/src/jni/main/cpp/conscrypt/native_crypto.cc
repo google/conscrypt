@@ -9866,7 +9866,7 @@ static void NativeCrypto_SSL_set1_groups_list(JNIEnv* env, jclass, jlong sslAddr
                                               jstring groupsList) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, sslAddress, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups_list curves=%p", ssl, groupsList);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups_list groupsList=%p", ssl, groupsList);
     if (ssl == nullptr) {
         return;
     }
@@ -9882,7 +9882,7 @@ static void NativeCrypto_SSL_set1_groups_list(JNIEnv* env, jclass, jlong sslAddr
         return;
     }
 
-    if (!SSL_set1_curves_list(ssl, c.c_str())) {
+    if (!SSL_set1_groups_list(ssl, c.c_str())) {
         ERR_clear_error();
         conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing group list");
         return;

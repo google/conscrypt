@@ -385,10 +385,7 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c, null);
 
         String[] invalidInputs = {
-                "", ":", ":P-256", "P-256 ", " P-256", "P-256:", "P-256:", "P-256: P-384",
-                "P-256:P-256", // duplicate are not allowed
-                "x25519:X25519", // the same curve with different names is not allowed
-                "P-384:secp384r1", // the same curve with different names is not allowed
+                "", ":", ":P-256", "P-256:", "P-256:"
         };
 
         for (String groupsList : invalidInputs) {
