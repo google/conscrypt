@@ -236,7 +236,7 @@ public class EdDsaTest {
                 decodeHex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
         PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
-        assertEquals("EdDSA", privateKey.getAlgorithm());
+        assertEquals("1.3.101.112", privateKey.getAlgorithm());
 
         // RawKeySpec returns the raw private key.
         RawKeySpec rawPrivateKeySpec = keyFactory.getKeySpec(privateKey, RawKeySpec.class);
@@ -269,7 +269,7 @@ public class EdDsaTest {
                 decodeHex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
         PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
-        assertEquals("EdDSA", publicKey.getAlgorithm());
+        assertEquals("1.3.101.112", publicKey.getAlgorithm());
 
         // RawKeySpec returns the raw public key.
         RawKeySpec rawPublicKeySpec = keyFactory.getKeySpec(publicKey, RawKeySpec.class);
