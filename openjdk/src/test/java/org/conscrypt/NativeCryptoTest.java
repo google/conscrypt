@@ -384,10 +384,7 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        String[] invalidInputs = {
-                "", ":", ":P-256", "P-256:", "P-256:"
-        };
-
+        String[] invalidInputs = {"", ":", ":P-256", "P-256:", "P-256:"};
         for (String groupsList : invalidInputs) {
             assertThrows(groupsList, SSLException.class,
                     () -> NativeCrypto.SSL_set1_groups_list(s, null, groupsList));
