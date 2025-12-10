@@ -366,18 +366,16 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_secp384r1});
         NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_secp521r1});
         NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519MLKEM768});
-        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519Kyber768Draft00});
+        NativeCrypto.SSL_set1_groups(
+                s, null, new int[] {NativeConstants.NID_X25519Kyber768Draft00});
         NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_ML_KEM_1024});
 
-        NativeCrypto.SSL_set1_groups(s, null, new int[] {
-            NativeConstants.NID_X25519,
-            NativeConstants.NID_X9_62_prime256v1,
-            NativeConstants.NID_secp384r1,
-            NativeConstants.NID_secp521r1,
-            NativeConstants.NID_X25519MLKEM768,
-            NativeConstants.NID_X25519Kyber768Draft00,
-            NativeConstants.NID_ML_KEM_1024
-        });
+        NativeCrypto.SSL_set1_groups(s, null,
+                new int[] {NativeConstants.NID_X25519, NativeConstants.NID_X9_62_prime256v1,
+                        NativeConstants.NID_secp384r1, NativeConstants.NID_secp521r1,
+                        NativeConstants.NID_X25519MLKEM768,
+                        NativeConstants.NID_X25519Kyber768Draft00,
+                        NativeConstants.NID_ML_KEM_1024});
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -388,9 +386,10 @@ public class NativeCryptoTest {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
 
-        assertThrows(
-                SSLException.class,
-                () -> NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.EVP_PKEY_RSA}));
+        assertThrows(SSLException.class,
+                ()
+                        -> NativeCrypto.SSL_set1_groups(
+                                s, null, new int[] {NativeConstants.EVP_PKEY_RSA}));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
