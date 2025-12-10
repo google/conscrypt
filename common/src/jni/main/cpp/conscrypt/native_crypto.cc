@@ -9862,8 +9862,8 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
 }
 
 static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
-                                              CONSCRYPT_UNUSED jobject sslHolder,
-                                              jintArray groups) {
+                                         CONSCRYPT_UNUSED jobject sslHolder, jintArray groups) {
+
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, sslAddress, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups groups=%p", ssl, groups);
@@ -9871,8 +9871,7 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         return;
     }
     if (groups == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env,
-                                                      "groups == null");
+        conscrypt::jniutil::throwNullPointerException(env, "groups == null");
         return;
     }
     ScopedIntArrayRO groups_ro(env, groups);
