@@ -379,7 +379,6 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
-
     @Test
     public void setGroupsList_invalidInput_throwsIllegalArgumentException() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
@@ -394,7 +393,7 @@ public class NativeCryptoTest {
 
         for (String groupsList : invalidInputs) {
             assertThrows(groupsList, SSLException.class,
-                () -> NativeCrypto.SSL_set1_groups_list(s, null, groupsList));
+                    () -> NativeCrypto.SSL_set1_groups_list(s, null, groupsList));
         }
 
         NativeCrypto.SSL_free(s, null);

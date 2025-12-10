@@ -9862,8 +9862,8 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
 }
 
 static void NativeCrypto_SSL_set1_groups_list(JNIEnv* env, jclass, jlong sslAddress,
-                                             CONSCRYPT_UNUSED jobject sslHolder,
-                                             jstring groupsList) {
+                                              CONSCRYPT_UNUSED jobject sslHolder,
+                                              jstring groupsList) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL* ssl = to_SSL(env, sslAddress, true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups_list curves=%p", ssl, groupsList);
