@@ -81,7 +81,7 @@ public class KeyPairGeneratorTest {
             .skipProvider("SunPKCS11-NSS")
             .run(new ServiceTester.Test() {
                 @Override
-		// @SuppressWarnings("InsecureCryptoUsage")
+                // @SuppressWarnings("InsecureCryptoUsage")
                 public void test(Provider provider, String algorithm) throws Exception {
                     AlgorithmParameterSpec params = null;
 
