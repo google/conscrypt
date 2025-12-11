@@ -9861,6 +9861,39 @@ static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ss
     return env->NewStringUTF(name);
 }
 
+static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
+                                         CONSCRYPT_UNUSED jobject sslHolder, jintArray groups) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, sslAddress, /* throwIfNull= */ true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups groups=%p", ssl, groups);
+    if (ssl == nullptr) {
+        // to_SSL already called conscrypt::jniutil::throwNullPointerException
+        return;
+    }
+    if (groups == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "groups == null");
+        return;
+    }
+    ScopedIntArrayRO groups_ro(env, groups);
+    if (groups_ro.get() == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups => threw exception", ssl);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for groups");
+        return;
+    }
+    std::vector<int> groups_vector;
+    groups_vector.reserve(groups_ro.size());
+    const jint* groups_ptr = groups_ro.get();
+    for (int i = 0; i < groups_ro.size(); i++) {
+        groups_vector.push_back(groups_ptr[i]);
+    }
+
+    if (!SSL_set1_groups(ssl, groups_vector.data(), groups_vector.size())) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing groups");
+        ERR_clear_error();
+        return;
+    }
+}
+
 static jstring NativeCrypto_SSL_get_curve_name(JNIEnv* env, jclass, jlong sslAddress,
                                                CONSCRYPT_UNUSED jobject sslHolder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -12495,6 +12528,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_get_servername, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_do_handshake, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "I)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_current_cipher, "(J" REF_SSL ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set1_groups, "(J" REF_SSL "[I)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_curve_name, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_version, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_peer_certificates, "(J" REF_SSL ")[[B"),
