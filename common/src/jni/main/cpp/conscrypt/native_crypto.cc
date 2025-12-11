@@ -9880,6 +9880,12 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         ERR_clear_error();
         return;
     }
+    const jint* groups_ptr = groups_ro.get();
+    if (groups_ptr == nullptr) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "groups_ptr == nullptr");
+        ERR_clear_error();
+        return;
+    }
     // Comment out to see if this compiles...
     // if (!SSL_set1_groups(ssl, groups_ro.get(), groups_ro.size())) {
     //    conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing groups");
