@@ -9874,7 +9874,7 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         return;
     }
     ScopedIntArrayRO groups_ro(env, groups);
-    if (context_bytes.get() == nullptr) {
+    if (groups_ro.get() == nullptr) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups => threw exception", ssl);
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for groups");
         return;
