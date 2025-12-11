@@ -9874,6 +9874,11 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         return;
     }
     ScopedIntArrayRO groups_ro(env, groups);
+    if (context_bytes.get() == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups => threw exception", ssl);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for groups");
+        return;
+    }
     size_t num_groups = groups_ro.size();
     const int* groups_ptr = (const int*)groups_ro.get();
     if (!SSL_set1_groups(ssl, groups_ptr, num_groups)) {
