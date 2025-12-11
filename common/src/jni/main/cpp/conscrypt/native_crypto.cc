@@ -9880,7 +9880,7 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         ERR_clear_error();
         return;
     }
-    const jint* groups_ptr = groups_ro.get();
+    const int* groups_ptr = (const int*) groups_ro.get();
     if (groups_ptr == nullptr) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "groups_ptr == nullptr");
         ERR_clear_error();
