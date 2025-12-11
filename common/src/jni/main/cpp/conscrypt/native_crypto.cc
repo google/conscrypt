@@ -9882,8 +9882,9 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
     }
     std::vector<int> groups_vector;
     groups_vector.reserve(groups_ro.size());
-    for (jint group_id : groups_ro) {
-        groups_vector.push_back(group_id);
+    const jint* groups_ptr = groups_ro.get();
+    for (int i = 0; i < groups_ro.size(); i++) {
+        groups_vector.push_back(groups_ptr[i]);
     }
 
     if (!SSL_set1_groups(ssl, groups_vector.data(), groups_vector.size())) {
