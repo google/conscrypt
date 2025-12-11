@@ -1548,7 +1548,7 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
     return reinterpret_cast<uintptr_t>(pkey.release());
 }
 
-static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass cls, jobject pkeyRef) {
+static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass, jobject pkeyRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_PKEY_get_private_seed(%p)", pkeyRef);
 
@@ -11785,8 +11785,6 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(
         jbyteArray id_verifier_array, jboolean is_client, jint handshake_limit,
         jlong ssl_ctx_address, CONSCRYPT_UNUSED jobject holder) {
     CHECK_ERROR_QUEUE_ON_RETURN;
-    JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %d, %ld)", context, pw_array,
-              id_prover_array, id_verifier_array, is_client, handshake_limit, ssl_ctx_address);
 
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
 
