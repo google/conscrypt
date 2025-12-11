@@ -118,7 +118,7 @@ public class HttpsURLConnectionTest {
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
-        // google3-add: broken HTTPS hostname verification
+        // g3-add: broken HTTPS hostname verification
         int response = connection.getResponseCode();
         assertEquals(404, response);
 
@@ -152,7 +152,7 @@ public class HttpsURLConnectionTest {
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
-        // google3-add: broken HTTPS hostname verification
+        // g3-add: broken HTTPS hostname verification
         connection.setConnectTimeout(0);
         connection.setReadTimeout(1000);
 

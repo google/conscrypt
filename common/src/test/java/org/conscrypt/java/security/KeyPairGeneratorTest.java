@@ -82,8 +82,7 @@ public class KeyPairGeneratorTest {
                 .skipProvider("SunPKCS11-NSS")
                 .run(new ServiceTester.Test() {
                     @Override
-
-                    // @SuppressWarnings("InsecureCryptoUsage")
+                    // g3-add: @SuppressWarnings("InsecureCryptoUsage")
                     public void test(Provider provider, String algorithm) throws Exception {
                         AlgorithmParameterSpec params = null;
 
@@ -304,7 +303,7 @@ public class KeyPairGeneratorTest {
         test_KeyWithAllKeyFactories(k);
     }
 
-    // @SuppressWarnings("InsecureCryptoUsage")
+    // g3-add: @SuppressWarnings("InsecureCryptoUsage")
     private void test_KeyWithAllKeyFactories(Key k) throws Exception {
         byte[] encoded = k.getEncoded();
 
@@ -450,7 +449,7 @@ public class KeyPairGeneratorTest {
     });
 
     @Test
-    // @SuppressWarnings("InsecureCryptoUsage")
+    // g3-add: @SuppressWarnings("InsecureCryptoUsage")
     public void testDSAGeneratorWithParams() throws Exception {
         final DSAParameterSpec dsaSpec = new DSAParameterSpec(DSA_P, DSA_Q, DSA_G);
 
