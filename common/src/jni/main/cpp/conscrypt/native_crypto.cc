@@ -9875,23 +9875,12 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
     }
     ScopedIntArrayRO groups_ro(env, groups);
     size_t num_groups = groups_ro.size();
-    if (num_groups == 0) {
-        conscrypt::jniutil::throwSSLExceptionStr(env, "no groups");
-        ERR_clear_error();
-        return;
-    }
     const int* groups_ptr = (const int*)groups_ro.get();
-    if (groups_ptr == nullptr) {
-        conscrypt::jniutil::throwSSLExceptionStr(env, "groups_ptr == nullptr");
+    if (!SSL_set1_groups(ssl, groups_ptr, num_groups)) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing groups");
         ERR_clear_error();
         return;
     }
-    // Comment out to see if this compiles...
-    // if (!SSL_set1_groups(ssl, groups_ro.get(), groups_ro.size())) {
-    //    conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing groups");
-    //    ERR_clear_error();
-    //    return;
-    // }
 }
 
 static jstring NativeCrypto_SSL_get_curve_name(JNIEnv* env, jclass, jlong sslAddress,
