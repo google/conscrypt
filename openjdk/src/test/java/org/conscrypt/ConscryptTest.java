@@ -73,8 +73,7 @@ public class ConscryptTest {
     @Test
     public void buildInvalid() {
         try {
-            Conscrypt.newProviderBuilder()
-                .defaultTlsProtocol("invalid").build();
+            Conscrypt.newProviderBuilder().defaultTlsProtocol("invalid").build();
             fail();
         } catch (IllegalArgumentException e) {
             // Expected.
@@ -83,10 +82,11 @@ public class ConscryptTest {
 
     private void buildProvider(String defaultProtocol, boolean withTrustManager) throws Exception {
         Provider provider = Conscrypt.newProviderBuilder()
-            .setName("test name")
-            .provideTrustManager(withTrustManager)
-            .defaultTlsProtocol(defaultProtocol)
-            .build();
+                                    .setName("test name")
+                                    .provideTrustManager(withTrustManager)
+                                    .defaultTlsProtocol(defaultProtocol)
+
+                                    .build();
 
         assertEquals("test name", provider.getName());
         assertEquals(withTrustManager, provider.containsKey("TrustManagerFactory.PKIX"));
