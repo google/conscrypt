@@ -9867,7 +9867,7 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
     SSL* ssl = to_SSL(env, sslAddress, /* throwIfNull= */ true);
     JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups groups=%p", ssl, groups);
     if (ssl == nullptr) {
-    	// to_SSL already called conscrypt::jniutil::throwNullPointerException
+        // to_SSL already called conscrypt::jniutil::throwNullPointerException
         return;
     }
     if (groups == nullptr) {
