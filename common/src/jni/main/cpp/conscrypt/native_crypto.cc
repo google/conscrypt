@@ -9879,7 +9879,7 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for groups");
         return;
     }
-    if (!SSL_set1_groups(ssl, static_cast <const int*>(groups_ro.get()), groups_ro.size())) {
+    if (!SSL_set1_groups(ssl, static_cast<const int*>(groups_ro.get()), groups_ro.size())) {
         conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing groups");
         ERR_clear_error();
         return;
