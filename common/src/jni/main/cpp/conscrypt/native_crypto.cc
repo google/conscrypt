@@ -9874,7 +9874,12 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
         return;
     }
     ScopedIntArrayRO groups_ro(env, groups);
-    JNI_TRACE("groups_ro.size()=%d", groups_ro.size());
+    size_t num_groups = groups_ro.size();
+    if (num_groups == 0) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "no groups");
+        ERR_clear_error();
+        return;
+    }
     // Comment out to see if this compiles...
     // if (!SSL_set1_groups(ssl, groups_ro.get(), groups_ro.size())) {
     //    conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing groups");
