@@ -116,6 +116,30 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
         return delegate.getPeerPort();
     }
 
+    public void setEchParameters(EchParameters parameters) {
+        delegate.setEchParameters(parameters);
+    }
+
+    public EchParameters getEchParameters() {
+        return delegate.getEchParameters();
+    }
+
+    @Override
+    public String getEchNameOverride() {
+        return delegate.getEchNameOverride();
+    }
+
+    @Override
+    public boolean echAccepted() {
+        byte[] echConfig = delegate.getEchParameters().configList;
+        // if there is no ECH config, .echAccepted may throw an exception
+        if (echConfig == null || echConfig.length == 0) {
+            return false;
+        } else {
+            return delegate.echAccepted();
+        }
+    }
+
     @Override
     public void beginHandshake() throws SSLException {
         delegate.beginHandshake();
