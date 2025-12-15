@@ -277,6 +277,61 @@ final class NativeSsl {
     byte[] getTlsChannelId() throws SSLException {
         return NativeCrypto.SSL_get_tls_channel_id(ssl, this);
     }
+    
+
+    // Converts a Java "named group" to the corresponding BoringSSL curve name.
+    private static int toBoringSslCurve(String javaNamedGroup) {
+        if (javaNamedGroup.equals("X25519") || javaNamedGroup.equals("x25519")) {
+            return NativeConstants.NID_X25519;
+        }
+        if (javaNamedGroup.equals("P-256") || javaNamedGroup.equals("secp256r1")) {
+            return NativeConstants.NID_X9_62_prime256v1;
+        }
+        if (javaNamedGroup.equals("P-384") || javaNamedGroup.equals("secp384r1")) {
+            return NativeConstants.NID_secp384r1;
+        }
+        if (javaNamedGroup.equals("P-521") || javaNamedGroup.equals("secp521r1")) {
+            return NativeConstants.NID_secp521r1;
+        }
+        if (javaNamedGroup.equals("X25519MLKEM768")) {
+            return NativeConstants.NID_X25519MLKEM768;
+        }
+        if (javaNamedGroup.equals("X25519Kyber768Draft00")) {
+            return NativeConstants.NID_X25519Kyber768Draft00;
+        }
+        if (javaNamedGroup.equals("MLKEM1024")) {
+            return NativeConstants.NID_ML_KEM_1024;
+        }
+        return -1;  // Unknown curve.
+    }
+
+  // Default curves to use if namedGroups is null.
+  // Same curves as StandardNames.ELLIPTIC_CURVES_DEFAULT
+  private static final int[] DEFAULT_GROUPS =
+      new int[] {
+        NativeConstants.NID_X25519,
+        NativeConstants.NID_X9_62_prime256v1,
+        NativeConstants.NID_secp384r1
+      };
+
+  /**
+   * Converts a list of java named groups to an array of groups that can be passed to BoringSSL.
+   *
+   * <p>Unknown curves are ignored.
+   */
+  public static int[] toBoringSslGroups(String[] javaNamedGroups) {
+        int[] outputGroups = new int[javaNamedGroups.length];
+        int i = 0;
+        for (String javaNamedGroup : javaNamedGroups) {
+            int group = toBoringSslCurve(javaNamedGroup);
+            if (group > 0) {
+                outputGroups[i] = group;
+            }
+            i++;
+        }
+        return outputGroups;
+    }
+
 
     void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
         boolean enableSessionCreation = parameters.getEnableSessionCreation();
@@ -318,6 +373,19 @@ final class NativeSsl {
         if (!parameters.isSpake()) {
             NativeCrypto.setEnabledCipherSuites(
                     ssl, this, parameters.enabledCipherSuites, parameters.enabledProtocols);
+        }
+
+        String[] paramsNamedGroups = parameters.getNamedGroups();
+        // - If the named groups are null, we use the default groups.
+        // - If the named groups are not null, it overrides the default groups.
+        // - Unknown curves are ignored.
+        // See: https://docs.oracle.com/en/java/javase/25/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()
+        if (paramsNamedGroups == null) {
+            // Use the default curves.
+            NativeCrypto.SSL_set1_groups(ssl, this, DEFAULT_GROUPS);
+        } else {
+            NativeCrypto.SSL_set1_groups(
+                    ssl, this, toBoringSslGroups(paramsNamedGroups));
         }
 
         if (parameters.applicationProtocols.length > 0) {
