@@ -166,6 +166,10 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+
+        Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+        impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -182,6 +186,10 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+
+        Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+        setNamedGroupsMethod.invoke(params, (Object[]) impl.getNamedGroups());
+
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(socket.getHostname())));
@@ -193,6 +201,10 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+
+        Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+        impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -209,6 +221,10 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+
+        Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+        setNamedGroupsMethod.invoke(params, (Object[]) impl.getNamedGroups());
+
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(engine.getHostname())));
