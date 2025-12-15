@@ -1000,7 +1000,8 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void handshake_setsNamedGroups_usesFirstServerNamedGroupThatClientSupports() throws Exception {
+    public void handshake_setsNamedGroups_usesFirstServerNamedGroupThatClientSupports()
+            throws Exception {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, context.port);

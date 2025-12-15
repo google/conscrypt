@@ -47,10 +47,9 @@ final class Java9PlatformUtil {
     static void setSSLParameters(
             SSLParameters src, SSLParametersImpl dest, AbstractConscryptSocket socket) {
         Java8PlatformUtil.setSSLParameters(src, dest, socket);
-        try{
+        try {
             Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
-            dest.setNamedGroups(
-                    (String[]) getNamedGroupsMethod.invoke(src));
+            dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
         } catch (ReflectiveOperationException | SecurityException e) {
             // Ignored. getNamedGroups was added in Java 20.
         }
@@ -60,12 +59,11 @@ final class Java9PlatformUtil {
     static void getSSLParameters(
             SSLParameters dest, SSLParametersImpl src, AbstractConscryptSocket socket) {
         Java8PlatformUtil.getSSLParameters(dest, src, socket);
-        try{
+        try {
             String[] namedGroups = src.getNamedGroups();
-            Method setNamedGroupsMethod = dest.getClass().getMethod(
-                    "setNamedGroups", String[].class);
-            setNamedGroupsMethod.invoke(
-                    dest, (Object) namedGroups);
+            Method setNamedGroupsMethod =
+                    dest.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
         } catch (ReflectiveOperationException | SecurityException e) {
             // Ignored. setNamedGroups was added in Java 20.
         }
@@ -76,10 +74,9 @@ final class Java9PlatformUtil {
             SSLParameters src, SSLParametersImpl dest, ConscryptEngine engine) {
         Java8PlatformUtil.setSSLParameters(src, dest, engine);
 
-        try{
+        try {
             Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
-            dest.setNamedGroups(
-                    (String[]) getNamedGroupsMethod.invoke(src));
+            dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
         } catch (ReflectiveOperationException | SecurityException e) {
             // Ignored. getNamedGroups was added in Java 20.
         }
@@ -91,12 +88,11 @@ final class Java9PlatformUtil {
             SSLParameters dest, SSLParametersImpl src, ConscryptEngine engine) {
         Java8PlatformUtil.getSSLParameters(dest, src, engine);
 
-        try{
+        try {
             String[] namedGroups = src.getNamedGroups();
-            Method setNamedGroupsMethod = dest.getClass().getMethod(
-                    "setNamedGroups", String[].class);
-            setNamedGroupsMethod.invoke(
-                    dest, (Object) namedGroups);
+            Method setNamedGroupsMethod =
+                    dest.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
         } catch (ReflectiveOperationException | SecurityException e) {
             // Ignored. setNamedGroups was added in Java 20.
         }
