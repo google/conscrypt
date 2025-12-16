@@ -761,7 +761,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    final String getCurveNameForTesting() {
+    public final String getCurveNameForTesting() {
         return ssl.getCurveNameForTesting();
     }
 
