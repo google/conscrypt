@@ -95,6 +95,10 @@ public class SSLSocketTest {
     private final ExecutorService executor =
         Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
 
+    String getCurveName(SSLSocket socket) {
+        return ((OpenSSLSocketImpl) socket).getCurveNameForTesting();
+    }
+
     /**
      * Returns the named groups, or null if the method is not available (older versions of
      * Java/Android).
