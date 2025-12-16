@@ -29,7 +29,6 @@ import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.SSLParametersImpl.AliasChooser;
 import org.conscrypt.SSLParametersImpl.PSKCallbacks;
 
-import java.util.Arrays;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.net.SocketException;
@@ -40,6 +39,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
