@@ -124,8 +124,23 @@ public class SSLSocketTest {
         }
     }
 
+    // value of jdk.tls.namedGroups property before the test. null if the property was not set.
+    private String tlsNamedGroupsProperty;
+
+    @Before
+    public void setUp() throws Exception {
+        tlsNamedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
+    }
+
     @After
     public void teardown() throws InterruptedException {
+        // Restore the property to its original value, to make sure that the test does not
+        // have any side effects on other tests when setting the property.
+        if (tlsNamedGroupsProperty == null) {
+            System.clearProperty("jdk.tls.namedGroups");
+        } else {
+            System.setProperty("jdk.tls.namedGroups", tlsNamedGroupsProperty);
+        }
         executor.shutdownNow();
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
     }
