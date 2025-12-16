@@ -278,7 +278,7 @@ final class NativeSsl {
     byte[] getTlsChannelId() throws SSLException {
         return NativeCrypto.SSL_get_tls_channel_id(ssl, this);
     }
-    
+
     private static int toBoringSslGroup(String javaNamedGroup) {
         switch (javaNamedGroup) {
             case "X25519":
@@ -300,15 +300,15 @@ final class NativeSsl {
             case "MLKEM1024":
                 return NativeConstants.NID_ML_KEM_1024;
             default:
-                return -1;  // Unknown group.
+                return -1; // Unknown group.
         }
     }
 
     /**
      * Converts a list of java named groups to an array of groups that can be passed to BoringSSL.
      *
-     * <p>Unknown groups are ignored, as required by the API documentation:
-     * <a href="https://docs.oracle.com/en/java/javase/24/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()">
+     * <p>Unknown groups are ignored, as required by the API documentation: <a
+     * href="https://docs.oracle.com/en/java/javase/24/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()">
      * SSLParameters.getNamedGroups()</a>
      */
     static int[] toBoringSslGroups(String[] javaNamedGroups) {
@@ -323,7 +323,7 @@ final class NativeSsl {
         }
         if (i == 0) {
             throw new IllegalArgumentException(
-                "No valid known group found in: " + Arrays.toString(javaNamedGroups));
+                    "No valid known group found in: " + Arrays.toString(javaNamedGroups));
         }
         if (i < javaNamedGroups.length) {
             return Arrays.copyOf(outputGroups, i);
