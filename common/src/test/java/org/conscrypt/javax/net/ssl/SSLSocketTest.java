@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import org.conscrypt.OpenSSLSocketImpl;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -39,6 +40,7 @@ import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
 import org.conscrypt.tlswire.handshake.HelloExtension;
 import org.conscrypt.tlswire.util.TlsProtocolVersion;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -61,6 +63,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -93,6 +96,10 @@ public class SSLSocketTest {
     private final ExecutorService executor =
         Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
 
+    String getCurveName(SSLSocket socket) {
+        return ((OpenSSLSocketImpl) socket).getCurveNameForTesting();
+    }
+
     /**
      * Returns the named groups, or null if the method is not available (older versions of
      * Java/Android).
@@ -117,8 +124,23 @@ public class SSLSocketTest {
         }
     }
 
+    // value of jdk.tls.namedGroups property before the test. null if the property was not set.
+    private String tlsNamedGroupsProperty;
+
+    @Before
+    public void setUp() throws Exception {
+        tlsNamedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
+    }
+
     @After
     public void teardown() throws InterruptedException {
+        // Restore the property to its original value, to make sure that the test does not
+        // have any side effects on other tests when setting the property.
+        if (tlsNamedGroupsProperty == null) {
+            System.clearProperty("jdk.tls.namedGroups");
+        } else {
+            System.setProperty("jdk.tls.namedGroups", tlsNamedGroupsProperty);
+        }
         executor.shutdownNow();
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
     }
@@ -909,6 +931,80 @@ public class SSLSocketTest {
             StandardNames.assertDefaultCipherSuites(cipherSuites);
         },
             getSSLSocketFactoriesToTest());
+    }
+
+    @Test
+    public void handshake_noNamedGroupsProperty_usesDefaultGroups() throws Exception {
+        System.clearProperty("jdk.tls.namedGroups");
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // By default, BoringSSL uses X25519, P-256, and P-384, in this order.
+        // So X25519 gets priority.
+        assertEquals("X25519", getCurveName(client));
+        assertEquals("X25519", getCurveName(server));
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_namedGroupsProperty_usesFirstKnownEntry() throws Exception {
+        System.setProperty("jdk.tls.namedGroups", "X25519MLKEM768,X25519");
+
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        assertEquals("X25519MLKEM768", getCurveName(client));
+        assertEquals("X25519MLKEM768", getCurveName(server));
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_namedGroupsProperty_failsIfAllValuesAreInvalid() throws Exception {
+        System.setProperty("jdk.tls.namedGroups", "invalid,invalid2");
+
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        assertThrows(ExecutionException.class, s::get);
+        assertThrows(ExecutionException.class, c::get);
+        client.close();
+        server.close();
+        context.close();
     }
 
     @Test

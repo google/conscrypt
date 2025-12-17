@@ -105,6 +105,7 @@ import org.junit.runners.Suite;
         MlDsaTest.class,
         NativeCryptoArgTest.class,
         NativeCryptoTest.class,
+        NativeSslTest.class,
         NativeRefTest.class,
         NativeSslSessionTest.class,
         OpenSSLKeyTest.class,
