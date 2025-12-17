@@ -209,7 +209,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             if (encoded.length > 1000) {
                 // Key is large, so it seems that it is not in the "seed format".
                 throw new InvalidKeySpecException("Unable to parse key. Please use ML-DSA seed "
-                                                  + "format as specified and recommended"
+                                + "format as specified and recommended"
                                 + " in RFC 9881.",
                         e);
             }
