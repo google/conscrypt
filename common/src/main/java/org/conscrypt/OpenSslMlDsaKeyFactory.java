@@ -206,15 +206,10 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                             NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePrivateKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
-            if (encoded.length > 1000) {
-                // Key is large, so it seems that it is not in the "seed format".
-                throw new InvalidKeySpecException("Unable to parse key. Please use ML-DSA seed "
-                                + "format as specified and recommended"
-                                + " in RFC 9881.",
-                        e);
-            }
             throw new InvalidKeySpecException(
-                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported.",
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported. "
+                                + "Please use ML-DSA 'seed format' as specified and recommended "
+                                + "in RFC 9881.",
                     e);
         }
     }
