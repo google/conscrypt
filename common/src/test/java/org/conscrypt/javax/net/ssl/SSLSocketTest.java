@@ -962,7 +962,6 @@ public class SSLSocketTest {
     }
 
     @Test
-<<<<<<< HEAD
     public void handshake_p256IsSupportedByDefault() throws Exception {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
