@@ -51,7 +51,7 @@ final class Java9PlatformUtil {
             Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
             dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
         } catch (ReflectiveOperationException | SecurityException e) {
-            throw new RuntimeException("SSLParameters.getNamedGroups failed.", e);
+            // Method is not available. Ignore.
         }
         dest.setApplicationProtocols(getApplicationProtocols(src));
     }
@@ -65,7 +65,7 @@ final class Java9PlatformUtil {
                     dest.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
         } catch (ReflectiveOperationException | SecurityException e) {
-            throw new RuntimeException("SSLParameters.setNamedGroups failed.", e);
+            // Method is not available. Ignore.
         }
         setApplicationProtocols(dest, src.getApplicationProtocols());
     }
@@ -78,7 +78,7 @@ final class Java9PlatformUtil {
             Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
             dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
         } catch (ReflectiveOperationException | SecurityException e) {
-            throw new RuntimeException("SSLParameters.getNamedGroups failed.", e);
+            // Method is not available. Ignore.
         }
 
         dest.setApplicationProtocols(getApplicationProtocols(src));
@@ -94,7 +94,7 @@ final class Java9PlatformUtil {
                     dest.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
         } catch (ReflectiveOperationException | SecurityException e) {
-            throw new RuntimeException("SSLParameters.setNamedGroups failed.", e);
+            // Method is not available. Ignore.
         }
 
         setApplicationProtocols(dest, src.getApplicationProtocols());
