@@ -834,7 +834,7 @@ public class SSLSocketTest {
     }
 
     boolean sslParametersSupportsNamedGroups() throws SecurityException {
-        try{
+        try {
             Method unused = SSLParameters.class.getMethod("getNamedGroups");
             return true;
         } catch (NoSuchMethodException e) {
