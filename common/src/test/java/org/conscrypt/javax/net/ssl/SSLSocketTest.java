@@ -833,22 +833,32 @@ public class SSLSocketTest {
         }
     }
 
+    boolean sslParametersSupportsNamedGroups() throws SecurityException {
+        try{
+            Method unused = SSLParameters.class.getMethod("getNamedGroups");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     @Test
-    public void setAndGetSSLParameters_withSetNamedGroups_works() throws Exception {
+    public void setAndGetSSLParameters_withSetNamedGroups_worksIfSupported() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters parameters = new SSLParameters(
                     new String[] {"TLS_AES_128_GCM_SHA256"}, new String[] {"TLSv1.3"});
-
             assertArrayEquals(null, getNamedGroupsOrNull(ssl.getSSLParameters()));
 
-            // values passed to setNamedGroups are not validated, any strings work.
             setNamedGroups(parameters, new String[] {"foo", "bar"});
             ssl.setSSLParameters(parameters);
 
             SSLParameters sslParameters = ssl.getSSLParameters();
-
-            assertArrayEquals(new String[] {"foo", "bar"}, getNamedGroupsOrNull(sslParameters));
+            if (sslParametersSupportsNamedGroups()) {
+                assertArrayEquals(new String[] {"foo", "bar"}, getNamedGroupsOrNull(sslParameters));
+            } else {
+                assertArrayEquals(null, getNamedGroupsOrNull(sslParameters));
+            }
         }
     }
 
@@ -962,34 +972,6 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void handshake_p256IsSupportedByDefault() throws Exception {
-        TestSSLContext context = TestSSLContext.create();
-        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                context.host, context.port);
-        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        Future<Void> s = runAsync(() -> {
-            server.startHandshake();
-            return null;
-        });
-        Future<Void> c = runAsync(() -> {
-            SSLParameters parameters = client.getSSLParameters();
-            setNamedGroups(parameters, new String[] {"P-256"});
-            client.setSSLParameters(parameters);
-            client.startHandshake();
-            return null;
-        });
-        s.get();
-        c.get();
-        // By default, BoringSSL uses X25519, P-256, and P-384. If the client
-        // requests P-256, it will be chosen.
-        assertEquals("P-256", getCurveName(client));
-        assertEquals("P-256", getCurveName(server));
-        client.close();
-        server.close();
-        context.close();
-    }
-
-    @Test
     public void handshake_namedGroupsProperty_usesFirstKnownEntry() throws Exception {
         System.setProperty("jdk.tls.namedGroups", "X25519MLKEM768,X25519");
 
@@ -1015,6 +997,40 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void handshake_p256IsSupportedByDefault() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-256"});
+            client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // By default, BoringSSL uses X25519, P-256, and P-384.
+        if (sslParametersSupportsNamedGroups()) {
+            // If the client requests P-256, it will be chosen.
+            assertEquals("P-256", getCurveName(client));
+            assertEquals("P-256", getCurveName(server));
+        } else {
+            // Otherwise, X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
     public void handshake_p384IsSupportedByDefault() throws Exception {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
@@ -1034,10 +1050,16 @@ public class SSLSocketTest {
         });
         s.get();
         c.get();
-        // By default, BoringSSL uses X25519, P-256, and P-384. If the server only supports P-384,
-        // it will be chosen.
-        assertEquals("P-384", getCurveName(client));
-        assertEquals("P-384", getCurveName(server));
+        // By default, BoringSSL uses X25519, P-256, and P-384.
+        if (sslParametersSupportsNamedGroups()) {
+            // If the client requests P-384, it will be chosen.
+            assertEquals("P-384", getCurveName(client));
+            assertEquals("P-384", getCurveName(server));
+        } else {
+            // Otherwise, X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
         client.close();
         server.close();
         context.close();
@@ -1066,8 +1088,15 @@ public class SSLSocketTest {
         });
         s.get();
         c.get();
-        assertEquals("P-384", getCurveName(client));
-        assertEquals("P-384", getCurveName(server));
+        if (sslParametersSupportsNamedGroups()) {
+            // P-384 is the first named group in the server's list that both support.
+            assertEquals("P-384", getCurveName(client));
+            assertEquals("P-384", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
         client.close();
         server.close();
         context.close();
@@ -1095,8 +1124,14 @@ public class SSLSocketTest {
         });
         s.get();
         c.get();
-        assertEquals("X25519MLKEM768", getCurveName(client));
-        assertEquals("X25519MLKEM768", getCurveName(server));
+        if (sslParametersSupportsNamedGroups()) {
+            assertEquals("X25519MLKEM768", getCurveName(client));
+            assertEquals("X25519MLKEM768", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
         client.close();
         server.close();
         context.close();
@@ -1122,10 +1157,16 @@ public class SSLSocketTest {
             client.startHandshake();
             return null;
         });
-        ExecutionException serverException = assertThrows(ExecutionException.class, s::get);
-        assertTrue(serverException.getCause() instanceof SSLHandshakeException);
-        ExecutionException clientException = assertThrows(ExecutionException.class, c::get);
-        assertTrue(clientException.getCause() instanceof SSLHandshakeException);
+        if (sslParametersSupportsNamedGroups()) {
+            ExecutionException serverException = assertThrows(ExecutionException.class, s::get);
+            assertTrue(serverException.getCause() instanceof SSLHandshakeException);
+            ExecutionException clientException = assertThrows(ExecutionException.class, c::get);
+            assertTrue(clientException.getCause() instanceof SSLHandshakeException);
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
         client.close();
         server.close();
         context.close();
