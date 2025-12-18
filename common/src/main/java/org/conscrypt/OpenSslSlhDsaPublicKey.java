@@ -26,6 +26,8 @@ import java.util.Arrays;
 
 /** An SLH-DSA public key. */
 public class OpenSslSlhDsaPublicKey implements PublicKey {
+    private static final long serialVersionUID = 0x4589aa00e279d127L;
+
     static final int PUBLIC_KEY_SIZE_BYTES = 32;
 
     private final byte[] raw;
