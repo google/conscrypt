@@ -53,5 +53,14 @@ interface ConscryptSession extends SSLSession {
   @Override
   X509Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException;
 
+  @Override
+  @SuppressWarnings("deprecation")
+  default javax.security.cert.X509Certificate[] getPeerCertificateChain()
+          throws SSLPeerUnverifiedException {
+    throw new UnsupportedOperationException(
+            "This method is deprecated and marked for removal. Use the " +
+                    "getPeerCertificates() method instead.");
+  }
+
   String getApplicationProtocol();
 }
