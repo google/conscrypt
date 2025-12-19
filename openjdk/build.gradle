@@ -547,10 +547,13 @@ boolean isExecutableOnPath(executable) {
             return executable == name
         }
     }
-    for(String folder : System.getenv('PATH').split("" + File.pathSeparatorChar)) {
-        File[] files = file(folder).listFiles(filter)
-        if (files != null && files.size() > 0) {
-            return true
+    for (String folder : System.getenv('PATH').split("" + File.pathSeparatorChar)) {
+        // Ignore any empty PATH elements.
+        if (folder != '') {
+            File[] files = file(folder).listFiles(filter)
+            if (files != null && files.size() > 0) {
+                return true
+            }
         }
     }
     return false
