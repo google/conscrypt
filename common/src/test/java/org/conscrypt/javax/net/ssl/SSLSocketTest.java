@@ -1163,6 +1163,8 @@ public class SSLSocketTest {
             ExecutionException clientException = assertThrows(ExecutionException.class, c::get);
             assertTrue(clientException.getCause() instanceof SSLHandshakeException);
         } else {
+            s.get();
+            c.get();
             // The defaults are used, and X25519 gets priority.
             assertEquals("X25519", getCurveName(client));
             assertEquals("X25519", getCurveName(server));
