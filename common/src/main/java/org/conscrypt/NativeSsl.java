@@ -386,14 +386,25 @@ final class NativeSsl {
                     ssl, this, parameters.enabledCipherSuites, parameters.enabledProtocols);
         }
 
-        String namedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
-        if (namedGroupsProperty == null || namedGroupsProperty.isEmpty()) {
-            // If the property is not set or empty, use the default named groups. See:
-            // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html
-            setDefaultNamedGroups(ssl, this);
+        String[] paramsNamedGroups = parameters.getNamedGroups();
+        // - If the named groups are null, we use the default groups.
+        // - If the named groups are not null, it overrides the default groups.
+        // - Unknown curves are ignored.
+        // See:
+        // https://docs.oracle.com/en/java/javase/25/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()
+        if (paramsNamedGroups != null) {
+            NativeCrypto.SSL_set1_groups(ssl, this, toBoringSslGroups(paramsNamedGroups));
         } else {
-            int[] groups = parseNamedGroupsProperty(namedGroupsProperty);
-            NativeCrypto.SSL_set1_groups(ssl, this, groups);
+            // Use default named group.
+            String namedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
+            if (namedGroupsProperty == null || namedGroupsProperty.isEmpty()) {
+                // If the property is not set or empty, use the default named groups. See:
+                // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html
+                setDefaultNamedGroups(ssl, this);
+            } else {
+                int[] groups = parseNamedGroupsProperty(namedGroupsProperty);
+                NativeCrypto.SSL_set1_groups(ssl, this, groups);
+            }
         }
 
         if (parameters.applicationProtocols.length > 0) {

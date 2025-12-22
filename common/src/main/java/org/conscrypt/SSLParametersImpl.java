@@ -82,6 +82,8 @@ final class SSLParametersImpl implements Cloneable {
     // cannot be customized, so for simplicity this field never contains any TLS 1.3 suites.
     String[] enabledCipherSuites;
 
+    String[] namedGroups;
+
     // if the peer with this parameters tuned to work in client mode
     private boolean client_mode = true;
     // if the peer with this parameters tuned to require client authentication
@@ -361,6 +363,21 @@ final class SSLParametersImpl implements Cloneable {
                     }));
         isEnabledProtocolsFiltered = protocols.length != filteredProtocols.length;
         enabledProtocols = NativeCrypto.checkEnabledProtocols(filteredProtocols).clone();
+    }
+
+    void setNamedGroups(String[] namedGroups) {
+        if (namedGroups == null) {
+            this.namedGroups = null;
+            return;
+        }
+        this.namedGroups = namedGroups.clone();
+    }
+
+    String[] getNamedGroups() {
+        if (namedGroups == null) {
+            return null;
+        }
+        return this.namedGroups.clone();
     }
 
     /*
