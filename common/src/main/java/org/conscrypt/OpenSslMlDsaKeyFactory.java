@@ -148,7 +148,9 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                                     NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePublicKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
-            throw new InvalidKeySpecException("Invalid X.509 encoding", e);
+            throw new InvalidKeySpecException(
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported.",
+                    e);
         }
     }
 
@@ -204,7 +206,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                             NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePrivateKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
-            throw new InvalidKeySpecException("Invalid PKCS8 encoding", e);
+            throw new InvalidKeySpecException(
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported. "
+                            + "Please use ML-DSA 'seed format' as specified and recommended "
+                            + "in RFC 9881.",
+                    e);
         }
     }
 
