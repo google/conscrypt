@@ -122,7 +122,6 @@ final public class Platform {
         NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
     }
 
-
     /**
      * Approximates the behavior of File.createTempFile without depending on SecureRandom.
      */
