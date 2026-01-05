@@ -52,13 +52,13 @@ public final class OpenSSLProvider extends Provider {
     @SuppressWarnings("deprecation")
     public OpenSSLProvider(String providerName) {
         this(providerName, Platform.provideTrustManagerByDefault(), "TLSv1.3",
-            Platform.DEPRECATED_TLS_V1, Platform.ENABLED_TLS_V1);
+                Platform.isTlsV1Deprecated(), Platform.isTlsV1Supported());
     }
 
     OpenSSLProvider(String providerName, boolean includeTrustManager,
             String defaultTlsProtocol) {
-        this(providerName, includeTrustManager, defaultTlsProtocol,
-            Platform.DEPRECATED_TLS_V1, Platform.ENABLED_TLS_V1);
+        this(providerName, includeTrustManager, defaultTlsProtocol, Platform.isTlsV1Deprecated(),
+                Platform.isTlsV1Supported());
     }
 
     OpenSSLProvider(String providerName, boolean includeTrustManager,
