@@ -254,6 +254,9 @@ final public class Platform {
 
         Method m_getUseCipherSuitesOrder = params.getClass().getMethod("getUseCipherSuitesOrder");
         impl.setUseCipherSuitesOrder((boolean) m_getUseCipherSuitesOrder.invoke(params));
+
+        Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+        impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
     }
 
     public static void setSSLParameters(
@@ -323,6 +326,9 @@ final public class Platform {
         Method m_setUseCipherSuitesOrder =
                 params.getClass().getMethod("setUseCipherSuitesOrder", boolean.class);
         m_setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
+
+        Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+        setNamedGroupsMethod.invoke(params, (Object[]) impl.getNamedGroups());
     }
 
     public static void getSSLParameters(
