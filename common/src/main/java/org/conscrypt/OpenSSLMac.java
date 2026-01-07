@@ -141,7 +141,7 @@ public abstract class OpenSSLMac extends MacSpi {
     protected abstract byte[] doFinal();
 
     @Override
-    protected void engineReset() {
+    protected synchronized void engineReset() {
         if (!initialized) {
             return;
         }
@@ -163,36 +163,35 @@ public abstract class OpenSSLMac extends MacSpi {
         }
 
         @Override
-        protected void initContext(byte[] keyBytes) {
+        protected synchronized void initContext(byte[] keyBytes) {
             NativeRef.HMAC_CTX ctxLocal = new NativeRef.HMAC_CTX(NativeCrypto.HMAC_CTX_new());
             NativeCrypto.HMAC_Init_ex(ctxLocal, keyBytes, evpMd);
             this.ctx = ctxLocal;
         }
 
         @Override
-        protected void resetContext() {
+        protected synchronized void resetContext() {
             final NativeRef.HMAC_CTX ctxLocal = ctx;
             NativeCrypto.HMAC_Reset(ctxLocal);
         }
 
         @Override
-        protected void engineUpdate(byte[] input, int offset, int len) {
+        protected synchronized void engineUpdate(byte[] input, int offset, int len) {
             final NativeRef.HMAC_CTX ctxLocal = ctx;
             NativeCrypto.HMAC_Update(ctxLocal, input, offset, len);
         }
 
         @Override
-        protected void updateDirect(long ptr, int len) {
+        protected synchronized void updateDirect(long ptr, int len) {
             final NativeRef.HMAC_CTX ctxLocal = ctx;
             NativeCrypto.HMAC_UpdateDirect(ctxLocal, ptr, len);
         }
 
         @Override
-        protected byte[] doFinal() {
+        protected synchronized byte[] doFinal() {
             final NativeRef.HMAC_CTX ctxLocal = ctx;
             return NativeCrypto.HMAC_Final(ctxLocal);
         }
-
     }
 
     public static final class HmacMD5 extends Hmac {
@@ -239,32 +238,32 @@ public abstract class OpenSSLMac extends MacSpi {
         }
 
         @Override
-        protected void initContext(byte[] keyBytes) {
+        protected synchronized void initContext(byte[] keyBytes) {
             NativeRef.CMAC_CTX ctxLocal = new NativeRef.CMAC_CTX(NativeCrypto.CMAC_CTX_new());
             NativeCrypto.CMAC_Init(ctxLocal, keyBytes);
             this.ctx = ctxLocal;
         }
 
         @Override
-        protected void resetContext() {
+        protected synchronized void resetContext() {
             final NativeRef.CMAC_CTX ctxLocal = ctx;
             NativeCrypto.CMAC_Reset(ctxLocal);
         }
 
         @Override
-        protected void updateDirect(long ptr, int len) {
+        protected synchronized void updateDirect(long ptr, int len) {
             final NativeRef.CMAC_CTX ctxLocal = ctx;
             NativeCrypto.CMAC_UpdateDirect(ctxLocal, ptr, len);
         }
 
         @Override
-        protected byte[] doFinal() {
+        protected synchronized byte[] doFinal() {
             final NativeRef.CMAC_CTX ctxLocal = ctx;
             return NativeCrypto.CMAC_Final(ctxLocal);
         }
 
         @Override
-        protected void engineUpdate(byte[] input, int offset, int len) {
+        protected synchronized void engineUpdate(byte[] input, int offset, int len) {
             final NativeRef.CMAC_CTX ctxLocal = ctx;
             NativeCrypto.CMAC_Update(ctxLocal, input, offset, len);
         }
