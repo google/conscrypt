@@ -23,6 +23,13 @@ import static org.junit.Assert.assertTrue;
 // g3-add: import static org.junit.Assume.assumeFalse;
 import static org.junit.Assert.fail;
 
+import org.conscrypt.TestUtils;
+import org.conscrypt.VeryBasicHttpServer;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -34,16 +41,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.TestUtils;
-import org.conscrypt.VeryBasicHttpServer;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class HttpsURLConnectionTest {
