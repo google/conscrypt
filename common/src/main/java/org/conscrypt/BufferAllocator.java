@@ -27,7 +27,7 @@ public abstract class BufferAllocator {
         @Override
         public AllocatedBuffer allocateDirectBuffer(int capacity) {
             return AllocatedBuffer.wrap(ByteBuffer.allocateDirect(capacity));
-	}
+        }
 
         @Override
         public AllocatedBuffer allocateHeapBuffer(int capacity) {
