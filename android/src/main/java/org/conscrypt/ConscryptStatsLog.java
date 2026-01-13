@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,10 @@
 package org.conscrypt;
 
 /**
- * Helper to initialize the JNI libraries. This version runs when compiled
- * as part of an app distribution (or GmsCore).
+ * Stub class for logging statistics events.
  */
-class NativeCryptoJni {
-    public static void init() {
-        if ("com.google.android.gms.org.conscrypt".equals(NativeCrypto.class.getPackage().getName())) {
-            System.loadLibrary("conscrypt_gmscore_jni");
-        } else {
-            System.loadLibrary("conscrypt_jni");
-        }
-    }
+public class ConscryptStatsLog {
+    public static final int TLS_HANDSHAKE_REPORTED = 0;
 
-    private NativeCryptoJni() {
-    }
+    public static void write(int code, boolean arg1, int arg2, int arg3, int arg4) {}
 }

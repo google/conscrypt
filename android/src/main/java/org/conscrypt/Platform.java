@@ -255,8 +255,12 @@ final public class Platform {
         Method m_getUseCipherSuitesOrder = params.getClass().getMethod("getUseCipherSuitesOrder");
         impl.setUseCipherSuitesOrder((boolean) m_getUseCipherSuitesOrder.invoke(params));
 
-        Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
-        impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
     }
 
     public static void setSSLParameters(
@@ -327,8 +331,12 @@ final public class Platform {
                 params.getClass().getMethod("setUseCipherSuitesOrder", boolean.class);
         m_setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
 
-        Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
-        setNamedGroupsMethod.invoke(params, (Object[]) impl.getNamedGroups());
+        try {
+            Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
     }
 
     public static void getSSLParameters(
