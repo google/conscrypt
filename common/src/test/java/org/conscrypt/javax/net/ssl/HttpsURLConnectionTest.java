@@ -122,7 +122,8 @@ public class HttpsURLConnectionTest {
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
-        // g3-add: broken HTTPS hostname verification
+        // google3-added: broken HTTPS hostname verification: b/266061083
+connection.setHostnameVerifier(new FakeHostnameVerifier());
         int response = connection.getResponseCode();
         assertEquals(404, response);
 
@@ -138,7 +139,8 @@ public class HttpsURLConnectionTest {
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
-        // g3-add: broken HTTPS hostname verification
+        // google3-added: broken HTTPS hostname verification: b/266061083
+connection.setHostnameVerifier(new FakeHostnameVerifier());
         int response = connection.getResponseCode();
         assertEquals(200, response);
 
@@ -193,7 +195,14 @@ public class HttpsURLConnectionTest {
             }
             return null;
         });
-        future.get(2 * timeoutMillis, TimeUnit.MILLISECONDS);
+        try {
+      future.get(2 * timeoutMillis, TimeUnit.MILLISECONDS);
+    } catch (ExecutionException e) {
+      // google3 changed, DO NOT UPSTREAM: Currently no way to reliably generate a connection
+      // timeout on Forge, so just skip this test if we get a SocketException for now.
+      assumeFalse(e.getCause() instanceof SocketException);
+      throw e.getCause();
+    }
     }
 
     @Test

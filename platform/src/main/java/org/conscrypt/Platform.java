@@ -167,8 +167,12 @@ final public class Platform {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
 
-        Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
-        impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
 
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
@@ -187,8 +191,12 @@ final public class Platform {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
 
-        Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
-        setNamedGroupsMethod.invoke(params, (Object[]) impl.getNamedGroups());
+        try {
+            Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
 
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
@@ -202,9 +210,12 @@ final public class Platform {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
 
-        Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
-        impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
-
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -222,9 +233,12 @@ final public class Platform {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
 
-        Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
-        setNamedGroupsMethod.invoke(params, (Object[]) impl.getNamedGroups());
-
+        try {
+            Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(engine.getHostname())));

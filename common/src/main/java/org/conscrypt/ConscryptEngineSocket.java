@@ -511,8 +511,6 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     @Override
     @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public final void close() throws IOException {
-        // TODO: Close SSL sockets using a background thread so they close gracefully.
-
         if (stateLock == null) {
             // Constructor failed, e.g. superclass constructor called close()
             return;
@@ -543,6 +541,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             } finally {
                 if (in != null) {
                     in.release();
+                }
+                if (out != null) {
+                    out.release();
                 }
             }
         }
@@ -625,7 +626,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
     private void drainOutgoingQueue() {
         try {
-            while (engine.pendingOutboundEncryptedBytes() > 0) {
+            while (engine.pendingOutboundEncryptedBytes() > 0 && out != null) {
                 out.writeInternal(EMPTY_BUFFER);
                 // Always flush handshake frames immediately.
                 out.flushInternal();
@@ -661,16 +662,32 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         private final Object writeLock = new Object();
         private final ByteBuffer target;
         private final int targetArrayOffset;
+        private final AllocatedBuffer allocatedTargetBuffer;
         private OutputStream socketOutputStream;
 
         SSLOutputStream() {
-            target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            if (bufferAllocator != null) {
+                allocatedTargetBuffer = bufferAllocator.allocateHeapBuffer(
+                        engine.getSession().getPacketBufferSize());
+                target = allocatedTargetBuffer.nioBuffer();
+            } else {
+                allocatedTargetBuffer = null;
+                target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            }
             targetArrayOffset = target.arrayOffset();
         }
 
         @Override
         public void close() throws IOException {
             ConscryptEngineSocket.this.close();
+        }
+
+        void release() {
+            synchronized (writeLock) {
+                if (allocatedTargetBuffer != null) {
+                    allocatedTargetBuffer.release();
+                }
+            }
         }
 
         @Override
@@ -770,6 +787,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         private final ByteBuffer fromSocket;
         private final int fromSocketArrayOffset;
         private final AllocatedBuffer allocatedBuffer;
+        private final AllocatedBuffer allocatedSocketBuffer;
         private InputStream socketInputStream;
 
         SSLInputStream() {
@@ -783,7 +801,15 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             }
             // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
-            fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+
+            if (bufferAllocator != null) {
+                allocatedSocketBuffer = bufferAllocator.allocateHeapBuffer(
+                        engine.getSession().getPacketBufferSize());
+                fromSocket = allocatedSocketBuffer.nioBuffer();
+            } else {
+                allocatedSocketBuffer = null;
+                fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            }
             fromSocketArrayOffset = fromSocket.arrayOffset();
         }
 
@@ -796,6 +822,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             synchronized (readLock) {
                 if (allocatedBuffer != null) {
                     allocatedBuffer.release();
+                }
+                if (allocatedSocketBuffer != null) {
+                    allocatedSocketBuffer.release();
                 }
             }
         }
