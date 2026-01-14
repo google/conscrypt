@@ -217,7 +217,6 @@ final public class Platform {
         } catch (NoSuchMethodException | IllegalArgumentException e) {
             // Do nothing.
         }
-
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -242,7 +241,6 @@ final public class Platform {
         } catch (NoSuchMethodException | IllegalArgumentException e) {
             // Do nothing.
         }
-
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(engine.getHostname())));
