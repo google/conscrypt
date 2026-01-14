@@ -62,7 +62,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
@@ -71,14 +70,14 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
- *
- * TrustManager implementation. The implementation is based on CertPathValidator
- * PKIX and CertificateFactory X509 implementations. This implementations should
- * be provided by some certification provider.
+ * TrustManager implementation. The implementation is based on CertPathValidator PKIX and
+ * CertificateFactory X509 implementations. This implementations should be provided by some
+ * certification provider.
  *
  * @see javax.net.ssl.X509ExtendedTrustManager
  */
 @Internal
+@SuppressWarnings("CustomX509TrustManager")
 public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     private static final Logger logger = Logger.getLogger(TrustManagerImpl.class.getName());
@@ -431,7 +430,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
         byte[] data = null;
         try {
-            Method m_getTlsSctData = session.getClass().getDeclaredMethod("getPeerSignedCertificateTimestamp");
+      Method m_getTlsSctData =
+          session.getClass().getDeclaredMethod("getPeerSignedCertificateTimestamp");
             m_getTlsSctData.setAccessible(true);
             Object rawData = m_getTlsSctData.invoke(session);
             if (rawData instanceof byte[]) {

@@ -16,17 +16,14 @@
 
 package org.conscrypt;
 
+import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
+import static javax.net.ssl.SSLEngineResult.Status.OK;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY_HANDSHAKE_CUT_THROUGH;
-
-import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
-import static javax.net.ssl.SSLEngineResult.Status.OK;
-
-import org.conscrypt.metrics.StatsLog;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -39,7 +36,6 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -50,6 +46,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.metrics.StatsLog;
 
 /**
  * Implements crypto handling by delegating to {@link ConscryptEngine}.
@@ -138,12 +135,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         return engine;
     }
 
-    // Returns a trust manager that delegates to the given trust manager, but maps SSLEngine
-    // references to the given ConscryptEngineSocket.  Our internal engine will call
-    // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
-    // methods to get called.
-    private static X509TrustManager getDelegatingTrustManager(final X509TrustManager delegate,
-        final ConscryptEngineSocket socket) {
+  // Returns a trust manager that delegates to the given trust manager, but maps SSLEngine
+  // references to the given ConscryptEngineSocket.  Our internal engine will call
+  // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
+  // methods to get called.
+  @SuppressWarnings("CustomX509TrustManager")
+  private static X509TrustManager getDelegatingTrustManager(
+      final X509TrustManager delegate, final ConscryptEngineSocket socket) {
         if (delegate instanceof X509ExtendedTrustManager) {
             final X509ExtendedTrustManager extendedDelegate = (X509ExtendedTrustManager) delegate;
             return new X509ExtendedTrustManager() {
@@ -511,8 +509,6 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     @Override
     @SuppressWarnings("UnsynchronizedOverridesSynchronized")
     public final void close() throws IOException {
-        // TODO: Close SSL sockets using a background thread so they close gracefully.
-
         if (stateLock == null) {
             // Constructor failed, e.g. superclass constructor called close()
             return;
@@ -543,6 +539,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             } finally {
                 if (in != null) {
                     in.release();
+                }
+                if (out != null) {
+                    out.release();
                 }
             }
         }
@@ -625,7 +624,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
     private void drainOutgoingQueue() {
         try {
-            while (engine.pendingOutboundEncryptedBytes() > 0) {
+            while (engine.pendingOutboundEncryptedBytes() > 0 && out != null) {
                 out.writeInternal(EMPTY_BUFFER);
                 // Always flush handshake frames immediately.
                 out.flushInternal();
@@ -661,16 +660,32 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         private final Object writeLock = new Object();
         private final ByteBuffer target;
         private final int targetArrayOffset;
+        private final AllocatedBuffer allocatedTargetBuffer;
         private OutputStream socketOutputStream;
 
         SSLOutputStream() {
-            target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            if (bufferAllocator != null) {
+                allocatedTargetBuffer = bufferAllocator.allocateHeapBuffer(
+                        engine.getSession().getPacketBufferSize());
+                target = allocatedTargetBuffer.nioBuffer();
+            } else {
+                allocatedTargetBuffer = null;
+                target = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            }
             targetArrayOffset = target.arrayOffset();
         }
 
         @Override
         public void close() throws IOException {
             ConscryptEngineSocket.this.close();
+        }
+
+        void release() {
+            synchronized (writeLock) {
+                if (allocatedTargetBuffer != null) {
+                    allocatedTargetBuffer.release();
+                }
+            }
         }
 
         @Override
@@ -770,6 +785,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         private final ByteBuffer fromSocket;
         private final int fromSocketArrayOffset;
         private final AllocatedBuffer allocatedBuffer;
+        private final AllocatedBuffer allocatedSocketBuffer;
         private InputStream socketInputStream;
 
         SSLInputStream() {
@@ -783,7 +799,15 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             }
             // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
-            fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+
+            if (bufferAllocator != null) {
+                allocatedSocketBuffer = bufferAllocator.allocateHeapBuffer(
+                        engine.getSession().getPacketBufferSize());
+                fromSocket = allocatedSocketBuffer.nioBuffer();
+            } else {
+                allocatedSocketBuffer = null;
+                fromSocket = ByteBuffer.allocate(engine.getSession().getPacketBufferSize());
+            }
             fromSocketArrayOffset = fromSocket.arrayOffset();
         }
 
@@ -796,6 +820,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
             synchronized (readLock) {
                 if (allocatedBuffer != null) {
                     allocatedBuffer.release();
+                }
+                if (allocatedSocketBuffer != null) {
+                    allocatedSocketBuffer.release();
                 }
             }
         }
