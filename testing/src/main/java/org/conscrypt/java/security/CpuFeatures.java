@@ -111,7 +111,8 @@ public class CpuFeatures {
         return Arrays.asList(features.split("\\s"));
     }
 
-    private static List<String> getCpuFeaturesMac() {
+  @SuppressWarnings("RuntimeExec")
+  private static List<String> getCpuFeaturesMac() {
         try {
             StringBuilder output = new StringBuilder();
             Process proc = Runtime.getRuntime().exec("sysctl -a");

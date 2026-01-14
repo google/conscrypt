@@ -23,18 +23,8 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.system.Os;
 import android.util.Log;
-
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
-
-import org.conscrypt.NativeCrypto;
-import org.conscrypt.ct.CertificateTransparency;
-import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
-import org.conscrypt.metrics.NoopStatsLog;
-import org.conscrypt.metrics.Source;
-import org.conscrypt.metrics.StatsLog;
-import org.conscrypt.metrics.StatsLogImpl;
-
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -50,7 +40,6 @@ import java.security.AlgorithmParameters;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -61,7 +50,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
@@ -71,11 +59,16 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509TrustManager;
+import org.conscrypt.ct.CertificateTransparency;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
+import org.conscrypt.metrics.NoopStatsLog;
+import org.conscrypt.metrics.Source;
+import org.conscrypt.metrics.StatsLog;
+import org.conscrypt.metrics.StatsLogImpl;
 
-/**
- * Platform-specific methods for unbundled Android.
- */
+/** Platform-specific methods for unbundled Android. */
 @Internal
+@SuppressLint("DiscouragedPrivateApi")
 final public class Platform {
     private static final String TAG = "Conscrypt";
     private static boolean DEPRECATED_TLS_V1 = true;
@@ -332,8 +325,7 @@ final public class Platform {
         m_setUseCipherSuitesOrder.invoke(params, impl.getUseCipherSuitesOrder());
 
         try {
-            Method setNamedGroupsMethod =
-                    params.getClass().getMethod("setNamedGroups", String[].class);
+      Method setNamedGroupsMethod = params.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
         } catch (NoSuchMethodException | IllegalArgumentException e) {
             // Do nothing.
@@ -787,7 +779,8 @@ final public class Platform {
         return sslSession;
     }
 
-    public static String getOriginalHostNameFromInetAddress(InetAddress addr) {
+  @SuppressWarnings("SoonBlockedPrivateApi")
+  public static String getOriginalHostNameFromInetAddress(InetAddress addr) {
         if (Build.VERSION.SDK_INT > 27) {
             try {
                 Method getHolder = InetAddress.class.getDeclaredMethod("holder");

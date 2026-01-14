@@ -30,7 +30,7 @@ import org.conscrypt.OpenSSLX25519PrivateKey;
 import org.conscrypt.OpenSSLX25519PublicKey;
 import org.conscrypt.TestUtils;
 import org.conscrypt.XdhKeySpec;
-import org.junit.Ignore;
+// g3-add: import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
