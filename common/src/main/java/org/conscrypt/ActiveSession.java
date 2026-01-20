@@ -41,8 +41,6 @@ final class ActiveSession implements ConscryptSession {
     private String peerHost;
     private int peerPort = -1;
     private long lastAccessedTime = 0;
-    @SuppressWarnings("deprecation")
-    private volatile javax.security.cert.X509Certificate[] peerCertificateChain;
     private X509Certificate[] localCertificates;
     private X509Certificate[] peerCertificates;
     private byte[] peerCertificateOcspData;
@@ -191,36 +189,6 @@ final class ActiveSession implements ConscryptSession {
             }
         }
         return localCertificates == null ? null : localCertificates.clone();
-    }
-
-    /**
-     * Returns the certificate(s) of the peer in this SSL session
-     * used in the handshaking phase of the connection.
-     * Please notice hat this method is superseded by
-     * <code>getPeerCertificates()</code>.
-     * @return an array of X509 certificates (the peer's one first and then
-     *         eventually that of the certification authority) or null if no
-     *         certificate were used during the SSL connection.
-     * @throws SSLPeerUnverifiedException if either a non-X.509 certificate
-     *         was used (i.e. Kerberos certificates) or the peer could not
-     *         be verified.
-     */
-    @Override
-    @SuppressWarnings("deprecation") // Public API
-    public javax.security.cert.X509Certificate[] getPeerCertificateChain()
-            throws SSLPeerUnverifiedException {
-        if (!Platform.isJavaxCertificateSupported()) {
-            throw new UnsupportedOperationException("Use getPeerCertificates() instead");
-        }
-
-        checkPeerCertificatesPresent();
-        // TODO(nathanmittler): Should we clone?
-        javax.security.cert.X509Certificate[] result = peerCertificateChain;
-        if (result == null) {
-            // single-check idiom
-            peerCertificateChain = result = SSLUtils.toCertificateChain(peerCertificates);
-        }
-        return result;
     }
 
     @Override

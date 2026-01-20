@@ -133,12 +133,6 @@ class Java7ExtendedSSLSession extends ExtendedSSLSession implements ConscryptSes
     }
 
     @Override
-    @SuppressWarnings("deprecation") // Public API
-    public final javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
-        return delegate.getPeerCertificateChain();
-    }
-
-    @Override
     public final Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
         return delegate.getPeerPrincipal();
     }
