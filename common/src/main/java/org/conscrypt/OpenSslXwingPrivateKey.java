@@ -30,11 +30,44 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
 
     static final int PRIVATE_KEY_SIZE_BYTES = 32;
 
+    // The PKCS#8 encoding of a X-Wing private key is always the concatenation of a fixed
+    // prefix and the raw key.
+    private static final byte[] pkcs8Preamble = new byte[] {
+            0x30,
+            0x34,
+            0x02,
+            0x01,
+            0x00,
+            0x30,
+            0x0d,
+            0x06,
+            0x0b,
+            0x2b,
+            0x06,
+            0x01,
+            0x04,
+            0x01,
+            (byte) 0x83,
+            (byte) 0xe6,
+            0x2d,
+            (byte) 0x81,
+            (byte) 0xc8,
+            (byte) 0x7a,
+            0x04,
+            0x20,
+    };
+
     private byte[] raw;
 
     public OpenSslXwingPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
-        if (keySpec.getFormat().equalsIgnoreCase("raw")) {
+        if (keySpec.getFormat().equals("PKCS#8")) {
+            byte[] preamble = Arrays.copyOf(encoded, pkcs8Preamble.length);
+            if (!Arrays.equals(preamble, pkcs8Preamble)) {
+                throw new InvalidKeySpecException("Invalid EdDSA PKCS8 key preamble");
+            }
+            raw = Arrays.copyOfRange(encoded, pkcs8Preamble.length, encoded.length);
+        } else if (keySpec.getFormat().equalsIgnoreCase("raw")) {
             if (encoded.length != PRIVATE_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }
@@ -58,12 +91,15 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        if (raw == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        return ArrayUtils.concat(pkcs8Preamble, raw);
     }
 
     byte[] getRaw() {
