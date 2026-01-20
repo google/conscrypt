@@ -64,13 +64,12 @@ public class OpenSslXwingPublicKey implements PublicKey {
         byte[] encoded = keySpec.getEncoded();
         if (keySpec.getFormat().equals("X.509")) {
             if (!ArrayUtils.startsWith(encoded, x509Preamble)) {
-                throw new InvalidKeySpecException("Invalid format");
+                throw new InvalidKeySpecException("Invalid X-Wing X.509 key preamble");
             }
-            int totalLength = x509Preamble.length + PUBLIC_KEY_SIZE_BYTES;
-            if (encoded.length < totalLength) {
+            raw = Arrays.copyOfRange(encoded, x509Preamble.length, encoded.length);
+            if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }
-            raw = Arrays.copyOfRange(encoded, x509Preamble.length, totalLength);
         } else if (keySpec.getFormat().equalsIgnoreCase("raw")) {
             if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");

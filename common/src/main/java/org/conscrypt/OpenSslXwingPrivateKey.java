@@ -64,9 +64,12 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
         if (keySpec.getFormat().equals("PKCS#8")) {
             byte[] preamble = Arrays.copyOf(encoded, pkcs8Preamble.length);
             if (!Arrays.equals(preamble, pkcs8Preamble)) {
-                throw new InvalidKeySpecException("Invalid EdDSA PKCS8 key preamble");
+                throw new InvalidKeySpecException("Invalid X-Wing PKCS8 key preamble");
             }
             raw = Arrays.copyOfRange(encoded, pkcs8Preamble.length, encoded.length);
+            if (raw.length != PRIVATE_KEY_SIZE_BYTES) {
+                throw new InvalidKeySpecException("Invalid key size");
+            }
         } else if (keySpec.getFormat().equalsIgnoreCase("raw")) {
             if (encoded.length != PRIVATE_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
