@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
@@ -111,21 +112,21 @@ abstract class AbstractConscryptEngine extends SSLEngine {
 
     @Override
     public abstract SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts,
-            final int offset, final int length) throws SSLException;
+                                           final int offset, final int length) throws SSLException;
 
     abstract SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts)
             throws SSLException;
 
     abstract SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
-            final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
-            throws SSLException;
+                                    final ByteBuffer[] dsts, final int dstsOffset,
+                                    final int dstsLength) throws SSLException;
 
     @Override
     public abstract SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException;
 
     @Override
-    public abstract SSLEngineResult wrap(
-            ByteBuffer[] srcs, int srcsOffset, int srcsLength, ByteBuffer dst) throws SSLException;
+    public abstract SSLEngineResult wrap(ByteBuffer[] srcs, int srcsOffset, int srcsLength,
+                                         ByteBuffer dst) throws SSLException;
 
     /**
      * This method enables session ticket support.
@@ -133,6 +134,13 @@ abstract class AbstractConscryptEngine extends SSLEngine {
      * @param useSessionTickets True to enable session tickets
      */
     abstract void setUseSessionTickets(boolean useSessionTickets);
+
+    /**
+     * This method sets the ECH config data to be used in the TLS handshake.
+     *
+     * @param echConfigList the ECH config data to be used in the TLS handshake
+     */
+    abstract void setEchConfigList(byte[] echConfigList);
 
     /**
      * Sets the list of ALPN protocols.

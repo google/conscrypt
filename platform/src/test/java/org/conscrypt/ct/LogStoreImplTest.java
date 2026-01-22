@@ -24,25 +24,24 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.conscrypt.OpenSSLKey;
 import org.conscrypt.metrics.NoopStatsLog;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.security.PublicKey;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.function.Supplier;
 
 @RunWith(JUnit4.class)
 public class LogStoreImplTest {
+    /** FakeStatsLog captures the events being reported */
     static class FakeStatsLog extends NoopStatsLog {
         public ArrayList<LogStore.State> states = new ArrayList<LogStore.State>();
 
@@ -58,8 +57,8 @@ public class LogStoreImplTest {
             return true;
         }
         @Override
-        public PolicyCompliance doesResultConformToPolicy(
-                VerificationResult result, X509Certificate leaf) {
+        public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                          X509Certificate leaf) {
             return PolicyCompliance.COMPLY;
         }
     };
@@ -70,19 +69,37 @@ public class LogStoreImplTest {
             return false;
         }
         @Override
-        public PolicyCompliance doesResultConformToPolicy(
-                VerificationResult result, X509Certificate leaf) {
+        public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                          X509Certificate leaf) {
             return PolicyCompliance.COMPLY;
         }
     };
 
-    @Test
-    public void test_loadValidLogList() throws Exception {
-        // clang-format off
-        String content = "" +
+    /* Time supplier that can be set to any arbitrary time */
+    static class TimeSupplier implements Supplier<Long> {
+        private long currentTimeInMs;
+
+        TimeSupplier(long currentTimeInMs) {
+            this.currentTimeInMs = currentTimeInMs;
+        }
+
+        @Override
+        public Long get() {
+            return currentTimeInMs;
+        }
+
+        public void setCurrentTimeInMs(long currentTimeInMs) {
+            this.currentTimeInMs = currentTimeInMs;
+        }
+    }
+
+    private static final long JAN2024 = 1704103200000L;
+    private static final long JAN2022 = 1641031200000L;
+    // clang-format off
+    static final String validLogList = "" +
 "{" +
 "  \"version\": \"1.1\"," +
-"  \"log_list_timestamp\": \"2024-01-01T11:55:12Z\"," +
+"  \"log_list_timestamp\": 1704070861000," +
 "  \"operators\": [" +
 "    {" +
 "      \"name\": \"Operator 1\"," +
@@ -96,12 +113,12 @@ public class LogStoreImplTest {
 "          \"mmd\": 86400," +
 "          \"state\": {" +
 "            \"usable\": {" +
-"              \"timestamp\": \"2022-11-01T18:54:00Z\"" +
+"              \"timestamp\": 1667328840000" +
 "            }" +
 "          }," +
 "          \"temporal_interval\": {" +
-"            \"start_inclusive\": \"2024-01-01T00:00:00Z\"," +
-"            \"end_exclusive\": \"2025-01-01T00:00:00Z\"" +
+"            \"start_inclusive\": 1704070861000," +
+"            \"end_exclusive\": 1735693261000" +
 "          }" +
 "        }," +
 "        {" +
@@ -112,12 +129,12 @@ public class LogStoreImplTest {
 "          \"mmd\": 86400," +
 "          \"state\": {" +
 "            \"usable\": {" +
-"              \"timestamp\": \"2023-11-26T12:00:00Z\"" +
+"              \"timestamp\": 1700960461000" +
 "            }" +
 "          }," +
 "          \"temporal_interval\": {" +
-"            \"start_inclusive\": \"2025-01-01T00:00:00Z\"," +
-"            \"end_exclusive\": \"2025-07-01T00:00:00Z\"" +
+"            \"start_inclusive\": 1735693261000," +
+"            \"end_exclusive\": 1751331661000" +
 "          }" +
 "        }" +
 "      ]" +
@@ -134,81 +151,222 @@ public class LogStoreImplTest {
 "          \"mmd\": 86400," +
 "          \"state\": {" +
 "            \"usable\": {" +
-"              \"timestamp\": \"2022-11-30T17:00:00Z\"" +
+"              \"timestamp\": 1669770061000" +
 "            }" +
 "          }," +
 "          \"temporal_interval\": {" +
-"            \"start_inclusive\": \"2024-01-01T00:00:00Z\"," +
-"            \"end_exclusive\": \"2025-01-01T00:00:00Z\"" +
+"            \"start_inclusive\": 1704070861000," +
+"            \"end_exclusive\": 1735693261000" +
+"          }" +
+"        }" +
+"      ]," +
+"      \"tiled_logs\": [" +
+"        {" +
+"         \"description\": \"Operator 2 'Test2025' log\"," +
+"          \"log_id\": \"DleUvPOuqT4zGyyZB7P3kN+bwj1xMiXdIaklrGHFTiE=\"," +
+"          \"key\": \"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEB/we6GOO/xwxivy4HhkrYFAAPo6e2nc346Wo2o2U+GvoPWSPJz91s/xrEvA3Bk9kWHUUXVZS5morFEzsgdHqPg==\"," +
+"          \"submission_url\": \"https://operator2.example.com/tiled/test2025\"," +
+"          \"monitoring_url\": \"https://operator2.exmaple.com/tiled_monitor/test2025\"," +
+"          \"mmd\": 86400," +
+"          \"state\": {" +
+"            \"usable\": {" +
+"              \"timestamp\": 1667328840000" +
+"            }" +
+"          }," +
+"          \"temporal_interval\": {" +
+"            \"start_inclusive\": 1767225600000," +
+"            \"end_exclusive\": 1782864000000" +
 "          }" +
 "        }" +
 "      ]" +
 "    }" +
 "  ]" +
 "}";
-        // clang-format on
+    // clang-format on
 
+    Path grandparentDir;
+    Path parentDir;
+    Path logList;
+
+    @After
+    public void tearDown() throws Exception {
+        if (logList != null) {
+            Files.deleteIfExists(logList);
+            Files.deleteIfExists(parentDir);
+            Files.deleteIfExists(grandparentDir);
+        }
+    }
+
+    @Test
+    public void loadValidLogList_returnsCompliantState() throws Exception {
         FakeStatsLog metrics = new FakeStatsLog();
-        File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
-
-        assertNull("A null logId should return null", store.getKnownLog(null));
-
+        logList = writeLogList(validLogList);
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
         byte[] pem = ("-----BEGIN PUBLIC KEY-----\n"
-                + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnWTAWUYr"
-                + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
-                + "\n-----END PUBLIC KEY-----\n")
+                      + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnW"
+                        + "TAWUYr"
+                      + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
+                      + "\n-----END PUBLIC KEY-----\n")
                              .getBytes(US_ASCII);
         ByteArrayInputStream is = new ByteArrayInputStream(pem);
-
         LogInfo log1 =
                 new LogInfo.Builder()
                         .setPublicKey(OpenSSLKey.fromPublicKeyPemInputStream(is).getPublicKey())
-                        .setDescription("Operator 1 'Test2024' log")
-                        .setUrl("https://operator1.example.com/logs/test2024/")
+                        .setType(LogInfo.TYPE_RFC6962)
                         .setState(LogInfo.STATE_USABLE, 1667328840000L)
                         .setOperator("Operator 1")
                         .build();
         byte[] log1Id = Base64.getDecoder().decode("7s3QZNXbGs7FXLedtM0TojKHRny87N7DUUhZRnEftZs=");
+
+        assertNull("A null logId should return null", store.getKnownLog(/* logId= */ null));
         assertEquals("An existing logId should be returned", log1, store.getKnownLog(log1Id));
-        assertEquals("One metric update should be emitted", metrics.states.size(), 1);
+        assertEquals("One metric update should be emitted", 1, metrics.states.size());
         assertEquals("The metric update for log list state should be compliant",
-                metrics.states.get(0), LogStore.State.COMPLIANT);
+                     LogStore.State.COMPLIANT, metrics.states.get(0));
     }
 
     @Test
-    public void test_loadMalformedLogList() throws Exception {
+    public void loadMalformedLogList_returnsMalformedState() throws Exception {
         FakeStatsLog metrics = new FakeStatsLog();
         String content = "}}";
-        File logList = writeFile(content);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
+        logList = writeLogList(content);
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
 
-        assertEquals(
-                "The log state should be malformed", store.getState(), LogStore.State.MALFORMED);
-        assertEquals("One metric update should be emitted", metrics.states.size(), 1);
+        assertEquals("The log state should be malformed", LogStore.State.MALFORMED,
+                     store.getState());
+        assertEquals("One metric update should be emitted", 1, metrics.states.size());
         assertEquals("The metric update for log list state should be malformed",
-                metrics.states.get(0), LogStore.State.MALFORMED);
+                     LogStore.State.MALFORMED, metrics.states.get(0));
     }
 
     @Test
-    public void test_loadMissingLogList() throws Exception {
+    public void loadFutureLogList_returnsMalformedState() throws Exception {
         FakeStatsLog metrics = new FakeStatsLog();
-        File logList = new File("does_not_exist");
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
+        logList = writeLogList(validLogList); // The logs are usable from 2024 onwards.
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2022);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
 
-        assertEquals(
-                "The log state should be not found", store.getState(), LogStore.State.NOT_FOUND);
-        assertEquals("One metric update should be emitted", metrics.states.size(), 1);
-        assertEquals("The metric update for log list state should be not found",
-                metrics.states.get(0), LogStore.State.NOT_FOUND);
+        assertEquals("The log state should be malformed", LogStore.State.MALFORMED,
+                     store.getState());
+        assertEquals("One metric update should be emitted", 1, metrics.states.size());
+        assertEquals("The metric update for log list state should be malformed",
+                     LogStore.State.MALFORMED, metrics.states.get(0));
     }
 
-    private File writeFile(String content) throws IOException {
-        File file = File.createTempFile("test", null);
-        file.deleteOnExit();
-        try (FileWriter fw = new FileWriter(file)) {
-            fw.write(content);
-        }
+    @Test
+    public void loadMissingLogList_returnsNotFoundState() throws Exception {
+        FakeStatsLog metrics = new FakeStatsLog();
+        Path missingLogList = Paths.get("missing_dir", "missing_subdir", "does_not_exist_log_list");
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
+        LogStore store =
+                new LogStoreImpl(alwaysCompliantStorePolicy, missingLogList, metrics, fakeTime);
+
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
+        assertEquals("One metric update should be emitted", 1, metrics.states.size());
+        assertEquals("The metric update for log list state should be not found",
+                     LogStore.State.NOT_FOUND, metrics.states.get(0));
+    }
+
+    @Test
+    public void loadMissingAndThenFoundLogList_logListIsLoaded() throws Exception {
+        // Arrange
+        FakeStatsLog metrics = new FakeStatsLog();
+        // Allocate a temporary file path and delete it. We keep the temporary
+        // path so that we can add a valid log list later on.
+        logList = writeLogList("");
+        Files.deleteIfExists(logList);
+        Files.deleteIfExists(parentDir);
+        Files.deleteIfExists(grandparentDir);
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
+
+        // Act
+        Files.createDirectory(grandparentDir);
+        Files.createDirectory(parentDir);
+        Files.write(logList, validLogList.getBytes());
+
+        // Assert
+        // 5min < 10min, we should not check the log list yet.
+        fakeTime.setCurrentTimeInMs(JAN2024 + 5L * 60 * 1000);
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
+
+        // 12min, the log list should be reloadable.
+        fakeTime.setCurrentTimeInMs(JAN2024 + 12L * 60 * 1000);
+        assertEquals("The log state should be compliant", LogStore.State.COMPLIANT,
+                     store.getState());
+    }
+
+    @Test
+    public void loadMissingThenTimeTravelBackwardsAndThenFoundLogList_logListIsLoaded()
+            throws Exception {
+        FakeStatsLog metrics = new FakeStatsLog();
+        // Allocate a temporary file path and delete it. We keep the temporary
+        // path so that we can add a valid log list later on.
+        logList = writeLogList("");
+        Files.deleteIfExists(logList);
+        Files.deleteIfExists(parentDir);
+        Files.deleteIfExists(grandparentDir);
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024 + 100L * 60 * 1000);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
+
+        Files.createDirectory(grandparentDir);
+        Files.createDirectory(parentDir);
+        Files.write(logList, validLogList.getBytes());
+        // Move back in time.
+        fakeTime.setCurrentTimeInMs(JAN2024);
+
+        assertEquals("The log state should be compliant", LogStore.State.COMPLIANT,
+                     store.getState());
+    }
+
+    @Test
+    public void loadExistingAndThenRemovedLogList_logListIsNotFound() throws Exception {
+        FakeStatsLog metrics = new FakeStatsLog();
+        logList = writeLogList(validLogList);
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        assertEquals("The log should be loaded", LogStore.State.COMPLIANT, store.getState());
+
+        Files.delete(logList);
+        // 12min, the log list should be reloadable.
+        fakeTime.setCurrentTimeInMs(JAN2024 + 12L * 60 * 1000);
+
+        assertEquals("The log should have been refreshed", LogStore.State.NOT_FOUND,
+                     store.getState());
+    }
+
+    @Test
+    public void loadExistingLogListAndThenMoveDirectory_logListIsNotFound() throws Exception {
+        FakeStatsLog metrics = new FakeStatsLog();
+        logList = writeLogList(validLogList);
+        TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
+        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        assertEquals("The log should be loaded", LogStore.State.COMPLIANT, store.getState());
+
+        Path oldParentDir = parentDir;
+        parentDir = grandparentDir.resolve("more_current");
+        Files.move(oldParentDir, parentDir);
+        logList = parentDir.resolve("log_list.json");
+        // 12min, the log list should be reloadable.
+        fakeTime.setCurrentTimeInMs(JAN2024 + 12L * 60 * 1000);
+
+        assertEquals("The log should have been refreshed", LogStore.State.NOT_FOUND,
+                     store.getState());
+    }
+
+    private Path writeLogList(String content) throws IOException {
+        grandparentDir = Files.createTempDirectory("v1");
+        parentDir = Files.createDirectory(grandparentDir.resolve("current"));
+        Path file = Files.createFile(parentDir.resolve("log_list.json"));
+        Files.write(file, content.getBytes());
         return file;
     }
 }

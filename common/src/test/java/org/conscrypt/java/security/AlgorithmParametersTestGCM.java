@@ -20,8 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -39,11 +42,11 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest {
+    // android-add: Allow access to deprecated BC algorithms.
 
     private static final byte[] IV = new byte[] {
-        (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8,
-        (byte) 0xFF, (byte) 0x64, (byte) 0x72, (byte) 0xF5,
-        (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8 };
+            (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8, (byte) 0xFF, (byte) 0x64,
+            (byte) 0x72, (byte) 0xF5, (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8};
 
     private static final int TLEN = 96;
     private static final int SUN_ALT_TLEN = 128;
@@ -64,41 +67,44 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
     private static final String ENCODED_DATA_TLEN = "MBEEDAQIaMj/ZHL1BAhoyAIBDA==";
 
     public AlgorithmParametersTestGCM() {
-        super("GCM", new AlgorithmParameterSymmetricHelper("AES", "GCM/NOPADDING", 128), new GCMParameterSpec(TLEN, IV));
+        super("GCM", new AlgorithmParameterSymmetricHelper("AES", "GCM/NOPADDING", 128),
+              new GCMParameterSpec(TLEN, IV));
     }
 
     @Test
     public void testEncoding() throws Exception {
         ServiceTester.test("AlgorithmParameters")
-            .withAlgorithm("GCM")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    AlgorithmParameters params = AlgorithmParameters.getInstance("GCM", p);
+                .withAlgorithm("GCM")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        AlgorithmParameters params = AlgorithmParameters.getInstance("GCM", p);
 
-                    params.init(new GCMParameterSpec(TLEN, IV));
-                    String encoded = TestUtils.encodeBase64(params.getEncoded());
-                    assertTrue("Encoded: " + encoded,
-                        encoded.equals(ENCODED_DATA_TLEN) || encoded.equals(ENCODED_DATA_NO_TLEN));
+                        params.init(new GCMParameterSpec(TLEN, IV));
+                        String encoded = TestUtils.encodeBase64(params.getEncoded());
+                        assertTrue("Encoded: " + encoded,
+                                   encoded.equals(ENCODED_DATA_TLEN)
+                                           || encoded.equals(ENCODED_DATA_NO_TLEN));
 
-                    params = AlgorithmParameters.getInstance("GCM", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_NO_TLEN));
-                    GCMParameterSpec spec = params.getParameterSpec(GCMParameterSpec.class);
-                    if (!p.getName().equals("SunJCE")) {
+                        params = AlgorithmParameters.getInstance("GCM", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_NO_TLEN));
+                        GCMParameterSpec spec = params.getParameterSpec(GCMParameterSpec.class);
+                        if (!p.getName().equals("SunJCE")) {
+                            assertEquals(TLEN, spec.getTLen());
+                        } else {
+                            // In some cases the SunJCE provider uses 128 as the default instead of
+                            // 96
+                            assertTrue(spec.getTLen() == TLEN || spec.getTLen() == SUN_ALT_TLEN);
+                        }
+                        assertArrayEquals(IV, spec.getIV());
+
+                        params = AlgorithmParameters.getInstance("GCM", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_TLEN));
+                        spec = params.getParameterSpec(GCMParameterSpec.class);
                         assertEquals(TLEN, spec.getTLen());
-                    } else {
-                        // In some cases the SunJCE provider uses 128 as the default instead of 96
-                        assertTrue(spec.getTLen() == TLEN || spec.getTLen() == SUN_ALT_TLEN);
+                        assertArrayEquals(IV, spec.getIV());
                     }
-                    assertArrayEquals(IV, spec.getIV());
-
-                    params = AlgorithmParameters.getInstance("GCM", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_TLEN));
-                    spec = params.getParameterSpec(GCMParameterSpec.class);
-                    assertEquals(TLEN, spec.getTLen());
-                    assertArrayEquals(IV, spec.getIV());
-                }
-            });
+                });
     }
 
     private static byte[] randomBytes(int n) {
@@ -119,7 +125,7 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
     private static final int GCM_TAG_LENGTH_BYTES = GCM_TAG_LENGTH_BITS / 8;
 
     private void encryptAndDecrypt(byte[] sharedBuffer, int inputOffset, int plaintextLength,
-            int outputOffset, boolean expectSuccess) throws Exception {
+                                   int outputOffset, boolean expectSuccess) throws Exception {
         GCMParameterSpec ivSpec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, randomBytes(12));
         SecretKeySpec skeySpec = new SecretKeySpec(randomBytes(16), "AES");
         byte[] associatedData = randomBytes(20);
@@ -135,15 +141,15 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivSpec);
             cipher.updateAAD(associatedData);
 
-            int actualCiphertextLength = cipher.doFinal(
-                    sharedBuffer, inputOffset, plaintextLength, sharedBuffer, outputOffset);
+            int actualCiphertextLength = cipher.doFinal(sharedBuffer, inputOffset, plaintextLength,
+                                                        sharedBuffer, outputOffset);
 
             if (!expectSuccess) {
                 fail("Expected encryption to fail, but it succeeded.");
             }
 
-            assertEquals(
-                    "Ciphertext length mismatch", expectedCiphertextLength, actualCiphertextLength);
+            assertEquals("Ciphertext length mismatch", expectedCiphertextLength,
+                         actualCiphertextLength);
 
             // Decryption phase
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivSpec);
@@ -152,12 +158,12 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
                     cipher.doFinal(sharedBuffer, outputOffset, actualCiphertextLength);
 
             assertArrayEquals("Decrypted plaintext does not match original", originalPlaintext,
-                    decryptedPlaintext);
+                              decryptedPlaintext);
 
         } catch (ShortBufferException | IllegalArgumentException | IllegalStateException e) {
             if (expectSuccess) {
                 fail("Encryption/decryption failed unexpectedly with "
-                        + e.getClass().getSimpleName() + ": " + e.getMessage());
+                     + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         }
     }
@@ -292,6 +298,6 @@ public class AlgorithmParametersTestGCM extends AbstractAlgorithmParametersTest 
         encryptAndDecrypt(sequentialBytes(totalBufferSize, (byte) 0), 0, plaintextLength, 5, true);
         // Adjacent
         encryptAndDecrypt(sequentialBytes(totalBufferSize, (byte) 0), 0, plaintextLength,
-                plaintextLength, true);
+                          plaintextLength, true);
     }
 }

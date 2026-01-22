@@ -50,14 +50,14 @@ public class PolicyImpl implements Policy {
     }
 
     @Override
-    public PolicyCompliance doesResultConformToPolicy(
-            VerificationResult result, X509Certificate leaf) {
+    public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                      X509Certificate leaf) {
         long now = System.currentTimeMillis();
         return doesResultConformToPolicyAt(result, leaf, now);
     }
 
-    public PolicyCompliance doesResultConformToPolicyAt(
-            VerificationResult result, X509Certificate leaf, long atTime) {
+    public PolicyCompliance doesResultConformToPolicyAt(VerificationResult result,
+                                                        X509Certificate leaf, long atTime) {
         List<VerifiedSCT> validSCTs = new ArrayList<VerifiedSCT>(result.getValidSCTs());
         /* While the log list supports logs without a state, these entries are
          * not supported by the log policy. Filter them out. */
@@ -122,14 +122,14 @@ public class PolicyImpl implements Policy {
         while (it.hasNext()) {
             VerifiedSCT vsct = it.next();
             if (vsct.getLogInfo().getState() == LogInfo.STATE_RETIRED
-                    && minTimestamp > vsct.getLogInfo().getStateTimestamp()) {
+                && minTimestamp > vsct.getLogInfo().getStateTimestamp()) {
                 it.remove();
             }
         }
     }
 
-    private PolicyCompliance conformEmbeddedSCTs(
-            Set<VerifiedSCT> embeddedValidSCTs, X509Certificate leaf, long atTime) {
+    private PolicyCompliance conformEmbeddedSCTs(Set<VerifiedSCT> embeddedValidSCTs,
+                                                 X509Certificate leaf, long atTime) {
         /* 1. At least one Embedded SCT from a CT Log that was Qualified,
          *    Usable, or ReadOnly at the time of check;
          */
@@ -178,7 +178,7 @@ public class PolicyImpl implements Policy {
             return PolicyCompliance.NOT_ENOUGH_SCTS;
         }
 
-        /* 3. Among the SCTs satisfying requirements 1 and 2, at least two SCTs
+        /* 3. Among the SCTs satisfying requirements 2, at least two SCTs
          *    must be issued from distinct CT Log Operators as recognized by
          *    Chrome.
          */
@@ -190,11 +190,25 @@ public class PolicyImpl implements Policy {
             return PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS;
         }
 
+        /* 4. Among the SCTs satisfying requirement 2, at least one SCT must be
+         * issued from a log recognized by Chrome as being RFC6962-compliant.
+         */
+        boolean foundRfc6962Log = false;
+        for (LogInfo logInfo : validLogs) {
+            if (logInfo.getType() == LogInfo.TYPE_RFC6962) {
+                foundRfc6962Log = true;
+                break;
+            }
+        }
+        if (!foundRfc6962Log) {
+            return PolicyCompliance.NO_RFC6962_LOG;
+        }
+
         return PolicyCompliance.COMPLY;
     }
 
-    private PolicyCompliance conformOCSPorTLSSCTs(
-            Set<VerifiedSCT> ocspOrTLSValidSCTs, long atTime) {
+    private PolicyCompliance conformOCSPorTLSSCTs(Set<VerifiedSCT> ocspOrTLSValidSCTs,
+                                                  long atTime) {
         /* 1. At least two SCTs from a CT Log that was Qualified, Usable, or
          *    ReadOnly at the time of check;
          */
@@ -221,6 +235,20 @@ public class PolicyImpl implements Policy {
         }
         if (operators.size() < 2) {
             return PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS;
+        }
+
+        /* 3. Among the SCTs satisfying requirement 1, at least one SCT must be
+         * issued from a log recognized by Chrome as being RFC6962-compliant.
+         */
+        boolean foundRfc6962Log = false;
+        for (LogInfo logInfo : validLogs) {
+            if (logInfo.getType() == LogInfo.TYPE_RFC6962) {
+                foundRfc6962Log = true;
+                break;
+            }
+        }
+        if (!foundRfc6962Log) {
+            return PolicyCompliance.NO_RFC6962_LOG;
         }
 
         return PolicyCompliance.COMPLY;
