@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,11 @@
 
 package org.conscrypt;
 
-import org.conscrypt.Internal;
-
-import java.math.BigInteger;
-import java.security.PublicKey;
-
 /**
- * A set of certificates that are blacklisted from trust.
+ * Stub class for logging statistics events.
  */
-@Internal
-public interface CertBlocklist {
-    /**
-     * Returns whether the given public key is in the blacklist.
-     */
-    boolean isPublicKeyBlockListed(PublicKey publicKey);
+public class ConscryptStatsLog {
+    public static final int TLS_HANDSHAKE_REPORTED = 0;
 
-    /**
-     * Returns whether the given serial number is in the blacklist.
-     */
-    boolean isSerialNumberBlockListed(BigInteger serial);
+    public static void write(int code, boolean arg1, int arg2, int arg3, int arg4) {}
 }

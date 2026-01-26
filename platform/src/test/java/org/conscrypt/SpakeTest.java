@@ -69,7 +69,8 @@ public class SpakeTest {
             Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
 
     private Pair<SSLContext, SSLContext> createContexts(PakeClientKeyManagerParameters clientParams,
-            PakeServerKeyManagerParameters serverParams) throws Exception {
+                                                        PakeServerKeyManagerParameters serverParams)
+            throws Exception {
         InetAddress hostC = TestUtils.getLoopbackAddress();
         InetAddress hostS = TestUtils.getLoopbackAddress();
 
@@ -488,7 +489,7 @@ public class SpakeTest {
         SSLContext sslContext = SSLContext.getInstance("TlsV1.3");
         // Should throw due to both SPAKE and x509 key managers
         assertThrows(KeyManagementException.class,
-                () -> sslContext.init(keyManagersWithx509, trustManagers, null));
+                     () -> sslContext.init(keyManagersWithx509, trustManagers, null));
     }
 
     @Test
@@ -517,8 +518,8 @@ public class SpakeTest {
         SSLContext sslContext = SSLContext.getInstance("TlsV1.3");
         assertThrows(KeyManagementException.class, () -> sslContext.init(keyManagers, null, null));
 
-        assertThrows(
-                KeyManagementException.class, () -> sslContext.init(null, trustManagers, null));
+        assertThrows(KeyManagementException.class,
+                     () -> sslContext.init(null, trustManagers, null));
     }
 
     @Test

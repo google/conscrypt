@@ -16,27 +16,30 @@
 
 package org.conscrypt;
 
-import libcore.junit.util.SwitchTargetSdkVersionRule;
-import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
-
-import java.security.Provider;
-import javax.net.ssl.SSLSocket;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.rules.TestRule;
-import org.junit.Rule;
-import org.junit.runners.JUnit4;
-import org.conscrypt.javax.net.ssl.TestSSLContext;
-
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
+import libcore.junit.util.SwitchTargetSdkVersionRule;
+import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
+
+import org.conscrypt.javax.net.ssl.TestSSLContext;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import java.security.Provider;
+
+import javax.net.ssl.SSLSocket;
+
 @RunWith(JUnit4.class)
 public class TlsDeprecationTest {
+    // android-add: test rule for switching target SDK version to 36.
 
     @Test
     @TargetSdkVersion(36)
@@ -45,8 +48,10 @@ public class TlsDeprecationTest {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        assertThrows(IllegalArgumentException.class, () -> client.setEnabledProtocols(new String[] {"SSLv3"}));
-        assertThrows(IllegalArgumentException.class, () -> client.setEnabledProtocols(new String[] {"SSL"}));
+        assertThrows(IllegalArgumentException.class,
+                     () -> client.setEnabledProtocols(new String[] {"SSLv3"}));
+        assertThrows(IllegalArgumentException.class,
+                     () -> client.setEnabledProtocols(new String[] {"SSL"}));
     }
 
     @Test
@@ -59,7 +64,8 @@ public class TlsDeprecationTest {
         // For app compatibility, SSLv3 is stripped out when setting only.
         client.setEnabledProtocols(new String[] {"SSLv3"});
         assertEquals(0, client.getEnabledProtocols().length);
-        assertThrows(IllegalArgumentException.class, () -> client.setEnabledProtocols(new String[] {"SSL"}));
+        assertThrows(IllegalArgumentException.class,
+                     () -> client.setEnabledProtocols(new String[] {"SSL"}));
     }
 
     @Test
@@ -92,8 +98,9 @@ public class TlsDeprecationTest {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        assertThrows(IllegalArgumentException.class, () ->
-            client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}));
     }
 
     @Test

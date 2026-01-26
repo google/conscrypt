@@ -16,17 +16,14 @@
 
 package org.conscrypt;
 
+import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
+import static javax.net.ssl.SSLEngineResult.Status.OK;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_CLOSED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_COMPLETED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_HANDSHAKE_STARTED;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY;
 import static org.conscrypt.SSLUtils.EngineStates.STATE_READY_HANDSHAKE_CUT_THROUGH;
-
-import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
-import static javax.net.ssl.SSLEngineResult.Status.OK;
-
-import org.conscrypt.metrics.StatsLog;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -39,7 +36,6 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -50,6 +46,7 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
+import org.conscrypt.metrics.StatsLog;
 
 /**
  * Implements crypto handling by delegating to {@link ConscryptEngine}.
@@ -138,12 +135,13 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         return engine;
     }
 
-    // Returns a trust manager that delegates to the given trust manager, but maps SSLEngine
-    // references to the given ConscryptEngineSocket.  Our internal engine will call
-    // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
-    // methods to get called.
-    private static X509TrustManager getDelegatingTrustManager(final X509TrustManager delegate,
-        final ConscryptEngineSocket socket) {
+  // Returns a trust manager that delegates to the given trust manager, but maps SSLEngine
+  // references to the given ConscryptEngineSocket.  Our internal engine will call
+  // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
+  // methods to get called.
+  @SuppressWarnings("CustomX509TrustManager")
+  private static X509TrustManager getDelegatingTrustManager(
+      final X509TrustManager delegate, final ConscryptEngineSocket socket) {
         if (delegate instanceof X509ExtendedTrustManager) {
             final X509ExtendedTrustManager extendedDelegate = (X509ExtendedTrustManager) delegate;
             return new X509ExtendedTrustManager() {
@@ -451,6 +449,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     @Override
     public final void setUseSessionTickets(boolean useSessionTickets) {
         engine.setUseSessionTickets(useSessionTickets);
+    }
+
+    @Override
+    public final void setEchConfigList(byte[] echConfigList) {
+        engine.setEchConfigList(echConfigList);
     }
 
     @Override

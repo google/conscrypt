@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,19 @@
 
 package org.conscrypt;
 
-import org.conscrypt.Internal;
-
-import java.math.BigInteger;
-import java.security.PublicKey;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 
 /**
- * A set of certificates that are blacklisted from trust.
+ * A policy provided by the platform to decide on the behaviour of TrustManagerImpl.
+ *
+ * See the platform-specific implementations in PlatformNetworkSecurityPolicy.
  */
 @Internal
-public interface CertBlocklist {
-    /**
-     * Returns whether the given public key is in the blacklist.
-     */
-    boolean isPublicKeyBlockListed(PublicKey publicKey);
+public interface NetworkSecurityPolicy {
+    boolean isCertificateTransparencyVerificationRequired(String hostname);
 
-    /**
-     * Returns whether the given serial number is in the blacklist.
-     */
-    boolean isSerialNumberBlockListed(BigInteger serial);
+    CertificateTransparencyVerificationReason getCertificateTransparencyVerificationReason(
+            String hostname);
+
+    DomainEncryptionMode getDomainEncryptionMode(String hostname);
 }

@@ -23,6 +23,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.Provider;
@@ -35,17 +43,13 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Locale;
 
-import org.conscrypt.TestUtils;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class X509CRLTest {
+    // android-add: Allow access to deprecated BC algorithms.
 
-    private static final String CA_CERT =
-        "-----BEGIN CERTIFICATE-----\n"
+    private static final String CA_CERT = "-----BEGIN CERTIFICATE-----\n"
             + "MIIC0DCCAjmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBVMQswCQYDVQQGEwJHQjEk\n"
             + "MCIGA1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVX\n"
             + "YWxlczEQMA4GA1UEBxMHRXJ3IFdlbjAeFw0xMjA2MDEwMDAwMDBaFw0yMjA2MDEw\n"
@@ -64,8 +68,7 @@ public class X509CRLTest {
             + "OwqULg==\n"
             + "-----END CERTIFICATE-----\n";
 
-    private static final String REVOKED_CERT =
-        "-----BEGIN CERTIFICATE-----\n"
+    private static final String REVOKED_CERT = "-----BEGIN CERTIFICATE-----\n"
             + "MIICyjCCAjOgAwIBAgIBBzANBgkqhkiG9w0BAQUFADBVMQswCQYDVQQGEwJHQjEk\n"
             + "MCIGA1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVX\n"
             + "YWxlczEQMA4GA1UEBxMHRXJ3IFdlbjAeFw0xMjA2MDEwMDAwMDBaFw0yMjA2MDEw\n"
@@ -83,8 +86,7 @@ public class X509CRLTest {
             + "g7HSVIKtrKOdMhrHE3nW649PWUdRcbGjCeaC9MTxWv9cGC7NqDKRNcGWWiN3Dg==\n"
             + "-----END CERTIFICATE-----\n";
 
-    private static final String CRL =
-        "-----BEGIN X509 CRL-----\n"
+    private static final String CRL = "-----BEGIN X509 CRL-----\n"
             + "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE\n"
             + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ\n"
             + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi\n"
@@ -101,8 +103,7 @@ public class X509CRLTest {
             + "VQQHEwdFcncgV2VuFw0xOTA4MDcxMDI3MTBaFw0xOTA5MDYxMDI3MTBaMCIwIAIB"
             + "BxcNMTkwODA3MTAyNjU0WjAMMAoGA1UdFQQDCgEBoA4wDDAKBgNVHRQEAwIBAg==";
 
-    private static final String UNKNOWN_SIGNATURE_OID =
-        "-----BEGIN X509 CRL-----\n"
+    private static final String UNKNOWN_SIGNATURE_OID = "-----BEGIN X509 CRL-----\n"
             + "MIIBVzCBvgIBATAQBgwqhkiG9xIEAYS3CQIFADBVMQswCQYDVQQGEwJHQjEkMCIG\n"
             + "A1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxl\n"
             + "czEQMA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEw\n"
@@ -116,57 +117,60 @@ public class X509CRLTest {
     @Test
     public void testCrl() throws Exception {
         ServiceTester.test("CertificateFactory")
-            .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                .withAlgorithm("X509")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        CertificateFactory cf = CertificateFactory.getInstance("X509", p);
 
-                    X509CRL crl = (X509CRL) cf.generateCRL(new ByteArrayInputStream(CRL.getBytes(
-                            StandardCharsets.US_ASCII)));
-                    X509Certificate revoked = (X509Certificate) cf.generateCertificate(
-                            new ByteArrayInputStream(REVOKED_CERT.getBytes(StandardCharsets.US_ASCII)));
-                    X509Certificate ca = (X509Certificate) cf.generateCertificate(
-                            new ByteArrayInputStream(CA_CERT.getBytes(StandardCharsets.US_ASCII)));
+                        X509CRL crl = (X509CRL) cf.generateCRL(
+                                new ByteArrayInputStream(CRL.getBytes(StandardCharsets.US_ASCII)));
+                        X509Certificate revoked =
+                                (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(
+                                        REVOKED_CERT.getBytes(StandardCharsets.US_ASCII)));
+                        X509Certificate ca =
+                                (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(
+                                        CA_CERT.getBytes(StandardCharsets.US_ASCII)));
 
-                    assertEquals("SHA256WITHRSA", crl.getSigAlgName().toUpperCase(Locale.ROOT));
-                    crl.verify(ca.getPublicKey());
-                    try {
-                        crl.verify(revoked.getPublicKey());
-                        fail();
-                    } catch (SignatureException expected) {
+                        assertEquals("SHA256WITHRSA", crl.getSigAlgName().toUpperCase(Locale.ROOT));
+                        crl.verify(ca.getPublicKey());
+                        try {
+                            crl.verify(revoked.getPublicKey());
+                            fail();
+                        } catch (SignatureException expected) {
+                        }
+
+                        byte[] expectedTBSCertList = TestUtils.decodeBase64(CRL_TBS_BASE64);
+                        assertArrayEquals(expectedTBSCertList, crl.getTBSCertList());
+
+                        assertTrue(crl.isRevoked(revoked));
+                        X509CRLEntry entry = crl.getRevokedCertificate(revoked);
+                        assertEquals(CRLReason.KEY_COMPROMISE, entry.getRevocationReason());
+                        assertTrue(entry.getCriticalExtensionOIDs().isEmpty());
+                        assertEquals(Collections.singleton("2.5.29.21"),
+                                     entry.getNonCriticalExtensionOIDs());
+                        assertFalse(entry.hasUnsupportedCriticalExtension());
+
+                        assertFalse(crl.isRevoked(ca));
+                        assertNull(crl.getRevokedCertificate(ca));
+
+                        assertEquals(Collections.singleton(entry), crl.getRevokedCertificates());
                     }
-
-                    byte[] expectedTBSCertList = TestUtils.decodeBase64(CRL_TBS_BASE64);
-                    assertArrayEquals(expectedTBSCertList, crl.getTBSCertList());
-
-                    assertTrue(crl.isRevoked(revoked));
-                    X509CRLEntry entry = crl.getRevokedCertificate(revoked);
-                    assertEquals(CRLReason.KEY_COMPROMISE, entry.getRevocationReason());
-                    assertTrue(entry.getCriticalExtensionOIDs().isEmpty());
-                    assertEquals(Collections.singleton("2.5.29.21"), entry.getNonCriticalExtensionOIDs());
-                    assertFalse(entry.hasUnsupportedCriticalExtension());
-
-                    assertFalse(crl.isRevoked(ca));
-                    assertNull(crl.getRevokedCertificate(ca));
-
-                    assertEquals(Collections.singleton(entry), crl.getRevokedCertificates());
-                }
-            });
+                });
     }
 
     @Test
     public void testUnknownSigAlgOID() throws Exception {
         ServiceTester.test("CertificateFactory")
-            .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
-                    X509CRL crl = (X509CRL) cf.generateCRL(new ByteArrayInputStream(
-                            UNKNOWN_SIGNATURE_OID.getBytes(StandardCharsets.US_ASCII)));
-                    assertEquals("1.2.840.113554.4.1.72585.2", crl.getSigAlgOID());
-                }
-            });
+                .withAlgorithm("X509")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                        X509CRL crl = (X509CRL) cf.generateCRL(new ByteArrayInputStream(
+                                UNKNOWN_SIGNATURE_OID.getBytes(StandardCharsets.US_ASCII)));
+                        assertEquals("1.2.840.113554.4.1.72585.2", crl.getSigAlgOID());
+                    }
+                });
     }
 }
