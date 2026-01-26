@@ -22,8 +22,25 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+// android-add: import libcore.test.annotation.NonCts;
+// android-add: import libcore.test.reasons.NonCtsReasons;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -57,6 +74,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
 import javax.crypto.AEADBadTagException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -72,19 +90,10 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
-import org.bouncycastle.asn1.x509.KeyUsage;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.TestUtils;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public final class CipherTest {
+    // android-add: Allow access to deprecated BC algorithms.
 
     @BeforeClass
     public static void setUp() {
@@ -96,12 +105,12 @@ public final class CipherTest {
     private static final int GCM_SIV_TAG_SIZE_BITS = 128;
 
     private static final String[] RSA_PROVIDERS = StandardNames.IS_RI
-        ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
-        : new String[] { "BC" , StandardNames.JSSE_PROVIDER_NAME };
+            ? new String[] {"SunJCE", StandardNames.JSSE_PROVIDER_NAME}
+            : new String[] {"BC", StandardNames.JSSE_PROVIDER_NAME};
 
     private static final String[] AES_PROVIDERS = StandardNames.IS_RI
-        ? new String[] { "SunJCE", StandardNames.JSSE_PROVIDER_NAME }
-        : new String[] { "BC", StandardNames.JSSE_PROVIDER_NAME };
+            ? new String[] {"SunJCE", StandardNames.JSSE_PROVIDER_NAME}
+            : new String[] {"BC", StandardNames.JSSE_PROVIDER_NAME};
 
     private static boolean isSupported(String algorithm, String provider) {
         if (algorithm.equals("RC2")) {
@@ -128,15 +137,14 @@ public final class CipherTest {
             }
         }
         // stream modes CFB, CTR, CTS, OFB with PKCS5Padding or PKCS7Padding don't really make sense
-        if (!provider.equals("AndroidOpenSSL") &&
-            (algorithm.equals("AES/CFB/PKCS5PADDING")
-             || algorithm.equals("AES/CFB/PKCS7PADDING")
-             || algorithm.equals("AES/CTR/PKCS5PADDING")
-             || algorithm.equals("AES/CTR/PKCS7PADDING")
-             || algorithm.equals("AES/CTS/PKCS5PADDING")
-             || algorithm.equals("AES/CTS/PKCS7PADDING")
-             || algorithm.equals("AES/OFB/PKCS5PADDING")
-             || algorithm.equals("AES/OFB/PKCS7PADDING"))) {
+        if (!provider.equals("AndroidOpenSSL")
+            && (algorithm.equals("AES/CFB/PKCS5PADDING") || algorithm.equals("AES/CFB/PKCS7PADDING")
+                || algorithm.equals("AES/CTR/PKCS5PADDING")
+                || algorithm.equals("AES/CTR/PKCS7PADDING")
+                || algorithm.equals("AES/CTS/PKCS5PADDING")
+                || algorithm.equals("AES/CTS/PKCS7PADDING")
+                || algorithm.equals("AES/OFB/PKCS5PADDING")
+                || algorithm.equals("AES/OFB/PKCS7PADDING"))) {
             return false;
         }
 
@@ -156,11 +164,7 @@ public final class CipherTest {
      *
      */
     private static boolean isSupportedByBC(String algorithm) {
-        String[] removedBcPrefices = new String[]{
-            "AES/ECB",
-            "AES/CBC",
-            "AES/GCM"
-        };
+        String[] removedBcPrefices = new String[] {"AES/ECB", "AES/CBC", "AES/GCM"};
         for (String prefix : removedBcPrefices) {
             if (algorithm.startsWith(prefix)) {
                 return false;
@@ -319,8 +323,8 @@ public final class CipherTest {
         try {
             if (algorithm.startsWith("RSA")) {
                 KeyFactory kf = KeyFactory.getInstance("RSA");
-                RSAPublicKeySpec keySpec = new RSAPublicKeySpec(RSA_2048_modulus,
-                        RSA_2048_publicExponent);
+                RSAPublicKeySpec keySpec =
+                        new RSAPublicKeySpec(RSA_2048_modulus, RSA_2048_publicExponent);
                 key = kf.generatePublic(keySpec);
             } else if (isPBE(algorithm)) {
                 SecretKeyFactory skf = SecretKeyFactory.getInstance(algorithm);
@@ -354,10 +358,10 @@ public final class CipherTest {
         try {
             if (algorithm.startsWith("RSA")) {
                 KeyFactory kf = KeyFactory.getInstance("RSA");
-                RSAPrivateCrtKeySpec keySpec = new RSAPrivateCrtKeySpec(RSA_2048_modulus,
-                        RSA_2048_publicExponent, RSA_2048_privateExponent, RSA_2048_primeP,
-                        RSA_2048_primeQ, RSA_2048_primeExponentP, RSA_2048_primeExponentQ,
-                        RSA_2048_crtCoefficient);
+                RSAPrivateCrtKeySpec keySpec = new RSAPrivateCrtKeySpec(
+                        RSA_2048_modulus, RSA_2048_publicExponent, RSA_2048_privateExponent,
+                        RSA_2048_primeP, RSA_2048_primeQ, RSA_2048_primeExponentP,
+                        RSA_2048_primeExponentQ, RSA_2048_crtCoefficient);
                 key = kf.generatePrivate(keySpec);
             } else {
                 assertFalse(algorithm, isAsymmetric(algorithm));
@@ -439,14 +443,13 @@ public final class CipherTest {
         setExpectedBlockSize("PBEWITHSHAAND2-KEYTRIPLEDES-CBC", 8);
         setExpectedBlockSize("PBEWITHSHAAND3-KEYTRIPLEDES-CBC", 8);
 
-
         if (StandardNames.IS_RI) {
             setExpectedBlockSize("DESEDEWRAP", 8);
         } else {
             setExpectedBlockSize("DESEDEWRAP", 0);
         }
 
-        setExpectedBlockSize("RSA", "SunJCE",0);
+        setExpectedBlockSize("RSA", "SunJCE", 0);
         setExpectedBlockSize("RSA/ECB/NoPadding", "SunJCE", 0);
         setExpectedBlockSize("RSA/ECB/PKCS1Padding", "SunJCE", 0);
         setExpectedBlockSize("RSA/ECB/OAEPPadding", "SunJCE", 0);
@@ -496,28 +499,28 @@ public final class CipherTest {
         return algorithm + ":" + provider;
     }
 
-    private static void setExpectedSize(Map<String, Integer> map,
-                                        String algorithm, int value) {
+    private static void setExpectedSize(Map<String, Integer> map, String algorithm, int value) {
         algorithm = algorithm.toUpperCase(Locale.US);
         map.put(algorithm, value);
     }
 
-    private static void setExpectedSize(Map<String, Integer> map,
-                                        String algorithm, int mode, int value) {
+    private static void setExpectedSize(Map<String, Integer> map, String algorithm, int mode,
+                                        int value) {
         setExpectedSize(map, modeKey(algorithm, mode), value);
     }
 
-    private static void setExpectedSize(Map<String, Integer> map,
-                                        String algorithm, int mode, String provider, int value) {
+    private static void setExpectedSize(Map<String, Integer> map, String algorithm, int mode,
+                                        String provider, int value) {
         setExpectedSize(map, modeProviderKey(algorithm, mode, provider), value);
     }
 
-    private static void setExpectedSize(Map<String, Integer> map,
-            String algorithm, String provider, int value) {
+    private static void setExpectedSize(Map<String, Integer> map, String algorithm, String provider,
+                                        int value) {
         setExpectedSize(map, providerKey(algorithm, provider), value);
     }
 
-    private static int getExpectedSize(Map<String, Integer> map, String algorithm, int mode, String provider) {
+    private static int getExpectedSize(Map<String, Integer> map, String algorithm, int mode,
+                                       String provider) {
         algorithm = algorithm.toUpperCase(Locale.US);
         provider = provider.toUpperCase(Locale.US);
         Integer expected = map.get(modeProviderKey(algorithm, mode, provider));
@@ -534,7 +537,8 @@ public final class CipherTest {
         }
         expected = map.get(algorithm);
         assertNotNull("Algorithm " + algorithm + " with mode " + mode + " and provider " + provider
-                      + " not found in " + map, expected);
+                              + " not found in " + map,
+                      expected);
         return expected;
     }
 
@@ -550,7 +554,8 @@ public final class CipherTest {
         setExpectedSize(EXPECTED_BLOCK_SIZE, algorithm, provider, value);
     }
 
-    private static void setExpectedBlockSize(String algorithm, int mode, String provider, int value) {
+    private static void setExpectedBlockSize(String algorithm, int mode, String provider,
+                                             int value) {
         setExpectedSize(EXPECTED_BLOCK_SIZE, algorithm, mode, provider, value);
     }
 
@@ -583,7 +588,8 @@ public final class CipherTest {
         setExpectedOutputSize("AES/ECB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
-        setExpectedOutputSize("AES/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("AES/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE,
+                              GCM_SIV_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("AES/OFB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES/OFB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_128/CBC/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
@@ -591,13 +597,15 @@ public final class CipherTest {
         setExpectedOutputSize("AES_128/ECB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_128/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_128/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
-        setExpectedOutputSize("AES_128/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("AES_128/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE,
+                              GCM_SIV_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("AES_256/CBC/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/CBC/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/ECB/PKCS5PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/ECB/PKCS7PADDING", Cipher.ENCRYPT_MODE, 16);
         setExpectedOutputSize("AES_256/GCM/NOPADDING", Cipher.ENCRYPT_MODE, GCM_TAG_SIZE_BITS / 8);
-        setExpectedOutputSize("AES_256/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE, GCM_SIV_TAG_SIZE_BITS / 8);
+        setExpectedOutputSize("AES_256/GCM-SIV/NOPADDING", Cipher.ENCRYPT_MODE,
+                              GCM_SIV_TAG_SIZE_BITS / 8);
         setExpectedOutputSize("PBEWITHMD5AND128BITAES-CBC-OPENSSL", 16);
         setExpectedOutputSize("PBEWITHMD5AND192BITAES-CBC-OPENSSL", 16);
         setExpectedOutputSize("PBEWITHMD5AND256BITAES-CBC-OPENSSL", 16);
@@ -771,7 +779,8 @@ public final class CipherTest {
         setExpectedSize(EXPECTED_OUTPUT_SIZE, algorithm, mode, value);
     }
 
-    private static void setExpectedOutputSize(String algorithm, int mode, String provider, int value) {
+    private static void setExpectedOutputSize(String algorithm, int mode, String provider,
+                                              int value) {
         setExpectedSize(EXPECTED_OUTPUT_SIZE, algorithm, mode, provider, value);
     }
 
@@ -779,115 +788,123 @@ public final class CipherTest {
         return getExpectedSize(EXPECTED_OUTPUT_SIZE, algorithm, mode, provider);
     }
 
-    private static final byte[] ORIGINAL_PLAIN_TEXT = new byte[] { 0x0a, 0x0b, 0x0c };
-    private static final byte[] SIXTEEN_BYTE_BLOCK_PLAIN_TEXT = new byte[] { 0x0a, 0x0b, 0x0c, 0x00,
-                                                                             0x00, 0x00, 0x00, 0x00,
-                                                                             0x00, 0x00, 0x00, 0x00,
-                                                                             0x00, 0x00, 0x00, 0x00 };
-    private static final byte[] EIGHT_BYTE_BLOCK_PLAIN_TEXT = new byte[] { 0x0a, 0x0b, 0x0c, 0x00,
-            0x00, 0x00, 0x00, 0x00 };
+    private static final byte[] ORIGINAL_PLAIN_TEXT = new byte[] {0x0a, 0x0b, 0x0c};
+    private static final byte[] SIXTEEN_BYTE_BLOCK_PLAIN_TEXT =
+            new byte[] {0x0a, 0x0b, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    private static final byte[] EIGHT_BYTE_BLOCK_PLAIN_TEXT =
+            new byte[] {0x0a, 0x0b, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00};
     private static final byte[] PKCS1_BLOCK_TYPE_00_PADDED_PLAIN_TEXT = new byte[] {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0a, 0x0b, 0x0c
-    };
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,    0,    0,   0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0a, 0x0b, 0x0c};
     private static final byte[] PKCS1_BLOCK_TYPE_01_PADDED_PLAIN_TEXT = new byte[] {
-        (byte) 0x00, (byte) 0x01, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x00, (byte) 0x0a, (byte) 0x0b, (byte) 0x0c
-    };
+            (byte) 0x00, (byte) 0x01, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0x00, (byte) 0x0a, (byte) 0x0b, (byte) 0x0c};
     private static final byte[] PKCS1_BLOCK_TYPE_02_PADDED_PLAIN_TEXT = new byte[] {
-        (byte) 0x00, (byte) 0x02, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-        (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x00, (byte) 0x0a, (byte) 0x0b, (byte) 0x0c
-    };
-
+            (byte) 0x00, (byte) 0x02, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+            (byte) 0x00, (byte) 0x0a, (byte) 0x0b, (byte) 0x0c};
 
     private static byte[] getActualPlainText(String algorithm) {
         // Block mode AES with NoPadding needs to match underlying block size
-        if (algorithm.equals("AES")
-            || algorithm.equals("AES/CBC/NOPADDING")
-            || algorithm.equals("AES/CTS/NOPADDING")
-            || algorithm.equals("AES/ECB/NOPADDING")
+        if (algorithm.equals("AES") || algorithm.equals("AES/CBC/NOPADDING")
+            || algorithm.equals("AES/CTS/NOPADDING") || algorithm.equals("AES/ECB/NOPADDING")
             || algorithm.equals("AES_128/CBC/NOPADDING")
             || algorithm.equals("AES_128/ECB/NOPADDING")
             || algorithm.equals("AES_256/CBC/NOPADDING")
             || algorithm.equals("AES_256/ECB/NOPADDING")) {
             return SIXTEEN_BYTE_BLOCK_PLAIN_TEXT;
         }
-        if (algorithm.equals("DESEDE")
-            || algorithm.equals("DESEDE/CBC/NOPADDING")
+        if (algorithm.equals("DESEDE") || algorithm.equals("DESEDE/CBC/NOPADDING")
             || algorithm.equals("DESEDE/ECB/NOPADDING")) {
             return EIGHT_BYTE_BLOCK_PLAIN_TEXT;
         }
@@ -896,18 +913,15 @@ public final class CipherTest {
 
     private static byte[] getExpectedPlainText(String algorithm, String provider) {
         // Block mode AES with NoPadding needs to match underlying block size
-        if (algorithm.equals("AES")
-            || algorithm.equals("AES/CBC/NOPADDING")
-            || algorithm.equals("AES/CTS/NOPADDING")
-            || algorithm.equals("AES/ECB/NOPADDING")
+        if (algorithm.equals("AES") || algorithm.equals("AES/CBC/NOPADDING")
+            || algorithm.equals("AES/CTS/NOPADDING") || algorithm.equals("AES/ECB/NOPADDING")
             || algorithm.equals("AES_128/CBC/NOPADDING")
             || algorithm.equals("AES_128/ECB/NOPADDING")
             || algorithm.equals("AES_256/CBC/NOPADDING")
             || algorithm.equals("AES_256/ECB/NOPADDING")) {
             return SIXTEEN_BYTE_BLOCK_PLAIN_TEXT;
         }
-        if (algorithm.equals("DESEDE")
-            || algorithm.equals("DESEDE/CBC/NOPADDING")
+        if (algorithm.equals("DESEDE") || algorithm.equals("DESEDE/CBC/NOPADDING")
             || algorithm.equals("DESEDE/ECB/NOPADDING")) {
             return EIGHT_BYTE_BLOCK_PLAIN_TEXT;
         }
@@ -924,8 +938,7 @@ public final class CipherTest {
             new SecureRandom().nextBytes(salt);
             return new PBEParameterSpec(salt, 1024);
         }
-        if (algorithm.equals("AES/GCM/NOPADDING")
-            || algorithm.equals("AES_128/GCM/NOPADDING")
+        if (algorithm.equals("AES/GCM/NOPADDING") || algorithm.equals("AES_128/GCM/NOPADDING")
             || algorithm.equals("AES_256/GCM/NOPADDING")) {
             final byte[] iv = new byte[12];
             new SecureRandom().nextBytes(iv);
@@ -938,14 +951,10 @@ public final class CipherTest {
             new SecureRandom().nextBytes(iv);
             return new GCMParameterSpec(GCM_SIV_TAG_SIZE_BITS, iv);
         }
-        if (algorithm.equals("AES/CBC/NOPADDING")
-            || algorithm.equals("AES/CBC/PKCS5PADDING")
-            || algorithm.equals("AES/CBC/PKCS7PADDING")
-            || algorithm.equals("AES/CFB/NOPADDING")
-            || algorithm.equals("AES/CTR/NOPADDING")
-            || algorithm.equals("AES/CTS/NOPADDING")
-            || algorithm.equals("AES/OFB/NOPADDING")
-            || algorithm.equals("AES_128/CBC/NOPADDING")
+        if (algorithm.equals("AES/CBC/NOPADDING") || algorithm.equals("AES/CBC/PKCS5PADDING")
+            || algorithm.equals("AES/CBC/PKCS7PADDING") || algorithm.equals("AES/CFB/NOPADDING")
+            || algorithm.equals("AES/CTR/NOPADDING") || algorithm.equals("AES/CTS/NOPADDING")
+            || algorithm.equals("AES/OFB/NOPADDING") || algorithm.equals("AES_128/CBC/NOPADDING")
             || algorithm.equals("AES_128/CBC/PKCS5PADDING")
             || algorithm.equals("AES_128/CBC/PKCS7PADDING")
             || algorithm.equals("AES_256/CBC/NOPADDING")
@@ -955,19 +964,16 @@ public final class CipherTest {
             new SecureRandom().nextBytes(iv);
             return new IvParameterSpec(iv);
         }
-        if (algorithm.equals("DESEDE/CBC/NOPADDING")
-            || algorithm.equals("DESEDE/CBC/PKCS5PADDING")
+        if (algorithm.equals("DESEDE/CBC/NOPADDING") || algorithm.equals("DESEDE/CBC/PKCS5PADDING")
             || algorithm.equals("DESEDE/CBC/PKCS7PADDING")
-            || algorithm.equals("DESEDE/CFB/NOPADDING")
-            || algorithm.equals("DESEDE/CTR/NOPADDING")
+            || algorithm.equals("DESEDE/CFB/NOPADDING") || algorithm.equals("DESEDE/CTR/NOPADDING")
             || algorithm.equals("DESEDE/CTS/NOPADDING")
             || algorithm.equals("DESEDE/OFB/NOPADDING")) {
             final byte[] iv = new byte[8];
             new SecureRandom().nextBytes(iv);
             return new IvParameterSpec(iv);
         }
-        if (algorithm.equals("CHACHA20")
-            || algorithm.equals("CHACHA20/POLY1305/NOPADDING")) {
+        if (algorithm.equals("CHACHA20") || algorithm.equals("CHACHA20/POLY1305/NOPADDING")) {
             final byte[] iv = new byte[12];
             new SecureRandom().nextBytes(iv);
             return new IvParameterSpec(iv);
@@ -975,8 +981,8 @@ public final class CipherTest {
         return null;
     }
 
-    private static AlgorithmParameterSpec getDecryptAlgorithmParameterSpec(AlgorithmParameterSpec encryptSpec,
-                                                                           Cipher encryptCipher) {
+    private static AlgorithmParameterSpec getDecryptAlgorithmParameterSpec(
+            AlgorithmParameterSpec encryptSpec, Cipher encryptCipher) {
         String algorithm = encryptCipher.getAlgorithm().toUpperCase(Locale.US);
         if (isPBE(algorithm)) {
             return encryptSpec;
@@ -986,9 +992,8 @@ public final class CipherTest {
         }
         byte[] iv = encryptCipher.getIV();
         if (iv != null) {
-            if ("AES/GCM/NOPADDING".equals(algorithm)
-                    || "AES_128/GCM/NOPADDING".equals(algorithm)
-                    || "AES_256/GCM/NOPADDING".equals(algorithm)) {
+            if ("AES/GCM/NOPADDING".equals(algorithm) || "AES_128/GCM/NOPADDING".equals(algorithm)
+                || "AES_256/GCM/NOPADDING".equals(algorithm)) {
                 return new GCMParameterSpec(GCM_TAG_SIZE_BITS, iv);
             }
             if ("AES/GCM-SIV/NOPADDING".equals(algorithm)
@@ -1017,8 +1022,10 @@ public final class CipherTest {
                 is_unlimited = true;
             } catch (Exception e) {
                 is_unlimited = false;
-                System.out.println("WARNING: Some tests disabled due to lack of "
-                                   + "'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files'");
+                System.out.println(
+                        "WARNING: Some tests disabled due to lack of "
+                        + "'Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction "
+                        + "Policy Files'");
             }
         } else {
             is_unlimited = true;
@@ -1062,8 +1069,8 @@ public final class CipherTest {
                         final String baseCipherName = algorithm.substring(0, firstSlash);
                         if (!seenBaseCipherNames.contains(baseCipherName)
                             && !(baseCipherName.equals("AES_128")
-                            || baseCipherName.equals("AES_192")
-                            || baseCipherName.equals("AES_256"))) {
+                                 || baseCipherName.equals("AES_192")
+                                 || baseCipherName.equals("AES_256"))) {
                             seenCiphersWithModeAndPadding.add(baseCipherName);
                         }
                         if (!Conscrypt.isConscrypt(provider)) {
@@ -1087,8 +1094,8 @@ public final class CipherTest {
                 try {
                     test_Cipher_Algorithm(provider, algorithm);
                 } catch (Throwable e) {
-                    out.append("Error encountered checking " + algorithm
-                               + " with provider " + provider.getName() + "\n");
+                    out.append("Error encountered checking " + algorithm + " with provider "
+                               + provider.getName() + "\n");
                     e.printStackTrace(out);
                 }
 
@@ -1117,7 +1124,7 @@ public final class CipherTest {
 
         seenCiphersWithModeAndPadding.removeAll(seenBaseCipherNames);
         assertEquals("Ciphers seen with mode and padding but not base cipher",
-                Collections.EMPTY_SET, seenCiphersWithModeAndPadding);
+                     Collections.EMPTY_SET, seenCiphersWithModeAndPadding);
 
         out.flush();
         if (errBuffer.size() > 0) {
@@ -1203,13 +1210,14 @@ public final class CipherTest {
 
         c.init(encryptMode, encryptKey, encryptSpec);
         assertEquals(cipherID + " getBlockSize() encryptMode",
-                getExpectedBlockSize(algorithm, encryptMode, providerName), c.getBlockSize());
-        assertTrue(cipherID + " getOutputSize(0) encryptMode",
+                     getExpectedBlockSize(algorithm, encryptMode, providerName), c.getBlockSize());
+        assertTrue(
+                cipherID + " getOutputSize(0) encryptMode",
                 getExpectedOutputSize(algorithm, encryptMode, providerName) <= c.getOutputSize(0));
         if ((algorithm.endsWith("/PKCS5PADDING") || algorithm.endsWith("/PKCS7PADDING"))
-                && isStreamMode(algorithm)) {
+            && isStreamMode(algorithm)) {
             assertEquals(getExpectedOutputSize(algorithm, encryptMode, providerName),
-                    c.doFinal(new byte[1]).length);
+                         c.doFinal(new byte[1]).length);
         }
 
         if (isPBE(algorithm)) {
@@ -1220,13 +1228,13 @@ public final class CipherTest {
             }
         } else if (encryptSpec instanceof IvParameterSpec) {
             assertEquals(cipherID + " getIV()",
-                    Arrays.toString(((IvParameterSpec) encryptSpec).getIV()),
-                    Arrays.toString(c.getIV()));
+                         Arrays.toString(((IvParameterSpec) encryptSpec).getIV()),
+                         Arrays.toString(c.getIV()));
         } else if (encryptSpec instanceof GCMParameterSpec) {
             assertNotNull(c.getIV());
             assertEquals(cipherID + " getIV()",
-                    Arrays.toString(((GCMParameterSpec) encryptSpec).getIV()),
-                    Arrays.toString(c.getIV()));
+                         Arrays.toString(((GCMParameterSpec) encryptSpec).getIV()),
+                         Arrays.toString(c.getIV()));
         } else {
             try {
                 assertNull(cipherID + " getIV()", c.getIV());
@@ -1252,7 +1260,8 @@ public final class CipherTest {
         assertEquals(cipherID + " getBlockSize() decryptMode",
                      getExpectedBlockSize(algorithm, decryptMode, providerName), c.getBlockSize());
         assertEquals(cipherID + " getOutputSize(0) decryptMode",
-                     getExpectedOutputSize(algorithm, decryptMode, providerName), c.getOutputSize(0));
+                     getExpectedOutputSize(algorithm, decryptMode, providerName),
+                     c.getOutputSize(0));
 
         if (isPBE(algorithm)) {
             if (algorithm.endsWith("RC4")) {
@@ -1262,13 +1271,13 @@ public final class CipherTest {
             }
         } else if (decryptSpec instanceof IvParameterSpec) {
             assertEquals(cipherID + " getIV()",
-                    Arrays.toString(((IvParameterSpec) decryptSpec).getIV()),
-                    Arrays.toString(c.getIV()));
+                         Arrays.toString(((IvParameterSpec) decryptSpec).getIV()),
+                         Arrays.toString(c.getIV()));
         } else if (decryptSpec instanceof GCMParameterSpec) {
             assertNotNull(c.getIV());
             assertEquals(cipherID + " getIV()",
-                    Arrays.toString(((GCMParameterSpec) decryptSpec).getIV()),
-                    Arrays.toString(c.getIV()));
+                         Arrays.toString(((GCMParameterSpec) decryptSpec).getIV()),
+                         Arrays.toString(c.getIV()));
         } else {
             try {
                 assertNull(cipherID + " getIV()", c.getIV());
@@ -1300,15 +1309,16 @@ public final class CipherTest {
             byte[] cipherText = c.wrap(sk);
 
             // Unwrap it
-            c.init(Cipher.UNWRAP_MODE, decryptKey, getDecryptAlgorithmParameterSpec(encryptSpec, c));
+            c.init(Cipher.UNWRAP_MODE, decryptKey,
+                   getDecryptAlgorithmParameterSpec(encryptSpec, c));
             Key decryptedKey = c.unwrap(cipherText, sk.getAlgorithm(), Cipher.SECRET_KEY);
 
-            assertEquals(cipherID
-                    + " sk.getAlgorithm()=" + sk.getAlgorithm()
-                    + " decryptedKey.getAlgorithm()=" + decryptedKey.getAlgorithm()
-                    + " encryptKey.getEncoded()=" + Arrays.toString(sk.getEncoded())
-                    + " decryptedKey.getEncoded()=" + Arrays.toString(decryptedKey.getEncoded()),
-                    sk, decryptedKey);
+            assertEquals(cipherID + " sk.getAlgorithm()=" + sk.getAlgorithm()
+                                 + " decryptedKey.getAlgorithm()=" + decryptedKey.getAlgorithm()
+                                 + " encryptKey.getEncoded()=" + Arrays.toString(sk.getEncoded())
+                                 + " decryptedKey.getEncoded()="
+                                 + Arrays.toString(decryptedKey.getEncoded()),
+                         sk, decryptedKey);
         }
 
         if (!isOnlyWrappingAlgorithm(algorithm)) {
@@ -1329,32 +1339,30 @@ public final class CipherTest {
                 c.updateAAD(new byte[24]);
             }
             byte[] decryptedPlainText = c.doFinal(cipherText);
-            assertEquals(cipherID,
-                         Arrays.toString(getExpectedPlainText(algorithm, providerName)),
+            assertEquals(cipherID, Arrays.toString(getExpectedPlainText(algorithm, providerName)),
                          Arrays.toString(decryptedPlainText));
             if (isAEAD(algorithm)) {
                 c.updateAAD(new byte[24]);
             }
             byte[] decryptedPlainText2 = c.doFinal(cipherText);
-            assertEquals(cipherID,
-                         Arrays.toString(decryptedPlainText),
+            assertEquals(cipherID, Arrays.toString(decryptedPlainText),
                          Arrays.toString(decryptedPlainText2));
 
             // Use a new encrypt spec so that AEAD algorithms that prohibit IV reuse don't complain
             encryptSpec = getEncryptAlgorithmParameterSpec(algorithm);
             test_Cipher_ShortBufferException(c, algorithm, Cipher.ENCRYPT_MODE, encryptSpec,
-                    encryptKey, getActualPlainText(algorithm));
+                                             encryptKey, getActualPlainText(algorithm));
             decryptSpec = getDecryptAlgorithmParameterSpec(encryptSpec, c);
             test_Cipher_ShortBufferException(c, algorithm, Cipher.DECRYPT_MODE, decryptSpec,
-                    decryptKey, cipherText);
+                                             decryptKey, cipherText);
 
             test_Cipher_aborted_doFinal(c, algorithm, providerName, encryptKey, decryptKey);
         }
     }
 
     private void assertCorrectAlgorithmParameters(String providerName, String cipherID,
-            final AlgorithmParameterSpec spec, AlgorithmParameters params)
-            throws Exception {
+                                                  final AlgorithmParameterSpec spec,
+                                                  AlgorithmParameters params) throws Exception {
         if (spec == null) {
             return;
         }
@@ -1369,13 +1377,13 @@ public final class CipherTest {
         if (spec instanceof GCMParameterSpec) {
             GCMParameterSpec gcmDecryptSpec = params.getParameterSpec(GCMParameterSpec.class);
             assertEquals(cipherID + " getIV()", Arrays.toString(((GCMParameterSpec) spec).getIV()),
-                    Arrays.toString(gcmDecryptSpec.getIV()));
+                         Arrays.toString(gcmDecryptSpec.getIV()));
             assertEquals(cipherID + " getTLen()", ((GCMParameterSpec) spec).getTLen(),
-                    gcmDecryptSpec.getTLen());
+                         gcmDecryptSpec.getTLen());
         } else if (spec instanceof IvParameterSpec) {
             IvParameterSpec ivDecryptSpec = params.getParameterSpec(IvParameterSpec.class);
             assertEquals(cipherID + " getIV()", Arrays.toString(((IvParameterSpec) spec).getIV()),
-                    Arrays.toString(ivDecryptSpec.getIV()));
+                         Arrays.toString(ivDecryptSpec.getIV()));
         } else if (spec instanceof PBEParameterSpec) {
             // Bouncycastle seems to be undecided about whether it returns this
             // or not
@@ -1384,35 +1392,34 @@ public final class CipherTest {
             }
         } else if (spec instanceof OAEPParameterSpec) {
             assertOAEPParametersEqual((OAEPParameterSpec) spec,
-                    params.getParameterSpec(OAEPParameterSpec.class));
+                                      params.getParameterSpec(OAEPParameterSpec.class));
         } else {
             fail("Unhandled algorithm specification class: " + spec.getClass().getName());
         }
     }
 
     private static void assertOAEPParametersEqual(OAEPParameterSpec expectedOaepSpec,
-            OAEPParameterSpec actualOaepSpec) {
+                                                  OAEPParameterSpec actualOaepSpec) {
         assertEquals(expectedOaepSpec.getDigestAlgorithm(), actualOaepSpec.getDigestAlgorithm());
 
         assertEquals(expectedOaepSpec.getMGFAlgorithm(), actualOaepSpec.getMGFAlgorithm());
         if ("MGF1".equals(expectedOaepSpec.getMGFAlgorithm())) {
-            MGF1ParameterSpec expectedMgf1Spec = (MGF1ParameterSpec) expectedOaepSpec
-                    .getMGFParameters();
-            MGF1ParameterSpec actualMgf1Spec = (MGF1ParameterSpec) actualOaepSpec
-                    .getMGFParameters();
+            MGF1ParameterSpec expectedMgf1Spec =
+                    (MGF1ParameterSpec) expectedOaepSpec.getMGFParameters();
+            MGF1ParameterSpec actualMgf1Spec =
+                    (MGF1ParameterSpec) actualOaepSpec.getMGFParameters();
             assertEquals(expectedMgf1Spec.getDigestAlgorithm(),
-                    actualMgf1Spec.getDigestAlgorithm());
+                         actualMgf1Spec.getDigestAlgorithm());
         } else {
             fail("Unknown MGF algorithm: " + expectedOaepSpec.getMGFAlgorithm());
         }
 
         if (expectedOaepSpec.getPSource() instanceof PSource.PSpecified
-                && actualOaepSpec.getPSource() instanceof PSource.PSpecified) {
+            && actualOaepSpec.getPSource() instanceof PSource.PSpecified) {
             assertEquals(
                     Arrays.toString(
                             ((PSource.PSpecified) expectedOaepSpec.getPSource()).getValue()),
-                    Arrays.toString(
-                            ((PSource.PSpecified) actualOaepSpec.getPSource()).getValue()));
+                    Arrays.toString(((PSource.PSpecified) actualOaepSpec.getPSource()).getValue()));
         } else {
             fail("Unknown PSource type");
         }
@@ -1458,7 +1465,7 @@ public final class CipherTest {
     }
 
     private void test_Cipher_init_Decrypt_NullParameters(Cipher c, int decryptMode, Key encryptKey,
-            boolean needsParameters) throws Exception {
+                                                         boolean needsParameters) throws Exception {
         try {
             c.init(decryptMode, encryptKey, (AlgorithmParameterSpec) null);
             if (needsParameters) {
@@ -1506,7 +1513,8 @@ public final class CipherTest {
 
     // Checks that the Cipher throws ShortBufferException when given a too-short buffer
     private void test_Cipher_ShortBufferException(Cipher c, String algorithm, int encryptMode,
-            AlgorithmParameterSpec spec, Key key, byte[] text) throws Exception {
+                                                  AlgorithmParameterSpec spec, Key key, byte[] text)
+            throws Exception {
         c.init(encryptMode, key, spec);
         if (isAEAD(algorithm)) {
             c.updateAAD(new byte[24]);
@@ -1535,7 +1543,7 @@ public final class CipherTest {
     // Checks that if the cipher operation is aborted by a ShortBufferException the output
     // is still correct.
     private void test_Cipher_aborted_doFinal(Cipher c, String algorithm, String provider,
-            Key encryptKey, Key decryptKey) throws Exception {
+                                             Key encryptKey, Key decryptKey) throws Exception {
         byte[] text = getActualPlainText(algorithm);
         AlgorithmParameterSpec encryptSpec = getEncryptAlgorithmParameterSpec(algorithm);
         c.init(Cipher.ENCRYPT_MODE, encryptKey, encryptSpec);
@@ -1556,8 +1564,8 @@ public final class CipherTest {
         byte[] plainText = c.doFinal(cipherText);
         byte[] expectedPlainText = getExpectedPlainText(algorithm, provider);
         assertArrayEquals("Expected " + Arrays.toString(expectedPlainText) + " but was "
-                + Arrays.toString(plainText)
-                , expectedPlainText, plainText);
+                                  + Arrays.toString(plainText),
+                          expectedPlainText, plainText);
     }
 
     @Test
@@ -1569,42 +1577,44 @@ public final class CipherTest {
 
     private void testInputPKCS1Padding(String provider) throws Exception {
         // Type 1 is for signatures (PrivateKey to "encrypt")
-        testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_01_PADDED_PLAIN_TEXT, getDecryptKey("RSA"), getEncryptKey("RSA"));
+        testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_01_PADDED_PLAIN_TEXT, getDecryptKey("RSA"),
+                              getEncryptKey("RSA"));
         try {
-            testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_02_PADDED_PLAIN_TEXT, getDecryptKey("RSA"), getEncryptKey("RSA"));
+            testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_02_PADDED_PLAIN_TEXT,
+                                  getDecryptKey("RSA"), getEncryptKey("RSA"));
             fail();
         } catch (BadPaddingException expected) {
         }
 
         // Type 2 is for enciphering (PublicKey to "encrypt")
-        testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_02_PADDED_PLAIN_TEXT, getEncryptKey("RSA"), getDecryptKey("RSA"));
+        testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_02_PADDED_PLAIN_TEXT, getEncryptKey("RSA"),
+                              getDecryptKey("RSA"));
         try {
-            testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_01_PADDED_PLAIN_TEXT, getEncryptKey("RSA"), getDecryptKey("RSA"));
+            testInputPKCS1Padding(provider, PKCS1_BLOCK_TYPE_01_PADDED_PLAIN_TEXT,
+                                  getEncryptKey("RSA"), getDecryptKey("RSA"));
             fail();
         } catch (BadPaddingException expected) {
         }
     }
 
-    private void testInputPKCS1Padding(String provider, byte[] prePaddedPlainText, Key encryptKey, Key decryptKey) throws Exception {
+    private void testInputPKCS1Padding(String provider, byte[] prePaddedPlainText, Key encryptKey,
+                                       Key decryptKey) throws Exception {
         Cipher encryptCipher = Cipher.getInstance("RSA/ECB/NoPadding", provider);
         encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey);
         byte[] cipherText = encryptCipher.doFinal(prePaddedPlainText);
         encryptCipher.update(prePaddedPlainText);
         encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey);
         byte[] cipherText2 = encryptCipher.doFinal(prePaddedPlainText);
-        assertEquals(Arrays.toString(cipherText),
-                     Arrays.toString(cipherText2));
+        assertEquals(Arrays.toString(cipherText), Arrays.toString(cipherText2));
 
         Cipher decryptCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", provider);
         decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey);
         byte[] plainText = decryptCipher.doFinal(cipherText);
-        assertEquals(Arrays.toString(ORIGINAL_PLAIN_TEXT),
-                     Arrays.toString(plainText));
+        assertEquals(Arrays.toString(ORIGINAL_PLAIN_TEXT), Arrays.toString(plainText));
         decryptCipher.update(prePaddedPlainText);
         decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey);
         byte[] plainText2 = decryptCipher.doFinal(cipherText);
-        assertEquals(Arrays.toString(plainText),
-                     Arrays.toString(plainText2));
+        assertEquals(Arrays.toString(plainText), Arrays.toString(plainText2));
     }
 
     @Test
@@ -1621,7 +1631,8 @@ public final class CipherTest {
         testOutputPKCS1Padding(provider, (byte) 2, getEncryptKey("RSA"), getDecryptKey("RSA"));
     }
 
-    private void testOutputPKCS1Padding(String provider, byte expectedBlockType, Key encryptKey, Key decryptKey) throws Exception {
+    private void testOutputPKCS1Padding(String provider, byte expectedBlockType, Key encryptKey,
+                                        Key decryptKey) throws Exception {
         Cipher encryptCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", provider);
         encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey);
         byte[] cipherText = encryptCipher.doFinal(ORIGINAL_PLAIN_TEXT);
@@ -1631,7 +1642,8 @@ public final class CipherTest {
         assertPadding(provider, expectedBlockType, ORIGINAL_PLAIN_TEXT, plainText);
     }
 
-    private void assertPadding(String provider, byte expectedBlockType, byte[] expectedData, byte[] actualDataWithPadding) {
+    private void assertPadding(String provider, byte expectedBlockType, byte[] expectedData,
+                               byte[] actualDataWithPadding) {
         assertNotNull(provider, actualDataWithPadding);
         int expectedOutputSize = getExpectedOutputSize("RSA", Cipher.DECRYPT_MODE, provider);
         assertEquals(provider, expectedOutputSize, actualDataWithPadding.length);
@@ -1652,23 +1664,23 @@ public final class CipherTest {
                 assertEquals(provider, (byte) 0xFF, actualDataWithPadding[i]);
             }
         }
-        assertEquals(provider, 0x00, actualDataWithPadding[actualDataOffset-1]);
+        assertEquals(provider, 0x00, actualDataWithPadding[actualDataOffset - 1]);
         byte[] actualData = new byte[expectedData.length];
         System.arraycopy(actualDataWithPadding, actualDataOffset, actualData, 0, actualData.length);
         assertEquals(provider, Arrays.toString(expectedData), Arrays.toString(actualData));
     }
 
     @Test
-    public void testCipherInitWithCertificate () throws Exception {
+    public void testCipherInitWithCertificate() throws Exception {
         // no key usage specified, everything is fine
-        assertCipherInitWithKeyUsage(0,                         true,  true, true,  true);
+        assertCipherInitWithKeyUsage(0, true, true, true, true);
 
         // common case is that encrypt/wrap is prohibited when special usage is specified
         assertCipherInitWithKeyUsage(KeyUsage.digitalSignature, false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.nonRepudiation,   false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.keyAgreement,     false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.keyCertSign,      false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.cRLSign,          false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.nonRepudiation, false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.keyAgreement, false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.keyCertSign, false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.cRLSign, false, true, false, true);
 
         // Note they encipherOnly/decipherOnly don't have to do with
         // ENCRYPT_MODE or DECRYPT_MODE, but restrict usage relative
@@ -1676,34 +1688,31 @@ public final class CipherTest {
         // corresponds to this in Cipher, the RI does not enforce
         // anything in Cipher.
         // http://code.google.com/p/android/issues/detail?id=12955
-        assertCipherInitWithKeyUsage(KeyUsage.encipherOnly,     false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.decipherOnly,     false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.keyAgreement | KeyUsage.encipherOnly,
-                                                                false, true, false, true);
-        assertCipherInitWithKeyUsage(KeyUsage.keyAgreement | KeyUsage.decipherOnly,
-                                                                false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.encipherOnly, false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.decipherOnly, false, true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.keyAgreement | KeyUsage.encipherOnly, false, true,
+                                     false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.keyAgreement | KeyUsage.decipherOnly, false, true,
+                                     false, true);
 
         // except when wrapping a key is specifically allowed or
-        assertCipherInitWithKeyUsage(KeyUsage.keyEncipherment,  false, true, true,  true);
+        assertCipherInitWithKeyUsage(KeyUsage.keyEncipherment, false, true, true, true);
         // except when wrapping data encryption is specifically allowed
-        assertCipherInitWithKeyUsage(KeyUsage.dataEncipherment, true,  true, false, true);
+        assertCipherInitWithKeyUsage(KeyUsage.dataEncipherment, true, true, false, true);
     }
 
-    private void assertCipherInitWithKeyUsage (int keyUsage,
-                                               boolean allowEncrypt,
-                                               boolean allowDecrypt,
-                                               boolean allowWrap,
-                                               boolean allowUnwrap) throws Exception {
+    private void assertCipherInitWithKeyUsage(int keyUsage, boolean allowEncrypt,
+                                              boolean allowDecrypt, boolean allowWrap,
+                                              boolean allowUnwrap) throws Exception {
         Certificate certificate = certificateWithKeyUsage(keyUsage);
         assertCipherInitWithKeyUsage(certificate, allowEncrypt, Cipher.ENCRYPT_MODE);
         assertCipherInitWithKeyUsage(certificate, allowDecrypt, Cipher.DECRYPT_MODE);
-        assertCipherInitWithKeyUsage(certificate, allowWrap,    Cipher.WRAP_MODE);
-        assertCipherInitWithKeyUsage(certificate, allowUnwrap,  Cipher.UNWRAP_MODE);
+        assertCipherInitWithKeyUsage(certificate, allowWrap, Cipher.WRAP_MODE);
+        assertCipherInitWithKeyUsage(certificate, allowUnwrap, Cipher.UNWRAP_MODE);
     }
 
-    private void assertCipherInitWithKeyUsage(Certificate certificate,
-                                              boolean allowMode,
-                                              int mode) throws Exception {
+    private void assertCipherInitWithKeyUsage(Certificate certificate, boolean allowMode, int mode)
+            throws Exception {
         Cipher cipher = Cipher.getInstance("RSA");
         if (allowMode) {
             cipher.init(mode, certificate);
@@ -1727,8 +1736,8 @@ public final class CipherTest {
                     default:
                         throw new AssertionError("Unknown Cipher.*_MODE " + mode);
                 }
-                fail("Should have had InvalidKeyException for " + modeString
-                     + " for " + certificate);
+                fail("Should have had InvalidKeyException for " + modeString + " for "
+                     + certificate);
             } catch (InvalidKeyException expected) {
             }
         }
@@ -1740,7 +1749,8 @@ public final class CipherTest {
                 .aliasPrefix("rsa-dsa-ec")
                 .keyUsage(keyUsage)
                 .build()
-                .getPrivateKey("RSA", "RSA").getCertificate();
+                .getPrivateKey("RSA", "RSA")
+                .getCertificate();
     }
 
     /*
@@ -1777,377 +1787,435 @@ public final class CipherTest {
      */
 
     private static final BigInteger RSA_2048_modulus = new BigInteger(new byte[] {
-        (byte) 0x00, (byte) 0xe0, (byte) 0x47, (byte) 0x3e, (byte) 0x8a, (byte) 0xb8, (byte) 0xf2, (byte) 0x28,
-        (byte) 0x4f, (byte) 0xeb, (byte) 0x9e, (byte) 0x74, (byte) 0x2f, (byte) 0xf9, (byte) 0x74, (byte) 0x8f,
-        (byte) 0xa1, (byte) 0x18, (byte) 0xed, (byte) 0x98, (byte) 0x63, (byte) 0x3c, (byte) 0x92, (byte) 0xf5,
-        (byte) 0x2a, (byte) 0xeb, (byte) 0x7a, (byte) 0x2e, (byte) 0xbe, (byte) 0x0d, (byte) 0x3b, (byte) 0xe6,
-        (byte) 0x03, (byte) 0x29, (byte) 0xbe, (byte) 0x76, (byte) 0x6a, (byte) 0xd1, (byte) 0x0e, (byte) 0xb6,
-        (byte) 0xa5, (byte) 0x15, (byte) 0xd0, (byte) 0xd2, (byte) 0xcf, (byte) 0xd9, (byte) 0xbe, (byte) 0xa7,
-        (byte) 0x93, (byte) 0x0f, (byte) 0x0c, (byte) 0x30, (byte) 0x65, (byte) 0x37, (byte) 0x89, (byte) 0x9f,
-        (byte) 0x79, (byte) 0x58, (byte) 0xcd, (byte) 0x3e, (byte) 0x85, (byte) 0xb0, (byte) 0x1f, (byte) 0x88,
-        (byte) 0x18, (byte) 0x52, (byte) 0x4d, (byte) 0x31, (byte) 0x25, (byte) 0x84, (byte) 0xa9, (byte) 0x4b,
-        (byte) 0x25, (byte) 0x1e, (byte) 0x36, (byte) 0x25, (byte) 0xb5, (byte) 0x41, (byte) 0x41, (byte) 0xed,
-        (byte) 0xbf, (byte) 0xee, (byte) 0x19, (byte) 0x88, (byte) 0x08, (byte) 0xe1, (byte) 0xbb, (byte) 0x97,
-        (byte) 0xfc, (byte) 0x7c, (byte) 0xb4, (byte) 0x9b, (byte) 0x9e, (byte) 0xaa, (byte) 0xaf, (byte) 0x68,
-        (byte) 0xe9, (byte) 0xc9, (byte) 0x8d, (byte) 0x7d, (byte) 0x0e, (byte) 0xdc, (byte) 0x53, (byte) 0xbb,
-        (byte) 0xc0, (byte) 0xfa, (byte) 0x00, (byte) 0x34, (byte) 0x35, (byte) 0x6d, (byte) 0x63, (byte) 0x05,
-        (byte) 0xfb, (byte) 0xbc, (byte) 0xc3, (byte) 0xc7, (byte) 0x00, (byte) 0x14, (byte) 0x05, (byte) 0x38,
-        (byte) 0x6a, (byte) 0xbb, (byte) 0xc8, (byte) 0x73, (byte) 0xcb, (byte) 0x0f, (byte) 0x3e, (byte) 0xf7,
-        (byte) 0x42, (byte) 0x5f, (byte) 0x3d, (byte) 0x33, (byte) 0xdf, (byte) 0x7b, (byte) 0x31, (byte) 0x5a,
-        (byte) 0xe0, (byte) 0x36, (byte) 0xd2, (byte) 0xa0, (byte) 0xb6, (byte) 0x6a, (byte) 0xfd, (byte) 0x47,
-        (byte) 0x50, (byte) 0x3b, (byte) 0x16, (byte) 0x9b, (byte) 0xf3, (byte) 0x6e, (byte) 0x3b, (byte) 0x51,
-        (byte) 0x62, (byte) 0x51, (byte) 0x5b, (byte) 0x71, (byte) 0x5f, (byte) 0xda, (byte) 0x83, (byte) 0xde,
-        (byte) 0xaf, (byte) 0x2c, (byte) 0x58, (byte) 0xae, (byte) 0xb9, (byte) 0xab, (byte) 0xfb, (byte) 0x30,
-        (byte) 0x97, (byte) 0xc3, (byte) 0xcc, (byte) 0x9d, (byte) 0xd9, (byte) 0xdb, (byte) 0xe5, (byte) 0xef,
-        (byte) 0x29, (byte) 0x6c, (byte) 0x17, (byte) 0x61, (byte) 0x39, (byte) 0x02, (byte) 0x8e, (byte) 0x8a,
-        (byte) 0x67, (byte) 0x1e, (byte) 0x63, (byte) 0x05, (byte) 0x6d, (byte) 0x45, (byte) 0xf4, (byte) 0x01,
-        (byte) 0x88, (byte) 0xd2, (byte) 0xc4, (byte) 0x13, (byte) 0x34, (byte) 0x90, (byte) 0x84, (byte) 0x5d,
-        (byte) 0xe5, (byte) 0x2c, (byte) 0x25, (byte) 0x34, (byte) 0xe9, (byte) 0xc6, (byte) 0xb2, (byte) 0x47,
-        (byte) 0x8c, (byte) 0x07, (byte) 0xbd, (byte) 0xae, (byte) 0x92, (byte) 0x88, (byte) 0x23, (byte) 0xb6,
-        (byte) 0x2d, (byte) 0x06, (byte) 0x6c, (byte) 0x77, (byte) 0x70, (byte) 0xf9, (byte) 0xf6, (byte) 0x3f,
-        (byte) 0x3d, (byte) 0xba, (byte) 0x24, (byte) 0x7f, (byte) 0x53, (byte) 0x08, (byte) 0x44, (byte) 0x74,
-        (byte) 0x7b, (byte) 0xe7, (byte) 0xaa, (byte) 0xa8, (byte) 0x5d, (byte) 0x85, (byte) 0x3b, (byte) 0x8b,
-        (byte) 0xd2, (byte) 0x44, (byte) 0xac, (byte) 0xec, (byte) 0x3d, (byte) 0xe3, (byte) 0xc8, (byte) 0x9a,
-        (byte) 0xb4, (byte) 0x64, (byte) 0x53, (byte) 0xab, (byte) 0x4d, (byte) 0x24, (byte) 0xc3, (byte) 0xac,
-        (byte) 0x69,
+            (byte) 0x00, (byte) 0xe0, (byte) 0x47, (byte) 0x3e, (byte) 0x8a, (byte) 0xb8,
+            (byte) 0xf2, (byte) 0x28, (byte) 0x4f, (byte) 0xeb, (byte) 0x9e, (byte) 0x74,
+            (byte) 0x2f, (byte) 0xf9, (byte) 0x74, (byte) 0x8f, (byte) 0xa1, (byte) 0x18,
+            (byte) 0xed, (byte) 0x98, (byte) 0x63, (byte) 0x3c, (byte) 0x92, (byte) 0xf5,
+            (byte) 0x2a, (byte) 0xeb, (byte) 0x7a, (byte) 0x2e, (byte) 0xbe, (byte) 0x0d,
+            (byte) 0x3b, (byte) 0xe6, (byte) 0x03, (byte) 0x29, (byte) 0xbe, (byte) 0x76,
+            (byte) 0x6a, (byte) 0xd1, (byte) 0x0e, (byte) 0xb6, (byte) 0xa5, (byte) 0x15,
+            (byte) 0xd0, (byte) 0xd2, (byte) 0xcf, (byte) 0xd9, (byte) 0xbe, (byte) 0xa7,
+            (byte) 0x93, (byte) 0x0f, (byte) 0x0c, (byte) 0x30, (byte) 0x65, (byte) 0x37,
+            (byte) 0x89, (byte) 0x9f, (byte) 0x79, (byte) 0x58, (byte) 0xcd, (byte) 0x3e,
+            (byte) 0x85, (byte) 0xb0, (byte) 0x1f, (byte) 0x88, (byte) 0x18, (byte) 0x52,
+            (byte) 0x4d, (byte) 0x31, (byte) 0x25, (byte) 0x84, (byte) 0xa9, (byte) 0x4b,
+            (byte) 0x25, (byte) 0x1e, (byte) 0x36, (byte) 0x25, (byte) 0xb5, (byte) 0x41,
+            (byte) 0x41, (byte) 0xed, (byte) 0xbf, (byte) 0xee, (byte) 0x19, (byte) 0x88,
+            (byte) 0x08, (byte) 0xe1, (byte) 0xbb, (byte) 0x97, (byte) 0xfc, (byte) 0x7c,
+            (byte) 0xb4, (byte) 0x9b, (byte) 0x9e, (byte) 0xaa, (byte) 0xaf, (byte) 0x68,
+            (byte) 0xe9, (byte) 0xc9, (byte) 0x8d, (byte) 0x7d, (byte) 0x0e, (byte) 0xdc,
+            (byte) 0x53, (byte) 0xbb, (byte) 0xc0, (byte) 0xfa, (byte) 0x00, (byte) 0x34,
+            (byte) 0x35, (byte) 0x6d, (byte) 0x63, (byte) 0x05, (byte) 0xfb, (byte) 0xbc,
+            (byte) 0xc3, (byte) 0xc7, (byte) 0x00, (byte) 0x14, (byte) 0x05, (byte) 0x38,
+            (byte) 0x6a, (byte) 0xbb, (byte) 0xc8, (byte) 0x73, (byte) 0xcb, (byte) 0x0f,
+            (byte) 0x3e, (byte) 0xf7, (byte) 0x42, (byte) 0x5f, (byte) 0x3d, (byte) 0x33,
+            (byte) 0xdf, (byte) 0x7b, (byte) 0x31, (byte) 0x5a, (byte) 0xe0, (byte) 0x36,
+            (byte) 0xd2, (byte) 0xa0, (byte) 0xb6, (byte) 0x6a, (byte) 0xfd, (byte) 0x47,
+            (byte) 0x50, (byte) 0x3b, (byte) 0x16, (byte) 0x9b, (byte) 0xf3, (byte) 0x6e,
+            (byte) 0x3b, (byte) 0x51, (byte) 0x62, (byte) 0x51, (byte) 0x5b, (byte) 0x71,
+            (byte) 0x5f, (byte) 0xda, (byte) 0x83, (byte) 0xde, (byte) 0xaf, (byte) 0x2c,
+            (byte) 0x58, (byte) 0xae, (byte) 0xb9, (byte) 0xab, (byte) 0xfb, (byte) 0x30,
+            (byte) 0x97, (byte) 0xc3, (byte) 0xcc, (byte) 0x9d, (byte) 0xd9, (byte) 0xdb,
+            (byte) 0xe5, (byte) 0xef, (byte) 0x29, (byte) 0x6c, (byte) 0x17, (byte) 0x61,
+            (byte) 0x39, (byte) 0x02, (byte) 0x8e, (byte) 0x8a, (byte) 0x67, (byte) 0x1e,
+            (byte) 0x63, (byte) 0x05, (byte) 0x6d, (byte) 0x45, (byte) 0xf4, (byte) 0x01,
+            (byte) 0x88, (byte) 0xd2, (byte) 0xc4, (byte) 0x13, (byte) 0x34, (byte) 0x90,
+            (byte) 0x84, (byte) 0x5d, (byte) 0xe5, (byte) 0x2c, (byte) 0x25, (byte) 0x34,
+            (byte) 0xe9, (byte) 0xc6, (byte) 0xb2, (byte) 0x47, (byte) 0x8c, (byte) 0x07,
+            (byte) 0xbd, (byte) 0xae, (byte) 0x92, (byte) 0x88, (byte) 0x23, (byte) 0xb6,
+            (byte) 0x2d, (byte) 0x06, (byte) 0x6c, (byte) 0x77, (byte) 0x70, (byte) 0xf9,
+            (byte) 0xf6, (byte) 0x3f, (byte) 0x3d, (byte) 0xba, (byte) 0x24, (byte) 0x7f,
+            (byte) 0x53, (byte) 0x08, (byte) 0x44, (byte) 0x74, (byte) 0x7b, (byte) 0xe7,
+            (byte) 0xaa, (byte) 0xa8, (byte) 0x5d, (byte) 0x85, (byte) 0x3b, (byte) 0x8b,
+            (byte) 0xd2, (byte) 0x44, (byte) 0xac, (byte) 0xec, (byte) 0x3d, (byte) 0xe3,
+            (byte) 0xc8, (byte) 0x9a, (byte) 0xb4, (byte) 0x64, (byte) 0x53, (byte) 0xab,
+            (byte) 0x4d, (byte) 0x24, (byte) 0xc3, (byte) 0xac, (byte) 0x69,
     });
 
     private static final BigInteger RSA_2048_privateExponent = new BigInteger(new byte[] {
-        (byte) 0x37, (byte) 0x78, (byte) 0x47, (byte) 0x76, (byte) 0xa5, (byte) 0xf1, (byte) 0x76, (byte) 0x98,
-        (byte) 0xf5, (byte) 0xac, (byte) 0x96, (byte) 0x0d, (byte) 0xfb, (byte) 0x83, (byte) 0xa1, (byte) 0xb6,
-        (byte) 0x75, (byte) 0x64, (byte) 0xe6, (byte) 0x48, (byte) 0xbd, (byte) 0x05, (byte) 0x97, (byte) 0xcf,
-        (byte) 0x8a, (byte) 0xb8, (byte) 0x08, (byte) 0x71, (byte) 0x86, (byte) 0xf2, (byte) 0x66, (byte) 0x9c,
-        (byte) 0x27, (byte) 0xa9, (byte) 0xec, (byte) 0xbd, (byte) 0xd4, (byte) 0x80, (byte) 0xf0, (byte) 0x19,
-        (byte) 0x7a, (byte) 0x80, (byte) 0xd0, (byte) 0x73, (byte) 0x09, (byte) 0xe6, (byte) 0xc6, (byte) 0xa9,
-        (byte) 0x6f, (byte) 0x92, (byte) 0x53, (byte) 0x31, (byte) 0xe5, (byte) 0x7f, (byte) 0x8b, (byte) 0x4a,
-        (byte) 0xc6, (byte) 0xf4, (byte) 0xd4, (byte) 0x5e, (byte) 0xda, (byte) 0x45, (byte) 0xa2, (byte) 0x32,
-        (byte) 0x69, (byte) 0xc0, (byte) 0x9f, (byte) 0xc4, (byte) 0x28, (byte) 0xc0, (byte) 0x7a, (byte) 0x4e,
-        (byte) 0x6e, (byte) 0xdf, (byte) 0x73, (byte) 0x8a, (byte) 0x15, (byte) 0xde, (byte) 0xc9, (byte) 0x7f,
-        (byte) 0xab, (byte) 0xd2, (byte) 0xf2, (byte) 0xbb, (byte) 0x47, (byte) 0xa1, (byte) 0x4f, (byte) 0x20,
-        (byte) 0xea, (byte) 0x72, (byte) 0xfc, (byte) 0xfe, (byte) 0x4c, (byte) 0x36, (byte) 0xe0, (byte) 0x1a,
-        (byte) 0xda, (byte) 0x77, (byte) 0xbd, (byte) 0x13, (byte) 0x7c, (byte) 0xd8, (byte) 0xd4, (byte) 0xda,
-        (byte) 0x10, (byte) 0xbb, (byte) 0x16, (byte) 0x2e, (byte) 0x94, (byte) 0xa4, (byte) 0x66, (byte) 0x29,
-        (byte) 0x71, (byte) 0xf1, (byte) 0x75, (byte) 0xf9, (byte) 0x85, (byte) 0xfa, (byte) 0x18, (byte) 0x8f,
-        (byte) 0x05, (byte) 0x6c, (byte) 0xb9, (byte) 0x7e, (byte) 0xe2, (byte) 0x81, (byte) 0x6f, (byte) 0x43,
-        (byte) 0xab, (byte) 0x9d, (byte) 0x37, (byte) 0x47, (byte) 0x61, (byte) 0x24, (byte) 0x86, (byte) 0xcd,
-        (byte) 0xa8, (byte) 0xc1, (byte) 0x61, (byte) 0x96, (byte) 0xc3, (byte) 0x08, (byte) 0x18, (byte) 0xa9,
-        (byte) 0x95, (byte) 0xec, (byte) 0x85, (byte) 0xd3, (byte) 0x84, (byte) 0x67, (byte) 0x79, (byte) 0x12,
-        (byte) 0x67, (byte) 0xb3, (byte) 0xbf, (byte) 0x21, (byte) 0xf2, (byte) 0x73, (byte) 0x71, (byte) 0x0a,
-        (byte) 0x69, (byte) 0x25, (byte) 0x86, (byte) 0x25, (byte) 0x76, (byte) 0x84, (byte) 0x1c, (byte) 0x5b,
-        (byte) 0x67, (byte) 0x12, (byte) 0xc1, (byte) 0x2d, (byte) 0x4b, (byte) 0xd2, (byte) 0x0a, (byte) 0x2f,
-        (byte) 0x32, (byte) 0x99, (byte) 0xad, (byte) 0xb7, (byte) 0xc1, (byte) 0x35, (byte) 0xda, (byte) 0x5e,
-        (byte) 0x95, (byte) 0x15, (byte) 0xab, (byte) 0xda, (byte) 0x76, (byte) 0xe7, (byte) 0xca, (byte) 0xf2,
-        (byte) 0xa3, (byte) 0xbe, (byte) 0x80, (byte) 0x55, (byte) 0x1d, (byte) 0x07, (byte) 0x3b, (byte) 0x78,
-        (byte) 0xbf, (byte) 0x11, (byte) 0x62, (byte) 0xc4, (byte) 0x8a, (byte) 0xd2, (byte) 0xb7, (byte) 0xf4,
-        (byte) 0x74, (byte) 0x3a, (byte) 0x02, (byte) 0x38, (byte) 0xee, (byte) 0x4d, (byte) 0x25, (byte) 0x2f,
-        (byte) 0x7d, (byte) 0x5e, (byte) 0x7e, (byte) 0x65, (byte) 0x33, (byte) 0xcc, (byte) 0xae, (byte) 0x64,
-        (byte) 0xcc, (byte) 0xb3, (byte) 0x93, (byte) 0x60, (byte) 0x07, (byte) 0x5a, (byte) 0x2f, (byte) 0xd1,
-        (byte) 0xe0, (byte) 0x34, (byte) 0xec, (byte) 0x3a, (byte) 0xe5, (byte) 0xce, (byte) 0x9c, (byte) 0x40,
-        (byte) 0x8c, (byte) 0xcb, (byte) 0xf0, (byte) 0xe2, (byte) 0x5e, (byte) 0x41, (byte) 0x14, (byte) 0x02,
-        (byte) 0x16, (byte) 0x87, (byte) 0xb3, (byte) 0xdd, (byte) 0x47, (byte) 0x54, (byte) 0xae, (byte) 0x81,
+            (byte) 0x37, (byte) 0x78, (byte) 0x47, (byte) 0x76, (byte) 0xa5, (byte) 0xf1,
+            (byte) 0x76, (byte) 0x98, (byte) 0xf5, (byte) 0xac, (byte) 0x96, (byte) 0x0d,
+            (byte) 0xfb, (byte) 0x83, (byte) 0xa1, (byte) 0xb6, (byte) 0x75, (byte) 0x64,
+            (byte) 0xe6, (byte) 0x48, (byte) 0xbd, (byte) 0x05, (byte) 0x97, (byte) 0xcf,
+            (byte) 0x8a, (byte) 0xb8, (byte) 0x08, (byte) 0x71, (byte) 0x86, (byte) 0xf2,
+            (byte) 0x66, (byte) 0x9c, (byte) 0x27, (byte) 0xa9, (byte) 0xec, (byte) 0xbd,
+            (byte) 0xd4, (byte) 0x80, (byte) 0xf0, (byte) 0x19, (byte) 0x7a, (byte) 0x80,
+            (byte) 0xd0, (byte) 0x73, (byte) 0x09, (byte) 0xe6, (byte) 0xc6, (byte) 0xa9,
+            (byte) 0x6f, (byte) 0x92, (byte) 0x53, (byte) 0x31, (byte) 0xe5, (byte) 0x7f,
+            (byte) 0x8b, (byte) 0x4a, (byte) 0xc6, (byte) 0xf4, (byte) 0xd4, (byte) 0x5e,
+            (byte) 0xda, (byte) 0x45, (byte) 0xa2, (byte) 0x32, (byte) 0x69, (byte) 0xc0,
+            (byte) 0x9f, (byte) 0xc4, (byte) 0x28, (byte) 0xc0, (byte) 0x7a, (byte) 0x4e,
+            (byte) 0x6e, (byte) 0xdf, (byte) 0x73, (byte) 0x8a, (byte) 0x15, (byte) 0xde,
+            (byte) 0xc9, (byte) 0x7f, (byte) 0xab, (byte) 0xd2, (byte) 0xf2, (byte) 0xbb,
+            (byte) 0x47, (byte) 0xa1, (byte) 0x4f, (byte) 0x20, (byte) 0xea, (byte) 0x72,
+            (byte) 0xfc, (byte) 0xfe, (byte) 0x4c, (byte) 0x36, (byte) 0xe0, (byte) 0x1a,
+            (byte) 0xda, (byte) 0x77, (byte) 0xbd, (byte) 0x13, (byte) 0x7c, (byte) 0xd8,
+            (byte) 0xd4, (byte) 0xda, (byte) 0x10, (byte) 0xbb, (byte) 0x16, (byte) 0x2e,
+            (byte) 0x94, (byte) 0xa4, (byte) 0x66, (byte) 0x29, (byte) 0x71, (byte) 0xf1,
+            (byte) 0x75, (byte) 0xf9, (byte) 0x85, (byte) 0xfa, (byte) 0x18, (byte) 0x8f,
+            (byte) 0x05, (byte) 0x6c, (byte) 0xb9, (byte) 0x7e, (byte) 0xe2, (byte) 0x81,
+            (byte) 0x6f, (byte) 0x43, (byte) 0xab, (byte) 0x9d, (byte) 0x37, (byte) 0x47,
+            (byte) 0x61, (byte) 0x24, (byte) 0x86, (byte) 0xcd, (byte) 0xa8, (byte) 0xc1,
+            (byte) 0x61, (byte) 0x96, (byte) 0xc3, (byte) 0x08, (byte) 0x18, (byte) 0xa9,
+            (byte) 0x95, (byte) 0xec, (byte) 0x85, (byte) 0xd3, (byte) 0x84, (byte) 0x67,
+            (byte) 0x79, (byte) 0x12, (byte) 0x67, (byte) 0xb3, (byte) 0xbf, (byte) 0x21,
+            (byte) 0xf2, (byte) 0x73, (byte) 0x71, (byte) 0x0a, (byte) 0x69, (byte) 0x25,
+            (byte) 0x86, (byte) 0x25, (byte) 0x76, (byte) 0x84, (byte) 0x1c, (byte) 0x5b,
+            (byte) 0x67, (byte) 0x12, (byte) 0xc1, (byte) 0x2d, (byte) 0x4b, (byte) 0xd2,
+            (byte) 0x0a, (byte) 0x2f, (byte) 0x32, (byte) 0x99, (byte) 0xad, (byte) 0xb7,
+            (byte) 0xc1, (byte) 0x35, (byte) 0xda, (byte) 0x5e, (byte) 0x95, (byte) 0x15,
+            (byte) 0xab, (byte) 0xda, (byte) 0x76, (byte) 0xe7, (byte) 0xca, (byte) 0xf2,
+            (byte) 0xa3, (byte) 0xbe, (byte) 0x80, (byte) 0x55, (byte) 0x1d, (byte) 0x07,
+            (byte) 0x3b, (byte) 0x78, (byte) 0xbf, (byte) 0x11, (byte) 0x62, (byte) 0xc4,
+            (byte) 0x8a, (byte) 0xd2, (byte) 0xb7, (byte) 0xf4, (byte) 0x74, (byte) 0x3a,
+            (byte) 0x02, (byte) 0x38, (byte) 0xee, (byte) 0x4d, (byte) 0x25, (byte) 0x2f,
+            (byte) 0x7d, (byte) 0x5e, (byte) 0x7e, (byte) 0x65, (byte) 0x33, (byte) 0xcc,
+            (byte) 0xae, (byte) 0x64, (byte) 0xcc, (byte) 0xb3, (byte) 0x93, (byte) 0x60,
+            (byte) 0x07, (byte) 0x5a, (byte) 0x2f, (byte) 0xd1, (byte) 0xe0, (byte) 0x34,
+            (byte) 0xec, (byte) 0x3a, (byte) 0xe5, (byte) 0xce, (byte) 0x9c, (byte) 0x40,
+            (byte) 0x8c, (byte) 0xcb, (byte) 0xf0, (byte) 0xe2, (byte) 0x5e, (byte) 0x41,
+            (byte) 0x14, (byte) 0x02, (byte) 0x16, (byte) 0x87, (byte) 0xb3, (byte) 0xdd,
+            (byte) 0x47, (byte) 0x54, (byte) 0xae, (byte) 0x81,
     });
 
     private static final BigInteger RSA_2048_publicExponent = new BigInteger(new byte[] {
-        (byte) 0x01, (byte) 0x00, (byte) 0x01,
+            (byte) 0x01,
+            (byte) 0x00,
+            (byte) 0x01,
     });
 
     private static final BigInteger RSA_2048_primeP = new BigInteger(new byte[] {
-        (byte) 0x00, (byte) 0xf5, (byte) 0x41, (byte) 0x88, (byte) 0x4b, (byte) 0xc3, (byte) 0x73, (byte) 0x7b,
-        (byte) 0x29, (byte) 0x22, (byte) 0xd4, (byte) 0x11, (byte) 0x9e, (byte) 0xf4, (byte) 0x5e, (byte) 0x2d,
-        (byte) 0xee, (byte) 0x2c, (byte) 0xd4, (byte) 0xcb, (byte) 0xb7, (byte) 0x5f, (byte) 0x45, (byte) 0x50,
-        (byte) 0x5a, (byte) 0x15, (byte) 0x7a, (byte) 0xa5, (byte) 0x00, (byte) 0x9f, (byte) 0x99, (byte) 0xc7,
-        (byte) 0x3a, (byte) 0x2d, (byte) 0xf0, (byte) 0x72, (byte) 0x4a, (byte) 0xc4, (byte) 0x60, (byte) 0x24,
-        (byte) 0x30, (byte) 0x63, (byte) 0x32, (byte) 0xea, (byte) 0x89, (byte) 0x81, (byte) 0x77, (byte) 0x63,
-        (byte) 0x45, (byte) 0x46, (byte) 0x5d, (byte) 0xc6, (byte) 0xdf, (byte) 0x1e, (byte) 0x0a, (byte) 0x6f,
-        (byte) 0x14, (byte) 0x0a, (byte) 0xff, (byte) 0x3b, (byte) 0x73, (byte) 0x96, (byte) 0xe6, (byte) 0xa8,
-        (byte) 0x99, (byte) 0x4a, (byte) 0xc5, (byte) 0xda, (byte) 0xa9, (byte) 0x68, (byte) 0x73, (byte) 0x47,
-        (byte) 0x2f, (byte) 0xe3, (byte) 0x77, (byte) 0x49, (byte) 0xd1, (byte) 0x4e, (byte) 0xb3, (byte) 0xe0,
-        (byte) 0x75, (byte) 0xe6, (byte) 0x29, (byte) 0xdb, (byte) 0xeb, (byte) 0x35, (byte) 0x83, (byte) 0x33,
-        (byte) 0x8a, (byte) 0x6f, (byte) 0x36, (byte) 0x49, (byte) 0xd0, (byte) 0xa2, (byte) 0x65, (byte) 0x4a,
-        (byte) 0x7a, (byte) 0x42, (byte) 0xfd, (byte) 0x9a, (byte) 0xb6, (byte) 0xbf, (byte) 0xa4, (byte) 0xac,
-        (byte) 0x4d, (byte) 0x48, (byte) 0x1d, (byte) 0x39, (byte) 0x0b, (byte) 0xb2, (byte) 0x29, (byte) 0xb0,
-        (byte) 0x64, (byte) 0xbd, (byte) 0xc3, (byte) 0x11, (byte) 0xcc, (byte) 0x1b, (byte) 0xe1, (byte) 0xb6,
-        (byte) 0x31, (byte) 0x89, (byte) 0xda, (byte) 0x7c, (byte) 0x40, (byte) 0xcd, (byte) 0xec, (byte) 0xf2,
-        (byte) 0xb1,
+            (byte) 0x00, (byte) 0xf5, (byte) 0x41, (byte) 0x88, (byte) 0x4b, (byte) 0xc3,
+            (byte) 0x73, (byte) 0x7b, (byte) 0x29, (byte) 0x22, (byte) 0xd4, (byte) 0x11,
+            (byte) 0x9e, (byte) 0xf4, (byte) 0x5e, (byte) 0x2d, (byte) 0xee, (byte) 0x2c,
+            (byte) 0xd4, (byte) 0xcb, (byte) 0xb7, (byte) 0x5f, (byte) 0x45, (byte) 0x50,
+            (byte) 0x5a, (byte) 0x15, (byte) 0x7a, (byte) 0xa5, (byte) 0x00, (byte) 0x9f,
+            (byte) 0x99, (byte) 0xc7, (byte) 0x3a, (byte) 0x2d, (byte) 0xf0, (byte) 0x72,
+            (byte) 0x4a, (byte) 0xc4, (byte) 0x60, (byte) 0x24, (byte) 0x30, (byte) 0x63,
+            (byte) 0x32, (byte) 0xea, (byte) 0x89, (byte) 0x81, (byte) 0x77, (byte) 0x63,
+            (byte) 0x45, (byte) 0x46, (byte) 0x5d, (byte) 0xc6, (byte) 0xdf, (byte) 0x1e,
+            (byte) 0x0a, (byte) 0x6f, (byte) 0x14, (byte) 0x0a, (byte) 0xff, (byte) 0x3b,
+            (byte) 0x73, (byte) 0x96, (byte) 0xe6, (byte) 0xa8, (byte) 0x99, (byte) 0x4a,
+            (byte) 0xc5, (byte) 0xda, (byte) 0xa9, (byte) 0x68, (byte) 0x73, (byte) 0x47,
+            (byte) 0x2f, (byte) 0xe3, (byte) 0x77, (byte) 0x49, (byte) 0xd1, (byte) 0x4e,
+            (byte) 0xb3, (byte) 0xe0, (byte) 0x75, (byte) 0xe6, (byte) 0x29, (byte) 0xdb,
+            (byte) 0xeb, (byte) 0x35, (byte) 0x83, (byte) 0x33, (byte) 0x8a, (byte) 0x6f,
+            (byte) 0x36, (byte) 0x49, (byte) 0xd0, (byte) 0xa2, (byte) 0x65, (byte) 0x4a,
+            (byte) 0x7a, (byte) 0x42, (byte) 0xfd, (byte) 0x9a, (byte) 0xb6, (byte) 0xbf,
+            (byte) 0xa4, (byte) 0xac, (byte) 0x4d, (byte) 0x48, (byte) 0x1d, (byte) 0x39,
+            (byte) 0x0b, (byte) 0xb2, (byte) 0x29, (byte) 0xb0, (byte) 0x64, (byte) 0xbd,
+            (byte) 0xc3, (byte) 0x11, (byte) 0xcc, (byte) 0x1b, (byte) 0xe1, (byte) 0xb6,
+            (byte) 0x31, (byte) 0x89, (byte) 0xda, (byte) 0x7c, (byte) 0x40, (byte) 0xcd,
+            (byte) 0xec, (byte) 0xf2, (byte) 0xb1,
     });
 
     private static final BigInteger RSA_2048_primeQ = new BigInteger(new byte[] {
-        (byte) 0x00, (byte) 0xea, (byte) 0x1a, (byte) 0x74, (byte) 0x2d, (byte) 0xdb, (byte) 0x88, (byte) 0x1c,
-        (byte) 0xed, (byte) 0xb7, (byte) 0x28, (byte) 0x8c, (byte) 0x87, (byte) 0xe3, (byte) 0x8d, (byte) 0x86,
-        (byte) 0x8d, (byte) 0xd7, (byte) 0xa4, (byte) 0x09, (byte) 0xd1, (byte) 0x5a, (byte) 0x43, (byte) 0xf4,
-        (byte) 0x45, (byte) 0xd5, (byte) 0x37, (byte) 0x7a, (byte) 0x0b, (byte) 0x57, (byte) 0x31, (byte) 0xdd,
-        (byte) 0xbf, (byte) 0xca, (byte) 0x2d, (byte) 0xaf, (byte) 0x28, (byte) 0xa8, (byte) 0xe1, (byte) 0x3c,
-        (byte) 0xd5, (byte) 0xc0, (byte) 0xaf, (byte) 0xce, (byte) 0xc3, (byte) 0x34, (byte) 0x7d, (byte) 0x74,
-        (byte) 0xa3, (byte) 0x9e, (byte) 0x23, (byte) 0x5a, (byte) 0x3c, (byte) 0xd9, (byte) 0x63, (byte) 0x3f,
-        (byte) 0x27, (byte) 0x4d, (byte) 0xe2, (byte) 0xb9, (byte) 0x4f, (byte) 0x92, (byte) 0xdf, (byte) 0x43,
-        (byte) 0x83, (byte) 0x39, (byte) 0x11, (byte) 0xd9, (byte) 0xe9, (byte) 0xf1, (byte) 0xcf, (byte) 0x58,
-        (byte) 0xf2, (byte) 0x7d, (byte) 0xe2, (byte) 0xe0, (byte) 0x8f, (byte) 0xf4, (byte) 0x59, (byte) 0x64,
-        (byte) 0xc7, (byte) 0x20, (byte) 0xd3, (byte) 0xec, (byte) 0x21, (byte) 0x39, (byte) 0xdc, (byte) 0x7c,
-        (byte) 0xaf, (byte) 0xc9, (byte) 0x12, (byte) 0x95, (byte) 0x3c, (byte) 0xde, (byte) 0xcb, (byte) 0x2f,
-        (byte) 0x35, (byte) 0x5a, (byte) 0x2e, (byte) 0x2c, (byte) 0x35, (byte) 0xa5, (byte) 0x0f, (byte) 0xad,
-        (byte) 0x75, (byte) 0x4c, (byte) 0xb3, (byte) 0xb2, (byte) 0x31, (byte) 0x66, (byte) 0x42, (byte) 0x4b,
-        (byte) 0xa3, (byte) 0xb6, (byte) 0xe3, (byte) 0x11, (byte) 0x2a, (byte) 0x2b, (byte) 0x89, (byte) 0x8c,
-        (byte) 0x38, (byte) 0xc5, (byte) 0xc1, (byte) 0x5e, (byte) 0xdb, (byte) 0x23, (byte) 0x86, (byte) 0x93,
-        (byte) 0x39,
+            (byte) 0x00, (byte) 0xea, (byte) 0x1a, (byte) 0x74, (byte) 0x2d, (byte) 0xdb,
+            (byte) 0x88, (byte) 0x1c, (byte) 0xed, (byte) 0xb7, (byte) 0x28, (byte) 0x8c,
+            (byte) 0x87, (byte) 0xe3, (byte) 0x8d, (byte) 0x86, (byte) 0x8d, (byte) 0xd7,
+            (byte) 0xa4, (byte) 0x09, (byte) 0xd1, (byte) 0x5a, (byte) 0x43, (byte) 0xf4,
+            (byte) 0x45, (byte) 0xd5, (byte) 0x37, (byte) 0x7a, (byte) 0x0b, (byte) 0x57,
+            (byte) 0x31, (byte) 0xdd, (byte) 0xbf, (byte) 0xca, (byte) 0x2d, (byte) 0xaf,
+            (byte) 0x28, (byte) 0xa8, (byte) 0xe1, (byte) 0x3c, (byte) 0xd5, (byte) 0xc0,
+            (byte) 0xaf, (byte) 0xce, (byte) 0xc3, (byte) 0x34, (byte) 0x7d, (byte) 0x74,
+            (byte) 0xa3, (byte) 0x9e, (byte) 0x23, (byte) 0x5a, (byte) 0x3c, (byte) 0xd9,
+            (byte) 0x63, (byte) 0x3f, (byte) 0x27, (byte) 0x4d, (byte) 0xe2, (byte) 0xb9,
+            (byte) 0x4f, (byte) 0x92, (byte) 0xdf, (byte) 0x43, (byte) 0x83, (byte) 0x39,
+            (byte) 0x11, (byte) 0xd9, (byte) 0xe9, (byte) 0xf1, (byte) 0xcf, (byte) 0x58,
+            (byte) 0xf2, (byte) 0x7d, (byte) 0xe2, (byte) 0xe0, (byte) 0x8f, (byte) 0xf4,
+            (byte) 0x59, (byte) 0x64, (byte) 0xc7, (byte) 0x20, (byte) 0xd3, (byte) 0xec,
+            (byte) 0x21, (byte) 0x39, (byte) 0xdc, (byte) 0x7c, (byte) 0xaf, (byte) 0xc9,
+            (byte) 0x12, (byte) 0x95, (byte) 0x3c, (byte) 0xde, (byte) 0xcb, (byte) 0x2f,
+            (byte) 0x35, (byte) 0x5a, (byte) 0x2e, (byte) 0x2c, (byte) 0x35, (byte) 0xa5,
+            (byte) 0x0f, (byte) 0xad, (byte) 0x75, (byte) 0x4c, (byte) 0xb3, (byte) 0xb2,
+            (byte) 0x31, (byte) 0x66, (byte) 0x42, (byte) 0x4b, (byte) 0xa3, (byte) 0xb6,
+            (byte) 0xe3, (byte) 0x11, (byte) 0x2a, (byte) 0x2b, (byte) 0x89, (byte) 0x8c,
+            (byte) 0x38, (byte) 0xc5, (byte) 0xc1, (byte) 0x5e, (byte) 0xdb, (byte) 0x23,
+            (byte) 0x86, (byte) 0x93, (byte) 0x39,
     });
 
-    private static final BigInteger RSA_2048_primeExponentP = new BigInteger(1, new byte[] {
-        (byte) 0x51, (byte) 0x82, (byte) 0x8F, (byte) 0x1E, (byte) 0xC6, (byte) 0xFD, (byte) 0x99, (byte) 0x60,
-        (byte) 0x29, (byte) 0x90, (byte) 0x1B, (byte) 0xAF, (byte) 0x1D, (byte) 0x7E, (byte) 0x33, (byte) 0x7B,
-        (byte) 0xA5, (byte) 0xF0, (byte) 0xAF, (byte) 0x27, (byte) 0xE9, (byte) 0x84, (byte) 0xEA, (byte) 0xD8,
-        (byte) 0x95, (byte) 0xAC, (byte) 0xE6, (byte) 0x2B, (byte) 0xD7, (byte) 0xDF, (byte) 0x4E, (byte) 0xE4,
-        (byte) 0x5A, (byte) 0x22, (byte) 0x40, (byte) 0x89, (byte) 0xF2, (byte) 0xCC, (byte) 0x15, (byte) 0x1A,
-        (byte) 0xF3, (byte) 0xCD, (byte) 0x17, (byte) 0x3F, (byte) 0xCE, (byte) 0x04, (byte) 0x74, (byte) 0xBC,
-        (byte) 0xB0, (byte) 0x4F, (byte) 0x38, (byte) 0x6A, (byte) 0x2C, (byte) 0xDC, (byte) 0xC0, (byte) 0xE0,
-        (byte) 0x03, (byte) 0x6B, (byte) 0xA2, (byte) 0x41, (byte) 0x9F, (byte) 0x54, (byte) 0x57, (byte) 0x92,
-        (byte) 0x62, (byte) 0xD4, (byte) 0x71, (byte) 0x00, (byte) 0xBE, (byte) 0x93, (byte) 0x19, (byte) 0x84,
-        (byte) 0xA3, (byte) 0xEF, (byte) 0xA0, (byte) 0x5B, (byte) 0xEC, (byte) 0xF1, (byte) 0x41, (byte) 0x57,
-        (byte) 0x4D, (byte) 0xC0, (byte) 0x79, (byte) 0xB3, (byte) 0xA9, (byte) 0x5C, (byte) 0x4A, (byte) 0x83,
-        (byte) 0xE6, (byte) 0xC4, (byte) 0x3F, (byte) 0x32, (byte) 0x14, (byte) 0xD6, (byte) 0xDF, (byte) 0x32,
-        (byte) 0xD5, (byte) 0x12, (byte) 0xDE, (byte) 0x19, (byte) 0x80, (byte) 0x85, (byte) 0xE5, (byte) 0x31,
-        (byte) 0xE6, (byte) 0x16, (byte) 0xB8, (byte) 0x3F, (byte) 0xD7, (byte) 0xDD, (byte) 0x9D, (byte) 0x1F,
-        (byte) 0x4E, (byte) 0x26, (byte) 0x07, (byte) 0xC3, (byte) 0x33, (byte) 0x3D, (byte) 0x07, (byte) 0xC5,
-        (byte) 0x5D, (byte) 0x10, (byte) 0x7D, (byte) 0x1D, (byte) 0x38, (byte) 0x93, (byte) 0x58, (byte) 0x71,
-    });
+    private static final BigInteger RSA_2048_primeExponentP = new BigInteger(
+            1,
+            new byte[] {
+                    (byte) 0x51, (byte) 0x82, (byte) 0x8F, (byte) 0x1E, (byte) 0xC6, (byte) 0xFD,
+                    (byte) 0x99, (byte) 0x60, (byte) 0x29, (byte) 0x90, (byte) 0x1B, (byte) 0xAF,
+                    (byte) 0x1D, (byte) 0x7E, (byte) 0x33, (byte) 0x7B, (byte) 0xA5, (byte) 0xF0,
+                    (byte) 0xAF, (byte) 0x27, (byte) 0xE9, (byte) 0x84, (byte) 0xEA, (byte) 0xD8,
+                    (byte) 0x95, (byte) 0xAC, (byte) 0xE6, (byte) 0x2B, (byte) 0xD7, (byte) 0xDF,
+                    (byte) 0x4E, (byte) 0xE4, (byte) 0x5A, (byte) 0x22, (byte) 0x40, (byte) 0x89,
+                    (byte) 0xF2, (byte) 0xCC, (byte) 0x15, (byte) 0x1A, (byte) 0xF3, (byte) 0xCD,
+                    (byte) 0x17, (byte) 0x3F, (byte) 0xCE, (byte) 0x04, (byte) 0x74, (byte) 0xBC,
+                    (byte) 0xB0, (byte) 0x4F, (byte) 0x38, (byte) 0x6A, (byte) 0x2C, (byte) 0xDC,
+                    (byte) 0xC0, (byte) 0xE0, (byte) 0x03, (byte) 0x6B, (byte) 0xA2, (byte) 0x41,
+                    (byte) 0x9F, (byte) 0x54, (byte) 0x57, (byte) 0x92, (byte) 0x62, (byte) 0xD4,
+                    (byte) 0x71, (byte) 0x00, (byte) 0xBE, (byte) 0x93, (byte) 0x19, (byte) 0x84,
+                    (byte) 0xA3, (byte) 0xEF, (byte) 0xA0, (byte) 0x5B, (byte) 0xEC, (byte) 0xF1,
+                    (byte) 0x41, (byte) 0x57, (byte) 0x4D, (byte) 0xC0, (byte) 0x79, (byte) 0xB3,
+                    (byte) 0xA9, (byte) 0x5C, (byte) 0x4A, (byte) 0x83, (byte) 0xE6, (byte) 0xC4,
+                    (byte) 0x3F, (byte) 0x32, (byte) 0x14, (byte) 0xD6, (byte) 0xDF, (byte) 0x32,
+                    (byte) 0xD5, (byte) 0x12, (byte) 0xDE, (byte) 0x19, (byte) 0x80, (byte) 0x85,
+                    (byte) 0xE5, (byte) 0x31, (byte) 0xE6, (byte) 0x16, (byte) 0xB8, (byte) 0x3F,
+                    (byte) 0xD7, (byte) 0xDD, (byte) 0x9D, (byte) 0x1F, (byte) 0x4E, (byte) 0x26,
+                    (byte) 0x07, (byte) 0xC3, (byte) 0x33, (byte) 0x3D, (byte) 0x07, (byte) 0xC5,
+                    (byte) 0x5D, (byte) 0x10, (byte) 0x7D, (byte) 0x1D, (byte) 0x38, (byte) 0x93,
+                    (byte) 0x58, (byte) 0x71,
+            });
 
-    private static final BigInteger RSA_2048_primeExponentQ = new BigInteger(1, new byte[] {
-        (byte) 0xDB, (byte) 0x4F, (byte) 0xB5, (byte) 0x0F, (byte) 0x50, (byte) 0xDE, (byte) 0x8E, (byte) 0xDB,
-        (byte) 0x53, (byte) 0xFF, (byte) 0x34, (byte) 0xC8, (byte) 0x09, (byte) 0x31, (byte) 0x88, (byte) 0xA0,
-        (byte) 0x51, (byte) 0x28, (byte) 0x67, (byte) 0xDA, (byte) 0x2C, (byte) 0xCA, (byte) 0x04, (byte) 0x89,
-        (byte) 0x77, (byte) 0x59, (byte) 0xE5, (byte) 0x87, (byte) 0xC2, (byte) 0x44, (byte) 0x01, (byte) 0x0D,
-        (byte) 0xAF, (byte) 0x86, (byte) 0x64, (byte) 0xD5, (byte) 0x9E, (byte) 0x80, (byte) 0x83, (byte) 0xD1,
-        (byte) 0x6C, (byte) 0x16, (byte) 0x47, (byte) 0x89, (byte) 0x30, (byte) 0x1F, (byte) 0x67, (byte) 0xA9,
-        (byte) 0xF0, (byte) 0x78, (byte) 0x06, (byte) 0x0D, (byte) 0x83, (byte) 0x4A, (byte) 0x2A, (byte) 0xDB,
-        (byte) 0xD3, (byte) 0x67, (byte) 0x57, (byte) 0x5B, (byte) 0x68, (byte) 0xA8, (byte) 0xA8, (byte) 0x42,
-        (byte) 0xC2, (byte) 0xB0, (byte) 0x2A, (byte) 0x89, (byte) 0xB3, (byte) 0xF3, (byte) 0x1F, (byte) 0xCC,
-        (byte) 0xEC, (byte) 0x8A, (byte) 0x22, (byte) 0xFE, (byte) 0x39, (byte) 0x57, (byte) 0x95, (byte) 0xC5,
-        (byte) 0xC6, (byte) 0xC7, (byte) 0x42, (byte) 0x2B, (byte) 0x4E, (byte) 0x5D, (byte) 0x74, (byte) 0xA1,
-        (byte) 0xE9, (byte) 0xA8, (byte) 0xF3, (byte) 0x0E, (byte) 0x77, (byte) 0x59, (byte) 0xB9, (byte) 0xFC,
-        (byte) 0x2D, (byte) 0x63, (byte) 0x9C, (byte) 0x1F, (byte) 0x15, (byte) 0x67, (byte) 0x3E, (byte) 0x84,
-        (byte) 0xE9, (byte) 0x3A, (byte) 0x5E, (byte) 0xF1, (byte) 0x50, (byte) 0x6F, (byte) 0x43, (byte) 0x15,
-        (byte) 0x38, (byte) 0x3C, (byte) 0x38, (byte) 0xD4, (byte) 0x5C, (byte) 0xBD, (byte) 0x1B, (byte) 0x14,
-        (byte) 0x04, (byte) 0x8F, (byte) 0x47, (byte) 0x21, (byte) 0xDC, (byte) 0x82, (byte) 0x32, (byte) 0x61,
-    });
+    private static final BigInteger RSA_2048_primeExponentQ = new BigInteger(
+            1,
+            new byte[] {
+                    (byte) 0xDB, (byte) 0x4F, (byte) 0xB5, (byte) 0x0F, (byte) 0x50, (byte) 0xDE,
+                    (byte) 0x8E, (byte) 0xDB, (byte) 0x53, (byte) 0xFF, (byte) 0x34, (byte) 0xC8,
+                    (byte) 0x09, (byte) 0x31, (byte) 0x88, (byte) 0xA0, (byte) 0x51, (byte) 0x28,
+                    (byte) 0x67, (byte) 0xDA, (byte) 0x2C, (byte) 0xCA, (byte) 0x04, (byte) 0x89,
+                    (byte) 0x77, (byte) 0x59, (byte) 0xE5, (byte) 0x87, (byte) 0xC2, (byte) 0x44,
+                    (byte) 0x01, (byte) 0x0D, (byte) 0xAF, (byte) 0x86, (byte) 0x64, (byte) 0xD5,
+                    (byte) 0x9E, (byte) 0x80, (byte) 0x83, (byte) 0xD1, (byte) 0x6C, (byte) 0x16,
+                    (byte) 0x47, (byte) 0x89, (byte) 0x30, (byte) 0x1F, (byte) 0x67, (byte) 0xA9,
+                    (byte) 0xF0, (byte) 0x78, (byte) 0x06, (byte) 0x0D, (byte) 0x83, (byte) 0x4A,
+                    (byte) 0x2A, (byte) 0xDB, (byte) 0xD3, (byte) 0x67, (byte) 0x57, (byte) 0x5B,
+                    (byte) 0x68, (byte) 0xA8, (byte) 0xA8, (byte) 0x42, (byte) 0xC2, (byte) 0xB0,
+                    (byte) 0x2A, (byte) 0x89, (byte) 0xB3, (byte) 0xF3, (byte) 0x1F, (byte) 0xCC,
+                    (byte) 0xEC, (byte) 0x8A, (byte) 0x22, (byte) 0xFE, (byte) 0x39, (byte) 0x57,
+                    (byte) 0x95, (byte) 0xC5, (byte) 0xC6, (byte) 0xC7, (byte) 0x42, (byte) 0x2B,
+                    (byte) 0x4E, (byte) 0x5D, (byte) 0x74, (byte) 0xA1, (byte) 0xE9, (byte) 0xA8,
+                    (byte) 0xF3, (byte) 0x0E, (byte) 0x77, (byte) 0x59, (byte) 0xB9, (byte) 0xFC,
+                    (byte) 0x2D, (byte) 0x63, (byte) 0x9C, (byte) 0x1F, (byte) 0x15, (byte) 0x67,
+                    (byte) 0x3E, (byte) 0x84, (byte) 0xE9, (byte) 0x3A, (byte) 0x5E, (byte) 0xF1,
+                    (byte) 0x50, (byte) 0x6F, (byte) 0x43, (byte) 0x15, (byte) 0x38, (byte) 0x3C,
+                    (byte) 0x38, (byte) 0xD4, (byte) 0x5C, (byte) 0xBD, (byte) 0x1B, (byte) 0x14,
+                    (byte) 0x04, (byte) 0x8F, (byte) 0x47, (byte) 0x21, (byte) 0xDC, (byte) 0x82,
+                    (byte) 0x32, (byte) 0x61,
+            });
 
-    private static final BigInteger RSA_2048_crtCoefficient = new BigInteger(1, new byte[] {
-        (byte) 0xD8, (byte) 0x11, (byte) 0x45, (byte) 0x93, (byte) 0xAF, (byte) 0x41, (byte) 0x5F, (byte) 0xB6,
-        (byte) 0x12, (byte) 0xDB, (byte) 0xF1, (byte) 0x92, (byte) 0x37, (byte) 0x10, (byte) 0xD5, (byte) 0x4D,
-        (byte) 0x07, (byte) 0x48, (byte) 0x62, (byte) 0x05, (byte) 0xA7, (byte) 0x6A, (byte) 0x3B, (byte) 0x43,
-        (byte) 0x19, (byte) 0x49, (byte) 0x68, (byte) 0xC0, (byte) 0xDF, (byte) 0xF1, (byte) 0xF1, (byte) 0x1E,
-        (byte) 0xF0, (byte) 0xF6, (byte) 0x1A, (byte) 0x4A, (byte) 0x33, (byte) 0x7D, (byte) 0x5F, (byte) 0xD3,
-        (byte) 0x74, (byte) 0x1B, (byte) 0xBC, (byte) 0x96, (byte) 0x40, (byte) 0xE4, (byte) 0x47, (byte) 0xB8,
-        (byte) 0xB6, (byte) 0xB6, (byte) 0xC4, (byte) 0x7C, (byte) 0x3A, (byte) 0xC1, (byte) 0x20, (byte) 0x43,
-        (byte) 0x57, (byte) 0xD3, (byte) 0xB0, (byte) 0xC5, (byte) 0x5B, (byte) 0xA9, (byte) 0x28, (byte) 0x6B,
-        (byte) 0xDA, (byte) 0x73, (byte) 0xF6, (byte) 0x29, (byte) 0x29, (byte) 0x6F, (byte) 0x5F, (byte) 0xA9,
-        (byte) 0x14, (byte) 0x6D, (byte) 0x89, (byte) 0x76, (byte) 0x35, (byte) 0x7D, (byte) 0x3C, (byte) 0x75,
-        (byte) 0x1E, (byte) 0x75, (byte) 0x14, (byte) 0x86, (byte) 0x96, (byte) 0xA4, (byte) 0x0B, (byte) 0x74,
-        (byte) 0x68, (byte) 0x5C, (byte) 0x82, (byte) 0xCE, (byte) 0x30, (byte) 0x90, (byte) 0x2D, (byte) 0x63,
-        (byte) 0x9D, (byte) 0x72, (byte) 0x4F, (byte) 0xF2, (byte) 0x4D, (byte) 0x5E, (byte) 0x2E, (byte) 0x94,
-        (byte) 0x07, (byte) 0xEE, (byte) 0x34, (byte) 0xED, (byte) 0xED, (byte) 0x2E, (byte) 0x3B, (byte) 0x4D,
-        (byte) 0xF6, (byte) 0x5A, (byte) 0xA9, (byte) 0xBC, (byte) 0xFE, (byte) 0xB6, (byte) 0xDF, (byte) 0x28,
-        (byte) 0xD0, (byte) 0x7B, (byte) 0xA6, (byte) 0x90, (byte) 0x3F, (byte) 0x16, (byte) 0x57, (byte) 0x68,
-    });
+    private static final BigInteger RSA_2048_crtCoefficient = new BigInteger(
+            1,
+            new byte[] {
+                    (byte) 0xD8, (byte) 0x11, (byte) 0x45, (byte) 0x93, (byte) 0xAF, (byte) 0x41,
+                    (byte) 0x5F, (byte) 0xB6, (byte) 0x12, (byte) 0xDB, (byte) 0xF1, (byte) 0x92,
+                    (byte) 0x37, (byte) 0x10, (byte) 0xD5, (byte) 0x4D, (byte) 0x07, (byte) 0x48,
+                    (byte) 0x62, (byte) 0x05, (byte) 0xA7, (byte) 0x6A, (byte) 0x3B, (byte) 0x43,
+                    (byte) 0x19, (byte) 0x49, (byte) 0x68, (byte) 0xC0, (byte) 0xDF, (byte) 0xF1,
+                    (byte) 0xF1, (byte) 0x1E, (byte) 0xF0, (byte) 0xF6, (byte) 0x1A, (byte) 0x4A,
+                    (byte) 0x33, (byte) 0x7D, (byte) 0x5F, (byte) 0xD3, (byte) 0x74, (byte) 0x1B,
+                    (byte) 0xBC, (byte) 0x96, (byte) 0x40, (byte) 0xE4, (byte) 0x47, (byte) 0xB8,
+                    (byte) 0xB6, (byte) 0xB6, (byte) 0xC4, (byte) 0x7C, (byte) 0x3A, (byte) 0xC1,
+                    (byte) 0x20, (byte) 0x43, (byte) 0x57, (byte) 0xD3, (byte) 0xB0, (byte) 0xC5,
+                    (byte) 0x5B, (byte) 0xA9, (byte) 0x28, (byte) 0x6B, (byte) 0xDA, (byte) 0x73,
+                    (byte) 0xF6, (byte) 0x29, (byte) 0x29, (byte) 0x6F, (byte) 0x5F, (byte) 0xA9,
+                    (byte) 0x14, (byte) 0x6D, (byte) 0x89, (byte) 0x76, (byte) 0x35, (byte) 0x7D,
+                    (byte) 0x3C, (byte) 0x75, (byte) 0x1E, (byte) 0x75, (byte) 0x14, (byte) 0x86,
+                    (byte) 0x96, (byte) 0xA4, (byte) 0x0B, (byte) 0x74, (byte) 0x68, (byte) 0x5C,
+                    (byte) 0x82, (byte) 0xCE, (byte) 0x30, (byte) 0x90, (byte) 0x2D, (byte) 0x63,
+                    (byte) 0x9D, (byte) 0x72, (byte) 0x4F, (byte) 0xF2, (byte) 0x4D, (byte) 0x5E,
+                    (byte) 0x2E, (byte) 0x94, (byte) 0x07, (byte) 0xEE, (byte) 0x34, (byte) 0xED,
+                    (byte) 0xED, (byte) 0x2E, (byte) 0x3B, (byte) 0x4D, (byte) 0xF6, (byte) 0x5A,
+                    (byte) 0xA9, (byte) 0xBC, (byte) 0xFE, (byte) 0xB6, (byte) 0xDF, (byte) 0x28,
+                    (byte) 0xD0, (byte) 0x7B, (byte) 0xA6, (byte) 0x90, (byte) 0x3F, (byte) 0x16,
+                    (byte) 0x57, (byte) 0x68,
+            });
 
     /**
      * Test data is PKCS#1 padded "Android.\n" which can be generated by:
-     * echo "Android." | openssl rsautl -inkey rsa.key -sign | openssl rsautl -inkey rsa.key -raw -verify | recode ../x1
+     * echo "Android." | openssl rsautl -inkey rsa.key -sign | openssl rsautl -inkey rsa.key -raw
+     * -verify | recode ../x1
      */
     private static final byte[] RSA_2048_Vector1 = new byte[] {
-        (byte) 0x00, (byte) 0x01, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-        (byte) 0x00, (byte) 0x41, (byte) 0x6E, (byte) 0x64, (byte) 0x72, (byte) 0x6F,
-        (byte) 0x69, (byte) 0x64, (byte) 0x2E, (byte) 0x0A,
+            (byte) 0x00, (byte) 0x01, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0x00, (byte) 0x41, (byte) 0x6E, (byte) 0x64, (byte) 0x72, (byte) 0x6F,
+            (byte) 0x69, (byte) 0x64, (byte) 0x2E, (byte) 0x0A,
     };
 
     /**
      * This vector is simply "Android.\n" which is too short.
      */
     private static final byte[] TooShort_Vector = new byte[] {
-        (byte) 0x41, (byte) 0x6E, (byte) 0x64, (byte) 0x72, (byte) 0x6F, (byte) 0x69,
-        (byte) 0x64, (byte) 0x2E, (byte) 0x0A,
+            (byte) 0x41, (byte) 0x6E, (byte) 0x64, (byte) 0x72, (byte) 0x6F,
+            (byte) 0x69, (byte) 0x64, (byte) 0x2E, (byte) 0x0A,
     };
 
     /**
      * This vector is simply "Android.\n" padded with zeros.
      */
     private static final byte[] TooShort_Vector_Zero_Padded = new byte[] {
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        (byte) 0x00, (byte) 0x41, (byte) 0x6e, (byte) 0x64, (byte) 0x72, (byte) 0x6f,
-        (byte) 0x69, (byte) 0x64, (byte) 0x2e, (byte) 0x0a,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x41, (byte) 0x6e, (byte) 0x64, (byte) 0x72, (byte) 0x6f,
+            (byte) 0x69, (byte) 0x64, (byte) 0x2e, (byte) 0x0a,
     };
 
     /**
      * openssl rsautl -raw -sign -inkey rsa.key | recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
     private static final byte[] RSA_Vector1_Encrypt_Private = new byte[] {
-        (byte) 0x35, (byte) 0x43, (byte) 0x38, (byte) 0x44, (byte) 0xAD, (byte) 0x3F,
-        (byte) 0x97, (byte) 0x02, (byte) 0xFB, (byte) 0x59, (byte) 0x1F, (byte) 0x4A,
-        (byte) 0x2B, (byte) 0xB9, (byte) 0x06, (byte) 0xEC, (byte) 0x66, (byte) 0xE6,
-        (byte) 0xD2, (byte) 0xC5, (byte) 0x8B, (byte) 0x7B, (byte) 0xE3, (byte) 0x18,
-        (byte) 0xBF, (byte) 0x07, (byte) 0xD6, (byte) 0x01, (byte) 0xF9, (byte) 0xD9,
-        (byte) 0x89, (byte) 0xC4, (byte) 0xDB, (byte) 0x00, (byte) 0x68, (byte) 0xFF,
-        (byte) 0x9B, (byte) 0x43, (byte) 0x90, (byte) 0xF2, (byte) 0xDB, (byte) 0x83,
-        (byte) 0xF4, (byte) 0x7E, (byte) 0xC6, (byte) 0x81, (byte) 0x01, (byte) 0x3A,
-        (byte) 0x0B, (byte) 0xE5, (byte) 0xED, (byte) 0x08, (byte) 0x73, (byte) 0x3E,
-        (byte) 0xE1, (byte) 0x3F, (byte) 0xDF, (byte) 0x1F, (byte) 0x07, (byte) 0x6D,
-        (byte) 0x22, (byte) 0x8D, (byte) 0xCC, (byte) 0x4E, (byte) 0xE3, (byte) 0x9A,
-        (byte) 0xBC, (byte) 0xCC, (byte) 0x8F, (byte) 0x9E, (byte) 0x9B, (byte) 0x02,
-        (byte) 0x48, (byte) 0x00, (byte) 0xAC, (byte) 0x9F, (byte) 0xA4, (byte) 0x8F,
-        (byte) 0x87, (byte) 0xA1, (byte) 0xA8, (byte) 0xE6, (byte) 0x9D, (byte) 0xCD,
-        (byte) 0x8B, (byte) 0x05, (byte) 0xE9, (byte) 0xD2, (byte) 0x05, (byte) 0x8D,
-        (byte) 0xC9, (byte) 0x95, (byte) 0x16, (byte) 0xD0, (byte) 0xCD, (byte) 0x43,
-        (byte) 0x25, (byte) 0x8A, (byte) 0x11, (byte) 0x46, (byte) 0xD7, (byte) 0x74,
-        (byte) 0x4C, (byte) 0xCF, (byte) 0x58, (byte) 0xF9, (byte) 0xA1, (byte) 0x30,
-        (byte) 0x84, (byte) 0x52, (byte) 0xC9, (byte) 0x01, (byte) 0x5F, (byte) 0x24,
-        (byte) 0x4C, (byte) 0xB1, (byte) 0x9F, (byte) 0x7D, (byte) 0x12, (byte) 0x38,
-        (byte) 0x27, (byte) 0x0F, (byte) 0x5E, (byte) 0xFF, (byte) 0xE0, (byte) 0x55,
-        (byte) 0x8B, (byte) 0xA3, (byte) 0xAD, (byte) 0x60, (byte) 0x35, (byte) 0x83,
-        (byte) 0x58, (byte) 0xAF, (byte) 0x99, (byte) 0xDE, (byte) 0x3F, (byte) 0x5D,
-        (byte) 0x80, (byte) 0x80, (byte) 0xFF, (byte) 0x9B, (byte) 0xDE, (byte) 0x5C,
-        (byte) 0xAB, (byte) 0x97, (byte) 0x43, (byte) 0x64, (byte) 0xD9, (byte) 0x9F,
-        (byte) 0xFB, (byte) 0x67, (byte) 0x65, (byte) 0xA5, (byte) 0x99, (byte) 0xE7,
-        (byte) 0xE6, (byte) 0xEB, (byte) 0x05, (byte) 0x95, (byte) 0xFC, (byte) 0x46,
-        (byte) 0x28, (byte) 0x4B, (byte) 0xD8, (byte) 0x8C, (byte) 0xF5, (byte) 0x0A,
-        (byte) 0xEB, (byte) 0x1F, (byte) 0x30, (byte) 0xEA, (byte) 0xE7, (byte) 0x67,
-        (byte) 0x11, (byte) 0x25, (byte) 0xF0, (byte) 0x44, (byte) 0x75, (byte) 0x74,
-        (byte) 0x94, (byte) 0x06, (byte) 0x78, (byte) 0xD0, (byte) 0x21, (byte) 0xF4,
-        (byte) 0x3F, (byte) 0xC8, (byte) 0xC4, (byte) 0x4A, (byte) 0x57, (byte) 0xBE,
-        (byte) 0x02, (byte) 0x3C, (byte) 0x93, (byte) 0xF6, (byte) 0x95, (byte) 0xFB,
-        (byte) 0xD1, (byte) 0x77, (byte) 0x8B, (byte) 0x43, (byte) 0xF0, (byte) 0xB9,
-        (byte) 0x7D, (byte) 0xE0, (byte) 0x32, (byte) 0xE1, (byte) 0x72, (byte) 0xB5,
-        (byte) 0x62, (byte) 0x3F, (byte) 0x86, (byte) 0xC3, (byte) 0xD4, (byte) 0x5F,
-        (byte) 0x5E, (byte) 0x54, (byte) 0x1B, (byte) 0x5B, (byte) 0xE6, (byte) 0x74,
-        (byte) 0xA1, (byte) 0x0B, (byte) 0xE5, (byte) 0x18, (byte) 0xD2, (byte) 0x4F,
-        (byte) 0x93, (byte) 0xF3, (byte) 0x09, (byte) 0x58, (byte) 0xCE, (byte) 0xF0,
-        (byte) 0xA3, (byte) 0x61, (byte) 0xE4, (byte) 0x6E, (byte) 0x46, (byte) 0x45,
-        (byte) 0x89, (byte) 0x50, (byte) 0xBD, (byte) 0x03, (byte) 0x3F, (byte) 0x38,
-        (byte) 0xDA, (byte) 0x5D, (byte) 0xD0, (byte) 0x1B, (byte) 0x1F, (byte) 0xB1,
-        (byte) 0xEE, (byte) 0x89, (byte) 0x59, (byte) 0xC5,
+            (byte) 0x35, (byte) 0x43, (byte) 0x38, (byte) 0x44, (byte) 0xAD, (byte) 0x3F,
+            (byte) 0x97, (byte) 0x02, (byte) 0xFB, (byte) 0x59, (byte) 0x1F, (byte) 0x4A,
+            (byte) 0x2B, (byte) 0xB9, (byte) 0x06, (byte) 0xEC, (byte) 0x66, (byte) 0xE6,
+            (byte) 0xD2, (byte) 0xC5, (byte) 0x8B, (byte) 0x7B, (byte) 0xE3, (byte) 0x18,
+            (byte) 0xBF, (byte) 0x07, (byte) 0xD6, (byte) 0x01, (byte) 0xF9, (byte) 0xD9,
+            (byte) 0x89, (byte) 0xC4, (byte) 0xDB, (byte) 0x00, (byte) 0x68, (byte) 0xFF,
+            (byte) 0x9B, (byte) 0x43, (byte) 0x90, (byte) 0xF2, (byte) 0xDB, (byte) 0x83,
+            (byte) 0xF4, (byte) 0x7E, (byte) 0xC6, (byte) 0x81, (byte) 0x01, (byte) 0x3A,
+            (byte) 0x0B, (byte) 0xE5, (byte) 0xED, (byte) 0x08, (byte) 0x73, (byte) 0x3E,
+            (byte) 0xE1, (byte) 0x3F, (byte) 0xDF, (byte) 0x1F, (byte) 0x07, (byte) 0x6D,
+            (byte) 0x22, (byte) 0x8D, (byte) 0xCC, (byte) 0x4E, (byte) 0xE3, (byte) 0x9A,
+            (byte) 0xBC, (byte) 0xCC, (byte) 0x8F, (byte) 0x9E, (byte) 0x9B, (byte) 0x02,
+            (byte) 0x48, (byte) 0x00, (byte) 0xAC, (byte) 0x9F, (byte) 0xA4, (byte) 0x8F,
+            (byte) 0x87, (byte) 0xA1, (byte) 0xA8, (byte) 0xE6, (byte) 0x9D, (byte) 0xCD,
+            (byte) 0x8B, (byte) 0x05, (byte) 0xE9, (byte) 0xD2, (byte) 0x05, (byte) 0x8D,
+            (byte) 0xC9, (byte) 0x95, (byte) 0x16, (byte) 0xD0, (byte) 0xCD, (byte) 0x43,
+            (byte) 0x25, (byte) 0x8A, (byte) 0x11, (byte) 0x46, (byte) 0xD7, (byte) 0x74,
+            (byte) 0x4C, (byte) 0xCF, (byte) 0x58, (byte) 0xF9, (byte) 0xA1, (byte) 0x30,
+            (byte) 0x84, (byte) 0x52, (byte) 0xC9, (byte) 0x01, (byte) 0x5F, (byte) 0x24,
+            (byte) 0x4C, (byte) 0xB1, (byte) 0x9F, (byte) 0x7D, (byte) 0x12, (byte) 0x38,
+            (byte) 0x27, (byte) 0x0F, (byte) 0x5E, (byte) 0xFF, (byte) 0xE0, (byte) 0x55,
+            (byte) 0x8B, (byte) 0xA3, (byte) 0xAD, (byte) 0x60, (byte) 0x35, (byte) 0x83,
+            (byte) 0x58, (byte) 0xAF, (byte) 0x99, (byte) 0xDE, (byte) 0x3F, (byte) 0x5D,
+            (byte) 0x80, (byte) 0x80, (byte) 0xFF, (byte) 0x9B, (byte) 0xDE, (byte) 0x5C,
+            (byte) 0xAB, (byte) 0x97, (byte) 0x43, (byte) 0x64, (byte) 0xD9, (byte) 0x9F,
+            (byte) 0xFB, (byte) 0x67, (byte) 0x65, (byte) 0xA5, (byte) 0x99, (byte) 0xE7,
+            (byte) 0xE6, (byte) 0xEB, (byte) 0x05, (byte) 0x95, (byte) 0xFC, (byte) 0x46,
+            (byte) 0x28, (byte) 0x4B, (byte) 0xD8, (byte) 0x8C, (byte) 0xF5, (byte) 0x0A,
+            (byte) 0xEB, (byte) 0x1F, (byte) 0x30, (byte) 0xEA, (byte) 0xE7, (byte) 0x67,
+            (byte) 0x11, (byte) 0x25, (byte) 0xF0, (byte) 0x44, (byte) 0x75, (byte) 0x74,
+            (byte) 0x94, (byte) 0x06, (byte) 0x78, (byte) 0xD0, (byte) 0x21, (byte) 0xF4,
+            (byte) 0x3F, (byte) 0xC8, (byte) 0xC4, (byte) 0x4A, (byte) 0x57, (byte) 0xBE,
+            (byte) 0x02, (byte) 0x3C, (byte) 0x93, (byte) 0xF6, (byte) 0x95, (byte) 0xFB,
+            (byte) 0xD1, (byte) 0x77, (byte) 0x8B, (byte) 0x43, (byte) 0xF0, (byte) 0xB9,
+            (byte) 0x7D, (byte) 0xE0, (byte) 0x32, (byte) 0xE1, (byte) 0x72, (byte) 0xB5,
+            (byte) 0x62, (byte) 0x3F, (byte) 0x86, (byte) 0xC3, (byte) 0xD4, (byte) 0x5F,
+            (byte) 0x5E, (byte) 0x54, (byte) 0x1B, (byte) 0x5B, (byte) 0xE6, (byte) 0x74,
+            (byte) 0xA1, (byte) 0x0B, (byte) 0xE5, (byte) 0x18, (byte) 0xD2, (byte) 0x4F,
+            (byte) 0x93, (byte) 0xF3, (byte) 0x09, (byte) 0x58, (byte) 0xCE, (byte) 0xF0,
+            (byte) 0xA3, (byte) 0x61, (byte) 0xE4, (byte) 0x6E, (byte) 0x46, (byte) 0x45,
+            (byte) 0x89, (byte) 0x50, (byte) 0xBD, (byte) 0x03, (byte) 0x3F, (byte) 0x38,
+            (byte) 0xDA, (byte) 0x5D, (byte) 0xD0, (byte) 0x1B, (byte) 0x1F, (byte) 0xB1,
+            (byte) 0xEE, (byte) 0x89, (byte) 0x59, (byte) 0xC5,
     };
 
     private static final byte[] RSA_Vector1_ZeroPadded_Encrypted = new byte[] {
-        (byte) 0x60, (byte) 0x4a, (byte) 0x12, (byte) 0xa3, (byte) 0xa7, (byte) 0x4a,
-        (byte) 0xa4, (byte) 0xbf, (byte) 0x6c, (byte) 0x36, (byte) 0xad, (byte) 0x66,
-        (byte) 0xdf, (byte) 0xce, (byte) 0xf1, (byte) 0xe4, (byte) 0x0f, (byte) 0xd4,
-        (byte) 0x54, (byte) 0x5f, (byte) 0x03, (byte) 0x15, (byte) 0x4b, (byte) 0x9e,
-        (byte) 0xeb, (byte) 0xfe, (byte) 0x9e, (byte) 0x24, (byte) 0xce, (byte) 0x8e,
-        (byte) 0xc3, (byte) 0x36, (byte) 0xa5, (byte) 0x76, (byte) 0xf6, (byte) 0x54,
-        (byte) 0xb7, (byte) 0x84, (byte) 0x48, (byte) 0x2f, (byte) 0xd4, (byte) 0x45,
-        (byte) 0x74, (byte) 0x48, (byte) 0x5f, (byte) 0x08, (byte) 0x4e, (byte) 0x9c,
-        (byte) 0x89, (byte) 0xcc, (byte) 0x34, (byte) 0x40, (byte) 0xb1, (byte) 0x5f,
-        (byte) 0xa7, (byte) 0x0e, (byte) 0x11, (byte) 0x4b, (byte) 0xb5, (byte) 0x94,
-        (byte) 0xbe, (byte) 0x14, (byte) 0xaa, (byte) 0xaa, (byte) 0xe0, (byte) 0x38,
-        (byte) 0x1c, (byte) 0xce, (byte) 0x40, (byte) 0x61, (byte) 0xfc, (byte) 0x08,
-        (byte) 0xcb, (byte) 0x14, (byte) 0x2b, (byte) 0xa6, (byte) 0x54, (byte) 0xdf,
-        (byte) 0x05, (byte) 0x5c, (byte) 0x9b, (byte) 0x4f, (byte) 0x14, (byte) 0x93,
-        (byte) 0xb0, (byte) 0x70, (byte) 0xd9, (byte) 0x32, (byte) 0xdc, (byte) 0x24,
-        (byte) 0xe0, (byte) 0xae, (byte) 0x48, (byte) 0xfc, (byte) 0x53, (byte) 0xee,
-        (byte) 0x7c, (byte) 0x9f, (byte) 0x69, (byte) 0x34, (byte) 0xf4, (byte) 0x76,
-        (byte) 0xee, (byte) 0x67, (byte) 0xb2, (byte) 0xa7, (byte) 0x33, (byte) 0x1c,
-        (byte) 0x47, (byte) 0xff, (byte) 0x5c, (byte) 0xf0, (byte) 0xb8, (byte) 0x04,
-        (byte) 0x2c, (byte) 0xfd, (byte) 0xe2, (byte) 0xb1, (byte) 0x4a, (byte) 0x0a,
-        (byte) 0x69, (byte) 0x1c, (byte) 0x80, (byte) 0x2b, (byte) 0xb4, (byte) 0x50,
-        (byte) 0x65, (byte) 0x5c, (byte) 0x76, (byte) 0x78, (byte) 0x9a, (byte) 0x0c,
-        (byte) 0x05, (byte) 0x62, (byte) 0xf0, (byte) 0xc4, (byte) 0x1c, (byte) 0x38,
-        (byte) 0x15, (byte) 0xd0, (byte) 0xe2, (byte) 0x5a, (byte) 0x3d, (byte) 0xb6,
-        (byte) 0xe0, (byte) 0x88, (byte) 0x85, (byte) 0xd1, (byte) 0x4f, (byte) 0x7e,
-        (byte) 0xfc, (byte) 0x77, (byte) 0x0d, (byte) 0x2a, (byte) 0x45, (byte) 0xd5,
-        (byte) 0xf8, (byte) 0x3c, (byte) 0x7b, (byte) 0x2d, (byte) 0x1b, (byte) 0x82,
-        (byte) 0xfe, (byte) 0x58, (byte) 0x22, (byte) 0x47, (byte) 0x06, (byte) 0x58,
-        (byte) 0x8b, (byte) 0x4f, (byte) 0xfb, (byte) 0x9b, (byte) 0x1c, (byte) 0x70,
-        (byte) 0x36, (byte) 0x12, (byte) 0x04, (byte) 0x17, (byte) 0x47, (byte) 0x8a,
-        (byte) 0x0a, (byte) 0xec, (byte) 0x12, (byte) 0x3b, (byte) 0xf8, (byte) 0xd2,
-        (byte) 0xdc, (byte) 0x3c, (byte) 0xc8, (byte) 0x46, (byte) 0xc6, (byte) 0x51,
-        (byte) 0x06, (byte) 0x06, (byte) 0xcb, (byte) 0x84, (byte) 0x67, (byte) 0xb5,
-        (byte) 0x68, (byte) 0xd9, (byte) 0x9c, (byte) 0xd4, (byte) 0x16, (byte) 0x5c,
-        (byte) 0xb4, (byte) 0xe2, (byte) 0x55, (byte) 0xe6, (byte) 0x3a, (byte) 0x73,
-        (byte) 0x01, (byte) 0x1d, (byte) 0x6f, (byte) 0x30, (byte) 0x31, (byte) 0x59,
-        (byte) 0x8b, (byte) 0x2f, (byte) 0x4c, (byte) 0xe7, (byte) 0x86, (byte) 0x4c,
-        (byte) 0x39, (byte) 0x4e, (byte) 0x67, (byte) 0x3b, (byte) 0x22, (byte) 0x9b,
-        (byte) 0x85, (byte) 0x5a, (byte) 0xc3, (byte) 0x29, (byte) 0xaf, (byte) 0x8c,
-        (byte) 0x7c, (byte) 0x59, (byte) 0x4a, (byte) 0x24, (byte) 0xfa, (byte) 0xba,
-        (byte) 0x55, (byte) 0x40, (byte) 0x13, (byte) 0x64, (byte) 0xd8, (byte) 0xcb,
-        (byte) 0x4b, (byte) 0x98, (byte) 0x3f, (byte) 0xae, (byte) 0x20, (byte) 0xfd,
-        (byte) 0x8a, (byte) 0x50, (byte) 0x73, (byte) 0xe4,
+            (byte) 0x60, (byte) 0x4a, (byte) 0x12, (byte) 0xa3, (byte) 0xa7, (byte) 0x4a,
+            (byte) 0xa4, (byte) 0xbf, (byte) 0x6c, (byte) 0x36, (byte) 0xad, (byte) 0x66,
+            (byte) 0xdf, (byte) 0xce, (byte) 0xf1, (byte) 0xe4, (byte) 0x0f, (byte) 0xd4,
+            (byte) 0x54, (byte) 0x5f, (byte) 0x03, (byte) 0x15, (byte) 0x4b, (byte) 0x9e,
+            (byte) 0xeb, (byte) 0xfe, (byte) 0x9e, (byte) 0x24, (byte) 0xce, (byte) 0x8e,
+            (byte) 0xc3, (byte) 0x36, (byte) 0xa5, (byte) 0x76, (byte) 0xf6, (byte) 0x54,
+            (byte) 0xb7, (byte) 0x84, (byte) 0x48, (byte) 0x2f, (byte) 0xd4, (byte) 0x45,
+            (byte) 0x74, (byte) 0x48, (byte) 0x5f, (byte) 0x08, (byte) 0x4e, (byte) 0x9c,
+            (byte) 0x89, (byte) 0xcc, (byte) 0x34, (byte) 0x40, (byte) 0xb1, (byte) 0x5f,
+            (byte) 0xa7, (byte) 0x0e, (byte) 0x11, (byte) 0x4b, (byte) 0xb5, (byte) 0x94,
+            (byte) 0xbe, (byte) 0x14, (byte) 0xaa, (byte) 0xaa, (byte) 0xe0, (byte) 0x38,
+            (byte) 0x1c, (byte) 0xce, (byte) 0x40, (byte) 0x61, (byte) 0xfc, (byte) 0x08,
+            (byte) 0xcb, (byte) 0x14, (byte) 0x2b, (byte) 0xa6, (byte) 0x54, (byte) 0xdf,
+            (byte) 0x05, (byte) 0x5c, (byte) 0x9b, (byte) 0x4f, (byte) 0x14, (byte) 0x93,
+            (byte) 0xb0, (byte) 0x70, (byte) 0xd9, (byte) 0x32, (byte) 0xdc, (byte) 0x24,
+            (byte) 0xe0, (byte) 0xae, (byte) 0x48, (byte) 0xfc, (byte) 0x53, (byte) 0xee,
+            (byte) 0x7c, (byte) 0x9f, (byte) 0x69, (byte) 0x34, (byte) 0xf4, (byte) 0x76,
+            (byte) 0xee, (byte) 0x67, (byte) 0xb2, (byte) 0xa7, (byte) 0x33, (byte) 0x1c,
+            (byte) 0x47, (byte) 0xff, (byte) 0x5c, (byte) 0xf0, (byte) 0xb8, (byte) 0x04,
+            (byte) 0x2c, (byte) 0xfd, (byte) 0xe2, (byte) 0xb1, (byte) 0x4a, (byte) 0x0a,
+            (byte) 0x69, (byte) 0x1c, (byte) 0x80, (byte) 0x2b, (byte) 0xb4, (byte) 0x50,
+            (byte) 0x65, (byte) 0x5c, (byte) 0x76, (byte) 0x78, (byte) 0x9a, (byte) 0x0c,
+            (byte) 0x05, (byte) 0x62, (byte) 0xf0, (byte) 0xc4, (byte) 0x1c, (byte) 0x38,
+            (byte) 0x15, (byte) 0xd0, (byte) 0xe2, (byte) 0x5a, (byte) 0x3d, (byte) 0xb6,
+            (byte) 0xe0, (byte) 0x88, (byte) 0x85, (byte) 0xd1, (byte) 0x4f, (byte) 0x7e,
+            (byte) 0xfc, (byte) 0x77, (byte) 0x0d, (byte) 0x2a, (byte) 0x45, (byte) 0xd5,
+            (byte) 0xf8, (byte) 0x3c, (byte) 0x7b, (byte) 0x2d, (byte) 0x1b, (byte) 0x82,
+            (byte) 0xfe, (byte) 0x58, (byte) 0x22, (byte) 0x47, (byte) 0x06, (byte) 0x58,
+            (byte) 0x8b, (byte) 0x4f, (byte) 0xfb, (byte) 0x9b, (byte) 0x1c, (byte) 0x70,
+            (byte) 0x36, (byte) 0x12, (byte) 0x04, (byte) 0x17, (byte) 0x47, (byte) 0x8a,
+            (byte) 0x0a, (byte) 0xec, (byte) 0x12, (byte) 0x3b, (byte) 0xf8, (byte) 0xd2,
+            (byte) 0xdc, (byte) 0x3c, (byte) 0xc8, (byte) 0x46, (byte) 0xc6, (byte) 0x51,
+            (byte) 0x06, (byte) 0x06, (byte) 0xcb, (byte) 0x84, (byte) 0x67, (byte) 0xb5,
+            (byte) 0x68, (byte) 0xd9, (byte) 0x9c, (byte) 0xd4, (byte) 0x16, (byte) 0x5c,
+            (byte) 0xb4, (byte) 0xe2, (byte) 0x55, (byte) 0xe6, (byte) 0x3a, (byte) 0x73,
+            (byte) 0x01, (byte) 0x1d, (byte) 0x6f, (byte) 0x30, (byte) 0x31, (byte) 0x59,
+            (byte) 0x8b, (byte) 0x2f, (byte) 0x4c, (byte) 0xe7, (byte) 0x86, (byte) 0x4c,
+            (byte) 0x39, (byte) 0x4e, (byte) 0x67, (byte) 0x3b, (byte) 0x22, (byte) 0x9b,
+            (byte) 0x85, (byte) 0x5a, (byte) 0xc3, (byte) 0x29, (byte) 0xaf, (byte) 0x8c,
+            (byte) 0x7c, (byte) 0x59, (byte) 0x4a, (byte) 0x24, (byte) 0xfa, (byte) 0xba,
+            (byte) 0x55, (byte) 0x40, (byte) 0x13, (byte) 0x64, (byte) 0xd8, (byte) 0xcb,
+            (byte) 0x4b, (byte) 0x98, (byte) 0x3f, (byte) 0xae, (byte) 0x20, (byte) 0xfd,
+            (byte) 0x8a, (byte) 0x50, (byte) 0x73, (byte) 0xe4,
     };
     /*
      * echo -n 'This is a test of OAEP' | xxd -p -i | sed 's/0x/(byte) 0x/g'
@@ -2156,8 +2224,7 @@ public final class CipherTest {
             (byte) 0x54, (byte) 0x68, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x69,
             (byte) 0x73, (byte) 0x20, (byte) 0x61, (byte) 0x20, (byte) 0x74, (byte) 0x65,
             (byte) 0x73, (byte) 0x74, (byte) 0x20, (byte) 0x6f, (byte) 0x66, (byte) 0x20,
-            (byte) 0x4f, (byte) 0x41, (byte) 0x45, (byte) 0x50
-    };
+            (byte) 0x4f, (byte) 0x41, (byte) 0x45, (byte) 0x50};
 
     /*
      * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey rsakey.pem \
@@ -2207,11 +2274,12 @@ public final class CipherTest {
             (byte) 0x48, (byte) 0xe3, (byte) 0x14, (byte) 0x87, (byte) 0xa7, (byte) 0x5c,
             (byte) 0xba, (byte) 0xdf, (byte) 0x0e, (byte) 0x64, (byte) 0xdc, (byte) 0xe2,
             (byte) 0x51, (byte) 0xf4, (byte) 0x41, (byte) 0x25, (byte) 0x23, (byte) 0xc8,
-            (byte) 0x50, (byte) 0x1e, (byte) 0x9e, (byte) 0xb0
-    };
+            (byte) 0x50, (byte) 0x1e, (byte) 0x9e, (byte) 0xb0};
 
     /*
-     * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey rsakey.pem -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha1 | xxd -p -i | sed 's/0x/(byte) 0x/g'
+     * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey rsakey.pem -pkeyopt
+     * rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha1 | xxd -p -i | sed
+     * 's/0x/(byte) 0x/g'
      */
     private static final byte[] RSA_Vector2_OAEP_SHA256_MGF1_SHA1 = new byte[] {
             (byte) 0x25, (byte) 0x9f, (byte) 0xc3, (byte) 0x69, (byte) 0xbc, (byte) 0x3f,
@@ -2256,11 +2324,12 @@ public final class CipherTest {
             (byte) 0xd8, (byte) 0x42, (byte) 0x10, (byte) 0x77, (byte) 0xc3, (byte) 0xa7,
             (byte) 0x1e, (byte) 0x0c, (byte) 0x37, (byte) 0x16, (byte) 0x11, (byte) 0x94,
             (byte) 0x21, (byte) 0xf2, (byte) 0xca, (byte) 0x60, (byte) 0xce, (byte) 0xca,
-            (byte) 0x59, (byte) 0xf9, (byte) 0xe5, (byte) 0xe4
-    };
+            (byte) 0x59, (byte) 0xf9, (byte) 0xe5, (byte) 0xe4};
 
     /*
-     * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha1 -pkeyopt rsa_oaep_label:010203FFA00A | xxd -p -i | sed 's/0x/(byte) 0x/g'
+     * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt -pkeyopt
+     * rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha1 -pkeyopt
+     * rsa_oaep_label:010203FFA00A | xxd -p -i | sed 's/0x/(byte) 0x/g'
      */
     private static final byte[] RSA_Vector2_OAEP_SHA256_MGF1_SHA1_LABEL = new byte[] {
             (byte) 0x80, (byte) 0xb1, (byte) 0xf2, (byte) 0xc2, (byte) 0x03, (byte) 0xc5,
@@ -2305,8 +2374,7 @@ public final class CipherTest {
             (byte) 0x60, (byte) 0xec, (byte) 0x53, (byte) 0xa4, (byte) 0x01, (byte) 0xa5,
             (byte) 0xf2, (byte) 0x58, (byte) 0xab, (byte) 0x95, (byte) 0x68, (byte) 0x79,
             (byte) 0x0b, (byte) 0xc3, (byte) 0xc4, (byte) 0x00, (byte) 0x68, (byte) 0x19,
-            (byte) 0xca, (byte) 0x07, (byte) 0x0d, (byte) 0x32
-    };
+            (byte) 0xca, (byte) 0x07, (byte) 0x0d, (byte) 0x32};
 
     /*
      * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey rsakey.pem \
@@ -2356,8 +2424,7 @@ public final class CipherTest {
             (byte) 0x56, (byte) 0x86, (byte) 0x17, (byte) 0x49, (byte) 0x0a, (byte) 0x52,
             (byte) 0xfb, (byte) 0xe5, (byte) 0x49, (byte) 0xdf, (byte) 0xc1, (byte) 0x28,
             (byte) 0x9d, (byte) 0x85, (byte) 0x66, (byte) 0x9d, (byte) 0x1d, (byte) 0xa4,
-            (byte) 0x7e, (byte) 0x9a, (byte) 0x5b, (byte) 0x30
-    };
+            (byte) 0x7e, (byte) 0x9a, (byte) 0x5b, (byte) 0x30};
 
     /*
      * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt \
@@ -2407,8 +2474,7 @@ public final class CipherTest {
             (byte) 0xa1, (byte) 0x66, (byte) 0xf3, (byte) 0xd3, (byte) 0x5c, (byte) 0xe5,
             (byte) 0xe2, (byte) 0x4c, (byte) 0x7e, (byte) 0xda, (byte) 0x20, (byte) 0xbd,
             (byte) 0x5a, (byte) 0x75, (byte) 0x12, (byte) 0x31, (byte) 0x23, (byte) 0x02,
-            (byte) 0xb5, (byte) 0x1f, (byte) 0x38, (byte) 0x98
-    };
+            (byte) 0xb5, (byte) 0x1f, (byte) 0x38, (byte) 0x98};
 
     /*
      * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt \
@@ -2458,8 +2524,7 @@ public final class CipherTest {
             (byte) 0x82, (byte) 0x92, (byte) 0x40, (byte) 0xd4, (byte) 0x51, (byte) 0x87,
             (byte) 0xe1, (byte) 0xb7, (byte) 0x4f, (byte) 0x91, (byte) 0x75, (byte) 0x5b,
             (byte) 0x03, (byte) 0x9d, (byte) 0xa1, (byte) 0xd4, (byte) 0x00, (byte) 0x05,
-            (byte) 0x79, (byte) 0x42, (byte) 0x93, (byte) 0x76
-    };
+            (byte) 0x79, (byte) 0x42, (byte) 0x93, (byte) 0x76};
 
     /*
      * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt \
@@ -2509,11 +2574,12 @@ public final class CipherTest {
             (byte) 0x50, (byte) 0x95, (byte) 0xcb, (byte) 0xa9, (byte) 0x37, (byte) 0xeb,
             (byte) 0x66, (byte) 0x21, (byte) 0x20, (byte) 0x2e, (byte) 0xf2, (byte) 0xfd,
             (byte) 0xfa, (byte) 0x54, (byte) 0xbf, (byte) 0x17, (byte) 0x23, (byte) 0xbb,
-            (byte) 0x9e, (byte) 0x77, (byte) 0xe0, (byte) 0xaa
-    };
+            (byte) 0x9e, (byte) 0x77, (byte) 0xe0, (byte) 0xaa};
 
     /*
-     * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha512 -pkeyopt rsa_mgf1_md:sha512 -pkeyopt rsa_oaep_label:010203FFA00A | xxd -p -i | sed 's/0x/(byte) 0x/g'
+     * echo -n 'This is a test of OAEP' | openssl pkeyutl -encrypt -inkey /tmp/rsakey.txt -pkeyopt
+     * rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha512 -pkeyopt rsa_mgf1_md:sha512 -pkeyopt
+     * rsa_oaep_label:010203FFA00A | xxd -p -i | sed 's/0x/(byte) 0x/g'
      */
     private static final byte[] RSA_Vector2_OAEP_SHA512_MGF1_SHA512_LABEL = new byte[] {
             (byte) 0x31, (byte) 0x3b, (byte) 0x23, (byte) 0xcf, (byte) 0x40, (byte) 0xfe,
@@ -2558,8 +2624,7 @@ public final class CipherTest {
             (byte) 0x94, (byte) 0x58, (byte) 0xd9, (byte) 0xd6, (byte) 0xe0, (byte) 0x0a,
             (byte) 0x3f, (byte) 0x09, (byte) 0x98, (byte) 0x03, (byte) 0xc5, (byte) 0x07,
             (byte) 0x8f, (byte) 0x89, (byte) 0x1e, (byte) 0x62, (byte) 0x2c, (byte) 0xea,
-            (byte) 0x17, (byte) 0x0a, (byte) 0x2e, (byte) 0x68
-    };
+            (byte) 0x17, (byte) 0x0a, (byte) 0x2e, (byte) 0x68};
 
     @Test
     public void testRSA_ECB_NoPadding_Private_OnlyDoFinal_Success() throws Exception {
@@ -2568,7 +2633,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_OnlyDoFinal_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Private_OnlyDoFinal_Success(String provider)
+            throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2580,13 +2646,13 @@ public final class CipherTest {
          */
         c.init(Cipher.ENCRYPT_MODE, privKey);
         byte[] encrypted = c.doFinal(RSA_2048_Vector1);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
 
         c.init(Cipher.DECRYPT_MODE, privKey);
         encrypted = c.doFinal(RSA_2048_Vector1);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
     }
 
     @Test
@@ -2596,7 +2662,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_UpdateThenEmptyDoFinal_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Private_UpdateThenEmptyDoFinal_Success(String provider)
+            throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2609,14 +2676,14 @@ public final class CipherTest {
         c.init(Cipher.ENCRYPT_MODE, privKey);
         c.update(RSA_2048_Vector1);
         byte[] encrypted = c.doFinal();
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
 
         c.init(Cipher.DECRYPT_MODE, privKey);
         c.update(RSA_2048_Vector1);
         encrypted = c.doFinal();
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
     }
 
     @Test
@@ -2627,8 +2694,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_SingleByteUpdateThenEmptyDoFinal_Success(String provider)
-            throws Exception {
+    private void testRSA_ECB_NoPadding_Private_SingleByteUpdateThenEmptyDoFinal_Success(
+            String provider) throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2644,16 +2711,16 @@ public final class CipherTest {
             c.update(RSA_2048_Vector1, i, 1);
         }
         byte[] encrypted = c.doFinal(RSA_2048_Vector1, i, RSA_2048_Vector1.length - i);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
 
         c.init(Cipher.DECRYPT_MODE, privKey);
         for (i = 0; i < RSA_2048_Vector1.length / 2; i++) {
             c.update(RSA_2048_Vector1, i, 1);
         }
         encrypted = c.doFinal(RSA_2048_Vector1, i, RSA_2048_Vector1.length - i);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
     }
 
     @Test
@@ -2663,7 +2730,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_OnlyDoFinalWithOffset_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Private_OnlyDoFinalWithOffset_Success(String provider)
+            throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2675,20 +2743,20 @@ public final class CipherTest {
          */
         c.init(Cipher.ENCRYPT_MODE, privKey);
         byte[] encrypted = new byte[RSA_Vector1_Encrypt_Private.length];
-        final int encryptLen = c
-                .doFinal(RSA_2048_Vector1, 0, RSA_2048_Vector1.length, encrypted, 0);
+        final int encryptLen =
+                c.doFinal(RSA_2048_Vector1, 0, RSA_2048_Vector1.length, encrypted, 0);
         assertEquals("Encrypted size should match expected", RSA_Vector1_Encrypt_Private.length,
-                encryptLen);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+                     encryptLen);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
 
         c.init(Cipher.DECRYPT_MODE, privKey);
-        final int decryptLen = c
-                .doFinal(RSA_2048_Vector1, 0, RSA_2048_Vector1.length, encrypted, 0);
+        final int decryptLen =
+                c.doFinal(RSA_2048_Vector1, 0, RSA_2048_Vector1.length, encrypted, 0);
         assertEquals("Encrypted size should match expected", RSA_Vector1_Encrypt_Private.length,
-                decryptLen);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_Encrypt_Private, encrypted);
+                     decryptLen);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_Encrypt_Private,
+                          encrypted);
     }
 
     @Test
@@ -2698,7 +2766,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Public_OnlyDoFinal_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Public_OnlyDoFinal_Success(String provider)
+            throws Exception {
         final PublicKey pubKey = (PublicKey) getEncryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2724,7 +2793,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Public_OnlyDoFinalWithOffset_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Public_OnlyDoFinalWithOffset_Success(String provider)
+            throws Exception {
         final PublicKey pubKey = (PublicKey) getEncryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2737,13 +2807,13 @@ public final class CipherTest {
         c.init(Cipher.ENCRYPT_MODE, pubKey);
         byte[] encrypted = new byte[RSA_2048_Vector1.length];
         final int encryptLen = c.doFinal(RSA_Vector1_Encrypt_Private, 0,
-                RSA_Vector1_Encrypt_Private.length, encrypted, 0);
+                                         RSA_Vector1_Encrypt_Private.length, encrypted, 0);
         assertEquals("Encrypted size should match expected", RSA_2048_Vector1.length, encryptLen);
         assertEncryptedEqualsNoPadding(provider, Cipher.ENCRYPT_MODE, RSA_2048_Vector1, encrypted);
 
         c.init(Cipher.DECRYPT_MODE, pubKey);
         int decryptLen = c.doFinal(RSA_Vector1_Encrypt_Private, 0,
-                RSA_Vector1_Encrypt_Private.length, encrypted, 0);
+                                   RSA_Vector1_Encrypt_Private.length, encrypted, 0);
         if (provider.equals("BC")) {
             // BC strips the leading 0 for us on decrypt even when NoPadding is specified...
             decryptLen++;
@@ -2760,7 +2830,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Public_UpdateThenEmptyDoFinal_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Public_UpdateThenEmptyDoFinal_Success(String provider)
+            throws Exception {
         final PublicKey pubKey = (PublicKey) getEncryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2789,8 +2860,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Public_SingleByteUpdateThenEmptyDoFinal_Success(String provider)
-            throws Exception {
+    private void testRSA_ECB_NoPadding_Public_SingleByteUpdateThenEmptyDoFinal_Success(
+            String provider) throws Exception {
         final PublicKey pubKey = (PublicKey) getEncryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2835,13 +2906,13 @@ public final class CipherTest {
          */
         c.init(Cipher.ENCRYPT_MODE, pubKey);
         byte[] encrypted = c.doFinal(TooShort_Vector);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_ZeroPadded_Encrypted, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_ZeroPadded_Encrypted,
+                          encrypted);
 
         c.init(Cipher.DECRYPT_MODE, pubKey);
         encrypted = c.doFinal(TooShort_Vector);
-        assertArrayEquals("Encrypted should match expected",
-                RSA_Vector1_ZeroPadded_Encrypted, encrypted);
+        assertArrayEquals("Encrypted should match expected", RSA_Vector1_ZeroPadded_Encrypted,
+                          encrypted);
     }
 
     @Test
@@ -2863,17 +2934,17 @@ public final class CipherTest {
          */
         c.init(Cipher.ENCRYPT_MODE, privKey);
         byte[] encrypted = c.doFinal(RSA_Vector1_ZeroPadded_Encrypted);
-        assertEncryptedEqualsNoPadding(provider, Cipher.ENCRYPT_MODE,
-                                       TooShort_Vector_Zero_Padded, encrypted);
+        assertEncryptedEqualsNoPadding(provider, Cipher.ENCRYPT_MODE, TooShort_Vector_Zero_Padded,
+                                       encrypted);
 
         c.init(Cipher.DECRYPT_MODE, privKey);
         encrypted = c.doFinal(RSA_Vector1_ZeroPadded_Encrypted);
-        assertEncryptedEqualsNoPadding(provider, Cipher.DECRYPT_MODE,
-                                       TooShort_Vector_Zero_Padded, encrypted);
+        assertEncryptedEqualsNoPadding(provider, Cipher.DECRYPT_MODE, TooShort_Vector_Zero_Padded,
+                                       encrypted);
     }
 
-    private static void assertEncryptedEqualsNoPadding(String provider, int mode,
-                                                       byte[] expected, byte[] actual) {
+    private static void assertEncryptedEqualsNoPadding(String provider, int mode, byte[] expected,
+                                                       byte[] actual) {
         if (provider.equals("BC") && mode == Cipher.DECRYPT_MODE) {
             // BouncyCastle does us the favor of stripping leading zeroes in DECRYPT_MODE
             int nonZeroOffset = 0;
@@ -2885,8 +2956,8 @@ public final class CipherTest {
             }
             expected = Arrays.copyOfRange(expected, nonZeroOffset, expected.length);
         }
-        assertEquals("Encrypted should match expected",
-                     Arrays.toString(expected), Arrays.toString(actual));
+        assertEquals("Encrypted should match expected", Arrays.toString(expected),
+                     Arrays.toString(actual));
     }
 
     @Test
@@ -2897,8 +2968,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_CombinedUpdateAndDoFinal_TooBig_Failure(String provider)
-            throws Exception {
+    private void testRSA_ECB_NoPadding_Private_CombinedUpdateAndDoFinal_TooBig_Failure(
+            String provider) throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2929,8 +3000,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_UpdateInAndOutPlusDoFinal_TooBig_Failure(String provider)
-            throws Exception {
+    private void testRSA_ECB_NoPadding_Private_UpdateInAndOutPlusDoFinal_TooBig_Failure(
+            String provider) throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2944,7 +3015,7 @@ public final class CipherTest {
 
         byte[] output = new byte[RSA_2048_Vector1.length];
         c.update(RSA_Vector1_ZeroPadded_Encrypted, 0, RSA_Vector1_ZeroPadded_Encrypted.length,
-                output);
+                 output);
 
         try {
             c.doFinal(RSA_Vector1_ZeroPadded_Encrypted);
@@ -2963,7 +3034,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_Private_OnlyDoFinal_TooBig_Failure(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_Private_OnlyDoFinal_TooBig_Failure(String provider)
+            throws Exception {
         final PrivateKey privKey = (PrivateKey) getDecryptKey("RSA");
 
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
@@ -2977,9 +3049,10 @@ public final class CipherTest {
 
         byte[] tooBig_Vector = new byte[RSA_Vector1_ZeroPadded_Encrypted.length * 2];
         System.arraycopy(RSA_Vector1_ZeroPadded_Encrypted, 0, tooBig_Vector, 0,
-                RSA_Vector1_ZeroPadded_Encrypted.length);
+                         RSA_Vector1_ZeroPadded_Encrypted.length);
         System.arraycopy(RSA_Vector1_ZeroPadded_Encrypted, 0, tooBig_Vector,
-                RSA_Vector1_ZeroPadded_Encrypted.length, RSA_Vector1_ZeroPadded_Encrypted.length);
+                         RSA_Vector1_ZeroPadded_Encrypted.length,
+                         RSA_Vector1_ZeroPadded_Encrypted.length);
 
         try {
             c.doFinal(tooBig_Vector);
@@ -3022,7 +3095,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_GetOutputSize_NoInit_Failure(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_GetOutputSize_NoInit_Failure(String provider)
+            throws Exception {
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
         try {
             c.getOutputSize(RSA_2048_Vector1.length);
@@ -3076,7 +3150,8 @@ public final class CipherTest {
         }
     }
 
-    private void testRSA_ECB_NoPadding_GetParameters_NoneProvided_Success(String provider) throws Exception {
+    private void testRSA_ECB_NoPadding_GetParameters_NoneProvided_Success(String provider)
+            throws Exception {
         Cipher c = Cipher.getInstance("RSA/ECB/NoPadding", provider);
         assertNull("Parameters should be null", c.getParameters());
     }
@@ -3085,88 +3160,144 @@ public final class CipherTest {
      * Test vector generation:
      * openssl rand -hex 16 | sed 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec DES_112_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0x6b, (byte) 0xb3, (byte) 0x85, (byte) 0x1c, (byte) 0x3d, (byte) 0x50,
-            (byte) 0xd4, (byte) 0x95, (byte) 0x39, (byte) 0x48, (byte) 0x77, (byte) 0x30,
-            (byte) 0x1a, (byte) 0xd7, (byte) 0x86, (byte) 0x57,
-    }, "DESede");
+    private static final SecretKeySpec DES_112_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0x6b,
+                    (byte) 0xb3,
+                    (byte) 0x85,
+                    (byte) 0x1c,
+                    (byte) 0x3d,
+                    (byte) 0x50,
+                    (byte) 0xd4,
+                    (byte) 0x95,
+                    (byte) 0x39,
+                    (byte) 0x48,
+                    (byte) 0x77,
+                    (byte) 0x30,
+                    (byte) 0x1a,
+                    (byte) 0xd7,
+                    (byte) 0x86,
+                    (byte) 0x57,
+            },
+            "DESede");
 
     /*
      * Test vector generation:
      * openssl rand -hex 24 | sed 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec DES_168_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0xfe, (byte) 0xd4, (byte) 0xd7, (byte) 0xc9, (byte) 0x8a, (byte) 0x13,
-            (byte) 0x6a, (byte) 0xa8, (byte) 0x5a, (byte) 0xb8, (byte) 0x19, (byte) 0xb8,
-            (byte) 0xcf, (byte) 0x3c, (byte) 0x5f, (byte) 0xe0, (byte) 0xa2, (byte) 0xf7,
-            (byte) 0x7b, (byte) 0x65, (byte) 0x43, (byte) 0xc0, (byte) 0xc4, (byte) 0xe1,
-    }, "DESede");
+    private static final SecretKeySpec DES_168_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0xfe, (byte) 0xd4, (byte) 0xd7, (byte) 0xc9, (byte) 0x8a, (byte) 0x13,
+                    (byte) 0x6a, (byte) 0xa8, (byte) 0x5a, (byte) 0xb8, (byte) 0x19, (byte) 0xb8,
+                    (byte) 0xcf, (byte) 0x3c, (byte) 0x5f, (byte) 0xe0, (byte) 0xa2, (byte) 0xf7,
+                    (byte) 0x7b, (byte) 0x65, (byte) 0x43, (byte) 0xc0, (byte) 0xc4, (byte) 0xe1,
+            },
+            "DESede");
 
     /*
      * Test vector generation:
      * openssl rand -hex 5 | sed 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec ARC4_40BIT_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0x9c, (byte) 0xc8, (byte) 0xb9, (byte) 0x94, (byte) 0x98,
-    }, "ARC4");
+    private static final SecretKeySpec ARC4_40BIT_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0x9c,
+                    (byte) 0xc8,
+                    (byte) 0xb9,
+                    (byte) 0x94,
+                    (byte) 0x98,
+            },
+            "ARC4");
 
     /*
      * Test vector generation:
      * openssl rand -hex 24 | sed 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec ARC4_128BIT_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0xbc, (byte) 0x0a, (byte) 0x3c, (byte) 0xca, (byte) 0xb5, (byte) 0x42,
-            (byte) 0xfa, (byte) 0x5d, (byte) 0x86, (byte) 0x5b, (byte) 0x44, (byte) 0x87,
-            (byte) 0x83, (byte) 0xd8, (byte) 0xcb, (byte) 0xd4,
-    }, "ARC4");
+    private static final SecretKeySpec ARC4_128BIT_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0xbc,
+                    (byte) 0x0a,
+                    (byte) 0x3c,
+                    (byte) 0xca,
+                    (byte) 0xb5,
+                    (byte) 0x42,
+                    (byte) 0xfa,
+                    (byte) 0x5d,
+                    (byte) 0x86,
+                    (byte) 0x5b,
+                    (byte) 0x44,
+                    (byte) 0x87,
+                    (byte) 0x83,
+                    (byte) 0xd8,
+                    (byte) 0xcb,
+                    (byte) 0xd4,
+            },
+            "ARC4");
 
     /*
      * Test vector generation:
      * openssl rand -hex 16
      * echo '3d4f8970b1f27537f40a39298a41555f' | sed 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec AES_128_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0x3d, (byte) 0x4f, (byte) 0x89, (byte) 0x70, (byte) 0xb1, (byte) 0xf2,
-            (byte) 0x75, (byte) 0x37, (byte) 0xf4, (byte) 0x0a, (byte) 0x39, (byte) 0x29,
-            (byte) 0x8a, (byte) 0x41, (byte) 0x55, (byte) 0x5f,
-    }, "AES");
+    private static final SecretKeySpec AES_128_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0x3d,
+                    (byte) 0x4f,
+                    (byte) 0x89,
+                    (byte) 0x70,
+                    (byte) 0xb1,
+                    (byte) 0xf2,
+                    (byte) 0x75,
+                    (byte) 0x37,
+                    (byte) 0xf4,
+                    (byte) 0x0a,
+                    (byte) 0x39,
+                    (byte) 0x29,
+                    (byte) 0x8a,
+                    (byte) 0x41,
+                    (byte) 0x55,
+                    (byte) 0x5f,
+            },
+            "AES");
 
     /*
      * Test key generation:
      * openssl rand -hex 24
      * echo '5a7a3d7e40b64ed996f7afa15f97fd595e27db6af428e342' | sed 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec AES_192_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0x5a, (byte) 0x7a, (byte) 0x3d, (byte) 0x7e, (byte) 0x40, (byte) 0xb6,
-            (byte) 0x4e, (byte) 0xd9, (byte) 0x96, (byte) 0xf7, (byte) 0xaf, (byte) 0xa1,
-            (byte) 0x5f, (byte) 0x97, (byte) 0xfd, (byte) 0x59, (byte) 0x5e, (byte) 0x27,
-            (byte) 0xdb, (byte) 0x6a, (byte) 0xf4, (byte) 0x28, (byte) 0xe3, (byte) 0x42,
-    }, "AES");
+    private static final SecretKeySpec AES_192_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0x5a, (byte) 0x7a, (byte) 0x3d, (byte) 0x7e, (byte) 0x40, (byte) 0xb6,
+                    (byte) 0x4e, (byte) 0xd9, (byte) 0x96, (byte) 0xf7, (byte) 0xaf, (byte) 0xa1,
+                    (byte) 0x5f, (byte) 0x97, (byte) 0xfd, (byte) 0x59, (byte) 0x5e, (byte) 0x27,
+                    (byte) 0xdb, (byte) 0x6a, (byte) 0xf4, (byte) 0x28, (byte) 0xe3, (byte) 0x42,
+            },
+            "AES");
 
     /*
      * Test key generation:
      * openssl rand -hex 32
-     * echo 'ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935' | sed 's/\(..\)/(byte) 0x\1, /g'
+     * echo 'ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935' | sed
+     * 's/\(..\)/(byte) 0x\1, /g'
      */
-    private static final SecretKeySpec AES_256_KEY = new SecretKeySpec(new byte[] {
-            (byte) 0xec, (byte) 0x53, (byte) 0xc6, (byte) 0xd5, (byte) 0x1d, (byte) 0x2c,
-            (byte) 0x49, (byte) 0x73, (byte) 0x58, (byte) 0x5f, (byte) 0xb0, (byte) 0xb8,
-            (byte) 0xe5, (byte) 0x1c, (byte) 0xd2, (byte) 0xe3, (byte) 0x99, (byte) 0x15,
-            (byte) 0xff, (byte) 0x07, (byte) 0xa1, (byte) 0x83, (byte) 0x78, (byte) 0x72,
-            (byte) 0x71, (byte) 0x5d, (byte) 0x61, (byte) 0x21, (byte) 0xbf, (byte) 0x86,
-            (byte) 0x19, (byte) 0x35,
-    }, "AES");
+    private static final SecretKeySpec AES_256_KEY = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0xec, (byte) 0x53, (byte) 0xc6, (byte) 0xd5, (byte) 0x1d, (byte) 0x2c,
+                    (byte) 0x49, (byte) 0x73, (byte) 0x58, (byte) 0x5f, (byte) 0xb0, (byte) 0xb8,
+                    (byte) 0xe5, (byte) 0x1c, (byte) 0xd2, (byte) 0xe3, (byte) 0x99, (byte) 0x15,
+                    (byte) 0xff, (byte) 0x07, (byte) 0xa1, (byte) 0x83, (byte) 0x78, (byte) 0x72,
+                    (byte) 0x71, (byte) 0x5d, (byte) 0x61, (byte) 0x21, (byte) 0xbf, (byte) 0x86,
+                    (byte) 0x19, (byte) 0x35,
+            },
+            "AES");
 
     /*
      * Test vector generation:
      * echo -n 'Testing rocks!' | recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
-    private static final byte[] DES_Plaintext1 = new byte[] {
-            (byte) 0x54, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x69, (byte) 0x6E,
-            (byte) 0x67, (byte) 0x20, (byte) 0x72, (byte) 0x6F, (byte) 0x63, (byte) 0x6B,
-            (byte) 0x73, (byte) 0x21
-    };
-
+    private static final byte[] DES_Plaintext1 =
+            new byte[] {(byte) 0x54, (byte) 0x65, (byte) 0x73, (byte) 0x74, (byte) 0x69,
+                        (byte) 0x6E, (byte) 0x67, (byte) 0x20, (byte) 0x72, (byte) 0x6F,
+                        (byte) 0x63, (byte) 0x6B, (byte) 0x73, (byte) 0x21};
 
     /*
      * Test vector generation: take DES_Plaintext1 and PKCS #5 pad it manually (it's not hard).
@@ -3182,8 +3313,8 @@ public final class CipherTest {
      * openssl rand -hex 8 | sed 's/\(..\)/(byte) 0x\1, /g'
      */
     private static final byte[] DES_IV1 = new byte[] {
-            (byte) 0x5c, (byte) 0x47, (byte) 0x5e, (byte) 0x57, (byte) 0x0c, (byte) 0x46,
-            (byte) 0xcb, (byte) 0x47,
+            (byte) 0x5c, (byte) 0x47, (byte) 0x5e, (byte) 0x57,
+            (byte) 0x0c, (byte) 0x46, (byte) 0xcb, (byte) 0x47,
     };
 
     /*
@@ -3194,11 +3325,11 @@ public final class CipherTest {
     private static final byte[]
             DES_Plaintext1_Encrypted_With_DES_112_KEY_And_DESEDE_CBC_PKCS5PADDING_With_DES_IV1 =
                     new byte[] {
-            (byte) 0x09, (byte) 0xA5, (byte) 0x5D, (byte) 0x94, (byte) 0x94, (byte) 0xAA,
-            (byte) 0x3F, (byte) 0xC8, (byte) 0xB7, (byte) 0x73, (byte) 0x94, (byte) 0x0E,
-            (byte) 0xFC, (byte) 0xF4, (byte) 0xA5, (byte) 0x28,
-    };
-
+                            (byte) 0x09, (byte) 0xA5, (byte) 0x5D, (byte) 0x94,
+                            (byte) 0x94, (byte) 0xAA, (byte) 0x3F, (byte) 0xC8,
+                            (byte) 0xB7, (byte) 0x73, (byte) 0x94, (byte) 0x0E,
+                            (byte) 0xFC, (byte) 0xF4, (byte) 0xA5, (byte) 0x28,
+                    };
 
     /*
      * Test vector generation:
@@ -3207,12 +3338,10 @@ public final class CipherTest {
      */
     private static final byte[]
             DES_Plaintext1_Encrypted_With_DES_168_KEY_And_DESEDE_CBC_PKCS5PADDING_With_DES_IV1 =
-                    new byte[] {
-            (byte) 0xC9, (byte) 0xF1, (byte) 0x83, (byte) 0x1F, (byte) 0x24, (byte) 0x83,
-            (byte) 0x2C, (byte) 0x7B, (byte) 0x66, (byte) 0x66, (byte) 0x99, (byte) 0x98,
-            (byte) 0x27, (byte) 0xB0, (byte) 0xED, (byte) 0x47
-    };
-
+                    new byte[] {(byte) 0xC9, (byte) 0xF1, (byte) 0x83, (byte) 0x1F,
+                                (byte) 0x24, (byte) 0x83, (byte) 0x2C, (byte) 0x7B,
+                                (byte) 0x66, (byte) 0x66, (byte) 0x99, (byte) 0x98,
+                                (byte) 0x27, (byte) 0xB0, (byte) 0xED, (byte) 0x47};
 
     /*
      * Test vector generation:
@@ -3221,8 +3350,7 @@ public final class CipherTest {
     private static final byte[] ARC4_Plaintext1 = new byte[] {
             (byte) 0x50, (byte) 0x6C, (byte) 0x61, (byte) 0x69, (byte) 0x6E, (byte) 0x74,
             (byte) 0x65, (byte) 0x78, (byte) 0x74, (byte) 0x20, (byte) 0x66, (byte) 0x6F,
-            (byte) 0x72, (byte) 0x20, (byte) 0x61, (byte) 0x72, (byte) 0x63, (byte) 0x34
-    };
+            (byte) 0x72, (byte) 0x20, (byte) 0x61, (byte) 0x72, (byte) 0x63, (byte) 0x34};
 
     /*
      * Test vector generation:
@@ -3232,8 +3360,7 @@ public final class CipherTest {
     private static final byte[] ARC4_Plaintext1_Encrypted_With_ARC4_40Bit_Key = new byte[] {
             (byte) 0x63, (byte) 0xF7, (byte) 0x11, (byte) 0x90, (byte) 0x63, (byte) 0xEF,
             (byte) 0x5E, (byte) 0xB3, (byte) 0x93, (byte) 0xB3, (byte) 0x46, (byte) 0x3F,
-            (byte) 0x1B, (byte) 0x02, (byte) 0x53, (byte) 0x9B, (byte) 0xD9, (byte) 0xE0
-    };
+            (byte) 0x1B, (byte) 0x02, (byte) 0x53, (byte) 0x9B, (byte) 0xD9, (byte) 0xE0};
 
     /*
      * Test vector generation:
@@ -3243,32 +3370,34 @@ public final class CipherTest {
     private static final byte[] ARC4_Plaintext1_Encrypted_With_ARC4_128Bit_Key = new byte[] {
             (byte) 0x25, (byte) 0x14, (byte) 0xA9, (byte) 0x72, (byte) 0x4D, (byte) 0xA9,
             (byte) 0xF6, (byte) 0xA7, (byte) 0x2F, (byte) 0xB7, (byte) 0x0D, (byte) 0x60,
-            (byte) 0x09, (byte) 0xBE, (byte) 0x41, (byte) 0x9B, (byte) 0x32, (byte) 0x2B
-    };
+            (byte) 0x09, (byte) 0xBE, (byte) 0x41, (byte) 0x9B, (byte) 0x32, (byte) 0x2B};
 
     /*
      * Test vector creation:
      * echo -n 'Hello, world!' | recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
     private static final byte[] AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext = new byte[] {
-            (byte) 0x48, (byte) 0x65, (byte) 0x6C, (byte) 0x6C, (byte) 0x6F, (byte) 0x2C,
-            (byte) 0x20, (byte) 0x77, (byte) 0x6F, (byte) 0x72, (byte) 0x6C, (byte) 0x64,
-            (byte) 0x21,
+            (byte) 0x48, (byte) 0x65, (byte) 0x6C, (byte) 0x6C, (byte) 0x6F,
+            (byte) 0x2C, (byte) 0x20, (byte) 0x77, (byte) 0x6F, (byte) 0x72,
+            (byte) 0x6C, (byte) 0x64, (byte) 0x21,
     };
 
     /*
      * Test vector creation:
-     * openssl enc -aes-128-ecb -K 3d4f8970b1f27537f40a39298a41555f -in blah|openssl enc -aes-128-ecb -K 3d4f8970b1f27537f40a39298a41555f -nopad -d|recode ../x1 | sed 's/0x/(byte) 0x/g'
+     * openssl enc -aes-128-ecb -K 3d4f8970b1f27537f40a39298a41555f -in blah|openssl enc
+     * -aes-128-ecb -K 3d4f8970b1f27537f40a39298a41555f -nopad -d|recode ../x1 | sed 's/0x/(byte)
+     * 0x/g'
      */
-    private static final byte[] AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded = new byte[] {
-            (byte) 0x48, (byte) 0x65, (byte) 0x6C, (byte) 0x6C, (byte) 0x6F, (byte) 0x2C,
-            (byte) 0x20, (byte) 0x77, (byte) 0x6F, (byte) 0x72, (byte) 0x6C, (byte) 0x64,
-            (byte) 0x21, (byte) 0x03, (byte) 0x03, (byte) 0x03
-    };
+    private static final byte[] AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded =
+            new byte[] {(byte) 0x48, (byte) 0x65, (byte) 0x6C, (byte) 0x6C,
+                        (byte) 0x6F, (byte) 0x2C, (byte) 0x20, (byte) 0x77,
+                        (byte) 0x6F, (byte) 0x72, (byte) 0x6C, (byte) 0x64,
+                        (byte) 0x21, (byte) 0x03, (byte) 0x03, (byte) 0x03};
 
     /*
      * Test vector generation:
-     * openssl enc -aes-128-ecb -K 3d4f8970b1f27537f40a39298a41555f -in blah|recode ../x1 | sed 's/0x/(byte) 0x/g'
+     * openssl enc -aes-128-ecb -K 3d4f8970b1f27537f40a39298a41555f -in blah|recode ../x1 | sed
+     * 's/0x/(byte) 0x/g'
      */
     private static final byte[] AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted = new byte[] {
             (byte) 0x65, (byte) 0x3E, (byte) 0x86, (byte) 0xFB, (byte) 0x05, (byte) 0x5A,
@@ -3279,11 +3408,26 @@ public final class CipherTest {
     /*
      * Taken from BoringSSL test vectors.
      */
-    private static final SecretKeySpec AES_128_GCM_TestVector_1_Key = new SecretKeySpec(new byte[] {
-            (byte) 0xca, (byte) 0xbd, (byte) 0xcf, (byte) 0x54, (byte) 0x1a, (byte) 0xeb,
-            (byte) 0xf9, (byte) 0x17, (byte) 0xba, (byte) 0xc0, (byte) 0x19, (byte) 0xf1,
-            (byte) 0x39, (byte) 0x25, (byte) 0xd2, (byte) 0x67,
-    }, "AES");
+    private static final SecretKeySpec AES_128_GCM_TestVector_1_Key = new SecretKeySpec(
+            new byte[] {
+                    (byte) 0xca,
+                    (byte) 0xbd,
+                    (byte) 0xcf,
+                    (byte) 0x54,
+                    (byte) 0x1a,
+                    (byte) 0xeb,
+                    (byte) 0xf9,
+                    (byte) 0x17,
+                    (byte) 0xba,
+                    (byte) 0xc0,
+                    (byte) 0x19,
+                    (byte) 0xf1,
+                    (byte) 0x39,
+                    (byte) 0x25,
+                    (byte) 0xd2,
+                    (byte) 0x67,
+            },
+            "AES");
 
     /*
      * Taken from BoringSSL test vectors.
@@ -3366,25 +3510,25 @@ public final class CipherTest {
      * Test vector generation:
      * echo -n 'AES-192 is a silly option' | recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
-    private static final byte[] AES_192_CTR_NoPadding_TestVector_1_Plaintext = new byte[] {
-            (byte) 0x41, (byte) 0x45, (byte) 0x53, (byte) 0x2D, (byte) 0x31, (byte) 0x39,
-            (byte) 0x32, (byte) 0x20, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x61,
-            (byte) 0x20, (byte) 0x73, (byte) 0x69, (byte) 0x6C, (byte) 0x6C, (byte) 0x79,
-            (byte) 0x20, (byte) 0x6F, (byte) 0x70, (byte) 0x74, (byte) 0x69, (byte) 0x6F,
-            (byte) 0x6E
-    };
+    private static final byte[] AES_192_CTR_NoPadding_TestVector_1_Plaintext =
+            new byte[] {(byte) 0x41, (byte) 0x45, (byte) 0x53, (byte) 0x2D, (byte) 0x31,
+                        (byte) 0x39, (byte) 0x32, (byte) 0x20, (byte) 0x69, (byte) 0x73,
+                        (byte) 0x20, (byte) 0x61, (byte) 0x20, (byte) 0x73, (byte) 0x69,
+                        (byte) 0x6C, (byte) 0x6C, (byte) 0x79, (byte) 0x20, (byte) 0x6F,
+                        (byte) 0x70, (byte) 0x74, (byte) 0x69, (byte) 0x6F, (byte) 0x6E};
 
     /*
      * Test vector generation:
-     * echo -n 'AES-192 is a silly option' | openssl enc -aes-192-ctr -K 5a7a3d7e40b64ed996f7afa15f97fd595e27db6af428e342 -iv 787bdeecf05556eac5d3d865e435f6d9 | recode ../x1 | sed 's/0x/(byte) 0x/g'
+     * echo -n 'AES-192 is a silly option' | openssl enc -aes-192-ctr -K
+     * 5a7a3d7e40b64ed996f7afa15f97fd595e27db6af428e342 -iv 787bdeecf05556eac5d3d865e435f6d9 |
+     * recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
-    private static final byte[] AES_192_CTR_NoPadding_TestVector_1_Ciphertext = new byte[] {
-            (byte) 0xE9, (byte) 0xC6, (byte) 0xA0, (byte) 0x40, (byte) 0xC2, (byte) 0x6A,
-            (byte) 0xB5, (byte) 0x20, (byte) 0xFE, (byte) 0x9E, (byte) 0x65, (byte) 0xB7,
-            (byte) 0x7C, (byte) 0x5E, (byte) 0xFE, (byte) 0x1F, (byte) 0xF1, (byte) 0x6F,
-            (byte) 0x20, (byte) 0xAC, (byte) 0x37, (byte) 0xE9, (byte) 0x75, (byte) 0xE3,
-            (byte) 0x52
-    };
+    private static final byte[] AES_192_CTR_NoPadding_TestVector_1_Ciphertext =
+            new byte[] {(byte) 0xE9, (byte) 0xC6, (byte) 0xA0, (byte) 0x40, (byte) 0xC2,
+                        (byte) 0x6A, (byte) 0xB5, (byte) 0x20, (byte) 0xFE, (byte) 0x9E,
+                        (byte) 0x65, (byte) 0xB7, (byte) 0x7C, (byte) 0x5E, (byte) 0xFE,
+                        (byte) 0x1F, (byte) 0xF1, (byte) 0x6F, (byte) 0x20, (byte) 0xAC,
+                        (byte) 0x37, (byte) 0xE9, (byte) 0x75, (byte) 0xE3, (byte) 0x52};
 
     /*
      * Test key generation: openssl rand -hex 16 echo
@@ -3398,7 +3542,8 @@ public final class CipherTest {
 
     /*
      * Test vector generation:
-     * echo -n 'I only regret that I have but one test to write.' | recode ../x1 | sed 's/0x/(byte) 0x/g'
+     * echo -n 'I only regret that I have but one test to write.' | recode ../x1 | sed 's/0x/(byte)
+     * 0x/g'
      */
     private static final byte[] AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext = new byte[] {
             (byte) 0x49, (byte) 0x20, (byte) 0x6F, (byte) 0x6E, (byte) 0x6C, (byte) 0x79,
@@ -3408,30 +3553,35 @@ public final class CipherTest {
             (byte) 0x65, (byte) 0x20, (byte) 0x62, (byte) 0x75, (byte) 0x74, (byte) 0x20,
             (byte) 0x6F, (byte) 0x6E, (byte) 0x65, (byte) 0x20, (byte) 0x74, (byte) 0x65,
             (byte) 0x73, (byte) 0x74, (byte) 0x20, (byte) 0x74, (byte) 0x6F, (byte) 0x20,
-            (byte) 0x77, (byte) 0x72, (byte) 0x69, (byte) 0x74, (byte) 0x65, (byte) 0x2E
-    };
+            (byte) 0x77, (byte) 0x72, (byte) 0x69, (byte) 0x74, (byte) 0x65, (byte) 0x2E};
 
     /*
      * Test vector generation:
-     * echo -n 'I only regret that I have but one test to write.' | openssl enc -aes-256-cbc -K ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935 -iv ceaa31952dfd3d0f5af4b2042ba06094 | openssl enc -aes-256-cbc -K ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935 -iv ceaa31952dfd3d0f5af4b2042ba06094 -d -nopad | recode ../x1 | sed 's/0x/(byte) 0x/g'
+     * echo -n 'I only regret that I have but one test to write.' | openssl enc -aes-256-cbc -K
+     * ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935 -iv
+     * ceaa31952dfd3d0f5af4b2042ba06094 | openssl enc -aes-256-cbc -K
+     * ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935 -iv
+     * ceaa31952dfd3d0f5af4b2042ba06094 -d -nopad | recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
-    private static final byte[] AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext_Padded = new byte[] {
-            (byte) 0x49, (byte) 0x20, (byte) 0x6F, (byte) 0x6E, (byte) 0x6C, (byte) 0x79,
-            (byte) 0x20, (byte) 0x72, (byte) 0x65, (byte) 0x67, (byte) 0x72, (byte) 0x65,
-            (byte) 0x74, (byte) 0x20, (byte) 0x74, (byte) 0x68, (byte) 0x61, (byte) 0x74,
-            (byte) 0x20, (byte) 0x49, (byte) 0x20, (byte) 0x68, (byte) 0x61, (byte) 0x76,
-            (byte) 0x65, (byte) 0x20, (byte) 0x62, (byte) 0x75, (byte) 0x74, (byte) 0x20,
-            (byte) 0x6F, (byte) 0x6E, (byte) 0x65, (byte) 0x20, (byte) 0x74, (byte) 0x65,
-            (byte) 0x73, (byte) 0x74, (byte) 0x20, (byte) 0x74, (byte) 0x6F, (byte) 0x20,
-            (byte) 0x77, (byte) 0x72, (byte) 0x69, (byte) 0x74, (byte) 0x65, (byte) 0x2E,
-            (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10,
-            (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10,
-            (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10
-    };
+    private static final byte[] AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext_Padded =
+            new byte[] {
+                    (byte) 0x49, (byte) 0x20, (byte) 0x6F, (byte) 0x6E, (byte) 0x6C, (byte) 0x79,
+                    (byte) 0x20, (byte) 0x72, (byte) 0x65, (byte) 0x67, (byte) 0x72, (byte) 0x65,
+                    (byte) 0x74, (byte) 0x20, (byte) 0x74, (byte) 0x68, (byte) 0x61, (byte) 0x74,
+                    (byte) 0x20, (byte) 0x49, (byte) 0x20, (byte) 0x68, (byte) 0x61, (byte) 0x76,
+                    (byte) 0x65, (byte) 0x20, (byte) 0x62, (byte) 0x75, (byte) 0x74, (byte) 0x20,
+                    (byte) 0x6F, (byte) 0x6E, (byte) 0x65, (byte) 0x20, (byte) 0x74, (byte) 0x65,
+                    (byte) 0x73, (byte) 0x74, (byte) 0x20, (byte) 0x74, (byte) 0x6F, (byte) 0x20,
+                    (byte) 0x77, (byte) 0x72, (byte) 0x69, (byte) 0x74, (byte) 0x65, (byte) 0x2E,
+                    (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10,
+                    (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10,
+                    (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x10};
 
     /*
      * Test vector generation:
-     * echo -n 'I only regret that I have but one test to write.' | openssl enc -aes-256-cbc -K ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935 -iv ceaa31952dfd3d0f5af4b2042ba06094 | recode ../x1 | sed 's/0x/(byte) 0x/g'
+     * echo -n 'I only regret that I have but one test to write.' | openssl enc -aes-256-cbc -K
+     * ec53c6d51d2c4973585fb0b8e51cd2e39915ff07a1837872715d6121bf861935 -iv
+     * ceaa31952dfd3d0f5af4b2042ba06094 | recode ../x1 | sed 's/0x/(byte) 0x/g'
      */
     private static final byte[] AES_256_CBC_PKCS5Padding_TestVector_1_Ciphertext = new byte[] {
             (byte) 0x90, (byte) 0x65, (byte) 0xDD, (byte) 0xAF, (byte) 0x7A, (byte) 0xCE,
@@ -3444,8 +3594,7 @@ public final class CipherTest {
             (byte) 0x41, (byte) 0x33, (byte) 0x54, (byte) 0xD0, (byte) 0xEF, (byte) 0x8C,
             (byte) 0x52, (byte) 0x14, (byte) 0xAC, (byte) 0x2D, (byte) 0xD5, (byte) 0xA4,
             (byte) 0xF9, (byte) 0x20, (byte) 0x77, (byte) 0x25, (byte) 0x91, (byte) 0x3F,
-            (byte) 0xD1, (byte) 0xB9, (byte) 0x00, (byte) 0x3E
-    };
+            (byte) 0xD1, (byte) 0xB9, (byte) 0x00, (byte) 0x3E};
 
     private static class CipherTestParam {
         public final String transformation;
@@ -3467,8 +3616,8 @@ public final class CipherTest {
         public final boolean isStreamCipher;
 
         public CipherTestParam(String transformation, AlgorithmParameterSpec spec, Key encryptKey,
-                Key decryptKey, byte[] aad, byte[] plaintext, byte[] plaintextPadded,
-                byte[] ciphertext, boolean isStreamCipher) {
+                               Key decryptKey, byte[] aad, byte[] plaintext, byte[] plaintextPadded,
+                               byte[] ciphertext, boolean isStreamCipher) {
             this.transformation = transformation.toUpperCase(Locale.ROOT);
             this.spec = spec;
             this.encryptKey = encryptKey;
@@ -3481,16 +3630,17 @@ public final class CipherTest {
         }
 
         public CipherTestParam(String transformation, AlgorithmParameterSpec spec, Key key,
-                byte[] aad, byte[] plaintext, byte[] plaintextPadded, byte[] ciphertext,
-                boolean isStreamCipher) {
+                               byte[] aad, byte[] plaintext, byte[] plaintextPadded,
+                               byte[] ciphertext, boolean isStreamCipher) {
             this(transformation, spec, key, key, aad, plaintext, plaintextPadded, ciphertext,
-                    isStreamCipher);
+                 isStreamCipher);
         }
 
         public CipherTestParam(String transformation, AlgorithmParameterSpec spec, Key key,
-                byte[] aad, byte[] plaintext, byte[] plaintextPadded, byte[] ciphertext) {
+                               byte[] aad, byte[] plaintext, byte[] plaintextPadded,
+                               byte[] ciphertext) {
             this(transformation, spec, key, aad, plaintext, plaintextPadded, ciphertext,
-                    false /* isStreamCipher */);
+                 false /* isStreamCipher */);
         }
 
         public boolean compatibleWith(String provider) {
@@ -3507,9 +3657,10 @@ public final class CipherTest {
 
     private static class OAEPCipherTestParam extends CipherTestParam {
         public OAEPCipherTestParam(String transformation, OAEPParameterSpec spec,
-                PublicKey encryptKey, PrivateKey decryptKey, byte[] plaintext, byte[] ciphertext) {
-            super(transformation, spec, encryptKey, decryptKey, null, plaintext, plaintext, ciphertext,
-                    false);
+                                   PublicKey encryptKey, PrivateKey decryptKey, byte[] plaintext,
+                                   byte[] ciphertext) {
+            super(transformation, spec, encryptKey, decryptKey, null, plaintext, plaintext,
+                  ciphertext, false);
         }
 
         @Override
@@ -3519,9 +3670,9 @@ public final class CipherTest {
             // not specified, whereas Sun's provider sets it to SHA-1.  Thus, the results from
             // the different providers won't match when there isn't an explicit MGF-1 digest set
             // and the main digest isn't SHA-1.  See b/22405492.
-            if (provider.equals("SunJCE")
-                    && (spec == null)
-                    && !transformation.toUpperCase(Locale.US).equals("RSA/ECB/OAEPWITHSHA-1ANDMGF1PADDING")) {
+            if (provider.equals("SunJCE") && (spec == null)
+                && !transformation.toUpperCase(Locale.US).equals(
+                        "RSA/ECB/OAEPWITHSHA-1ANDMGF1PADDING")) {
                 return false;
             }
             return true;
@@ -3531,108 +3682,77 @@ public final class CipherTest {
     private static final List<CipherTestParam> DES_CIPHER_TEST_PARAMS = new ArrayList<>();
     static {
         DES_CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                "DESede/CBC/PKCS5Padding",
-                new IvParameterSpec(DES_IV1),
-                DES_112_KEY,
-                null,
-                DES_Plaintext1,
-                DES_Plaintext1_PKCS5_Padded,
-                DES_Plaintext1_Encrypted_With_DES_112_KEY_And_DESEDE_CBC_PKCS5PADDING_With_DES_IV1
-                ) {
-                    @Override
-                    public boolean compatibleWith(String provider) {
-                        // SunJCE doesn't support extending 112-bit keys to 168-bit keys
-                        return !provider.equals("SunJCE");
-                    }
-                });
+                "DESede/CBC/PKCS5Padding", new IvParameterSpec(DES_IV1), DES_112_KEY, null,
+                DES_Plaintext1, DES_Plaintext1_PKCS5_Padded,
+                DES_Plaintext1_Encrypted_With_DES_112_KEY_And_DESEDE_CBC_PKCS5PADDING_With_DES_IV1) {
+            @Override
+            public boolean compatibleWith(String provider) {
+                // SunJCE doesn't support extending 112-bit keys to 168-bit keys
+                return !provider.equals("SunJCE");
+            }
+        });
         DES_CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                "DESede/CBC/PKCS5Padding",
-                new IvParameterSpec(DES_IV1),
-                DES_168_KEY,
-                null,
-                DES_Plaintext1,
-                DES_Plaintext1_PKCS5_Padded,
-                DES_Plaintext1_Encrypted_With_DES_168_KEY_And_DESEDE_CBC_PKCS5PADDING_With_DES_IV1
-                ));
+                "DESede/CBC/PKCS5Padding", new IvParameterSpec(DES_IV1), DES_168_KEY, null,
+                DES_Plaintext1, DES_Plaintext1_PKCS5_Padded,
+                DES_Plaintext1_Encrypted_With_DES_168_KEY_And_DESEDE_CBC_PKCS5PADDING_With_DES_IV1));
     }
 
     private static final List<CipherTestParam> ARC4_CIPHER_TEST_PARAMS = new ArrayList<>();
     static {
         ARC4_CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                "ARC4",
-                null,
-                ARC4_40BIT_KEY,
+                "ARC4", null, ARC4_40BIT_KEY,
                 null, // aad
                 ARC4_Plaintext1,
                 null, // padded
-                ARC4_Plaintext1_Encrypted_With_ARC4_40Bit_Key,
-                true /*isStreamCipher */
-        ));
+                ARC4_Plaintext1_Encrypted_With_ARC4_40Bit_Key, true /*isStreamCipher */
+                ));
         ARC4_CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                "ARC4",
-                null,
-                ARC4_128BIT_KEY,
+                "ARC4", null, ARC4_128BIT_KEY,
                 null, // aad
                 ARC4_Plaintext1,
                 null, // padded
-                ARC4_Plaintext1_Encrypted_With_ARC4_128Bit_Key,
-                true /*isStreamCipher */
-        ));
+                ARC4_Plaintext1_Encrypted_With_ARC4_128Bit_Key, true /*isStreamCipher */
+                ));
     }
 
     private static final List<CipherTestParam> CIPHER_TEST_PARAMS = new ArrayList<>();
     static {
-        CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                "AES/ECB/PKCS5Padding",
-                null,
-                AES_128_KEY,
-                null,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted));
+        CIPHER_TEST_PARAMS.add(
+                new CipherTestParam("AES/ECB/PKCS5Padding", null, AES_128_KEY, null,
+                                    AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext,
+                                    AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded,
+                                    AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted));
         // PKCS#5 is assumed to be equivalent to PKCS#7 -- same test vectors are thus used for both.
-        CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                "AES/ECB/PKCS7Padding",
-                null,
-                AES_128_KEY,
-                null,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted));
+        CIPHER_TEST_PARAMS.add(
+                new CipherTestParam("AES/ECB/PKCS7Padding", null, AES_128_KEY, null,
+                                    AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext,
+                                    AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded,
+                                    AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted));
         CIPHER_TEST_PARAMS.add(new CipherTestParam(
                 "AES/GCM/NOPADDING",
-                new GCMParameterSpec(
-                        (AES_128_GCM_TestVector_1_Encrypted.length -
-                                AES_128_GCM_TestVector_1_Plaintext.length) * 8,
-                        AES_128_GCM_TestVector_1_IV),
-                AES_128_GCM_TestVector_1_Key,
-                AES_128_GCM_TestVector_1_AAD,
-                AES_128_GCM_TestVector_1_Plaintext,
-                AES_128_GCM_TestVector_1_Plaintext,
+                new GCMParameterSpec((AES_128_GCM_TestVector_1_Encrypted.length
+                                      - AES_128_GCM_TestVector_1_Plaintext.length)
+                                             * 8,
+                                     AES_128_GCM_TestVector_1_IV),
+                AES_128_GCM_TestVector_1_Key, AES_128_GCM_TestVector_1_AAD,
+                AES_128_GCM_TestVector_1_Plaintext, AES_128_GCM_TestVector_1_Plaintext,
                 AES_128_GCM_TestVector_1_Encrypted));
         if (IS_UNLIMITED) {
             CIPHER_TEST_PARAMS.add(new CipherTestParam(
-                    "AES/CTR/NoPadding",
-                    new IvParameterSpec(AES_192_CTR_NoPadding_TestVector_1_IV),
-                    AES_192_KEY,
-                    null,
-                    AES_192_CTR_NoPadding_TestVector_1_Plaintext,
+                    "AES/CTR/NoPadding", new IvParameterSpec(AES_192_CTR_NoPadding_TestVector_1_IV),
+                    AES_192_KEY, null, AES_192_CTR_NoPadding_TestVector_1_Plaintext,
                     AES_192_CTR_NoPadding_TestVector_1_Plaintext,
                     AES_192_CTR_NoPadding_TestVector_1_Ciphertext));
             CIPHER_TEST_PARAMS.add(new CipherTestParam(
                     "AES/CBC/PKCS5Padding",
-                    new IvParameterSpec(AES_256_CBC_PKCS5Padding_TestVector_1_IV),
-                    AES_256_KEY,
-                    null,
-                    AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext,
+                    new IvParameterSpec(AES_256_CBC_PKCS5Padding_TestVector_1_IV), AES_256_KEY,
+                    null, AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext,
                     AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext_Padded,
                     AES_256_CBC_PKCS5Padding_TestVector_1_Ciphertext));
             CIPHER_TEST_PARAMS.add(new CipherTestParam(
                     "AES/CBC/PKCS7Padding",
-                    new IvParameterSpec(AES_256_CBC_PKCS5Padding_TestVector_1_IV),
-                    AES_256_KEY,
-                    null,
-                    AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext,
+                    new IvParameterSpec(AES_256_CBC_PKCS5Padding_TestVector_1_IV), AES_256_KEY,
+                    null, AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext,
                     AES_256_CBC_PKCS5Padding_TestVector_1_Plaintext_Padded,
                     AES_256_CBC_PKCS5Padding_TestVector_1_Ciphertext));
         }
@@ -3647,16 +3767,18 @@ public final class CipherTest {
         addRsaOaepTest("SHA-384", MGF1ParameterSpec.SHA384, RSA_Vector2_OAEP_SHA384_MGF1_SHA384);
         addRsaOaepTest("SHA-512", MGF1ParameterSpec.SHA512, RSA_Vector2_OAEP_SHA512_MGF1_SHA512);
         addRsaOaepTest("SHA-256", MGF1ParameterSpec.SHA1, RSA_Vector2_OAEP_SHA256_MGF1_SHA1_LABEL,
-                new byte[] { 0x01, 0x02, 0x03, (byte) 0xFF, (byte) 0xA0, 0x0A });
-        addRsaOaepTest("SHA-512", MGF1ParameterSpec.SHA512, RSA_Vector2_OAEP_SHA512_MGF1_SHA512_LABEL,
-                new byte[] { 0x01, 0x02, 0x03, (byte) 0xFF, (byte) 0xA0, 0x0A });
+                       new byte[] {0x01, 0x02, 0x03, (byte) 0xFF, (byte) 0xA0, 0x0A});
+        addRsaOaepTest("SHA-512", MGF1ParameterSpec.SHA512,
+                       RSA_Vector2_OAEP_SHA512_MGF1_SHA512_LABEL,
+                       new byte[] {0x01, 0x02, 0x03, (byte) 0xFF, (byte) 0xA0, 0x0A});
     }
 
     private static void addRsaOaepTest(String digest, MGF1ParameterSpec mgf1Spec, byte[] vector) {
         addRsaOaepTest(digest, mgf1Spec, vector, null);
     }
 
-    private static void addRsaOaepTest(String digest, MGF1ParameterSpec mgf1Spec, byte[] vector, byte[] label) {
+    private static void addRsaOaepTest(String digest, MGF1ParameterSpec mgf1Spec, byte[] vector,
+                                       byte[] label) {
         final PSource pSource;
         if (label == null) {
             pSource = PSource.PSpecified.DEFAULT;
@@ -3666,29 +3788,21 @@ public final class CipherTest {
 
         if (mgf1Spec.getDigestAlgorithm().equals(digest) && label == null) {
             RSA_OAEP_CIPHER_TEST_PARAMS.add(new OAEPCipherTestParam(
-                    "RSA/ECB/OAEPWith" + digest + "AndMGF1Padding",
-                    null,
-                    (PublicKey) getEncryptKey("RSA"),
-                    (PrivateKey) getDecryptKey("RSA"),
-                    RSA_Vector2_Plaintext,
-                    vector));
+                    "RSA/ECB/OAEPWith" + digest + "AndMGF1Padding", null,
+                    (PublicKey) getEncryptKey("RSA"), (PrivateKey) getDecryptKey("RSA"),
+                    RSA_Vector2_Plaintext, vector));
         }
 
         RSA_OAEP_CIPHER_TEST_PARAMS.add(new OAEPCipherTestParam(
                 "RSA/ECB/OAEPWith" + digest + "AndMGF1Padding",
                 new OAEPParameterSpec(digest, "MGF1", mgf1Spec, pSource),
-                (PublicKey) getEncryptKey("RSA"),
-                (PrivateKey) getDecryptKey("RSA"),
-                RSA_Vector2_Plaintext,
-                vector));
+                (PublicKey) getEncryptKey("RSA"), (PrivateKey) getDecryptKey("RSA"),
+                RSA_Vector2_Plaintext, vector));
 
         RSA_OAEP_CIPHER_TEST_PARAMS.add(new OAEPCipherTestParam(
-                "RSA/ECB/OAEPPadding",
-                new OAEPParameterSpec(digest, "MGF1", mgf1Spec, pSource),
-                (PublicKey) getEncryptKey("RSA"),
-                (PrivateKey) getDecryptKey("RSA"),
-                RSA_Vector2_Plaintext,
-                vector));
+                "RSA/ECB/OAEPPadding", new OAEPParameterSpec(digest, "MGF1", mgf1Spec, pSource),
+                (PublicKey) getEncryptKey("RSA"), (PrivateKey) getDecryptKey("RSA"),
+                RSA_Vector2_Plaintext, vector));
     }
 
     @Test
@@ -3723,9 +3837,10 @@ public final class CipherTest {
             }
 
             if (testVector.transformation.indexOf('/') > 0) {
-                Provider[] baseTransformProviderArray = Security.getProviders("Cipher."
-                        + testVector.transformation.substring(
-                                  0, testVector.transformation.indexOf('/')));
+                Provider[] baseTransformProviderArray =
+                        Security.getProviders("Cipher."
+                                              + testVector.transformation.substring(
+                                                      0, testVector.transformation.indexOf('/')));
                 if (baseTransformProviderArray != null) {
                     Collections.addAll(providers, baseTransformProviderArray);
                 }
@@ -3737,8 +3852,8 @@ public final class CipherTest {
             }
 
             for (Provider provider : providers) {
-                // Do not test AndroidKeyStore's Signature. It needs an AndroidKeyStore-specific key.
-                // It's OKish not to test AndroidKeyStore's Signature here because it's tested
+                // Do not test AndroidKeyStore's Signature. It needs an AndroidKeyStore-specific
+                // key. It's OKish not to test AndroidKeyStore's Signature here because it's tested
                 // by cts/tests/test/keystore.
                 if (provider.getName().startsWith("AndroidKeyStore")) {
                     continue;
@@ -3746,7 +3861,8 @@ public final class CipherTest {
 
                 // SunMSCAPI seems to have different opinion on what RSA should do compared to other
                 // providers. As such it fails many tests, so we will skip it for now.
-                if (provider.getName().equals("SunMSCAPI") && testVector.transformation.startsWith("RSA")) {
+                if (provider.getName().equals("SunMSCAPI")
+                    && testVector.transformation.startsWith("RSA")) {
                     continue;
                 }
 
@@ -3780,7 +3896,7 @@ public final class CipherTest {
     }
 
     private void logTestFailure(PrintStream logStream, String provider, CipherTestParam params,
-            Throwable e) {
+                                Throwable e) {
         logStream.append("Error encountered checking " + params.transformation);
 
         if (params.encryptKey instanceof SecretKey) {
@@ -3789,8 +3905,8 @@ public final class CipherTest {
 
         if (params.spec instanceof OAEPParameterSpec) {
             OAEPParameterSpec oaepSpec = (OAEPParameterSpec) params.spec;
-            logStream.append(", OAEPSpec{digest=" + oaepSpec.getDigestAlgorithm() + ", mgfAlg="
-                    + oaepSpec.getMGFAlgorithm());
+            logStream.append(", OAEPSpec{digest=" + oaepSpec.getDigestAlgorithm()
+                             + ", mgfAlg=" + oaepSpec.getMGFAlgorithm());
             if (oaepSpec.getMGFParameters() instanceof MGF1ParameterSpec) {
                 MGF1ParameterSpec mgf1Spec = (MGF1ParameterSpec) oaepSpec.getMGFParameters();
                 logStream.append(", mgf1Hash=" + mgf1Spec.getDigestAlgorithm());
@@ -3822,12 +3938,12 @@ public final class CipherTest {
         // because its size depends on the message digest algorithms used.
         if (!p.transformation.endsWith("OAEPPADDING")) {
             assertEquals(p.transformation + " getBlockSize() ENCRYPT_MODE",
-                    getExpectedBlockSize(p.transformation, Cipher.ENCRYPT_MODE, provider),
-                    c.getBlockSize());
+                         getExpectedBlockSize(p.transformation, Cipher.ENCRYPT_MODE, provider),
+                         c.getBlockSize());
         }
         assertTrue(p.transformation + " getOutputSize(0) ENCRYPT_MODE",
-                getExpectedOutputSize(p.transformation, Cipher.ENCRYPT_MODE, provider) <= c
-                        .getOutputSize(0));
+                   getExpectedOutputSize(p.transformation, Cipher.ENCRYPT_MODE, provider)
+                           <= c.getOutputSize(0));
 
         if (p.aad != null) {
             c.updateAAD(p.aad);
@@ -3835,7 +3951,7 @@ public final class CipherTest {
         final byte[] actualCiphertext = c.doFinal(p.plaintext);
         if (!isRandomizedEncryption(p.transformation)) {
             assertEquals(p.transformation + " " + provider, Arrays.toString(p.ciphertext),
-                    Arrays.toString(actualCiphertext));
+                         Arrays.toString(actualCiphertext));
         }
 
         c = Cipher.getInstance(p.transformation, provider);
@@ -3850,15 +3966,15 @@ public final class CipherTest {
         c.init(Cipher.DECRYPT_MODE, p.decryptKey, p.spec);
 
         assertEquals(p.transformation + " getBlockSize() DECRYPT_MODE",
-                getExpectedBlockSize(p.transformation, Cipher.DECRYPT_MODE, provider),
-                c.getBlockSize());
+                     getExpectedBlockSize(p.transformation, Cipher.DECRYPT_MODE, provider),
+                     c.getBlockSize());
 
         // This doesn't quite work on OAEPPadding unless it's the default case,
         // because its size depends on the message digest algorithms used.
         if (!p.transformation.endsWith("OAEPPADDING")) {
             assertTrue(p.transformation + " getOutputSize(0) DECRYPT_MODE",
-                    getExpectedOutputSize(p.transformation, Cipher.DECRYPT_MODE, provider) <= c
-                            .getOutputSize(0));
+                       getExpectedOutputSize(p.transformation, Cipher.DECRYPT_MODE, provider)
+                               <= c.getOutputSize(0));
         }
 
         if (!isAEAD(p.transformation)) {
@@ -3886,15 +4002,13 @@ public final class CipherTest {
         // decrypt an empty ciphertext; not valid for RSA
         if (!p.transformation.contains("OAEP")) {
             if ((!isAEAD(p.transformation)
-                    && (StandardNames.IS_RI || provider.equals("AndroidOpenSSL") ||
-                            (provider.equals("BC") && p.transformation.contains("/CTR/"))))
-                    || p.transformation.equals("ARC4")) {
-                assertEquals(Arrays.toString(new byte[0]),
-                             Arrays.toString(c.doFinal()));
+                 && (StandardNames.IS_RI || provider.equals("AndroidOpenSSL")
+                     || (provider.equals("BC") && p.transformation.contains("/CTR/"))))
+                || p.transformation.equals("ARC4")) {
+                assertEquals(Arrays.toString(new byte[0]), Arrays.toString(c.doFinal()));
 
                 c.update(new byte[0]);
-                assertEquals(Arrays.toString(new byte[0]),
-                             Arrays.toString(c.doFinal()));
+                assertEquals(Arrays.toString(new byte[0]), Arrays.toString(c.doFinal()));
             } else if (provider.equals("BC") || isAEAD(p.transformation)) {
                 try {
                     c.doFinal();
@@ -3908,11 +4022,10 @@ public final class CipherTest {
                         throw maybe;
                     }
                 } catch (ProviderException maybe) {
-                    boolean isShortBufferException
-                            = maybe.getCause() instanceof ShortBufferException;
-                    if (!isAEAD(p.transformation)
-                            || !isBuggyProvider(provider)
-                            || !isShortBufferException) {
+                    boolean isShortBufferException =
+                            maybe.getCause() instanceof ShortBufferException;
+                    if (!isAEAD(p.transformation) || !isBuggyProvider(provider)
+                        || !isShortBufferException) {
                         throw maybe;
                     }
                 }
@@ -3929,11 +4042,10 @@ public final class CipherTest {
                         throw maybe;
                     }
                 } catch (ProviderException maybe) {
-                    boolean isShortBufferException
-                            = maybe.getCause() instanceof ShortBufferException;
-                    if (!isAEAD(p.transformation)
-                            || !isBuggyProvider(provider)
-                            || !isShortBufferException) {
+                    boolean isShortBufferException =
+                            maybe.getCause() instanceof ShortBufferException;
+                    if (!isAEAD(p.transformation) || !isBuggyProvider(provider)
+                        || !isShortBufferException) {
                         throw maybe;
                     }
                 }
@@ -3969,8 +4081,9 @@ public final class CipherTest {
 
             final byte[] actualPlaintext = new byte[c.getOutputSize(p.ciphertext.length)];
             assertEquals(p.plaintext.length,
-                    c.doFinal(largerThanCiphertext, 5, p.ciphertext.length, actualPlaintext));
-            assertEquals(Arrays.toString(p.plaintext),
+                         c.doFinal(largerThanCiphertext, 5, p.ciphertext.length, actualPlaintext));
+            assertEquals(
+                    Arrays.toString(p.plaintext),
                     Arrays.toString(Arrays.copyOfRange(actualPlaintext, 0, p.plaintext.length)));
         }
 
@@ -3986,14 +4099,16 @@ public final class CipherTest {
             }
 
             final byte[] actualPlaintext = new byte[c.getOutputSize(p.ciphertext.length) + 2];
-            assertEquals(p.plaintext.length,
+            assertEquals(
+                    p.plaintext.length,
                     c.doFinal(largerThanCiphertext, 5, p.ciphertext.length, actualPlaintext, 1));
             assertEquals(Arrays.toString(p.plaintext),
-                    Arrays.toString(Arrays.copyOfRange(actualPlaintext, 1, p.plaintext.length + 1)));
+                         Arrays.toString(
+                                 Arrays.copyOfRange(actualPlaintext, 1, p.plaintext.length + 1)));
         }
 
         if (!p.isStreamCipher && !p.transformation.endsWith("NOPADDING")
-                && !isRandomizedEncryption(p.transformation)) {
+            && !isRandomizedEncryption(p.transformation)) {
             Cipher cNoPad = Cipher.getInstance(
                     getCipherTransformationWithNoPadding(p.transformation), provider);
             cNoPad.init(Cipher.DECRYPT_MODE, p.decryptKey, p.spec);
@@ -4002,8 +4117,8 @@ public final class CipherTest {
                 c.updateAAD(p.aad);
             }
             final byte[] actualPlaintextPadded = cNoPad.doFinal(p.ciphertext);
-            assertEquals(provider + ":" + cNoPad.getAlgorithm(),
-                    Arrays.toString(p.plaintextPadded), Arrays.toString(actualPlaintextPadded));
+            assertEquals(provider + ":" + cNoPad.getAlgorithm(), Arrays.toString(p.plaintextPadded),
+                         Arrays.toString(actualPlaintextPadded));
         }
 
         // Test wrapping a key. Every cipher should be able to wrap.
@@ -4022,18 +4137,17 @@ public final class CipherTest {
             c.init(Cipher.UNWRAP_MODE, p.decryptKey, p.spec);
             Key decryptedKey = c.unwrap(cipherText, sk.getAlgorithm(), Cipher.SECRET_KEY);
 
-            assertEquals(
-                    "sk.getAlgorithm()=" + sk.getAlgorithm() + " decryptedKey.getAlgorithm()="
-                            + decryptedKey.getAlgorithm() + " encryptKey.getEncoded()="
-                            + Arrays.toString(sk.getEncoded()) + " decryptedKey.getEncoded()="
-                            + Arrays.toString(decryptedKey.getEncoded()), sk, decryptedKey);
+            assertEquals("sk.getAlgorithm()=" + sk.getAlgorithm() + " decryptedKey.getAlgorithm()="
+                                 + decryptedKey.getAlgorithm() + " encryptKey.getEncoded()="
+                                 + Arrays.toString(sk.getEncoded()) + " decryptedKey.getEncoded()="
+                                 + Arrays.toString(decryptedKey.getEncoded()),
+                         sk, decryptedKey);
         }
     }
 
     // SunJCE has known issues between 17 and 21
     private boolean isBuggyProvider(String providerName) {
-        return providerName.equals("SunJCE")
-                && TestUtils.isJavaVersion(17)
+        return providerName.equals("SunJCE") && TestUtils.isJavaVersion(17)
                 && !TestUtils.isJavaVersion(21);
     }
 
@@ -4179,8 +4293,8 @@ public final class CipherTest {
      * initialized in modes other than DECRYPT or ENCRYPT.
      */
     private static void checkCipher_DoFinal_invalidMode_Failure(int opmode) throws Exception {
-        String msg = String.format(Locale.US,
-                "doFinal() should throw IllegalStateException [mode=%d]", opmode);
+        String msg = String.format(
+                Locale.US, "doFinal() should throw IllegalStateException [mode=%d]", opmode);
         int bs = createAesCipher(opmode).getBlockSize();
         assertEquals(16, bs); // check test is set up correctly
         try {
@@ -4228,11 +4342,15 @@ public final class CipherTest {
         assertEquals(16, bs); // check test is set up correctly
         assertIllegalStateException(msg, () -> createAesCipher(opmode).update(new byte[0]));
         assertIllegalStateException(msg, () -> createAesCipher(opmode).update(new byte[2 * bs]));
-        assertIllegalStateException(msg, () -> createAesCipher(opmode).update(
-                new byte[2 * bs] /* input */, bs /* inputOffset */, 0 /* inputLen */));
+        assertIllegalStateException(
+                msg,
+                ()
+                        -> createAesCipher(opmode).update(new byte[2 * bs] /* input */,
+                                                          bs /* inputOffset */, 0 /* inputLen */));
         try {
-            createAesCipher(opmode).update(new byte[2*bs] /* input */, 0 /* inputOffset */,
-                    2 * bs /* inputLen */, new byte[2 * bs] /* output */, 0 /* outputOffset */);
+            createAesCipher(opmode).update(new byte[2 * bs] /* input */, 0 /* inputOffset */,
+                                           2 * bs /* inputLen */, new byte[2 * bs] /* output */,
+                                           0 /* outputOffset */);
             fail(msg);
         } catch (IllegalStateException expected) {
         }
@@ -4312,15 +4430,16 @@ public final class CipherTest {
         }
     }
 
-    private void checkCipher_ShortBlock_Failure(CipherTestParam p, String provider) throws Exception {
+    private void checkCipher_ShortBlock_Failure(CipherTestParam p, String provider)
+            throws Exception {
         // Do not try to test ciphers with no padding already.
         String noPaddingTransform = getCipherTransformationWithNoPadding(p.transformation);
         if (p.transformation.equals(noPaddingTransform)) {
             return;
         }
 
-        Cipher c = Cipher.getInstance(
-                getCipherTransformationWithNoPadding(p.transformation), provider);
+        Cipher c = Cipher.getInstance(getCipherTransformationWithNoPadding(p.transformation),
+                                      provider);
         if (c.getBlockSize() == 0) {
             return;
         }
@@ -4328,9 +4447,9 @@ public final class CipherTest {
         if (!p.transformation.endsWith("NOPADDING")) {
             c.init(Cipher.ENCRYPT_MODE, p.encryptKey);
             try {
-                c.doFinal(new byte[] { 0x01, 0x02, 0x03 });
+                c.doFinal(new byte[] {0x01, 0x02, 0x03});
                 fail("Should throw IllegalBlockSizeException on wrong-sized block; transform="
-                        + p.transformation + " provider=" + provider);
+                     + p.transformation + " provider=" + provider);
             } catch (IllegalBlockSizeException expected) {
             }
         }
@@ -4384,7 +4503,8 @@ public final class CipherTest {
         // Should keep data for real output buffer
         {
             final byte[] output = new byte[c.getBlockSize()];
-            assertEquals(AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted.length, c.doFinal(output, 0));
+            assertEquals(AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted.length,
+                         c.doFinal(output, 0));
             assertArrayEquals(AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted, output);
         }
     }
@@ -4405,18 +4525,21 @@ public final class CipherTest {
         assertEquals(provider, c.getProvider().getName());
         c.init(Cipher.ENCRYPT_MODE, AES_128_KEY);
 
-        for (int i = 0; i < AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded.length - 1; i++) {
-            final byte[] outputFragment = c.update(AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded, i, 1);
+        for (int i = 0; i < AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded.length - 1;
+             i++) {
+            final byte[] outputFragment =
+                    c.update(AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded, i, 1);
             if (outputFragment != null) {
                 assertEquals(0, outputFragment.length);
             }
         }
 
-        final byte[] output = c.doFinal(AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded,
-                AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded.length - 1, 1);
+        final byte[] output =
+                c.doFinal(AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded,
+                          AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded.length - 1, 1);
         assertNotNull(provider, output);
         assertEquals(provider, AES_128_ECB_PKCS5Padding_TestVector_1_Plaintext_Padded.length,
-                output.length);
+                     output.length);
 
         assertArrayEquals(provider, AES_128_ECB_PKCS5Padding_TestVector_1_Encrypted, output);
     }
@@ -4504,14 +4627,14 @@ public final class CipherTest {
                     expected[index] = Arrays.toString(cipherText);
                 } else {
                     assertEquals(firstProvider + " should output the same as " + p.getName()
-                            + " for key size " + keysize, expected[index],
-                            Arrays.toString(cipherText));
+                                         + " for key size " + keysize,
+                                 expected[index], Arrays.toString(cipherText));
                 }
 
                 c.init(Cipher.DECRYPT_MODE, sk);
                 byte[] actualPlaintext = c.doFinal(cipherText);
                 assertEquals("Key size: " + keysize, Arrays.toString(ORIGINAL_PLAIN_TEXT),
-                        Arrays.toString(actualPlaintext));
+                             Arrays.toString(actualPlaintext));
             }
         }
     }
@@ -4568,17 +4691,17 @@ public final class CipherTest {
         encCipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(testKey, "AES"));
         byte[] plainBuffer = testString.getBytes(StandardCharsets.US_ASCII);
         byte[] encryptedBuffer = new byte[16];
-        int encryptedLength = encCipher.doFinal(
-                plainBuffer, 0, plainBuffer.length, encryptedBuffer);
+        int encryptedLength =
+                encCipher.doFinal(plainBuffer, 0, plainBuffer.length, encryptedBuffer);
         assertEquals(16, encryptedLength);
 
         Cipher cipher = Cipher.getInstance(testedCipher);
         cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(testKey, "AES"));
         // Must not throw exception.
-        int unencryptedBytes = cipher.doFinal(
-                encryptedBuffer, 0, encryptedBuffer.length, encryptedBuffer);
+        int unencryptedBytes =
+                cipher.doFinal(encryptedBuffer, 0, encryptedBuffer.length, encryptedBuffer);
         assertEquals(testString,
-                new String(encryptedBuffer, 0, unencryptedBytes, StandardCharsets.US_ASCII));
+                     new String(encryptedBuffer, 0, unencryptedBytes, StandardCharsets.US_ASCII));
     }
 
     /*
@@ -4588,23 +4711,24 @@ public final class CipherTest {
      */
     @Test
     public void testDecryptBufferZeroSize_mustDecodeToEmptyString() throws Exception {
-        String[] androidOpenSSLCiphers = { "AES/CBC/PKCS5PADDING", "AES/CBC/PKCS7PADDING",
-                "AES/ECB/PKCS5PADDING", "AES/ECB/PKCS7PADDING", "DESEDE/CBC/PKCS5PADDING",
-                "DESEDE/CBC/PKCS7PADDING" };
+        String[] androidOpenSSLCiphers = {"AES/CBC/PKCS5PADDING",    "AES/CBC/PKCS7PADDING",
+                                          "AES/ECB/PKCS5PADDING",    "AES/ECB/PKCS7PADDING",
+                                          "DESEDE/CBC/PKCS5PADDING", "DESEDE/CBC/PKCS7PADDING"};
         for (String c : androidOpenSSLCiphers) {
             Cipher cipher = Cipher.getInstance(c);
             assertTrue(Conscrypt.isConscrypt(cipher.getProvider()));
             if (c.contains("/CBC/")) {
-                cipher.init(Cipher.DECRYPT_MODE,
+                cipher.init(
+                        Cipher.DECRYPT_MODE,
                         new SecretKeySpec("0123456789012345".getBytes(StandardCharsets.US_ASCII),
-                                c.startsWith("AES/") ? "AES" : "DESEDE"),
-                        new IvParameterSpec(
-                                ("01234567" + (c.startsWith("AES/") ? "89012345" : ""))
-                                        .getBytes(StandardCharsets.US_ASCII)));
+                                          c.startsWith("AES/") ? "AES" : "DESEDE"),
+                        new IvParameterSpec(("01234567" + (c.startsWith("AES/") ? "89012345" : ""))
+                                                    .getBytes(StandardCharsets.US_ASCII)));
             } else {
-                cipher.init(Cipher.DECRYPT_MODE,
+                cipher.init(
+                        Cipher.DECRYPT_MODE,
                         new SecretKeySpec("0123456789012345".getBytes(StandardCharsets.US_ASCII),
-                                c.startsWith("AES/") ? "AES" : "DESEDE"));
+                                          c.startsWith("AES/") ? "AES" : "DESEDE"));
             }
 
             byte[] buffer = new byte[0];
@@ -4623,7 +4747,7 @@ public final class CipherTest {
         keyGen.initialize(1024, SecureRandom.getInstance("SHA1PRNG"));
         Cipher cipher = Cipher.getInstance("RSA/NONE/OAEPPadding");
         cipher.init(Cipher.ENCRYPT_MODE, keyGen.generateKeyPair().getPublic());
-        cipher.doFinal(new byte[] {1,2,3,4});
+        cipher.doFinal(new byte[] {1, 2, 3, 4});
     }
 
     /*
@@ -4645,85 +4769,21 @@ public final class CipherTest {
         // we got the same provider for both
         assertEquals(c1.getProvider(), c2.getProvider());
         c1.updateAAD(new byte[] {
-                0x01, 0x02, 0x03, 0x04, 0x05,
+                0x01,
+                0x02,
+                0x03,
+                0x04,
+                0x05,
         });
         c2.updateAAD(new byte[] {
-                0x01, 0x02, 0x03, 0x04, 0x05,
+                0x01,
+                0x02,
+                0x03,
+                0x04,
+                0x05,
         });
 
         assertEquals(Arrays.toString(c1.doFinal()), Arrays.toString(c2.doFinal()));
-    }
-
-    /*
-     * http://b/27224566
-     * http://b/27994930
-     * Check that a PBKDF2WITHHMACSHA1 secret key factory works well with a
-     * PBEWITHSHAAND128BITAES-CBC-BC cipher. The former is PKCS5 and the latter is PKCS12, and so
-     * mixing them is not recommended. However, until 1.52 BouncyCastle was accepting this mixture,
-     * assuming the IV was a 0 vector. Some apps still use this functionality. This
-     * compatibility is likely to be removed in later versions of Android.
-     * TODO(27995180): consider whether we keep this compatibility. Consider whether we only allow
-     * if an IV is passed in the parameters.
-     */
-    @Test
-    public void test_PBKDF2WITHHMACSHA1_SKFactory_and_PBEAESCBC_Cipher_noIV() throws Exception {
-        Assume.assumeNotNull(Security.getProvider("BC"));
-        byte[] plaintext = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-                17, 18, 19 };
-        byte[] ciphertext = new byte[] {  92, -65, -128, 16, -102, -115, -44, 52, 16, 124, -34,
-                -45, 58, -70, -17, 127, 119, -67, 87, 91, 63, -13, -40, 9, 97, -17, -71, 97, 10,
-                -61, -19, -73 };
-        SecretKeyFactory skf =
-                SecretKeyFactory.getInstance("PBKDF2WITHHMACSHA1");
-        PBEKeySpec pbeks = new PBEKeySpec("password".toCharArray(),
-                "salt".getBytes(TestUtils.UTF_8),
-                100, 128);
-        SecretKey secretKey = skf.generateSecret(pbeks);
-
-        Cipher cipher =
-                Cipher.getInstance("PBEWITHSHAAND128BITAES-CBC-BC");
-        PBEParameterSpec paramSpec = new PBEParameterSpec("salt".getBytes(TestUtils.UTF_8), 100);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, paramSpec);
-        assertEquals(Arrays.toString(ciphertext), Arrays.toString(cipher.doFinal(plaintext)));
-
-        secretKey = skf.generateSecret(pbeks);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, paramSpec);
-        assertEquals(Arrays.toString(plaintext), Arrays.toString(cipher.doFinal(ciphertext)));
-    }
-
-    /*
-     * http://b/27224566
-     * http://b/27994930
-     * Check that a PBKDF2WITHHMACSHA1 secret key factory works well with a
-     * PBEWITHSHAAND128BITAES-CBC-BC cipher. The former is PKCS5 and the latter is PKCS12, and so
-     * mixing them is not recommended. However, until 1.52 BouncyCastle was accepting this mixture,
-     * assuming the IV was a 0 vector. Some apps still use this functionality. This
-     * compatibility is likely to be removed in later versions of Android.
-     * TODO(27995180): consider whether we keep this compatibility. Consider whether we only allow
-     * if an IV is passed in the parameters.
-     */
-    @Test
-    public void test_PBKDF2WITHHMACSHA1_SKFactory_and_PBEAESCBC_Cipher_withIV() throws Exception {
-        Assume.assumeNotNull(Security.getProvider("BC"));
-        byte[] plaintext = new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,  12, 13, 14, 15, 16,
-                17, 18, 19 };
-        byte[] ciphertext = { 68, -87, 71, -6, 32, -77, 124, 3, 35, -26, 96, -16, 100, -17, 52, -32,
-                110, 26, -117, 112, -25, -113, -58, -30, 19, -46, -21, 59, -126, -8, -70, -89 };
-        byte[] iv = new byte[] { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-        SecretKeyFactory skf =
-                SecretKeyFactory.getInstance("PBKDF2WITHHMACSHA1");
-        PBEKeySpec pbeks = new PBEKeySpec("password".toCharArray(),
-                "salt".getBytes(TestUtils.UTF_8),
-                100, 128);
-        SecretKey secretKey = skf.generateSecret(pbeks);
-        Cipher cipher =
-                Cipher.getInstance("PBEWITHSHAAND128BITAES-CBC-BC");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
-        assertEquals(Arrays.toString(ciphertext), Arrays.toString(cipher.doFinal(plaintext)));
-
-        secretKey = skf.generateSecret(pbeks);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
-        assertEquals(Arrays.toString(plaintext), Arrays.toString(cipher.doFinal(ciphertext)));
     }
 
     private static Cipher createAesCipher(int opmode) {

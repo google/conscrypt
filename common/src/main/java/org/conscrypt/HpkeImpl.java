@@ -50,7 +50,7 @@ public abstract class HpkeImpl implements HpkeSpi {
 
     @Override
     public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
-            byte[] psk, byte[] psk_id) throws InvalidKeyException {
+                                 byte[] psk, byte[] psk_id) throws InvalidKeyException {
         checkNotInitialised();
         checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
         if (recipientKey == null) {
@@ -65,8 +65,8 @@ public abstract class HpkeImpl implements HpkeSpi {
 
     @Override
     public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
-            PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe)
-            throws InvalidKeyException {
+                                           PrivateKey senderKey, byte[] psk, byte[] psk_id,
+                                           byte[] sKe) throws InvalidKeyException {
         checkNotInitialised();
         Objects.requireNonNull(sKe);
         checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
@@ -85,7 +85,8 @@ public abstract class HpkeImpl implements HpkeSpi {
 
     @Override
     public void engineInitRecipient(byte[] encapsulated, PrivateKey recipientKey, byte[] info,
-            PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
+                                    PublicKey senderKey, byte[] psk, byte[] psk_id)
+            throws InvalidKeyException {
         checkNotInitialised();
         checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
         Preconditions.checkNotNull(encapsulated, "null encapsulated data");
@@ -125,8 +126,8 @@ public abstract class HpkeImpl implements HpkeSpi {
         checkInitialised();
         long maxLength = hpkeSuite.getKdf().maxExportLength();
         if (length < 0 || length > maxLength) {
-            throw new IllegalArgumentException(
-                    "Export length must be between 0 and " + maxLength + ", but was " + length);
+            throw new IllegalArgumentException("Export length must be between 0 and " + maxLength
+                                               + ", but was " + length);
         }
         return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
     }
@@ -182,8 +183,8 @@ public abstract class HpkeImpl implements HpkeSpi {
         @Override
         byte[] getRecipientPublicKeyBytes(PublicKey recipientKey) throws InvalidKeyException {
             if (!(recipientKey instanceof OpenSSLX25519PublicKey)) {
-                throw new InvalidKeyException(
-                        "Unsupported recipient key class: " + recipientKey.getClass());
+                throw new InvalidKeyException("Unsupported recipient key class: "
+                                              + recipientKey.getClass());
             }
             return ((OpenSSLX25519PublicKey) recipientKey).getU();
         }
@@ -191,8 +192,8 @@ public abstract class HpkeImpl implements HpkeSpi {
         @Override
         byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
             if (!(recipientKey instanceof OpenSSLX25519PrivateKey)) {
-                throw new InvalidKeyException(
-                        "Unsupported recipient private key class: " + recipientKey.getClass());
+                throw new InvalidKeyException("Unsupported recipient private key class: "
+                                              + recipientKey.getClass());
             }
             return ((OpenSSLX25519PrivateKey) recipientKey).getU();
         }
@@ -215,12 +216,10 @@ public abstract class HpkeImpl implements HpkeSpi {
     /** Implementation of X25519/HKDF_SHA256/CHACHA20_POLY1305. */
     public static class X25519_CHACHA20 extends HpkeX25519Impl {
         public X25519_CHACHA20() {
-            super(new HpkeSuite(
-                    KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+            super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256,
+                                AEAD_CHACHA20POLY1305));
         }
     }
-
-    private static final OpenSslXwingKeyFactory xwingKeyFactory = new OpenSslXwingKeyFactory();
 
     private static class HpkeXwingImpl extends HpkeImpl {
         HpkeXwingImpl(HpkeSuite hpkeSuite) {
@@ -229,20 +228,20 @@ public abstract class HpkeImpl implements HpkeSpi {
 
         @Override
         byte[] getRecipientPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
-            Key translatedKey = xwingKeyFactory.engineTranslateKey(publicKey);
-            if (!(translatedKey instanceof OpenSslXwingPublicKey)) {
-                throw new IllegalStateException("Unexpected public key class");
+            if (!(publicKey instanceof OpenSslXwingPublicKey)) {
+                throw new InvalidKeyException("Unsupported recipient key class: "
+                                              + publicKey.getClass());
             }
-            return ((OpenSslXwingPublicKey) translatedKey).getRaw();
+            return ((OpenSslXwingPublicKey) publicKey).getRaw();
         }
 
         @Override
         byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
-            Key translatedKey = xwingKeyFactory.engineTranslateKey(recipientKey);
-            if (!(translatedKey instanceof OpenSslXwingPrivateKey)) {
-                throw new IllegalStateException("Unexpected private key class");
+            if (!(recipientKey instanceof OpenSslXwingPrivateKey)) {
+                throw new InvalidKeyException("Unsupported recipient private key class: "
+                                              + recipientKey.getClass());
             }
-            return ((OpenSslXwingPrivateKey) translatedKey).getRaw();
+            return ((OpenSslXwingPrivateKey) recipientKey).getRaw();
         }
     }
 

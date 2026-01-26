@@ -20,6 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.conscrypt.TestUtils;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,8 +31,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
-import org.conscrypt.TestUtils;
 
 /**
  * This class defines expected string names for protocols, key types,
@@ -59,7 +60,8 @@ import org.conscrypt.TestUtils;
 public final class StandardNames {
     public static final boolean IS_RI =
             !"Dalvik Core Library".equals(System.getProperty("java.specification.name"));
-    public static final String JSSE_PROVIDER_NAME = IS_RI ? "Conscrypt" : "AndroidOpenSSL";
+    public static final String JSSE_PROVIDER_NAME =
+            "AndroidOpenSSL"; // google3 patch, see copy.bara.sky
 
     public static final String KEY_MANAGER_FACTORY_DEFAULT = IS_RI ? "SunX509" : "PKIX";
     public static final String TRUST_MANAGER_FACTORY_DEFAULT = "PKIX";
@@ -128,8 +130,8 @@ public final class StandardNames {
     }
 
     @SuppressWarnings("EnumOrdinal")
-    private static void provideSslContextEnabledProtocols(
-            String algorithm, TLSVersion minimum, TLSVersion maximum) {
+    private static void provideSslContextEnabledProtocols(String algorithm, TLSVersion minimum,
+                                                          TLSVersion maximum) {
         if (minimum.ordinal() > maximum.ordinal()) {
             throw new RuntimeException("TLS version: minimum > maximum");
         }
@@ -155,19 +157,26 @@ public final class StandardNames {
             provideCipherPaddings("AES", new String[] {"PKCS7Padding"});
         }
 
-        provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv13);
-        provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
-        provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
-        provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
-        provideSslContextEnabledProtocols("TLSv1.3", TLSVersion.TLSv1, TLSVersion.TLSv13);
-        provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv13);
+        if (TestUtils.isTlsV1Supported()) {
+            provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv1, TLSVersion.TLSv13);
+            provideSslContextEnabledProtocols("TLSv1", TLSVersion.TLSv1, TLSVersion.TLSv12);
+            provideSslContextEnabledProtocols("TLSv1.1", TLSVersion.TLSv1, TLSVersion.TLSv12);
+            provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv1, TLSVersion.TLSv12);
+            provideSslContextEnabledProtocols("TLSv1.3", TLSVersion.TLSv1, TLSVersion.TLSv13);
+            provideSslContextEnabledProtocols("Default", TLSVersion.TLSv1, TLSVersion.TLSv13);
+        } else {
+            provideSslContextEnabledProtocols("TLS", TLSVersion.TLSv12, TLSVersion.TLSv13);
+            provideSslContextEnabledProtocols("TLSv1.2", TLSVersion.TLSv12, TLSVersion.TLSv12);
+            provideSslContextEnabledProtocols("TLSv1.3", TLSVersion.TLSv12, TLSVersion.TLSv13);
+            provideSslContextEnabledProtocols("Default", TLSVersion.TLSv12, TLSVersion.TLSv13);
+        }
     }
 
     public static final String SSL_CONTEXT_PROTOCOLS_DEFAULT = "Default";
     public static final Set<String> SSL_CONTEXT_PROTOCOLS = new HashSet<String>(
-            Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"));
-    public static final Set<String> SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG = new HashSet<String>(
-            Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1.3"));
+            Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1.2", "TLSv1.3"));
+    public static final Set<String> SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG =
+            new HashSet<String>(Arrays.asList(SSL_CONTEXT_PROTOCOLS_DEFAULT, "TLS", "TLSv1.3"));
     // Deprecated TLS protocols... May or may not be present or enabled.
     public static final Set<String> SSL_CONTEXT_PROTOCOLS_DEPRECATED = new HashSet<>();
     static {
@@ -191,8 +200,15 @@ public final class StandardNames {
         }
     }
 
-    public static final Set<String> SSL_SOCKET_PROTOCOLS =
-            new HashSet<String>(Arrays.asList("TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"));
+    public static final Set<String> SSL_SOCKET_PROTOCOLS = new HashSet<>();
+    static {
+        SSL_SOCKET_PROTOCOLS.add("TLSv1.2");
+        SSL_SOCKET_PROTOCOLS.add("TLSv1.3");
+        if (TestUtils.isTlsV1Supported()) {
+            SSL_SOCKET_PROTOCOLS.add("TLSv1");
+            SSL_SOCKET_PROTOCOLS.add("TLSv1.1");
+        }
+    }
 
     private enum TLSVersion {
         SSLv3("SSLv3"),
@@ -222,11 +238,11 @@ public final class StandardNames {
      * or GENERIC (for TLS 1.3 cipher suites that don't imply a specific
      * key exchange method).
      */
-    public static final Set<String> SERVER_AUTH_TYPES = new HashSet<String>(Arrays.asList("DHE_DSS",
-            "DHE_DSS_EXPORT", "DHE_RSA", "DHE_RSA_EXPORT", "DH_DSS_EXPORT", "DH_RSA_EXPORT",
-            "DH_anon", "DH_anon_EXPORT", "KRB5", "KRB5_EXPORT", "RSA", "RSA_EXPORT",
-            "RSA_EXPORT1024", "ECDH_ECDSA", "ECDH_RSA", "ECDHE_ECDSA", "ECDHE_RSA", "UNKNOWN",
-            "GENERIC"));
+    public static final Set<String> SERVER_AUTH_TYPES = new HashSet<String>(
+            Arrays.asList("DHE_DSS", "DHE_DSS_EXPORT", "DHE_RSA", "DHE_RSA_EXPORT", "DH_DSS_EXPORT",
+                          "DH_RSA_EXPORT", "DH_anon", "DH_anon_EXPORT", "KRB5", "KRB5_EXPORT",
+                          "RSA", "RSA_EXPORT", "RSA_EXPORT1024", "ECDH_ECDSA", "ECDH_RSA",
+                          "ECDHE_ECDSA", "ECDHE_RSA", "UNKNOWN", "GENERIC"));
 
     public static final String CIPHER_SUITE_INVALID = "SSL_NULL_WITH_NULL_NULL";
 
@@ -278,68 +294,43 @@ public final class StandardNames {
      * Cipher suites that are not negotiated when TLSv1.2 is selected on the RI.
      */
     public static final List<String> CIPHER_SUITES_OBSOLETE_TLS12 = Arrays.asList(
-            "SSL_RSA_WITH_DES_CBC_SHA",
-            "SSL_DHE_RSA_WITH_DES_CBC_SHA",
-            "SSL_DHE_DSS_WITH_DES_CBC_SHA",
-            "SSL_DH_anon_WITH_DES_CBC_SHA",
-            "SSL_RSA_EXPORT_WITH_RC4_40_MD5",
-            "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",
-            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
-            "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
+            "SSL_RSA_WITH_DES_CBC_SHA", "SSL_DHE_RSA_WITH_DES_CBC_SHA",
+            "SSL_DHE_DSS_WITH_DES_CBC_SHA", "SSL_DH_anon_WITH_DES_CBC_SHA",
+            "SSL_RSA_EXPORT_WITH_RC4_40_MD5", "SSL_DH_anon_EXPORT_WITH_RC4_40_MD5",
+            "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA", "SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA");
 
     /**
      * Cipher suites that are only supported with TLS 1.3.
      */
     public static final List<String> CIPHER_SUITES_TLS13 = Arrays.asList(
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_AES_256_GCM_SHA384",
-            "TLS_CHACHA20_POLY1305_SHA256");
+            "TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256");
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
     private static final List<String> CIPHER_SUITES_AES_HARDWARE = Arrays.asList(
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_AES_256_GCM_SHA384",
-            "TLS_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-            "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA",
-            CIPHER_SUITE_SECURE_RENEGOTIATION);
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA", CIPHER_SUITE_SECURE_RENEGOTIATION);
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
     private static final List<String> CIPHER_SUITES_SOFTWARE = Arrays.asList(
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_AES_256_GCM_SHA384",
-            "TLS_CHACHA20_POLY1305_SHA256",
+            "TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256",
             "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
-            "TLS_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_RSA_WITH_AES_128_CBC_SHA",
-            "TLS_RSA_WITH_AES_256_CBC_SHA",
-            CIPHER_SUITE_SECURE_RENEGOTIATION);
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA", CIPHER_SUITE_SECURE_RENEGOTIATION);
 
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
@@ -350,10 +341,8 @@ public final class StandardNames {
     // NOTE: This list needs to be kept in sync with Javadoc of javax.net.ssl.SSLSocket and
     // javax.net.ssl.SSLEngine.
     public static final List<String> CIPHER_SUITES_DEFAULT_PSK = Arrays.asList(
-            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
-            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
-            "TLS_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "TLS_PSK_WITH_AES_128_CBC_SHA",
             "TLS_PSK_WITH_AES_256_CBC_SHA");
 
     // Should be updated to match BoringSSL's defaults when they change.
@@ -368,8 +357,8 @@ public final class StandardNames {
      * suites in a test for those that want to verify separately that
      * all cipher suites were included.
      */
-    private static Set<String> assertValidCipherSuites(
-            Set<String> expected, String[] cipherSuites) {
+    private static Set<String> assertValidCipherSuites(Set<String> expected,
+                                                       String[] cipherSuites) {
         assertNotNull(cipherSuites);
         assertTrue(cipherSuites.length != 0);
 
@@ -448,11 +437,23 @@ public final class StandardNames {
         assertValidCipherSuites(CIPHER_SUITES, cipherSuites);
     }
 
+    private static final List<String> OPTIONAL_CIPHER_SUITES =
+            Arrays.asList("SSL_RSA_WITH_3DES_EDE_CBC_SHA");
+
     /**
      * Assert that the provided list of cipher suites matches the supported list.
      */
     public static void assertSupportedCipherSuites(String[] cipherSuites) {
-        assertSupportedCipherSuites(CIPHER_SUITES, cipherSuites);
+        List<String> filteredCipherSuites = new ArrayList<>();
+        for (String cipherSuite : cipherSuites) {
+            if (OPTIONAL_CIPHER_SUITES.contains(cipherSuite)) {
+                continue;
+            }
+            filteredCipherSuites.add(cipherSuite);
+        }
+        String[] filteredCipherSuitesArray = new String[filteredCipherSuites.size()];
+        filteredCipherSuites.toArray(filteredCipherSuitesArray);
+        assertSupportedCipherSuites(CIPHER_SUITES, filteredCipherSuitesArray);
     }
 
     /**
@@ -472,8 +473,8 @@ public final class StandardNames {
     }
 
     public static void assertSSLContextEnabledProtocols(String version, String[] protocols) {
-        Set<String> expected = new HashSet<>(
-            Arrays.asList(SSL_CONTEXT_PROTOCOLS_ENABLED.get(version)));
+        Set<String> expected =
+                new HashSet<>(Arrays.asList(SSL_CONTEXT_PROTOCOLS_ENABLED.get(version)));
         Set<String> actual = new HashSet<>(Arrays.asList(protocols));
 
         // Ignore deprecated protocols, which are set earlier based
