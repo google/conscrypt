@@ -1,18 +1,21 @@
 ---
 Language: Cpp
-BasedOnStyle:  Google
+BasedOnStyle: Google
 AccessModifierOffset: -4
 AllowShortFunctionsOnASingleLine: Empty
 ColumnLimit: 100
 IndentWidth: 4
 ContinuationIndentWidth: 8
 TypenameMacros: ['STACK_OF']
+AlignEscapedNewlines: Left
+AlignAfterOpenBracket: Align
 ---
 Language: Java
 BasedOnStyle: Google
 ColumnLimit: 100
 IndentWidth: 4
 ContinuationIndentWidth: 8
+AlignAfterOpenBracket: Align
 JavaImportGroups:
 - android
 - androidx

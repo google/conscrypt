@@ -77,9 +77,11 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
@@ -125,8 +127,7 @@ final public class Platform {
     /**
      * Approximates the behavior of File.createTempFile without depending on SecureRandom.
      */
-    static File createTempFile(String prefix, String suffix, File directory)
-        throws IOException {
+    static File createTempFile(String prefix, String suffix, File directory) throws IOException {
         if (directory == null) {
             throw new NullPointerException();
         }
@@ -247,18 +248,19 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     static void setCurveName(@SuppressWarnings("unused") ECParameterSpec spec,
-            @SuppressWarnings("unused") String curveName) {
+                             @SuppressWarnings("unused") String curveName) {
         // This doesn't appear to be needed.
     }
 
     @SuppressWarnings("unused")
     static void setSocketWriteTimeout(@SuppressWarnings("unused") Socket s,
-            @SuppressWarnings("unused") long timeoutMillis) throws SocketException {
+                                      @SuppressWarnings("unused") long timeoutMillis)
+            throws SocketException {
         // TODO: figure this out on the RI
     }
 
-    static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 AbstractConscryptSocket socket) {
         if (JAVA_VERSION >= 9) {
             Java9PlatformUtil.setSSLParameters(params, impl, socket);
         } else if (JAVA_VERSION >= 8) {
@@ -268,8 +270,8 @@ final public class Platform {
         }
     }
 
-    static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 AbstractConscryptSocket socket) {
         if (JAVA_VERSION >= 9) {
             Java9PlatformUtil.getSSLParameters(params, impl, socket);
         } else if (JAVA_VERSION >= 8) {
@@ -279,8 +281,8 @@ final public class Platform {
         }
     }
 
-    static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 ConscryptEngine engine) {
         if (JAVA_VERSION >= 9) {
             Java9PlatformUtil.setSSLParameters(params, impl, engine);
         } else if (JAVA_VERSION >= 8) {
@@ -290,8 +292,8 @@ final public class Platform {
         }
     }
 
-    static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 ConscryptEngine engine) {
         if (JAVA_VERSION >= 9) {
             Java9PlatformUtil.getSSLParameters(params, impl, engine);
         } else if (JAVA_VERSION >= 8) {
@@ -302,8 +304,8 @@ final public class Platform {
     }
 
     @SuppressWarnings("unused")
-    static void setEndpointIdentificationAlgorithm(
-            SSLParameters params, String endpointIdentificationAlgorithm) {
+    static void setEndpointIdentificationAlgorithm(SSLParameters params,
+                                                   String endpointIdentificationAlgorithm) {
         params.setEndpointIdentificationAlgorithm(endpointIdentificationAlgorithm);
     }
 
@@ -314,7 +316,7 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            AbstractConscryptSocket socket) throws CertificateException {
+                                   AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, socket);
@@ -325,7 +327,7 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            AbstractConscryptSocket socket) throws CertificateException {
+                                   AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, socket);
@@ -336,7 +338,7 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            ConscryptEngine engine) throws CertificateException {
+                                   ConscryptEngine engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, engine);
@@ -347,7 +349,7 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            ConscryptEngine engine) throws CertificateException {
+                                   ConscryptEngine engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, engine);
@@ -387,7 +389,8 @@ final public class Platform {
     }
 
     static ConscryptEngineSocket createEngineSocket(String hostname, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8EngineSocket(hostname, port, sslParameters);
         }
@@ -395,7 +398,8 @@ final public class Platform {
     }
 
     static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8EngineSocket(address, port, sslParameters);
         }
@@ -403,7 +407,8 @@ final public class Platform {
     }
 
     static ConscryptEngineSocket createEngineSocket(String hostname, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                    InetAddress clientAddress, int clientPort,
+                                                    SSLParametersImpl sslParameters)
             throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8EngineSocket(hostname, port, clientAddress, clientPort, sslParameters);
@@ -412,7 +417,8 @@ final public class Platform {
     }
 
     static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                    InetAddress clientAddress, int clientPort,
+                                                    SSLParametersImpl sslParameters)
             throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8EngineSocket(address, port, clientAddress, clientPort, sslParameters);
@@ -421,7 +427,9 @@ final public class Platform {
     }
 
     static ConscryptEngineSocket createEngineSocket(Socket socket, String hostname, int port,
-            boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+                                                    boolean autoClose,
+                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8EngineSocket(socket, hostname, port, autoClose, sslParameters);
         }
@@ -437,7 +445,8 @@ final public class Platform {
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8FileDescriptorSocket(hostname, port, sslParameters);
         }
@@ -445,7 +454,8 @@ final public class Platform {
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8FileDescriptorSocket(address, port, sslParameters);
         }
@@ -453,29 +463,35 @@ final public class Platform {
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                                    InetAddress clientAddress,
+                                                                    int clientPort,
+                                                                    SSLParametersImpl sslParameters)
             throws IOException {
         if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(
-                    hostname, port, clientAddress, clientPort, sslParameters);
+            return new Java8FileDescriptorSocket(hostname, port, clientAddress, clientPort,
+                                                 sslParameters);
         }
-        return new ConscryptFileDescriptorSocket(
-                hostname, port, clientAddress, clientPort, sslParameters);
+        return new ConscryptFileDescriptorSocket(hostname, port, clientAddress, clientPort,
+                                                 sslParameters);
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                                    InetAddress clientAddress,
+                                                                    int clientPort,
+                                                                    SSLParametersImpl sslParameters)
             throws IOException {
         if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(
-                    address, port, clientAddress, clientPort, sslParameters);
+            return new Java8FileDescriptorSocket(address, port, clientAddress, clientPort,
+                                                 sslParameters);
         }
-        return new ConscryptFileDescriptorSocket(
-                address, port, clientAddress, clientPort, sslParameters);
+        return new ConscryptFileDescriptorSocket(address, port, clientAddress, clientPort,
+                                                 sslParameters);
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(Socket socket, String hostname,
-            int port, boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+                                                                    int port, boolean autoClose,
+                                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         if (JAVA_VERSION >= 8) {
             return new Java8FileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
         }
@@ -532,7 +548,7 @@ final public class Platform {
 
     @SuppressWarnings("unused")
     static void closeGuardOpen(@SuppressWarnings("unused") Object guardObj,
-            @SuppressWarnings("unused") String message) {}
+                               @SuppressWarnings("unused") String message) {}
 
     @SuppressWarnings("unused")
     static void closeGuardClose(@SuppressWarnings("unused") Object guardObj) {}
@@ -564,13 +580,13 @@ final public class Platform {
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             if (cause instanceof RuntimeException) {
-                throw(RuntimeException) cause;
+                throw (RuntimeException) cause;
             } else if (cause instanceof Error) {
-                throw(Error) cause;
+                throw (Error) cause;
             }
             throw new RuntimeException(e);
         } catch (Exception ignored) {
-            //Ignored
+            // Ignored
         }
         return oid;
     }
@@ -634,57 +650,8 @@ final public class Platform {
         return true;
     }
 
-    /**
-     * Check if SCT verification is required for a given hostname.
-     *
-     * SCT Verification is enabled using {@code Security} properties.
-     * The "conscrypt.ct.enable" property must be true, as well as a per domain property.
-     * The reverse notation of the domain name, prefixed with "conscrypt.ct.enforce."
-     * is used as the property name.
-     * Basic globbing is also supported.
-     *
-     * For example, for the domain foo.bar.com, the following properties will be
-     * looked up, in order of precedence.
-     * - conscrypt.ct.enforce.com.bar.foo
-     * - conscrypt.ct.enforce.com.bar.*
-     * - conscrypt.ct.enforce.com.*
-     * - conscrypt.ct.enforce.*
-     */
-    public static boolean isCTVerificationRequired(String hostname) {
-        if (hostname == null) {
-            return false;
-        }
-
-        String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || !Boolean.parseBoolean(property.toLowerCase(Locale.ROOT))) {
-            return false;
-        }
-
-        List<String> parts = Arrays.asList(hostname.split("\\."));
-        Collections.reverse(parts);
-
-        boolean enable = false;
-        StringBuilder propertyName = new StringBuilder("conscrypt.ct.enforce");
-        // The loop keeps going on even once we've found a match
-        // This allows for finer grained settings on subdomains
-        for (String part : parts) {
-            property = Security.getProperty(propertyName + ".*");
-            if (property != null) {
-                enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
-            }
-            propertyName.append(".").append(part);
-        }
-
-        property = Security.getProperty(propertyName.toString());
-        if (property != null) {
-            enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
-        }
-        return enable;
-    }
-
-    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
-            String hostname) {
-        return CertificateTransparencyVerificationReason.UNKNOWN;
+    static SSLException wrapInvalidEchDataException(SSLException e) {
+        return e;
     }
 
     static boolean supportsConscryptCertStore() {
@@ -751,7 +718,8 @@ final public class Platform {
         return null;
     }
 
-    static CertificateTransparency newDefaultCertificateTransparency() {
+    static CertificateTransparency newDefaultCertificateTransparency(
+            Supplier<NetworkSecurityPolicy> policySupplier) {
         return null;
     }
 
@@ -823,7 +791,7 @@ final public class Platform {
     }
 
     public static ConscryptHostnameVerifier getDefaultHostnameVerifier() {
-        return  OkHostnameVerifier.strictInstance();
+        return OkHostnameVerifier.strictInstance();
     }
 
     @SuppressWarnings("unused")

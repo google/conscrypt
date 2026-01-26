@@ -26,8 +26,7 @@ import android.system.StructTimeval;
 import dalvik.system.BlockGuard;
 import dalvik.system.CloseGuard;
 import dalvik.system.VMRuntime;
-
-import libcore.net.NetworkSecurityPolicy;
+import dalvik.system.ZygoteHooks;
 
 import org.conscrypt.NativeCrypto;
 import org.conscrypt.ct.CertificateTransparency;
@@ -37,12 +36,15 @@ import org.conscrypt.ct.Policy;
 import org.conscrypt.ct.PolicyImpl;
 import org.conscrypt.flags.Flags;
 import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
+import org.conscrypt.metrics.NoopStatsLog;
 import org.conscrypt.metrics.OptionalMethod;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
 import org.conscrypt.metrics.StatsLogImpl;
 
+import java.io.BufferedReader;
 import java.io.FileDescriptor;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.System;
 import java.lang.reflect.Field;
@@ -66,6 +68,7 @@ import java.security.spec.InvalidParameterSpecException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.HttpsURLConnection;
@@ -73,6 +76,7 @@ import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
@@ -84,12 +88,19 @@ import sun.security.x509.AlgorithmId;
 
 @Internal
 final public class Platform {
-    private static class NoPreloadHolder { public static final Platform MAPPER = new Platform(); }
+    private static class NoPreloadHolder {
+        public static final Platform MAPPER = new Platform();
+    }
     private static boolean DEPRECATED_TLS_V1 = true;
     private static boolean ENABLED_TLS_V1 = false;
     private static boolean FILTERED_TLS_V1 = true;
+    private static boolean RUNNING_IN_ZYGOTE = true;
+    private static final boolean canProbeZygote;
+    private static final boolean canCallZygoteMethod;
 
     static {
+        canProbeZygote = isSdkGreater(32);
+        canCallZygoteMethod = isSdkGreater(36);
         NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
     }
 
@@ -102,6 +113,7 @@ final public class Platform {
         FILTERED_TLS_V1 = !enabledTlsV1;
         NoPreloadHolder.MAPPER.ping();
         NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
+        RUNNING_IN_ZYGOTE = inZygote();
     }
 
     /**
@@ -162,15 +174,16 @@ final public class Platform {
         }
     }
 
-    static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
 
         try {
             Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
             impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
-        } catch (NoSuchMethodException | IllegalArgumentException e) {
+        } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException
+                 | InvocationTargetException e) {
             // Do nothing.
         }
 
@@ -186,8 +199,8 @@ final public class Platform {
         impl.setApplicationProtocols(params.getApplicationProtocols());
     }
 
-    static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
 
@@ -195,7 +208,8 @@ final public class Platform {
             Method setNamedGroupsMethod =
                     params.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
-        } catch (NoSuchMethodException | IllegalArgumentException e) {
+        } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException
+                 | InvocationTargetException e) {
             // Do nothing.
         }
 
@@ -206,17 +220,19 @@ final public class Platform {
         params.setApplicationProtocols(impl.getApplicationProtocols());
     }
 
-    static void setSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 ConscryptEngine engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
 
         try {
             Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
             impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
-        } catch (NoSuchMethodException | IllegalArgumentException e) {
+        } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException
+                 | InvocationTargetException e) {
             // Do nothing.
         }
+
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -229,8 +245,8 @@ final public class Platform {
         impl.setApplicationProtocols(params.getApplicationProtocols());
     }
 
-    static void getSSLParameters(
-            SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
+                                 ConscryptEngine engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
 
@@ -238,9 +254,11 @@ final public class Platform {
             Method setNamedGroupsMethod =
                     params.getClass().getMethod("setNamedGroups", String[].class);
             setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
-        } catch (NoSuchMethodException | IllegalArgumentException e) {
+        } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException
+                 | InvocationTargetException e) {
             // Do nothing.
         }
+
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(engine.getHostname())));
@@ -253,18 +271,19 @@ final public class Platform {
      * Socket, SSLEngine, or String (legacy Android).
      */
     private static boolean checkTrusted(String methodName, X509TrustManager tm,
-            X509Certificate[] chain, String authType, Class<?> argumentClass,
-            Object argumentInstance) throws CertificateException {
+                                        X509Certificate[] chain, String authType,
+                                        Class<?> argumentClass, Object argumentInstance)
+            throws CertificateException {
         // Use duck-typing to try and call the hostname-aware method if available.
         try {
-            Method method = tm.getClass().getMethod(
-                    methodName, X509Certificate[].class, String.class, argumentClass);
+            Method method = tm.getClass().getMethod(methodName, X509Certificate[].class,
+                                                    String.class, argumentClass);
             method.invoke(tm, chain, authType, argumentInstance);
             return true;
         } catch (NoSuchMethodException | IllegalAccessException ignored) {
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof CertificateException) {
-                throw(CertificateException) e.getCause();
+                throw (CertificateException) e.getCause();
             }
             throw new RuntimeException(e.getCause());
         }
@@ -272,49 +291,49 @@ final public class Platform {
     }
 
     static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            AbstractConscryptSocket socket) throws CertificateException {
+                                   AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, socket);
         } else if (!checkTrusted("checkClientTrusted", tm, chain, authType, Socket.class, socket)
-                && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
-                           socket.getHandshakeSession().getPeerHost())) {
+                   && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
+                                    socket.getHandshakeSession().getPeerHost())) {
             tm.checkClientTrusted(chain, authType);
         }
     }
 
     static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            AbstractConscryptSocket socket) throws CertificateException {
+                                   AbstractConscryptSocket socket) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, socket);
         } else if (!checkTrusted("checkServerTrusted", tm, chain, authType, Socket.class, socket)
-                && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
-                           socket.getHandshakeSession().getPeerHost())) {
+                   && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
+                                    socket.getHandshakeSession().getPeerHost())) {
             tm.checkServerTrusted(chain, authType);
         }
     }
 
     static void checkClientTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            ConscryptEngine engine) throws CertificateException {
+                                   ConscryptEngine engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkClientTrusted(chain, authType, engine);
         } else if (!checkTrusted("checkClientTrusted", tm, chain, authType, SSLEngine.class, engine)
-                && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
-                           engine.getHandshakeSession().getPeerHost())) {
+                   && !checkTrusted("checkClientTrusted", tm, chain, authType, String.class,
+                                    engine.getHandshakeSession().getPeerHost())) {
             tm.checkClientTrusted(chain, authType);
         }
     }
 
     static void checkServerTrusted(X509TrustManager tm, X509Certificate[] chain, String authType,
-            ConscryptEngine engine) throws CertificateException {
+                                   ConscryptEngine engine) throws CertificateException {
         if (tm instanceof X509ExtendedTrustManager) {
             X509ExtendedTrustManager x509etm = (X509ExtendedTrustManager) tm;
             x509etm.checkServerTrusted(chain, authType, engine);
         } else if (!checkTrusted("checkServerTrusted", tm, chain, authType, SSLEngine.class, engine)
-                && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
-                           engine.getHandshakeSession().getPeerHost())) {
+                   && !checkTrusted("checkServerTrusted", tm, chain, authType, String.class,
+                                    engine.getHandshakeSession().getPeerHost())) {
             tm.checkServerTrusted(chain, authType);
         }
     }
@@ -333,29 +352,35 @@ final public class Platform {
     }
 
     static ConscryptEngineSocket createEngineSocket(String hostname, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         return new Java8EngineSocket(hostname, port, sslParameters);
     }
 
     static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         return new Java8EngineSocket(address, port, sslParameters);
     }
 
     static ConscryptEngineSocket createEngineSocket(String hostname, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                    InetAddress clientAddress, int clientPort,
+                                                    SSLParametersImpl sslParameters)
             throws IOException {
         return new Java8EngineSocket(hostname, port, clientAddress, clientPort, sslParameters);
     }
 
     static ConscryptEngineSocket createEngineSocket(InetAddress address, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                    InetAddress clientAddress, int clientPort,
+                                                    SSLParametersImpl sslParameters)
             throws IOException {
         return new Java8EngineSocket(address, port, clientAddress, clientPort, sslParameters);
     }
 
     static ConscryptEngineSocket createEngineSocket(Socket socket, String hostname, int port,
-            boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+                                                    boolean autoClose,
+                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         return new Java8EngineSocket(socket, hostname, port, autoClose, sslParameters);
     }
 
@@ -365,31 +390,39 @@ final public class Platform {
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         return new Java8FileDescriptorSocket(hostname, port, sslParameters);
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
-            SSLParametersImpl sslParameters) throws IOException {
+                                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         return new Java8FileDescriptorSocket(address, port, sslParameters);
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                                    InetAddress clientAddress,
+                                                                    int clientPort,
+                                                                    SSLParametersImpl sslParameters)
             throws IOException {
-        return new Java8FileDescriptorSocket(
-                hostname, port, clientAddress, clientPort, sslParameters);
+        return new Java8FileDescriptorSocket(hostname, port, clientAddress, clientPort,
+                                             sslParameters);
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
-            InetAddress clientAddress, int clientPort, SSLParametersImpl sslParameters)
+                                                                    InetAddress clientAddress,
+                                                                    int clientPort,
+                                                                    SSLParametersImpl sslParameters)
             throws IOException {
-        return new Java8FileDescriptorSocket(
-                address, port, clientAddress, clientPort, sslParameters);
+        return new Java8FileDescriptorSocket(address, port, clientAddress, clientPort,
+                                             sslParameters);
     }
 
     static ConscryptFileDescriptorSocket createFileDescriptorSocket(Socket socket, String hostname,
-            int port, boolean autoClose, SSLParametersImpl sslParameters) throws IOException {
+                                                                    int port, boolean autoClose,
+                                                                    SSLParametersImpl sslParameters)
+            throws IOException {
         return new Java8FileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
     }
 
@@ -516,23 +549,8 @@ final public class Platform {
         return true;
     }
 
-    public static boolean isCTVerificationRequired(String hostname) {
-        if (Flags.certificateTransparencyPlatform()) {
-            return NetworkSecurityPolicy.getInstance()
-                    .isCertificateTransparencyVerificationRequired(hostname);
-        }
-        return false;
-    }
-
-    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
-            String hostname) {
-        if (NetworkSecurityPolicy.getInstance().isCertificateTransparencyVerificationRequired("")) {
-            return CertificateTransparencyVerificationReason.APP_OPT_IN;
-        } else if (NetworkSecurityPolicy.getInstance()
-                           .isCertificateTransparencyVerificationRequired(hostname)) {
-            return CertificateTransparencyVerificationReason.DOMAIN_OPT_IN;
-        }
-        return CertificateTransparencyVerificationReason.UNKNOWN;
+    static SSLException wrapInvalidEchDataException(SSLException e) {
+        return new android.net.ssl.InvalidEchDataException(e.getMessage());
     }
 
     static boolean supportsConscryptCertStore() {
@@ -557,11 +575,13 @@ final public class Platform {
         return CertBlocklistImpl.getDefault();
     }
 
-    static CertificateTransparency newDefaultCertificateTransparency() {
+    static CertificateTransparency newDefaultCertificateTransparency(
+            Supplier<NetworkSecurityPolicy> policySupplier) {
         org.conscrypt.ct.Policy policy = new org.conscrypt.ct.PolicyImpl();
         org.conscrypt.ct.LogStore logStore = new org.conscrypt.ct.LogStoreImpl(policy);
         org.conscrypt.ct.Verifier verifier = new org.conscrypt.ct.Verifier(logStore);
-        return new CertificateTransparency(logStore, policy, verifier, getStatsLog());
+        return new CertificateTransparency(logStore, policy, verifier, getStatsLog(),
+                                           policySupplier);
     }
 
     static boolean serverNamePermitted(SSLParametersImpl parameters, String serverName) {
@@ -593,7 +613,14 @@ final public class Platform {
     }
 
     public static StatsLog getStatsLog() {
-        return StatsLogImpl.getInstance();
+        if (!RUNNING_IN_ZYGOTE) {
+            return StatsLogImpl.getInstance();
+        }
+        if (!inZygote()) {
+            RUNNING_IN_ZYGOTE = false;
+            return StatsLogImpl.getInstance();
+        }
+        return NoopStatsLog.getInstance();
     }
 
     public static Source getStatsSource() {
@@ -615,7 +642,7 @@ final public class Platform {
     public static synchronized boolean isTlsV1Filtered() {
         Object targetSdkVersion = getTargetSdkVersion();
         if ((targetSdkVersion != null) && ((int) targetSdkVersion > 35)
-               && ((int) targetSdkVersion < 100))
+            && ((int) targetSdkVersion < 100))
             return false;
         return FILTERED_TLS_V1;
     }
@@ -628,16 +655,40 @@ final public class Platform {
         return true;
     }
 
+    private static boolean inZygote() {
+        if (canCallZygoteMethod) {
+            return ZygoteHooks.isInZygote();
+        }
+        if (canProbeZygote) {
+            try {
+                Class<?> zygoteHooksClass = Class.forName("dalvik.system.ZygoteHooks");
+                Method inZygoteMethod = zygoteHooksClass.getDeclaredMethod("inZygote");
+                Object inZygote = inZygoteMethod.invoke(null);
+                if (inZygote == null) {
+                    return true;
+                }
+                return (boolean) inZygote;
+            } catch (IllegalAccessException | NullPointerException | InvocationTargetException
+                     | ClassNotFoundException | NoSuchMethodException e) {
+                return true;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        // For previous releases, we have no mechanism to test if we are in Zygote.
+        // Assume we are not, to conserve the existing behaviour.
+        return false;
+    }
+
     static Object getTargetSdkVersion() {
         try {
             Class<?> vmRuntimeClass = Class.forName("dalvik.system.VMRuntime");
             Method getRuntimeMethod = vmRuntimeClass.getDeclaredMethod("getRuntime");
             Method getTargetSdkVersionMethod =
-                        vmRuntimeClass.getDeclaredMethod("getTargetSdkVersion");
+                    vmRuntimeClass.getDeclaredMethod("getTargetSdkVersion");
             Object vmRuntime = getRuntimeMethod.invoke(null);
             return getTargetSdkVersionMethod.invoke(vmRuntime);
-        } catch (IllegalAccessException |
-          NullPointerException | InvocationTargetException e) {
+        } catch (IllegalAccessException | NullPointerException | InvocationTargetException e) {
             return null;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -653,7 +704,7 @@ final public class Platform {
             Object sdkVersion = getSdkVersionMethod.invoke(vmRuntime);
             return (sdkVersion != null) && ((int) sdkVersion > sdk);
         } catch (IllegalAccessException | NullPointerException | InvocationTargetException
-                | NoSuchMethodException e) {
+                 | NoSuchMethodException e) {
             return false;
         } catch (Exception e) {
             throw new RuntimeException(e);

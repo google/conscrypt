@@ -17,15 +17,22 @@
 #ifndef CONSCRYPT_JNIUTIL_H_
 #define CONSCRYPT_JNIUTIL_H_
 
-#include <jni.h>
-#include <openssl/ssl.h>
-
 #include <conscrypt/logging.h>
 #include <conscrypt/macros.h>
+#include <jni.h>
 #include <nativehelper/scoped_local_ref.h>
+#include <openssl/ssl.h>
 
 namespace conscrypt {
 namespace jniutil {
+
+#ifdef __ANDROID__
+#define CRITICAL_JNI_PARAMS
+#define CRITICAL_JNI_PARAMS_COMMA
+#else
+#define CRITICAL_JNI_PARAMS JNIEnv*, jclass
+#define CRITICAL_JNI_PARAMS_COMMA JNIEnv*, jclass,
+#endif
 
 extern JavaVM* gJavaVM;
 extern jclass cryptoUpcallsClass;
@@ -308,7 +315,7 @@ extern int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCod
  * ensure that the error queue is empty whenever the function exits.
  */
 class ErrorQueueChecker {
- public:
+public:
     explicit ErrorQueueChecker(JNIEnv* env) : env(env) {}
     ~ErrorQueueChecker() {
         if (ERR_peek_error() != 0) {
@@ -326,7 +333,7 @@ class ErrorQueueChecker {
         }
     }
 
- private:
+private:
     JNIEnv* env;
 };
 
