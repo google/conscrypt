@@ -15,54 +15,52 @@
  */
 package org.conscrypt.java.security;
 
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.ECPublicKeySpec;
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
-public class KeyFactoryTestEC extends
-    AbstractKeyFactoryTest<ECPublicKeySpec, ECPrivateKeySpec> {
+public class KeyFactoryTestEC extends AbstractKeyFactoryTest<ECPublicKeySpec, ECPrivateKeySpec> {
+    // android-add: Allow access to deprecated BC algorithms.
 
-  public KeyFactoryTestEC() {
-    super("EC", ECPublicKeySpec.class, ECPrivateKeySpec.class);
-  }
+    public KeyFactoryTestEC() {
+        super("EC", ECPublicKeySpec.class, ECPrivateKeySpec.class);
+    }
 
-  @Override
-  public ServiceTester customizeTester(ServiceTester tester) {
-    // BC's EC keys always use explicit params, even though it's a bad idea, and we don't support
-    // those, so don't test BC keys
-    return tester.skipProvider("BC");
-  }
+    @Override
+    public ServiceTester customizeTester(ServiceTester tester) {
+        // BC's EC keys always use explicit params, even though it's a bad idea, and we don't
+        // support those, so don't test BC keys
+        return tester.skipProvider("BC");
+    }
 
-  @Override
-  protected void check(KeyPair keyPair) throws Exception {
-    new SignatureHelper("SHA256withECDSA").test(keyPair);
-  }
+    @Override
+    protected void check(KeyPair keyPair) throws Exception {
+        new SignatureHelper("SHA256withECDSA").test(keyPair);
+    }
 
-  @Override
-  protected List<KeyPair> getKeys() throws NoSuchAlgorithmException, InvalidKeySpecException {
-    return Arrays.asList(
-        new KeyPair(
-            DefaultKeys.getPublicKey("EC"),
-            DefaultKeys.getPrivateKey("EC")
-        ),
-        new KeyPair(
-            new TestPublicKey(DefaultKeys.getPublicKey("EC")),
-            new TestPrivateKey(DefaultKeys.getPrivateKey("EC"))
-        ),
-        new KeyPair(
-            new TestECPublicKey((ECPublicKey)DefaultKeys.getPublicKey("EC")),
-            new TestECPrivateKey((ECPrivateKey)DefaultKeys.getPrivateKey("EC"))
-        )
-    );
-  }
+    @Override
+    protected List<KeyPair> getKeys() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        return Arrays.asList(
+                new KeyPair(DefaultKeys.getPublicKey("EC"), DefaultKeys.getPrivateKey("EC")),
+                new KeyPair(new TestPublicKey(DefaultKeys.getPublicKey("EC")),
+                            new TestPrivateKey(DefaultKeys.getPrivateKey("EC"))),
+                new KeyPair(new TestECPublicKey((ECPublicKey) DefaultKeys.getPublicKey("EC")),
+                            new TestECPrivateKey((ECPrivateKey) DefaultKeys.getPrivateKey("EC"))));
+    }
 }

@@ -37,51 +37,53 @@ public class AndroidHpkeSpi implements android.crypto.hpke.HpkeSpi, org.conscryp
     }
 
     @Override
-    public void engineInitSender(PublicKey recipientKey, @Nullable byte[] info,
-            PrivateKey senderKey, @Nullable byte[] psk, @Nullable byte[] psk_id)
-            throws InvalidKeyException {
+    public void engineInitSender(PublicKey recipientKey, byte @Nullable[] info,
+                                 PrivateKey senderKey, byte @Nullable[] psk,
+                                 byte @Nullable[] psk_id) throws InvalidKeyException {
         delegate.engineInitSender(recipientKey, info, senderKey, psk, psk_id);
     }
 
     @Override
     public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
-            PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe)
+                                           PrivateKey senderKey, byte[] psk, byte[] psk_id,
+                                           byte[] sKe) throws InvalidKeyException {
+        delegate.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
+    }
+
+    @Override
+    public void engineInitSenderWithSeed(PublicKey recipientKey, byte @Nullable[] info,
+                                         PrivateKey senderKey, byte @Nullable[] psk,
+                                         byte @Nullable[] psk_id, byte @NonNull[] sKe)
             throws InvalidKeyException {
         delegate.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
     }
 
     @Override
-    public void engineInitSenderWithSeed(PublicKey recipientKey, @Nullable byte[] info,
-            PrivateKey senderKey, @Nullable byte[] psk, @Nullable byte[] psk_id,
-            @NonNull byte[] sKe) throws InvalidKeyException {
-        delegate.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
-    }
-
-    @Override
-    public void engineInitRecipient(@NonNull byte[] encapsulated, PrivateKey recipientKey,
-            @Nullable byte[] info, PublicKey senderKey, @Nullable byte[] psk,
-            @Nullable byte[] psk_id) throws InvalidKeyException {
+    public void engineInitRecipient(byte @NonNull[] encapsulated, PrivateKey recipientKey,
+                                    byte @Nullable[] info, PublicKey senderKey,
+                                    byte @Nullable[] psk, byte @Nullable[] psk_id)
+            throws InvalidKeyException {
         delegate.engineInitRecipient(encapsulated, recipientKey, info, senderKey, psk, psk_id);
     }
 
     @Override
-    public @NonNull byte[] engineSeal(@NonNull byte[] plaintext, @Nullable byte[] aad) {
+    public byte @NonNull[] engineSeal(byte @NonNull[] plaintext, byte @Nullable[] aad) {
         return delegate.engineSeal(plaintext, aad);
     }
 
     @Override
-    public @NonNull byte[] engineOpen(@NonNull byte[] ciphertext, @Nullable byte[] aad)
+    public byte @NonNull[] engineOpen(byte @NonNull[] ciphertext, byte @Nullable[] aad)
             throws GeneralSecurityException {
         return delegate.engineOpen(ciphertext, aad);
     }
 
     @Override
-    public @NonNull byte[] engineExport(int length, @Nullable byte[] context) {
+    public byte @NonNull[] engineExport(int length, byte @Nullable[] context) {
         return delegate.engineExport(length, context);
     }
 
     @Override
-    public @NonNull byte[] getEncapsulated() {
+    public byte @NonNull[] getEncapsulated() {
         return delegate.getEncapsulated();
     }
 
@@ -100,6 +102,24 @@ public class AndroidHpkeSpi implements android.crypto.hpke.HpkeSpi, org.conscryp
     public static class X25519_CHACHA20 extends AndroidHpkeSpi {
         public X25519_CHACHA20() {
             super(new HpkeImpl.X25519_CHACHA20());
+        }
+    }
+
+    public static class XwingHkdfSha256Aes128Gcm extends AndroidHpkeSpi {
+        public XwingHkdfSha256Aes128Gcm() {
+            super(new HpkeImpl.XwingHkdfSha256Aes128Gcm());
+        }
+    }
+
+    public static class XwingHkdfSha256Aes256Gcm extends AndroidHpkeSpi {
+        public XwingHkdfSha256Aes256Gcm() {
+            super(new HpkeImpl.XwingHkdfSha256Aes256Gcm());
+        }
+    }
+
+    public static class XwingHkdfSha256ChaCha20Poly1305 extends AndroidHpkeSpi {
+        public XwingHkdfSha256ChaCha20Poly1305() {
+            super(new HpkeImpl.XwingHkdfSha256ChaCha20Poly1305());
         }
     }
 }

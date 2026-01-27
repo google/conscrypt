@@ -117,14 +117,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     private static BufferAllocator defaultBufferAllocator = null;
 
     private final SSLParametersImpl sslParameters;
-    private BufferAllocator bufferAllocator = defaultBufferAllocator;
-
-    /**
-     * A lazy-created direct buffer used as a bridge between heap buffers provided by the
-     * application and JNI. This avoids the overhead of calling JNI with heap buffers.
-     * Used only when no {@link #bufferAllocator} has been provided.
-     */
-    private ByteBuffer lazyDirectBuffer;
+    private BufferAllocator bufferAllocator =
+            defaultBufferAllocator != null ? defaultBufferAllocator : LAZY_POOLED_ALLOCATOR;
 
     /**
      * Hostname used with the TLS extension SNI hostname.
@@ -196,15 +190,15 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider,
-            AliasChooser aliasChooser) {
+                    AliasChooser aliasChooser) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this, aliasChooser);
         this.networkBio = ssl.newBio();
     }
 
-    private static NativeSsl newSsl(
-            SSLParametersImpl sslParameters, ConscryptEngine engine, AliasChooser aliasChooser) {
+    private static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine,
+                                    AliasChooser aliasChooser) {
         try {
             return NativeSsl.newInstance(sslParameters, engine, aliasChooser, engine);
         } catch (SSLException e) {
@@ -267,7 +261,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
             }
             if (isHandshakeStarted()) {
                 throw new IllegalStateException("Could not enable/disable Channel ID after the "
-                        + "initial handshake has begun.");
+                                                + "initial handshake has begun.");
             }
             sslParameters.channelIdEnabled = enabled;
         }
@@ -319,7 +313,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
         synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException("Could not change Channel ID private key "
-                        + "after the initial handshake has begun.");
+                                                + "after the initial handshake has begun.");
             }
 
             if (privateKey == null) {
@@ -654,7 +648,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public boolean isInboundDone() {
         synchronized (ssl) {
             return (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND
-                           || ssl.wasShutdownReceived())
+                    || ssl.wasShutdownReceived())
                     && (pendingInboundCleartextBytes() == 0);
         }
     }
@@ -663,7 +657,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public boolean isOutboundDone() {
         synchronized (ssl) {
             return (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND
-                           || ssl.wasShutdownSent())
+                    || ssl.wasShutdownSent())
                     && (pendingOutboundEncryptedBytes() == 0);
         }
     }
@@ -692,8 +686,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public void setUseClientMode(boolean mode) {
         synchronized (ssl) {
             if (isHandshakeStarted()) {
-                throw new IllegalArgumentException(
-                        "Can not change mode after handshake: state == " + state);
+                throw new IllegalArgumentException("Can not change mode after handshake: state == "
+                                                   + state);
             }
             transitionTo(STATE_MODE_SET);
             sslParameters.setUseClientMode(mode);
@@ -730,7 +724,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset,
-            final int length) throws SSLException {
+                                  final int length) throws SSLException {
         synchronized (ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), 0, 1, dsts, offset, length);
@@ -749,7 +743,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
-            final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
+                           final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
             throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dsts != null, "dsts is null");
@@ -892,9 +886,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
                                     // inbound direction as closed and shut down the SSL object
                                     closeAll();
                                     return new SSLEngineResult(Status.CLOSED,
-                                            pendingOutboundEncryptedBytes() > 0 ? NEED_WRAP
-                                                                                : NOT_HANDSHAKING,
-                                            bytesConsumed, bytesProduced);
+                                                               pendingOutboundEncryptedBytes() > 0
+                                                                       ? NEED_WRAP
+                                                                       : NOT_HANDSHAKING,
+                                                               bytesConsumed, bytesProduced);
                                 }
                                 default: {
                                     // Should never get here.
@@ -926,10 +921,11 @@ final class ConscryptEngine extends AbstractConscryptEngine
             if (pendingCleartextBytes > 0) {
                 // We filled all buffers but there is still some data pending in the BIO buffer,
                 // return BUFFER_OVERFLOW.
-                return new SSLEngineResult(BUFFER_OVERFLOW,
+                return new SSLEngineResult(
+                        BUFFER_OVERFLOW,
                         mayFinishHandshake(handshakeStatus == FINISHED
-                                        ? handshakeStatus
-                                        : getHandshakeStatusInternal()),
+                                                   ? handshakeStatus
+                                                   : getHandshakeStatusInternal()),
                         bytesConsumed, bytesProduced);
             }
 
@@ -1037,16 +1033,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     private int writePlaintextDataHeap(ByteBuffer src, int pos, int len) throws IOException {
         AllocatedBuffer allocatedBuffer = null;
         try {
-            final ByteBuffer buffer;
-            if (bufferAllocator != null) {
-                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
-                buffer = allocatedBuffer.nioBuffer();
-            } else {
-                // We don't have a buffer allocator, but we don't want to send a heap
-                // buffer to JNI. So lazy-create a direct buffer that we will use from now
-                // on to copy plaintext data.
-                buffer = getOrCreateLazyDirectBuffer();
-            }
+            allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+            final ByteBuffer buffer = allocatedBuffer.nioBuffer();
 
             // Copy the data to the direct buffer.
             int limit = src.limit();
@@ -1099,16 +1087,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
             throws IOException, CertificateException {
         AllocatedBuffer allocatedBuffer = null;
         try {
-            final ByteBuffer buffer;
-            if (bufferAllocator != null) {
-                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
-                buffer = allocatedBuffer.nioBuffer();
-            } else {
-                // We don't have a buffer allocator, but we don't want to send a heap
-                // buffer to JNI. So lazy-create a direct buffer that we will use from now
-                // on to copy plaintext data.
-                buffer = getOrCreateLazyDirectBuffer();
-            }
+            allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+            final ByteBuffer buffer = allocatedBuffer.nioBuffer();
 
             // Read the data to the direct buffer.
             int bytesToRead = min(len, buffer.remaining());
@@ -1168,15 +1148,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
         AllocatedBuffer allocatedBuffer = null;
         try {
             final ByteBuffer buffer;
-            if (bufferAllocator != null) {
-                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
-                buffer = allocatedBuffer.nioBuffer();
-            } else {
-                // We don't have a buffer allocator, but we don't want to send a heap
-                // buffer to JNI. So lazy-create a direct buffer that we will use from now
-                // on to copy encrypted packets.
-                buffer = getOrCreateLazyDirectBuffer();
-            }
+            allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+            buffer = allocatedBuffer.nioBuffer();
 
             int limit = src.limit();
             int bytesToCopy = min(min(limit - pos, len), buffer.remaining());
@@ -1202,21 +1175,14 @@ final class ConscryptEngine extends AbstractConscryptEngine
         }
     }
 
-    private ByteBuffer getOrCreateLazyDirectBuffer() {
-        if (lazyDirectBuffer == null) {
-            lazyDirectBuffer = ByteBuffer.allocateDirect(
-                    max(SSL3_RT_MAX_PLAIN_LENGTH, SSL3_RT_MAX_PACKET_SIZE));
-        }
-        lazyDirectBuffer.clear();
-        return lazyDirectBuffer;
-    }
-
     private long directByteBufferAddress(ByteBuffer directBuffer, int pos) {
         return NativeCrypto.getDirectBufferAddress(directBuffer) + pos;
     }
 
     private SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed,
-            int bytesProduced, SSLEngineResult.HandshakeStatus status) throws SSLException {
+                                                    int bytesProduced,
+                                                    SSLEngineResult.HandshakeStatus status)
+            throws SSLException {
         try {
             // Check to see if the engine wrote data into the network BIO
             int pendingNet = pendingOutboundEncryptedBytes();
@@ -1224,9 +1190,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
                 // Do we have enough room in dst to write encrypted data?
                 int capacity = dst.remaining();
                 if (capacity < pendingNet) {
-                    return new SSLEngineResult(BUFFER_OVERFLOW,
-                            mayFinishHandshake(
-                                    status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                    return new SSLEngineResult(
+                            BUFFER_OVERFLOW,
+                            mayFinishHandshake(status == FINISHED ? status
+                                                                  : getHandshakeStatus(pendingNet)),
                             bytesConsumed, bytesProduced);
                 }
 
@@ -1243,9 +1210,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
                     pendingNet -= produced;
                 }
 
-                return new SSLEngineResult(getEngineStatus(),
-                        mayFinishHandshake(
-                                status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                return new SSLEngineResult(
+                        getEngineStatus(),
+                        mayFinishHandshake(status == FINISHED ? status
+                                                              : getHandshakeStatus(pendingNet)),
                         bytesConsumed, bytesProduced);
             }
             return null;
@@ -1289,16 +1257,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     private int readEncryptedDataHeap(ByteBuffer dst, int len) throws IOException {
         AllocatedBuffer allocatedBuffer = null;
         try {
-            final ByteBuffer buffer;
-            if (bufferAllocator != null) {
-                allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
-                buffer = allocatedBuffer.nioBuffer();
-            } else {
-                // We don't have a buffer allocator, but we don't want to send a heap
-                // buffer to JNI. So lazy-create a direct buffer that we will use from now
-                // on to copy encrypted packets.
-                buffer = getOrCreateLazyDirectBuffer();
-            }
+            allocatedBuffer = bufferAllocator.allocateDirectBuffer(len);
+            final ByteBuffer buffer = allocatedBuffer.nioBuffer();
 
             int bytesToRead = min(len, buffer.remaining());
             int bytesRead = readEncryptedDataDirect(buffer, 0, bytesToRead);
@@ -1362,8 +1322,9 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     private SSLEngineResult newResult(int bytesConsumed, int bytesProduced,
-            SSLEngineResult.HandshakeStatus status) throws SSLException {
-        return new SSLEngineResult(getEngineStatus(),
+                                      SSLEngineResult.HandshakeStatus status) throws SSLException {
+        return new SSLEngineResult(
+                getEngineStatus(),
                 mayFinishHandshake(status == FINISHED ? status : getHandshakeStatusInternal()),
                 bytesConsumed, bytesProduced);
     }
@@ -1435,102 +1396,102 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
             int dataLength = (int) min(BufferUtils.remaining(srcs), SSL3_RT_MAX_PLAIN_LENGTH);
             if (dst.remaining() < calculateOutNetBufSize(dataLength)) {
-                return new SSLEngineResult(
-                        Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
+                return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0,
+                                           0);
             }
 
             int bytesProduced = 0;
             int bytesConsumed = 0;
             if (dataLength > 0) {
-                // Try and find a single buffer to send, e.g. the first non-empty buffer has
-                // more than enough data remaining to fill a TLS record. Otherwise copy as much
-                // data as possible from the source buffers to fill a record. Note the we can't
-                // mark the data as consumed until we see how much the TLS layer actually consumes.
-                boolean isCopy = false;
-                ByteBuffer outputBuffer =
-                        BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
-                if (outputBuffer == null) {
-                    // The buffer by getOrCreateLazyDirectBuffer() is also used by
-                    // writePlainTextDataHeap(), but by filling it here the write path will go via
-                    // writePlainTextDataDirect() and the cost will be approximately the same,
-                    // especially if compacting multiple non-direct buffers into a single
-                    // direct one.
-                    // TODO(): use bufferAllocator if set.
-                    // https://github.com/google/conscrypt/issues/974
-                    outputBuffer = BufferUtils.copyNoConsume(
-                            srcs, getOrCreateLazyDirectBuffer(), SSL3_RT_MAX_PLAIN_LENGTH);
-                    isCopy = true;
-                }
-                final SSLEngineResult pendingNetResult;
-                // Write plaintext application data to the SSL engine
-                int result = writePlaintextData(
-                        outputBuffer, min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
-                if (result > 0) {
-                    bytesConsumed = result;
-                    if (isCopy) {
-                        // Data was a copy, so mark it as consumed in the original buffers.
-                        BufferUtils.consume(srcs, bytesConsumed);
+                AllocatedBuffer allocatedBuffer = null;
+                try {
+                    boolean isCopy = false;
+                    ByteBuffer outputBuffer =
+                            BufferUtils.getBufferLargerThan(srcs, SSL3_RT_MAX_PLAIN_LENGTH);
+                    if (outputBuffer == null) {
+                        allocatedBuffer = bufferAllocator.allocateDirectBuffer(dataLength);
+                        outputBuffer = BufferUtils.copyNoConsume(srcs, allocatedBuffer.nioBuffer(),
+                                                                 dataLength);
+                        isCopy = true;
                     }
 
-                    pendingNetResult = readPendingBytesFromBIO(
-                            dst, bytesConsumed, bytesProduced, handshakeStatus);
-                    if (pendingNetResult != null) {
-                        if (pendingNetResult.getStatus() != OK) {
-                            return pendingNetResult;
+                    final SSLEngineResult pendingNetResult;
+                    // Write plaintext application data to the SSL engine
+                    int result = writePlaintextData(
+                            outputBuffer, min(SSL3_RT_MAX_PLAIN_LENGTH, outputBuffer.remaining()));
+
+                    if (result > 0) {
+                        bytesConsumed = result;
+                        if (isCopy) {
+                            // Data was a copy, so mark it as consumed in the original buffers.
+                            BufferUtils.consume(srcs, bytesConsumed);
                         }
-                        bytesProduced = pendingNetResult.bytesProduced();
+
+                        pendingNetResult = readPendingBytesFromBIO(dst, bytesConsumed,
+                                                                   bytesProduced, handshakeStatus);
+                        if (pendingNetResult != null) {
+                            if (pendingNetResult.getStatus() != OK) {
+                                return pendingNetResult;
+                            }
+                            bytesProduced = pendingNetResult.bytesProduced();
+                        }
+                    } else {
+                        int sslError = ssl.getError(result);
+                        switch (sslError) {
+                            case SSL_ERROR_ZERO_RETURN:
+                                // This means the connection was shutdown correctly, close inbound
+                                // and outbound
+                                closeAll();
+                                pendingNetResult = readPendingBytesFromBIO(
+                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
+                                return pendingNetResult != null ? pendingNetResult
+                                                                : CLOSED_NOT_HANDSHAKING;
+                            case SSL_ERROR_WANT_READ:
+                                // If there is no pending data to read from BIO we should go back to
+                                // event loop and try
+                                // to read more data [1]. It is also possible that event loop will
+                                // detect the socket
+                                // has been closed. [1]
+                                // https://www.openssl.org/docs/manmaster/man3/SSL_write.html
+                                pendingNetResult = readPendingBytesFromBIO(
+                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
+                                return pendingNetResult != null
+                                        ? pendingNetResult
+                                        : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
+                                                              bytesConsumed, bytesProduced);
+                            case SSL_ERROR_WANT_WRITE:
+                                // SSL_ERROR_WANT_WRITE typically means that the underlying
+                                // transport is not writable
+                                // and we should set the "want write" flag on the selector and try
+                                // again when the
+                                // underlying transport is writable [1]. However we are not directly
+                                // writing to the
+                                // underlying transport and instead writing to a BIO buffer. The
+                                // OpenSsl documentation
+                                // says we should do the following [1]:
+                                //
+                                // "When using a buffering BIO, like a BIO pair, data must be
+                                // written into or retrieved
+                                // out of the BIO before being able to continue."
+                                //
+                                // So we attempt to drain the BIO buffer below, but if there is no
+                                // data this condition
+                                // is undefined and we assume their is a fatal error with the
+                                // openssl engine and close.
+                                // [1] https://www.openssl.org/docs/manmaster/man3/SSL_write.html
+                                pendingNetResult = readPendingBytesFromBIO(
+                                        dst, bytesConsumed, bytesProduced, handshakeStatus);
+                                return pendingNetResult != null ? pendingNetResult
+                                                                : NEED_WRAP_CLOSED;
+                            default:
+                                // Everything else is considered as error
+                                closeAll();
+                                throw newSslExceptionWithMessage("SSL_write: error " + sslError);
+                        }
                     }
-                } else {
-                    int sslError = ssl.getError(result);
-                    switch (sslError) {
-                        case SSL_ERROR_ZERO_RETURN:
-                            // This means the connection was shutdown correctly, close inbound
-                            // and outbound
-                            closeAll();
-                            pendingNetResult = readPendingBytesFromBIO(
-                                    dst, bytesConsumed, bytesProduced, handshakeStatus);
-                            return pendingNetResult != null ? pendingNetResult
-                                                            : CLOSED_NOT_HANDSHAKING;
-                        case SSL_ERROR_WANT_READ:
-                            // If there is no pending data to read from BIO we should go back to
-                            // event loop and try
-                            // to read more data [1]. It is also possible that event loop will
-                            // detect the socket
-                            // has been closed. [1]
-                            // https://www.openssl.org/docs/manmaster/man3/SSL_write.html
-                            pendingNetResult = readPendingBytesFromBIO(
-                                    dst, bytesConsumed, bytesProduced, handshakeStatus);
-                            return pendingNetResult != null
-                                    ? pendingNetResult
-                                    : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
-                                              bytesConsumed, bytesProduced);
-                        case SSL_ERROR_WANT_WRITE:
-                            // SSL_ERROR_WANT_WRITE typically means that the underlying
-                            // transport is not writable
-                            // and we should set the "want write" flag on the selector and try
-                            // again when the
-                            // underlying transport is writable [1]. However we are not directly
-                            // writing to the
-                            // underlying transport and instead writing to a BIO buffer. The
-                            // OpenSsl documentation
-                            // says we should do the following [1]:
-                            //
-                            // "When using a buffering BIO, like a BIO pair, data must be
-                            // written into or retrieved
-                            // out of the BIO before being able to continue."
-                            //
-                            // So we attempt to drain the BIO buffer below, but if there is no
-                            // data this condition
-                            // is undefined and we assume their is a fatal error with the
-                            // openssl engine and close.
-                            // [1] https://www.openssl.org/docs/manmaster/man3/SSL_write.html
-                            pendingNetResult = readPendingBytesFromBIO(
-                                    dst, bytesConsumed, bytesProduced, handshakeStatus);
-                            return pendingNetResult != null ? pendingNetResult : NEED_WRAP_CLOSED;
-                        default:
-                            // Everything else is considered as error
-                            closeAll();
-                            throw newSslExceptionWithMessage("SSL_write: error " + sslError);
+                } finally {
+                    if (allocatedBuffer != null) {
+                        allocatedBuffer.release();
                     }
                 }
             }
@@ -1570,9 +1531,9 @@ final class ConscryptEngine extends AbstractConscryptEngine
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
                     if (state != STATE_HANDSHAKE_STARTED
-                            && state != STATE_READY_HANDSHAKE_CUT_THROUGH) {
-                        throw new IllegalStateException(
-                                "Completed handshake while in mode " + state);
+                        && state != STATE_READY_HANDSHAKE_CUT_THROUGH) {
+                        throw new IllegalStateException("Completed handshake while in mode "
+                                                        + state);
                     }
                     transitionTo(STATE_HANDSHAKE_COMPLETED);
                     break;
@@ -1649,7 +1610,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
-            byte[][] asn1DerEncodedPrincipals) throws CertificateEncodingException, SSLException {
+                                           byte[][] asn1DerEncodedPrincipals)
+            throws CertificateEncodingException, SSLException {
         ssl.chooseClientCertificate(keyTypeBytes, signatureAlgs, asn1DerEncodedPrincipals);
     }
 
@@ -1699,8 +1661,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     @Override
-    public String chooseClientAlias(
-            X509KeyManager keyManager, X500Principal[] issuers, String[] keyTypes) {
+    public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
+                                    String[] keyTypes) {
         if (keyManager instanceof X509ExtendedKeyManager) {
             X509ExtendedKeyManager ekm = (X509ExtendedKeyManager) keyManager;
             return ekm.chooseEngineClientAlias(keyTypes, issuers, this);
@@ -1735,6 +1697,11 @@ final class ConscryptEngine extends AbstractConscryptEngine
     @Override
     void setUseSessionTickets(boolean useSessionTickets) {
         sslParameters.setUseSessionTickets(useSessionTickets);
+    }
+
+    @Override
+    void setEchConfigList(byte[] echConfigList) {
+        sslParameters.setEchConfigList(echConfigList);
     }
 
     @Override
@@ -1840,4 +1807,95 @@ final class ConscryptEngine extends AbstractConscryptEngine
         // Update the state
         this.state = newState;
     }
+
+    private static final ThreadLocal<ByteBuffer[]> bufferCache = new ThreadLocal<ByteBuffer[]>() {
+        @Override
+        protected ByteBuffer[] initialValue() {
+            return new ByteBuffer[3];
+        }
+    };
+
+    /**
+     * A lazy, thread-local, two-buffer pooling allocator.
+     * Buffers are only allocated on first use by a thread to minimize initial memory usage,
+     * and are then cached for reuse.
+     */
+    private static final BufferAllocator LAZY_POOLED_ALLOCATOR = new BufferAllocator() {
+        // 1/8 of SSL3_RT_MAX_PACKET_SIZE, slightly bigger than default MTU size (1500).
+        private static final int SMALL_BUFFER_SIZE = 2048;
+        // 1/4 of SSL3_RT_MAX_PACKET_SIZE, more than twice the default MTU size (3000).
+        private static final int MEDIUM_BUFFER_SIZE = 4096;
+        private static final int LARGE_BUFFER_SIZE = 16709; // SSL3_RT_MAX_PACKET_SIZE
+
+        @Override
+        public AllocatedBuffer allocateDirectBuffer(int capacity) {
+            final ByteBuffer[] cache = bufferCache.get();
+            final ByteBuffer bufferToUse;
+            final int bufferIndex;
+
+            if (capacity <= SMALL_BUFFER_SIZE) {
+                bufferIndex = 0;
+                ByteBuffer buffer = cache[bufferIndex];
+                if (buffer == null) {
+                    buffer = ByteBuffer.allocateDirect(SMALL_BUFFER_SIZE);
+                }
+                bufferToUse = buffer;
+            } else if (capacity <= MEDIUM_BUFFER_SIZE) {
+                bufferIndex = 1;
+                ByteBuffer buffer = cache[bufferIndex];
+                if (buffer == null) {
+                    buffer = ByteBuffer.allocateDirect(MEDIUM_BUFFER_SIZE);
+                }
+                bufferToUse = buffer;
+            } else if (capacity <= LARGE_BUFFER_SIZE) {
+                bufferIndex = 2;
+                ByteBuffer buffer = cache[bufferIndex];
+                if (buffer == null) {
+                    buffer = ByteBuffer.allocateDirect(LARGE_BUFFER_SIZE);
+                }
+                bufferToUse = buffer;
+            } else {
+                bufferIndex = -1;
+                bufferToUse = ByteBuffer.allocateDirect(capacity);
+            }
+
+            if (bufferIndex != -1) {
+                cache[bufferIndex] = null;
+            }
+            bufferToUse.clear();
+
+            // This is the anonymous class for the returned handle.
+            return new AllocatedBuffer() {
+                private boolean released = false;
+
+                @Override
+                public ByteBuffer nioBuffer() {
+                    if (released) {
+                        throw new IllegalStateException("Buffer has already been released.");
+                    }
+                    return bufferToUse;
+                }
+
+                @Override
+                public AllocatedBuffer release() {
+                    if (released) {
+                        return this;
+                    }
+                    released = true;
+
+                    if (bufferIndex != -1) {
+                        if (bufferCache.get()[bufferIndex] == null) {
+                            bufferCache.get()[bufferIndex] = bufferToUse;
+                        }
+                    }
+                    return this;
+                }
+            };
+        }
+
+        @Override
+        public AllocatedBuffer allocateHeapBuffer(int capacity) {
+            throw new UnsupportedOperationException("Cannot allocate heap buffer.");
+        }
+    };
 }

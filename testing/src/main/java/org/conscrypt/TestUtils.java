@@ -85,7 +85,7 @@ public final class TestUtils {
     private static final String PROTOCOL_TLS_V1_1 = "TLSv1.1";
     // For interop testing we need a JDK Provider that can do TLS 1.2 as 1.x may be disabled
     // in Conscrypt and 1.3 does not (yet) handle interoperability with the JDK Provider.
-    private static final String[] DESIRED_JDK_PROTOCOLS = new String[] { PROTOCOL_TLS_V1_2 };
+    private static final String[] DESIRED_JDK_PROTOCOLS = new String[] {PROTOCOL_TLS_V1_2};
     private static final Provider JDK_PROVIDER = getNonConscryptTlsProvider();
     private static final byte[] CHARS =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".getBytes(UTF_8);
@@ -174,7 +174,7 @@ public final class TestUtils {
 
     private static void assumeClassAvailable(String classname) {
         Assume.assumeTrue("Skipping test: " + classname + " unavailable",
-                isClassAvailable(classname));
+                          isClassAvailable(classname));
     }
 
     public static void assumeSNIHostnameAvailable() {
@@ -198,7 +198,8 @@ public final class TestUtils {
             // Ignored
         }
         Assume.assumeTrue("Skipping test: "
-                + "SSLParameters.setEndpointIdentificationAlgorithm unavailable", supported);
+                                  + "SSLParameters.setEndpointIdentificationAlgorithm unavailable",
+                          supported);
     }
 
     public static void assumeAEADAvailable() {
@@ -221,8 +222,7 @@ public final class TestUtils {
 
     public static void assumeAllowsUnsignedCrypto() {
         // The Oracle JRE disallows loading crypto providers from unsigned jars
-        Assume.assumeTrue(isAndroid()
-                || !System.getProperty("java.vm.name").contains("HotSpot"));
+        Assume.assumeTrue(isAndroid() || !System.getProperty("java.vm.name").contains("HotSpot"));
     }
 
     public static void assumeSHA2WithDSAAvailable() {
@@ -250,23 +250,22 @@ public final class TestUtils {
         }
     }
 
-    public static Provider getConscryptProvider(boolean isTlsV1Deprecated,
-            boolean isTlsV1Enabled) {
+    public static Provider getConscryptProvider(boolean isTlsV1Deprecated, boolean isTlsV1Enabled) {
         try {
             String defaultName = (String) conscryptClass("Platform")
-                .getDeclaredMethod("getDefaultProviderName")
-                .invoke(null);
+                                         .getDeclaredMethod("getDefaultProviderName")
+                                         .invoke(null);
             Constructor<?> c =
                     conscryptClass("OpenSSLProvider")
-                            .getDeclaredConstructor(String.class, Boolean.TYPE,
-                                String.class, Boolean.TYPE, Boolean.TYPE);
+                            .getDeclaredConstructor(String.class, Boolean.TYPE, String.class,
+                                                    Boolean.TYPE, Boolean.TYPE);
 
             if (!isClassAvailable("javax.net.ssl.X509ExtendedTrustManager")) {
-                return (Provider) c.newInstance(defaultName, false, "TLSv1.3",
-                    isTlsV1Deprecated, isTlsV1Enabled);
+                return (Provider) c.newInstance(defaultName, false, "TLSv1.3", isTlsV1Deprecated,
+                                                isTlsV1Enabled);
             } else {
-                return (Provider) c.newInstance(defaultName, true, "TLSv1.3",
-                    isTlsV1Deprecated, isTlsV1Enabled);
+                return (Provider) c.newInstance(defaultName, true, "TLSv1.3", isTlsV1Deprecated,
+                                                isTlsV1Enabled);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -311,8 +310,8 @@ public final class TestUtils {
     public static List<String[]> readCsvResource(String resourceName) throws IOException {
         InputStream stream = openTestFile(resourceName);
         List<String[]> lines = new ArrayList<>();
-        try (BufferedReader reader
-                     = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+        try (BufferedReader reader =
+                     new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty() || line.startsWith("#")) {
@@ -328,8 +327,8 @@ public final class TestUtils {
         InputStream stream = openTestFile(resourceName);
         List<TestVector> result = new ArrayList<>();
         TestVector current = null;
-        try (BufferedReader reader
-                 = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+        try (BufferedReader reader =
+                     new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
             String line;
             int lineNumber = 0;
             while ((line = reader.readLine()) != null) {
@@ -348,7 +347,7 @@ public final class TestUtils {
                     result.add(current);
                 } else if (current == null) {
                     throw new IllegalStateException("Vectors must start with a name: line "
-                        + lineNumber);
+                                                    + lineNumber);
                 }
                 current.put(label, value);
             }
@@ -381,8 +380,8 @@ public final class TestUtils {
         }
     }
 
-    public static SSLSocketFactory setUseEngineSocket(
-            SSLSocketFactory conscryptFactory, boolean useEngineSocket) {
+    public static SSLSocketFactory setUseEngineSocket(SSLSocketFactory conscryptFactory,
+                                                      boolean useEngineSocket) {
         try {
             Class<?> clazz = conscryptClass("Conscrypt");
             Method method =
@@ -394,12 +393,12 @@ public final class TestUtils {
         }
     }
 
-    public static SSLServerSocketFactory setUseEngineSocket(
-            SSLServerSocketFactory conscryptFactory, boolean useEngineSocket) {
+    public static SSLServerSocketFactory setUseEngineSocket(SSLServerSocketFactory conscryptFactory,
+                                                            boolean useEngineSocket) {
         try {
             Class<?> clazz = conscryptClass("Conscrypt");
-            Method method = clazz.getMethod(
-                    "setUseEngineSocket", SSLServerSocketFactory.class, boolean.class);
+            Method method = clazz.getMethod("setUseEngineSocket", SSLServerSocketFactory.class,
+                                            boolean.class);
             method.invoke(null, conscryptFactory, useEngineSocket);
             return conscryptFactory;
         } catch (Exception e) {
@@ -409,13 +408,14 @@ public final class TestUtils {
 
     static boolean getUseEngineSocketByDefault() {
         try {
-            boolean sfDefault = getBooleanField(
-                "OpenSSLSocketFactoryImpl", "useEngineSocketByDefault");
-            boolean ssfDefault = getBooleanField(
-                "OpenSSLServerSocketFactoryImpl", "useEngineSocketByDefault");
+            boolean sfDefault =
+                    getBooleanField("OpenSSLSocketFactoryImpl", "useEngineSocketByDefault");
+            boolean ssfDefault =
+                    getBooleanField("OpenSSLServerSocketFactoryImpl", "useEngineSocketByDefault");
             if (sfDefault != ssfDefault) {
-                throw new IllegalStateException("Socket factory and server socket factory must\n" +
-                    "use the same default implementation during testing");
+                throw new IllegalStateException(
+                        "Socket factory and server socket factory must\n"
+                        + "use the same default implementation during testing");
             }
             return sfDefault;
         } catch (Exception e) {
@@ -459,16 +459,17 @@ public final class TestUtils {
         SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
         // No point building a Set here due to small list sizes.
         List<String> conscryptProtocols = getSupportedProtocols(conscryptContext);
-        Predicate<String> predicate = p -> conscryptProtocols.contains(p)
-            // TODO(prb): Certificate auth fails when connecting Conscrypt and JDK's TLS 1.3.
-            && !p.equals(PROTOCOL_TLS_V1_3);
+        Predicate<String> predicate = p
+                -> conscryptProtocols.contains(p)
+                // TODO(prb): Certificate auth fails when connecting Conscrypt and JDK's TLS 1.3.
+                && !p.equals(PROTOCOL_TLS_V1_3);
         return getSupportedProtocols(jdkContext, predicate);
     }
 
     public static String[] getCommonCipherSuites() {
         SSLContext jdkContext = newClientSslContext(getJdkProvider());
         SSLContext conscryptContext = newClientSslContext(getConscryptProvider());
-        Set<String> conscryptCiphers =  new HashSet<>(getSupportedCiphers(conscryptContext));
+        Set<String> conscryptCiphers = new HashSet<>(getSupportedCiphers(conscryptContext));
         Predicate<String> predicate = c -> isTlsCipherSuite(c) && conscryptCiphers.contains(c);
         return getSupportedCiphers(jdkContext, predicate);
     }
@@ -479,8 +480,8 @@ public final class TestUtils {
 
     public static String[] getSupportedCiphers(SSLContext ctx, Predicate<String> predicate) {
         return Arrays.stream(ctx.getDefaultSSLParameters().getCipherSuites())
-            .filter(predicate)
-            .toArray(String[]::new);
+                .filter(predicate)
+                .toArray(String[] ::new);
     }
 
     public static String[] getSupportedProtocols() {
@@ -494,14 +495,13 @@ public final class TestUtils {
 
     public static String[] getSupportedProtocols(SSLContext ctx, Predicate<String> predicate) {
         return Arrays.stream(ctx.getDefaultSSLParameters().getProtocols())
-            .filter(predicate)
-            .toArray(String[]::new);
+                .filter(predicate)
+                .toArray(String[] ::new);
     }
 
     private static boolean isTlsCipherSuite(String cipher) {
-        return !cipher.startsWith("SSL_")
-            && !cipher.startsWith("TLS_EMPTY")
-            && !cipher.contains("_RC4_");
+        return !cipher.startsWith("SSL_") && !cipher.startsWith("TLS_EMPTY")
+                && !cipher.contains("_RC4_");
     }
 
     public static void assumeTlsV11Enabled(SSLContext context) {
@@ -579,8 +579,9 @@ public final class TestUtils {
      * Performs the initial TLS handshake between the two {@link SSLEngine} instances.
      */
     public static void doEngineHandshake(SSLEngine clientEngine, SSLEngine serverEngine,
-        ByteBuffer clientAppBuffer, ByteBuffer clientPacketBuffer, ByteBuffer serverAppBuffer,
-        ByteBuffer serverPacketBuffer, boolean beginHandshake) throws SSLException {
+                                         ByteBuffer clientAppBuffer, ByteBuffer clientPacketBuffer,
+                                         ByteBuffer serverAppBuffer, ByteBuffer serverPacketBuffer,
+                                         boolean beginHandshake) throws SSLException {
         if (beginHandshake) {
             clientEngine.beginHandshake();
             serverEngine.beginHandshake();
@@ -635,9 +636,9 @@ public final class TestUtils {
             assertEquals(serverPacketBuffer.position() - sTOcPos, clientResult.bytesConsumed());
             assertEquals(clientPacketBuffer.position() - cTOsPos, serverResult.bytesConsumed());
             assertEquals(clientAppBuffer.position() - clientAppReadBufferPos,
-                clientResult.bytesProduced());
+                         clientResult.bytesProduced());
             assertEquals(serverAppBuffer.position() - serverAppReadBufferPos,
-                serverResult.bytesProduced());
+                         serverResult.bytesProduced());
 
             clientPacketBuffer.compact();
             serverPacketBuffer.compact();
@@ -701,7 +702,8 @@ public final class TestUtils {
      * <p>
      * Throws an {@code IllegalArgumentException} if the input is malformed.
      */
-    public static byte[] decodeHex(String encoded, boolean allowSingleChar) throws IllegalArgumentException {
+    public static byte[] decodeHex(String encoded, boolean allowSingleChar)
+            throws IllegalArgumentException {
         return decodeHex(encoded.toCharArray(), allowSingleChar);
     }
 
@@ -722,7 +724,8 @@ public final class TestUtils {
      * <p>
      * Throws an {@code IllegalArgumentException} if the input is malformed.
      */
-    public static byte[] decodeHex(char[] encoded, boolean allowSingleChar) throws IllegalArgumentException {
+    public static byte[] decodeHex(char[] encoded, boolean allowSingleChar)
+            throws IllegalArgumentException {
         int resultLengthBytes = (encoded.length + 1) / 2;
         byte[] result = new byte[resultLengthBytes];
 
@@ -730,7 +733,8 @@ public final class TestUtils {
         int i = 0;
         if (allowSingleChar) {
             if ((encoded.length % 2) != 0) {
-                // Odd number of digits -- the first digit is the lower 4 bits of the first result byte.
+                // Odd number of digits -- the first digit is the lower 4 bits of the first result
+                // byte.
                 result[resultOffset++] = (byte) toDigit(encoded, i);
                 i++;
             }
@@ -760,8 +764,7 @@ public final class TestUtils {
             return 10 + (pseudoCodePoint - 'A');
         }
 
-        throw new IllegalArgumentException("Illegal char: " + str[offset] +
-                " at offset " + offset);
+        throw new IllegalArgumentException("Illegal char: " + str[offset] + " at offset " + offset);
     }
 
     private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
@@ -789,8 +792,8 @@ public final class TestUtils {
             for (int i = 0; i < data.length; i += 3) {
                 int padding = (i + 2 < data.length) ? 0 : (i + 3 - data.length);
                 byte b1 = data[i];
-                byte b2 = padding >= 2 ? 0 : data[i+1];
-                byte b3 = padding >= 1 ? 0 : data[i+2];
+                byte b2 = padding >= 2 ? 0 : data[i + 1];
+                byte b3 = padding >= 1 ? 0 : data[i + 2];
 
                 char c1 = BASE64_ALPHABET.charAt((b1 & 0xFF) >>> 2);
                 char c2 = BASE64_ALPHABET.charAt(((b1 & 0x03) << 4) | ((b2 & 0xFF) >>> 4));
@@ -823,16 +826,16 @@ public final class TestUtils {
             int outputindex = 0;
             for (int i = 0; i < data.length(); i += 4) {
                 char c1 = data.charAt(i);
-                char c2 = data.charAt(i+1);
-                char c3 = (i+2 < data.length()) ? data.charAt(i+2) : 'A';
-                char c4 = (i+3 < data.length()) ? data.charAt(i+3) : 'A';
+                char c2 = data.charAt(i + 1);
+                char c3 = (i + 2 < data.length()) ? data.charAt(i + 2) : 'A';
+                char c4 = (i + 3 < data.length()) ? data.charAt(i + 3) : 'A';
 
-                byte b1 = (byte)
-                        (BASE64_ALPHABET.indexOf(c1) << 2 | BASE64_ALPHABET.indexOf(c2) >>> 4);
-                byte b2 = (byte)
-                        ((BASE64_ALPHABET.indexOf(c2) & 0x0F) << 4 | BASE64_ALPHABET.indexOf(c3) >>> 2);
-                byte b3 = (byte)
-                        ((BASE64_ALPHABET.indexOf(c3) & 0x03) << 6 | BASE64_ALPHABET.indexOf(c4));
+                byte b1 = (byte) (BASE64_ALPHABET.indexOf(c1) << 2
+                                  | BASE64_ALPHABET.indexOf(c2) >>> 4);
+                byte b2 = (byte) ((BASE64_ALPHABET.indexOf(c2) & 0x0F) << 4
+                                  | BASE64_ALPHABET.indexOf(c3) >>> 2);
+                byte b3 = (byte) ((BASE64_ALPHABET.indexOf(c3) & 0x03) << 6
+                                  | BASE64_ALPHABET.indexOf(c4));
 
                 output[outputindex++] = b1;
                 if (outputindex < output.length) {
@@ -907,9 +910,7 @@ public final class TestUtils {
     // due to version skew etc then return the default value.
     public static boolean callPlatformMethod(String methodName, boolean defaultValue) {
         try {
-            return (Boolean) conscryptClass("Platform")
-                    .getDeclaredMethod(methodName)
-                    .invoke(null);
+            return (Boolean) conscryptClass("Platform").getDeclaredMethod(methodName).invoke(null);
         } catch (NoSuchMethodException e) {
             return defaultValue;
         } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
@@ -925,8 +926,8 @@ public final class TestUtils {
 
     // Stress test a throwing Runnable with default counts and allowing exceptions,
     // e.g. to ensure abuse of non-thread-safe code doesn't cause native crashes.
-    public static void stressTestAllowingExceptions(
-            int threadCount, int iterationCount, ThrowingRunnable runnable) throws Exception {
+    public static void stressTestAllowingExceptions(int threadCount, int iterationCount,
+                                                    ThrowingRunnable runnable) throws Exception {
         stressTest(threadCount, iterationCount, true, runnable);
     }
 
@@ -953,7 +954,7 @@ public final class TestUtils {
      * @param runnable        a {@link ThrowingRunnable} containing the code to test
      */
     private static void stressTest(int threadCount, int iterationCount, boolean allowExceptions,
-            ThrowingRunnable runnable) throws Exception {
+                                   ThrowingRunnable runnable) throws Exception {
         ExecutorService es = Executors.newFixedThreadPool(threadCount);
 
         final CountDownLatch latch = new CountDownLatch(threadCount);

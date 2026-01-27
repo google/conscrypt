@@ -15,6 +15,7 @@
  */
 package org.conscrypt.metrics;
 
+import org.conscrypt.CertBlocklistEntry;
 import org.conscrypt.Internal;
 import org.conscrypt.ct.LogStore;
 import org.conscrypt.ct.PolicyCompliance;
@@ -22,11 +23,14 @@ import org.conscrypt.ct.VerificationResult;
 
 @Internal
 public interface StatsLog {
-    public void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration);
+    public void countTlsHandshake(boolean success, String protocol, String cipherSuite,
+                                  long duration);
 
     public void updateCTLogListStatusChanged(LogStore logStore);
 
     public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
-            PolicyCompliance compliance, CertificateTransparencyVerificationReason reason);
+                                           PolicyCompliance compliance,
+                                           CertificateTransparencyVerificationReason reason);
+
+    public void reportBlocklistHit(CertBlocklistEntry entry);
 }

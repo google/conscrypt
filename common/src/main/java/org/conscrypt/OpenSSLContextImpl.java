@@ -67,6 +67,10 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         serverSessionContext = new ServerSessionContext();
     }
 
+    private OpenSSLContextImpl() throws GeneralSecurityException, IOException {
+        this(NativeCrypto.TLSV13_PROTOCOLS, true);
+    }
+
     /**
      * Constructor for the DefaultSSLContextImpl.  The unused boolean parameter is solely to
      * indicate that this constructor is desired.
@@ -92,9 +96,10 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
                         (ServerSessionContext)
                                 defaultSslContextImpl.engineGetServerSessionContext();
             }
-            sslParameters = new SSLParametersImpl(defaultSslContextImpl.getKeyManagers(),
-                    defaultSslContextImpl.getTrustManagers(), null, clientSessionContext,
-                    serverSessionContext, protocols);
+            sslParameters =
+                    new SSLParametersImpl(defaultSslContextImpl.getKeyManagers(),
+                                          defaultSslContextImpl.getTrustManagers(), null,
+                                          clientSessionContext, serverSessionContext, protocols);
         }
     }
 
@@ -111,8 +116,8 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     @Override
     public void engineInit(KeyManager[] kms, TrustManager[] tms, SecureRandom sr)
             throws KeyManagementException {
-        sslParameters = new SSLParametersImpl(
-                kms, tms, sr, clientSessionContext, serverSessionContext, protocols);
+        sslParameters = new SSLParametersImpl(kms, tms, sr, clientSessionContext,
+                                              serverSessionContext, protocols);
     }
 
     @Override
