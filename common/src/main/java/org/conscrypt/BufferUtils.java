@@ -16,18 +16,24 @@
 
 package org.conscrypt;
 
-import static java.lang.Math.min;
 import static org.conscrypt.Preconditions.checkArgument;
+
+import static java.lang.Math.min;
 
 import java.nio.ByteBuffer;
 
-final class BufferUtils {
+/**
+ * Utility methods for dealing with arrays of ByteBuffers.
+ *
+ * @hide This class is not part of the Android public SDK API
+ */
+public final class BufferUtils {
     private BufferUtils() {}
 
     /**
      * Throws {@link IllegalArgumentException} if any of the buffers in the array are null.
      */
-    static void checkNotNull(ByteBuffer[] buffers) {
+    public static void checkNotNull(ByteBuffer[] buffers) {
         for (ByteBuffer buffer : buffers) {
             if (buffer == null) {
                 throw new IllegalArgumentException("Null buffer in array");
@@ -38,7 +44,7 @@ final class BufferUtils {
     /**
      * Returns the total number of bytes remaining in the buffer array.
      */
-    static long remaining(ByteBuffer[] buffers) {
+    public static long remaining(ByteBuffer[] buffers) {
         long size = 0;
         for (ByteBuffer buffer : buffers) {
             size += buffer.remaining();
@@ -51,7 +57,7 @@ final class BufferUtils {
      *
      * @throws IllegalArgumentException if there are fewer than {@code toConsume} bytes remaining
      */
-    static void consume(ByteBuffer[] sourceBuffers, int toConsume) {
+    public static void consume(ByteBuffer[] sourceBuffers, int toConsume) {
         for (ByteBuffer sourceBuffer : sourceBuffers) {
             int amount = min(sourceBuffer.remaining(), toConsume);
             if (amount > 0) {
@@ -71,7 +77,7 @@ final class BufferUtils {
      * Looks for a buffer in the buffer array which EITHER is larger than {@code minSize} AND
      * has no preceding non-empty buffers OR is the only non-empty buffer in the array.
      */
-    static ByteBuffer getBufferLargerThan(ByteBuffer[] buffers, int minSize) {
+    public static ByteBuffer getBufferLargerThan(ByteBuffer[] buffers, int minSize) {
         int length = buffers.length;
         for (int i = 0; i < length; i++) {
             ByteBuffer buffer = buffers[i];
@@ -99,11 +105,12 @@ final class BufferUtils {
      * {@code consume()} method.
      *
      */
-    static ByteBuffer copyNoConsume(ByteBuffer[] buffers, ByteBuffer destination, int maxAmount) {
-	checkArgument(destination.remaining() >= maxAmount, "Destination buffer too small");
-	int needed = maxAmount;
+    public static ByteBuffer copyNoConsume(ByteBuffer[] buffers, ByteBuffer destination,
+                                           int maxAmount) {
+        checkArgument(destination.remaining() >= maxAmount, "Destination buffer too small");
+        int needed = maxAmount;
         for (ByteBuffer buffer : buffers) {
-	    int remaining = buffer.remaining();
+            int remaining = buffer.remaining();
             if (remaining > 0) {
                 // If this buffer can fit completely then copy it all, otherwise temporarily
                 // adjust its limit to fill so as to the output buffer completely

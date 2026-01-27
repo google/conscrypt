@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.PrivateKey;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
@@ -31,8 +32,7 @@ import javax.net.ssl.SSLSession;
  */
 @Internal
 public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
-    OpenSSLSocketImpl() throws IOException {
-    }
+    OpenSSLSocketImpl() throws IOException {}
 
     OpenSSLSocketImpl(String hostname, int port) throws IOException {
         super(hostname, port);
@@ -43,18 +43,17 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     }
 
     OpenSSLSocketImpl(String hostname, int port, InetAddress clientAddress, int clientPort)
-        throws IOException {
+            throws IOException {
         super(hostname, port, clientAddress, clientPort);
     }
 
-    OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress,
-        int clientPort)
-        throws IOException {
+    OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress, int clientPort)
+            throws IOException {
         super(address, port, clientAddress, clientPort);
     }
 
     OpenSSLSocketImpl(Socket socket, String hostname, int port, boolean autoClose)
-        throws IOException {
+            throws IOException {
         super(socket, hostname, port, autoClose);
     }
 
@@ -93,20 +92,17 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
         super.setHandshakeTimeout(handshakeTimeoutMilliseconds);
     }
 
-    @Override
-    public abstract SSLSession getHandshakeSession();
+    @Override public abstract SSLSession getHandshakeSession();
 
-    @Override
-    public abstract void setUseSessionTickets(boolean useSessionTickets);
+    @Override public abstract void setUseSessionTickets(boolean useSessionTickets);
 
-    @Override
-    public abstract void setChannelIdEnabled(boolean enabled);
+    @Override public abstract void setEchConfigList(byte[] echConfigList);
 
-    @Override
-    public abstract byte[] getChannelId() throws SSLException;
+    @Override public abstract void setChannelIdEnabled(boolean enabled);
 
-    @Override
-    public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
+    @Override public abstract byte[] getChannelId() throws SSLException;
+
+    @Override public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
 
     /**
      * @deprecated NPN is not supported
@@ -122,8 +118,7 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
      */
     @Deprecated
     @SuppressWarnings("InlineMeSuggester")
-    public final void setNpnProtocols(byte[] npnProtocols) {
-    }
+    public final void setNpnProtocols(byte[] npnProtocols) {}
 
     /**
      * @deprecated use {@link #setApplicationProtocols(String[])} instead.
@@ -149,7 +144,8 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     @Override
     @Deprecated
     public final void setAlpnProtocols(byte[] protocols) {
-        setApplicationProtocols(SSLUtils.decodeProtocols(protocols == null ? EmptyArray.BYTE : protocols));
+        setApplicationProtocols(
+                SSLUtils.decodeProtocols(protocols == null ? EmptyArray.BYTE : protocols));
     }
 
     @Override public abstract String getCurveNameForTesting();
