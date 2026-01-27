@@ -29,48 +29,11 @@ public class OpenSslXwingPublicKey implements PublicKey {
 
     static final int PUBLIC_KEY_SIZE_BYTES = 1216;
 
-    // The X.509 encoding of a X-Wing public key is always the concatenation of a fixed
-    // prefix and the raw key.
-    private static final byte[] x509Preamble = new byte[] {
-            0x30,
-            (byte) 0x82,
-            0x04,
-            (byte) 0xd4,
-            0x30,
-            0x0d,
-            0x06,
-            0x0b,
-            0x2b,
-            0x06,
-            0x01,
-            0x04,
-            0x01,
-            (byte) 0x83,
-            (byte) 0xe6,
-            0x2d,
-            (byte) 0x81,
-            (byte) 0xc8,
-            (byte) 0x7a,
-            0x03,
-            (byte) 0x82,
-            0x04,
-            (byte) 0xc1,
-            0x00,
-    };
-
     private final byte[] raw;
 
     public OpenSslXwingPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
-        if (keySpec.getFormat().equals("X.509")) {
-            if (!ArrayUtils.startsWith(encoded, x509Preamble)) {
-                throw new InvalidKeySpecException("Invalid X-Wing X.509 key preamble");
-            }
-            raw = Arrays.copyOfRange(encoded, x509Preamble.length, encoded.length);
-            if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-        } else if (keySpec.getFormat().equalsIgnoreCase("raw")) {
+        if (keySpec.getFormat().equalsIgnoreCase("raw")) {
             if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }
@@ -94,15 +57,12 @@ public class OpenSslXwingPublicKey implements PublicKey {
 
     @Override
     public String getFormat() {
-        return "X.509";
+        throw new UnsupportedOperationException("getFormat() not yet supported");
     }
 
     @Override
     public byte[] getEncoded() {
-        if (raw == null) {
-            throw new IllegalStateException("key is destroyed");
-        }
-        return ArrayUtils.concat(x509Preamble, raw);
+        throw new UnsupportedOperationException("getEncoded() not yet supported");
     }
 
     byte[] getRaw() {

@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include <conscrypt/jniutil.h>
-
 #include <conscrypt/compat.h>
+#include <conscrypt/jniutil.h>
 #include <conscrypt/trace.h>
-#include <cstdlib>
 #include <errno.h>
+
+#include <cstdlib>
 
 namespace conscrypt {
 namespace jniutil {
 
-JavaVM *gJavaVM;
+JavaVM* gJavaVM;
 jclass cryptoUpcallsClass;
 jclass openSslInputStreamClass;
 jclass nativeRefClass;
@@ -84,10 +84,10 @@ void init(JavaVM* vm, JNIEnv* env) {
     bufferClass = findClass(env, "java/nio/Buffer");
     fileDescriptorClass = findClass(env, "java/io/FileDescriptor");
 
-    cryptoUpcallsClass = getGlobalRefToClass(
-            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
-    nativeRefClass = getGlobalRefToClass(
-            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
+    cryptoUpcallsClass =
+            getGlobalRefToClass(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/CryptoUpcalls");
+    nativeRefClass =
+            getGlobalRefToClass(env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef");
     nativeRefHpkeCtxClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeRef$EVP_HPKE_CTX");
     openSslInputStreamClass = getGlobalRefToClass(
@@ -106,46 +106,43 @@ void init(JavaVM* vm, JNIEnv* env) {
     inputStream_readMethod = getMethodRef(env, inputStreamClass, "read", "([B)I");
     integer_valueOfMethod =
             env->GetStaticMethodID(integerClass, "valueOf", "(I)Ljava/lang/Integer;");
-    openSslInputStream_readLineMethod =
-            getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
+    openSslInputStream_readLineMethod = getMethodRef(env, openSslInputStreamClass, "gets", "([B)I");
     outputStream_writeMethod = getMethodRef(env, outputStreamClass, "write", "([B)V");
     outputStream_flushMethod = getMethodRef(env, outputStreamClass, "flush", "()V");
     buffer_positionMethod = getMethodRef(env, bufferClass, "position", "()I");
     buffer_limitMethod = getMethodRef(env, bufferClass, "limit", "()I");
     buffer_isDirectMethod = getMethodRef(env, bufferClass, "isDirect", "()Z");
-    sslHandshakeCallbacks_verifyCertificateChain =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "verifyCertificateChain", "([[BLjava/lang/String;)V");
+    sslHandshakeCallbacks_verifyCertificateChain = getMethodRef(
+            env, sslHandshakeCallbacksClass, "verifyCertificateChain", "([[BLjava/lang/String;)V");
     sslHandshakeCallbacks_onSSLStateChange =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "onSSLStateChange", "(II)V");
-    sslHandshakeCallbacks_clientCertificateRequested =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "clientCertificateRequested", "([B[I[[B)V");
+            getMethodRef(env, sslHandshakeCallbacksClass, "onSSLStateChange", "(II)V");
+    sslHandshakeCallbacks_clientCertificateRequested = getMethodRef(
+            env, sslHandshakeCallbacksClass, "clientCertificateRequested", "([B[I[[B)V");
     sslHandshakeCallbacks_serverCertificateRequested =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "serverCertificateRequested", "()V");
-    sslHandshakeCallbacks_clientPSKKeyRequested =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "clientPSKKeyRequested", "(Ljava/lang/String;[B[B)I");
+            getMethodRef(env, sslHandshakeCallbacksClass, "serverCertificateRequested", "()V");
+    sslHandshakeCallbacks_clientPSKKeyRequested = getMethodRef(
+            env, sslHandshakeCallbacksClass, "clientPSKKeyRequested", "(Ljava/lang/String;[B[B)I");
     sslHandshakeCallbacks_serverPSKKeyRequested =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "serverPSKKeyRequested", "(Ljava/lang/String;Ljava/lang/String;[B)I");
+            getMethodRef(env, sslHandshakeCallbacksClass, "serverPSKKeyRequested",
+                         "(Ljava/lang/String;Ljava/lang/String;[B)I");
     sslHandshakeCallbacks_onNewSessionEstablished =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "onNewSessionEstablished", "(J)V");
+            getMethodRef(env, sslHandshakeCallbacksClass, "onNewSessionEstablished", "(J)V");
     sslHandshakeCallbacks_serverSessionRequested =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "serverSessionRequested", "([B)J");
+            getMethodRef(env, sslHandshakeCallbacksClass, "serverSessionRequested", "([B)J");
     sslHandshakeCallbacks_selectApplicationProtocol =
-	    getMethodRef(env, sslHandshakeCallbacksClass, "selectApplicationProtocol", "([B)I");
-    cryptoUpcallsClass_rawSignMethod = env->GetStaticMethodID(cryptoUpcallsClass,
-                                                     "ecSignDigestWithPrivateKey",
-                                                     "(Ljava/security/PrivateKey;[B)[B");
+            getMethodRef(env, sslHandshakeCallbacksClass, "selectApplicationProtocol", "([B)I");
+    cryptoUpcallsClass_rawSignMethod = env->GetStaticMethodID(
+            cryptoUpcallsClass, "ecSignDigestWithPrivateKey", "(Ljava/security/PrivateKey;[B)[B");
     if (cryptoUpcallsClass_rawSignMethod == nullptr) {
         env->FatalError("Could not find ecSignDigestWithPrivateKey");
     }
-    cryptoUpcallsClass_rsaSignMethod = env->GetStaticMethodID(cryptoUpcallsClass,
-                                                     "rsaSignDigestWithPrivateKey",
-                                                     "(Ljava/security/PrivateKey;I[B)[B");
+    cryptoUpcallsClass_rsaSignMethod = env->GetStaticMethodID(
+            cryptoUpcallsClass, "rsaSignDigestWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
     if (cryptoUpcallsClass_rsaSignMethod == nullptr) {
         env->FatalError("Could not find rsaSignDigestWithPrivateKey");
     }
-    cryptoUpcallsClass_rsaDecryptMethod = env->GetStaticMethodID(cryptoUpcallsClass,
-						     "rsaDecryptWithPrivateKey",
-						     "(Ljava/security/PrivateKey;I[B)[B");
+    cryptoUpcallsClass_rsaDecryptMethod = env->GetStaticMethodID(
+            cryptoUpcallsClass, "rsaDecryptWithPrivateKey", "(Ljava/security/PrivateKey;I[B)[B");
     if (cryptoUpcallsClass_rsaDecryptMethod == nullptr) {
         env->FatalError("Could not find rsaDecryptWithPrivateKey");
     }
@@ -257,14 +254,13 @@ int throwInvalidKeyException(JNIEnv* env, const char* message) {
 
 int throwIllegalArgumentException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalArgumentException %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "java/lang/IllegalArgumentException", message);
+    return conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException", message);
 }
 
 int throwIllegalBlockSizeException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwIllegalBlockSizeException %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "javax/crypto/IllegalBlockSizeException", message);
+    return conscrypt::jniutil::throwException(env, "javax/crypto/IllegalBlockSizeException",
+                                              message);
 }
 
 int throwIllegalStateException(JNIEnv* env, const char* message) {
@@ -274,14 +270,13 @@ int throwIllegalStateException(JNIEnv* env, const char* message) {
 
 int throwShortBufferException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwShortBufferException %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "javax/crypto/ShortBufferException", message);
+    return conscrypt::jniutil::throwException(env, "javax/crypto/ShortBufferException", message);
 }
 
 int throwNoSuchAlgorithmException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwUnknownAlgorithmException %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "java/security/NoSuchAlgorithmException", message);
+    return conscrypt::jniutil::throwException(env, "java/security/NoSuchAlgorithmException",
+                                              message);
 }
 
 int throwIOException(JNIEnv* env, const char* message) {
@@ -291,8 +286,8 @@ int throwIOException(JNIEnv* env, const char* message) {
 
 int throwCertificateException(JNIEnv* env, const char* message) {
     JNI_TRACE("throwCertificateException %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "java/security/cert/CertificateException", message);
+    return conscrypt::jniutil::throwException(env, "java/security/cert/CertificateException",
+                                              message);
 }
 
 int throwParsingException(JNIEnv* env, const char* message) {
@@ -333,9 +328,9 @@ int throwForCipherError(JNIEnv* env, int reason, const char* message,
         case CIPHER_R_WRONG_FINAL_BLOCK_LENGTH:
             return throwIllegalBlockSizeException(env, message);
             break;
-        // TODO(davidben): Remove these ifdefs after
-        // https://boringssl-review.googlesource.com/c/boringssl/+/35565 has
-        // rolled out to relevant BoringSSL copies.
+            // TODO(davidben): Remove these ifdefs after
+            // https://boringssl-review.googlesource.com/c/boringssl/+/35565 has
+            // rolled out to relevant BoringSSL copies.
 #if defined(CIPHER_R_BAD_KEY_LENGTH)
         case CIPHER_R_BAD_KEY_LENGTH:
 #endif
@@ -503,8 +498,7 @@ int throwSocketTimeoutException(JNIEnv* env, const char* message) {
 
 int throwSSLHandshakeExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLExceptionStr %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "javax/net/ssl/SSLHandshakeException", message);
+    return conscrypt::jniutil::throwException(env, "javax/net/ssl/SSLHandshakeException", message);
 }
 
 int throwSSLExceptionStr(JNIEnv* env, const char* message) {
@@ -514,8 +508,7 @@ int throwSSLExceptionStr(JNIEnv* env, const char* message) {
 
 int throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
     JNI_TRACE("throwSSLProtocolExceptionStr %s", message);
-    return conscrypt::jniutil::throwException(
-            env, "javax/net/ssl/SSLProtocolException", message);
+    return conscrypt::jniutil::throwException(env, "javax/net/ssl/SSLProtocolException", message);
 }
 
 int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode, const char* message,

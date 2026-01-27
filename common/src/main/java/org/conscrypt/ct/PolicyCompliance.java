@@ -22,5 +22,7 @@ import org.conscrypt.Internal;
 public enum PolicyCompliance {
     COMPLY,
     NOT_ENOUGH_SCTS,
-    NOT_ENOUGH_DIVERSE_SCTS
+
+    NOT_ENOUGH_DIVERSE_SCTS,
+    NO_RFC6962_LOG
 }
