@@ -22,8 +22,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.conscrypt.TestUtils;
+import org.conscrypt.TestUtils.BufferType;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -35,6 +44,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
@@ -49,13 +59,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.TestUtils;
-import org.conscrypt.TestUtils.BufferType;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
@@ -926,121 +929,107 @@ public class SSLEngineTest {
         c.close();
     }
 
+    /*
+     * The preconditions for the wrap() methods of SSLEngine have a relatively
+     * complex mapping from precondition to the exception thrown on failure.  This method
+     * checks that all the failure cases throw the correct exception and that
+     * corner cases which should not throw are also are handled correctly.
+     */
     @Test
     public void wrapPreconditions() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(10);
-        ByteBuffer[] buffers = new ByteBuffer[] { buffer, buffer, buffer };
-        ByteBuffer[] badBuffers = new ByteBuffer[] { buffer, buffer, null, buffer };
+        int bufferSize = 128;
+        int arrayLength = 5;
+        ByteBuffer destBuffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyDestBuffer = destBuffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
+        for (int i = 0; i < arrayLength; i++) {
+            buffers[i] = buffers[i].asReadOnlyBuffer();
+        }
+        ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
+        int nullBufferIndex = 2;
+        buffersWithNullEntry[nullBufferIndex] = null;
 
+        // Failure cases
         // Client/server mode not set => IllegalStateException
-        try {
-            newUnconnectedEngine().wrap(buffer, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, 0, 1, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers[0], destBuffer));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers, destBuffer));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().wrap(buffers, 0, 1, destBuffer));
 
         // Read-only destination => ReadOnlyBufferException
-        try {
-            newConnectedEngine().wrap(buffer, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers[0], readOnlyDestBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers, readOnlyDestBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, readOnlyDestBuffer));
 
         // Null destination => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(buffer, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers,  null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers[0], null));
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().wrap(buffers, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength, null));
 
         // Null source => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap((ByteBuffer) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap((ByteBuffer[]) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(null, 0, 1, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap((ByteBuffer) null, destBuffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap((ByteBuffer[]) null, destBuffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(null, 0, 1, destBuffer));
 
         // Null entries in buffer array => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(badBuffers, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, destBuffer));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, destBuffer));
 
         // Bad offset or length => IndexOutOfBoundsException
-        try {
-            newConnectedEngine().wrap(buffers, 0, 7, buffer);
-            fail();
-        } catch (IndexOutOfBoundsException e) {
-            // Expected
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, destBuffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, arrayLength, 1, destBuffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, destBuffer));
+
+        // Corner cases which should not throw
+        // Null entries should not throw if they are outside the selected offset and length
+        assertWrapSucceeds(buffersWithNullEntry, 0, nullBufferIndex);
+        assertWrapSucceeds(buffersWithNullEntry, nullBufferIndex + 1, 1);
+
+        // Zero length arrays of input buffers should not throw
+        assertWrapSucceeds(buffers, 0, 0);
+        assertWrapSucceeds(buffers, arrayLength, 0);
+    }
+
+    // Asserts that a wrap call with the given arguments succeeds and wraps the expected
+    // amount of data.
+    private void assertWrapSucceeds(ByteBuffer[] buffers, int offset, int length) throws Exception {
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            assertConnected(pair);
+
+            // Reset the selected buffers to their initial (unread) state and calculate the
+            // total amount of data that will be wrapped.
+            int dataSize = 0;
+            for (int i = offset; i < offset + length; i++) {
+                buffers[i].position(0);
+                dataSize += buffers[i].remaining();
+            }
+
+            // Ensure the data will fit into one TLS record so that only a single wrap is needed.
+            assertTrue(dataSize <= pair.client.getSession().getApplicationBufferSize());
+            ByteBuffer ciphertext =
+                    ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+
+            // Wrap the data and ensure the expected amount of data was consumed.
+            SSLEngineResult result = pair.client.wrap(buffers, offset, length, ciphertext);
+            assertEquals(Status.OK, result.getStatus());
+            assertEquals(dataSize, result.bytesConsumed());
+            // This method is only used for checking wrap preconditions so no need to unwrap.
         }
     }
 

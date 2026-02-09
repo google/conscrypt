@@ -105,6 +105,24 @@ public final class NativeCrypto {
 
     static native byte[] EVP_marshal_public_key(NativeRef.EVP_PKEY pkey);
 
+    static native long EVP_PKEY_from_private_key_info(byte[] data, int[] algs)
+            throws ParsingException;
+
+    static native long EVP_PKEY_from_subject_public_key_info(byte[] data, int[] algs)
+            throws ParsingException;
+
+    static native long EVP_PKEY_from_raw_private_key(int type, byte[] data) throws ParsingException;
+
+    static native byte[] EVP_PKEY_get_raw_private_key(NativeRef.EVP_PKEY pkey);
+
+    static native long EVP_PKEY_from_raw_public_key(int type, byte[] data) throws ParsingException;
+
+    static native byte[] EVP_PKEY_get_raw_public_key(NativeRef.EVP_PKEY pkey);
+
+    static native long EVP_PKEY_from_private_seed(int type, byte[] seed) throws ParsingException;
+
+    static native byte[] EVP_PKEY_get_private_seed(NativeRef.EVP_PKEY pkey);
+
     static native byte[] EVP_raw_X25519_private_key(byte[] data)
             throws ParsingException, InvalidKeyException;
 
@@ -211,17 +229,9 @@ public final class NativeCrypto {
 
     static native byte[] MLDSA65_public_key_from_seed(byte[] privateKeySeed);
 
-    static native byte[] MLDSA65_sign(byte[] data, int dataLen, byte[] privateKeySeed);
-
-    static native int MLDSA65_verify(byte[] data, int dataLen, byte[] sig, byte[] publicKey);
-
     // --- MLDSA87 --------------------------------------------------------------
 
     static native byte[] MLDSA87_public_key_from_seed(byte[] privateKeySeed);
-
-    static native byte[] MLDSA87_sign(byte[] data, int dataLen, byte[] privateKeySeed);
-
-    static native int MLDSA87_verify(byte[] data, int dataLen, byte[] sig, byte[] publicKey);
 
     // --- SLHDSA_SHA2_128S --------------------------------------------------------------
 
@@ -1332,6 +1342,10 @@ public final class NativeCrypto {
             throws SSLException, SocketTimeoutException, CertificateException;
 
     public static native String SSL_get_current_cipher(long ssl, NativeSsl ssl_holder);
+
+    public static native void SSL_set1_groups(long ssl, NativeSsl sslHolder, int[] groups);
+
+    public static native String SSL_get_curve_name(long ssl, NativeSsl sslHolder);
 
     public static native String SSL_get_version(long ssl, NativeSsl ssl_holder);
 

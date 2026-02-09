@@ -39,6 +39,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -110,6 +111,10 @@ final class NativeSsl {
 
     String getCipherSuite() {
         return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl, this));
+    }
+
+    String getCurveNameForTesting() {
+        return NativeCrypto.SSL_get_curve_name(ssl, this);
     }
 
     X509Certificate[] getPeerCertificates() throws CertificateException {
@@ -274,6 +279,71 @@ final class NativeSsl {
         return NativeCrypto.SSL_get_tls_channel_id(ssl, this);
     }
 
+    private static int toBoringSslGroup(String javaNamedGroup) {
+        switch (javaNamedGroup) {
+            case "X25519":
+            case "x25519":
+                return NativeConstants.NID_X25519;
+            case "P-256":
+            case "secp256r1":
+                return NativeConstants.NID_X9_62_prime256v1;
+            case "P-384":
+            case "secp384r1":
+                return NativeConstants.NID_secp384r1;
+            case "P-521":
+            case "secp521r1":
+                return NativeConstants.NID_secp521r1;
+            case "X25519MLKEM768":
+                return NativeConstants.NID_X25519MLKEM768;
+            case "X25519Kyber768Draft00":
+                return NativeConstants.NID_X25519Kyber768Draft00;
+            case "MLKEM1024":
+                return NativeConstants.NID_ML_KEM_1024;
+            default:
+                return -1; // Unknown group.
+        }
+    }
+
+    /**
+     * Converts a list of java named groups to an array of groups that can be passed to BoringSSL.
+     *
+     * <p>Unknown groups are ignored, as required by the API documentation: <a
+     * href="https://docs.oracle.com/en/java/javase/24/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()">
+     * SSLParameters.getNamedGroups()</a>
+     */
+    static int[] toBoringSslGroups(String[] javaNamedGroups) {
+        int[] outputGroups = new int[javaNamedGroups.length];
+        int i = 0;
+        for (String javaNamedGroup : javaNamedGroups) {
+            int group = toBoringSslGroup(javaNamedGroup);
+            if (group > 0) {
+                outputGroups[i] = group;
+                i++;
+            }
+        }
+        if (i == 0) {
+            throw new IllegalArgumentException(
+                    "No valid known group found in: " + Arrays.toString(javaNamedGroups));
+        }
+        if (i < javaNamedGroups.length) {
+            return Arrays.copyOf(outputGroups, i);
+        }
+        return outputGroups;
+    }
+
+    static int[] parseNamedGroupsProperty(String namedGroupsProperty) {
+        if (namedGroupsProperty == null) {
+            throw new NullPointerException("namedGroupsProperty is null");
+        }
+        String[] namedGroups = namedGroupsProperty.replace(" ", "").split(",");
+        return toBoringSslGroups(namedGroups);
+    }
+
+    private static void setDefaultNamedGroups(long ssl, NativeSsl sslHolder) {
+        // When the groups list is empty, the default named groups are used.
+        NativeCrypto.SSL_set1_groups(ssl, sslHolder, new int[0]);
+    }
+
     void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
         boolean enableSessionCreation = parameters.getEnableSessionCreation();
         if (!enableSessionCreation) {
@@ -314,6 +384,27 @@ final class NativeSsl {
         if (!parameters.isSpake()) {
             NativeCrypto.setEnabledCipherSuites(
                     ssl, this, parameters.enabledCipherSuites, parameters.enabledProtocols);
+        }
+
+        String[] paramsNamedGroups = parameters.getNamedGroups();
+        // - If the named groups are null, we use the default groups.
+        // - If the named groups are not null, it overrides the default groups.
+        // - Unknown curves are ignored.
+        // See:
+        // https://docs.oracle.com/en/java/javase/25/docs/api/java.base/javax/net/ssl/SSLParameters.html#getNamedGroups()
+        if (paramsNamedGroups != null) {
+            NativeCrypto.SSL_set1_groups(ssl, this, toBoringSslGroups(paramsNamedGroups));
+        } else {
+            // Use default named group.
+            String namedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
+            if (namedGroupsProperty == null || namedGroupsProperty.isEmpty()) {
+                // If the property is not set or empty, use the default named groups. See:
+                // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html
+                setDefaultNamedGroups(ssl, this);
+            } else {
+                int[] groups = parseNamedGroupsProperty(namedGroupsProperty);
+                NativeCrypto.SSL_set1_groups(ssl, this, groups);
+            }
         }
 
         if (parameters.applicationProtocols.length > 0) {

@@ -29,6 +29,17 @@ import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -49,6 +60,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.KeyManager;
@@ -59,16 +71,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class ConscryptSocketTest {
@@ -470,6 +472,11 @@ public class ConscryptSocketTest {
 
         assertTrue(connection.clientHooks.isHandshakeCompleted);
         assertTrue(connection.serverHooks.isHandshakeCompleted);
+
+        // By default, BoringSSL supports curves "X25519", "P-256" and "P-384".
+        // X25519 gets priority, so that curve will be used in the handshake here.
+        assertEquals("X25519", connection.server.getCurveNameForTesting());
+        assertEquals("X25519", connection.client.getCurveNameForTesting());
     }
 
     @Test

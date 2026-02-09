@@ -760,6 +760,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         sslParameters.setEnabledProtocols(protocols);
     }
 
+    @Override
+    public final String getCurveNameForTesting() {
+        return ssl.getCurveNameForTesting();
+    }
+
     /**
      * This method enables session ticket support.
      *

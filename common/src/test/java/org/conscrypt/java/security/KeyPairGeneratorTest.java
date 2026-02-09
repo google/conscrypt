@@ -64,57 +64,59 @@ public class KeyPairGeneratorTest {
 
     @Test
     public void test_getInstance() throws Exception {
-        ServiceTester.test("KeyPairGenerator")
-            // Do not test AndroidKeyStore Provider. It does not accept vanilla public keys for
-            // signature verification. It's OKish not to test here because it's tested by
-            // cts/tests/tests/keystore.
-            .skipProvider("AndroidKeyStore")
-            // The SunEC provider tries to pass a sun-only AlgorithmParameterSpec to the default
-            // AlgorithmParameters:EC when its KeyPairGenerator is initialized.  Since Conscrypt
-            // is the highest-ranked provider when running our tests, its implementation of
-            // AlgorithmParameters:EC is returned, and it doesn't understand the special
-            // AlgorithmParameterSpec, so the KeyPairGenerator can't be initialized.
-            .skipProvider("SunEC")
-            // The SunPKCS11-NSS provider on OpenJDK 7 attempts to delegate to the SunEC provider,
-            // which doesn't exist on OpenJDK 7, and thus totally fails.  This appears to be a bug
-            // introduced into later revisions of OpenJDK 7.
-            .skipProvider("SunPKCS11-NSS")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider provider, String algorithm) throws Exception {
-                    AlgorithmParameterSpec params = null;
+        ServiceTester
+                .test("KeyPairGenerator")
+                // Do not test AndroidKeyStore Provider. It does not accept vanilla public keys for
+                // signature verification. It's OKish not to test here because it's tested by
+                // cts/tests/tests/keystore.
+                .skipProvider("AndroidKeyStore")
+                // The SunEC provider tries to pass a sun-only AlgorithmParameterSpec to the default
+                // AlgorithmParameters:EC when its KeyPairGenerator is initialized.  Since Conscrypt
+                // is the highest-ranked provider when running our tests, its implementation of
+                // AlgorithmParameters:EC is returned, and it doesn't understand the special
+                // AlgorithmParameterSpec, so the KeyPairGenerator can't be initialized.
+                .skipProvider("SunEC")
+                // The SunPKCS11-NSS provider on OpenJDK 7 attempts to delegate to the SunEC
+                // provider, which doesn't exist on OpenJDK 7, and thus totally fails.  This appears
+                // to be a bug introduced into later revisions of OpenJDK 7.
+                .skipProvider("SunPKCS11-NSS")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    // g3-add: @SuppressWarnings("InsecureCryptoUsage")
+                    public void test(Provider provider, String algorithm) throws Exception {
+                        AlgorithmParameterSpec params = null;
 
-                    if ("DH".equals(algorithm) || "DiffieHellman".equalsIgnoreCase(algorithm)) {
-                        params = getDHParams();
-                    }
-                    // KeyPairGenerator.getInstance(String)
-                    KeyPairGenerator kpg1 = KeyPairGenerator.getInstance(algorithm);
-                    assertEquals(algorithm, kpg1.getAlgorithm());
-                    if (params != null) {
-                        kpg1.initialize(params);
-                    }
-                    test_KeyPairGenerator(kpg1);
+                        if ("DH".equals(algorithm) || "DiffieHellman".equalsIgnoreCase(algorithm)) {
+                            params = getDHParams();
+                        }
+                        // KeyPairGenerator.getInstance(String)
+                        KeyPairGenerator kpg1 = KeyPairGenerator.getInstance(algorithm);
+                        assertEquals(algorithm, kpg1.getAlgorithm());
+                        if (params != null) {
+                            kpg1.initialize(params);
+                        }
+                        test_KeyPairGenerator(kpg1);
 
-                    // KeyPairGenerator.getInstance(String, Provider)
-                    KeyPairGenerator kpg2 = KeyPairGenerator.getInstance(algorithm, provider);
-                    assertEquals(algorithm, kpg2.getAlgorithm());
-                    assertEquals(provider, kpg2.getProvider());
-                    if (params != null) {
-                        kpg2.initialize(params);
-                    }
-                    test_KeyPairGenerator(kpg2);
+                        // KeyPairGenerator.getInstance(String, Provider)
+                        KeyPairGenerator kpg2 = KeyPairGenerator.getInstance(algorithm, provider);
+                        assertEquals(algorithm, kpg2.getAlgorithm());
+                        assertEquals(provider, kpg2.getProvider());
+                        if (params != null) {
+                            kpg2.initialize(params);
+                        }
+                        test_KeyPairGenerator(kpg2);
 
-                    // KeyPairGenerator.getInstance(String, String)
-                    KeyPairGenerator kpg3 = KeyPairGenerator.getInstance(algorithm,
-                        provider.getName());
-                    assertEquals(algorithm, kpg3.getAlgorithm());
-                    assertEquals(provider, kpg3.getProvider());
-                    if (params != null) {
-                        kpg3.initialize(params);
+                        // KeyPairGenerator.getInstance(String, String)
+                        KeyPairGenerator kpg3 =
+                                KeyPairGenerator.getInstance(algorithm, provider.getName());
+                        assertEquals(algorithm, kpg3.getAlgorithm());
+                        assertEquals(provider, kpg3.getProvider());
+                        if (params != null) {
+                            kpg3.initialize(params);
+                        }
+                        test_KeyPairGenerator(kpg3);
                     }
-                    test_KeyPairGenerator(kpg3);
-                }
-            });
+                });
     }
 
     private static final Map<String, List<Integer>> KEY_SIZES = new HashMap<>();
@@ -150,6 +152,10 @@ public class KeyPairGeneratorTest {
         putKeySize("EC", 521);
         putKeySize("XDH", 255);
         putKeySize("EdDSA", 255);
+        putKeySize("ML-KEM", -1);
+        putKeySize("ML-KEM-512", -1);
+        putKeySize("ML-KEM-768", -1);
+        putKeySize("ML-KEM-1024", -1);
         putKeySize("ML-DSA", -1);
         putKeySize("ML-DSA-44", -1);
         putKeySize("ML-DSA-65", -1);
@@ -182,6 +188,11 @@ public class KeyPairGeneratorTest {
 
         List<Integer> keySizes = getKeySizes(algorithm);
         for (int keySize : keySizes) {
+            if (algorithm.equals("ML-KEM")) {
+                // The generic ML-KEM generator in SunJCE doesn't support initialize(keySize).
+                // The specific named variants like "ML-KEM-512" are tested separately.
+                continue;
+            }
             // TODO(flooey): Remove when we don't support Java 6 anymore
             if ("DSA".equals(algorithm)
                     && ("SUN".equalsIgnoreCase(kpg.getProvider().getName())
@@ -244,6 +255,17 @@ public class KeyPairGeneratorTest {
             // have algorithm "ML-DSA".
             expectedAlgorithm = "ML-DSA";
         }
+        if (expectedAlgorithm.startsWith("EDDSA")) {
+            // This intentionally diverges from the OpenJDK implementation and JEP 339 (which return
+            // "EdDSA") to achieve backwards compatibility with the "AndroidKeyStore" provider,
+            // which supported generation of Ed25519 keys before Conscrypt did.
+            expectedAlgorithm = "1.3.101.112";
+        }
+        if (expectedAlgorithm.startsWith("ML-KEM")) {
+            // The KeyPairGenerator might be "ML-KEM-512", but the key it generates
+            // has the algorithm "ML-KEM".
+            expectedAlgorithm = "ML-KEM";
+        }
         assertEquals(expectedAlgorithm, k.getAlgorithm().toUpperCase(Locale.ROOT));
         if (expectedAlgorithm.equals("DH")) {
             if (k instanceof DHPublicKey) {
@@ -264,6 +286,10 @@ public class KeyPairGeneratorTest {
         }
         if (expectedAlgorithm.equals("ML-DSA")) {
             // ML-DSA keys are not yet serializable, so just skip them.
+            return;
+        }
+        if (expectedAlgorithm.equals("ML-KEM")) {
+            // ML-KEM keys are not yet serializable, so just skip them.
             return;
         }
         if (expectedAlgorithm.equals("SLH-DSA-SHA2-128S")) {
@@ -295,6 +321,7 @@ public class KeyPairGeneratorTest {
         test_KeyWithAllKeyFactories(k);
     }
 
+    // g3-add: @SuppressWarnings("InsecureCryptoUsage")
     private void test_KeyWithAllKeyFactories(Key k) throws Exception {
         byte[] encoded = k.getEncoded();
 
@@ -440,6 +467,7 @@ public class KeyPairGeneratorTest {
     });
 
     @Test
+    // g3-add: @SuppressWarnings("InsecureCryptoUsage")
     public void testDSAGeneratorWithParams() throws Exception {
         final DSAParameterSpec dsaSpec = new DSAParameterSpec(DSA_P, DSA_Q, DSA_G);
 

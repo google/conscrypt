@@ -97,8 +97,8 @@ import javax.net.ssl.X509TrustManager;
 final public class Platform {
     private static final int JAVA_VERSION = javaVersion0();
     private static final Method GET_CURVE_NAME_METHOD;
-    static boolean DEPRECATED_TLS_V1 = true;
-    static boolean ENABLED_TLS_V1 = false;
+    private static boolean DEPRECATED_TLS_V1 = true;
+    private static boolean ENABLED_TLS_V1 = false;
     private static boolean FILTERED_TLS_V1 = false;
 
     static {
@@ -115,13 +115,12 @@ final public class Platform {
 
     private Platform() {}
 
-    public static void setup(boolean deprecatedTlsV1, boolean enabledTlsV1) {
+    public static synchronized void setup(boolean deprecatedTlsV1, boolean enabledTlsV1) {
         DEPRECATED_TLS_V1 = deprecatedTlsV1;
         ENABLED_TLS_V1 = enabledTlsV1;
         FILTERED_TLS_V1 = !enabledTlsV1;
         NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
     }
-
 
     /**
      * Approximates the behavior of File.createTempFile without depending on SecureRandom.
@@ -850,15 +849,15 @@ final public class Platform {
         return JAVA_VERSION < 15;
     }
 
-    public static boolean isTlsV1Deprecated() {
+    public static synchronized boolean isTlsV1Deprecated() {
         return DEPRECATED_TLS_V1;
     }
 
-    public static boolean isTlsV1Filtered() {
+    public static synchronized boolean isTlsV1Filtered() {
         return FILTERED_TLS_V1;
     }
 
-    public static boolean isTlsV1Supported() {
+    public static synchronized boolean isTlsV1Supported() {
         return ENABLED_TLS_V1;
     }
 

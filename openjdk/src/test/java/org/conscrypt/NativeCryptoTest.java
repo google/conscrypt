@@ -96,8 +96,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import javax.security.auth.x500.X500Principal;
 
 @RunWith(JUnit4.class)
@@ -353,6 +351,47 @@ public class NativeCryptoTest {
         long s2 = NativeCrypto.SSL_new(c, null);
         assertTrue(s != s2);
         NativeCrypto.SSL_free(s2, null);
+
+        NativeCrypto.SSL_free(s, null);
+        NativeCrypto.SSL_CTX_free(c, null);
+    }
+
+    @Test
+    public void setGroupsList_validGroups_works() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X9_62_prime256v1});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_secp384r1});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_secp521r1});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_X25519MLKEM768});
+        NativeCrypto.SSL_set1_groups(
+                s, null, new int[] {NativeConstants.NID_X25519Kyber768Draft00});
+        NativeCrypto.SSL_set1_groups(s, null, new int[] {NativeConstants.NID_ML_KEM_1024});
+
+        NativeCrypto.SSL_set1_groups(s, null,
+                new int[] {NativeConstants.NID_X25519, NativeConstants.NID_X9_62_prime256v1,
+                        NativeConstants.NID_secp384r1, NativeConstants.NID_secp521r1,
+                        NativeConstants.NID_X25519MLKEM768,
+                        NativeConstants.NID_X25519Kyber768Draft00,
+                        NativeConstants.NID_ML_KEM_1024});
+
+        NativeCrypto.SSL_free(s, null);
+        NativeCrypto.SSL_CTX_free(c, null);
+    }
+
+    @Test
+    public void setGroupsList_invalidInput_throws() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+
+        assertThrows(NullPointerException.class, () -> NativeCrypto.SSL_set1_groups(s, null, null));
+
+        assertThrows(SSLException.class,
+                ()
+                        -> NativeCrypto.SSL_set1_groups(
+                                s, null, new int[] {NativeConstants.EVP_PKEY_RSA}));
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -631,7 +670,6 @@ public class NativeCryptoTest {
 
         byte[] badConfigList = {
                 0x00, 0x05, (byte) 0xfe, 0x0d, (byte) 0xff, (byte) 0xff, (byte) 0xff};
-        boolean set = false;
         assertThrows(SSLException.class,
                 () -> NativeCrypto.SSL_set1_ech_config_list(s, null, badConfigList));
         NativeCrypto.SSL_free(s, null);
@@ -3097,6 +3135,205 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void x25519_fromToRaw_works() throws Exception {
+        byte[] privateKeyBytes =
+                decodeHex("0900000000000000000000000000000000000000000000000000000000000000");
+
+        NativeRef.EVP_PKEY privateKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                        NativeConstants.EVP_PKEY_X25519, privateKeyBytes));
+        assertEquals(NativeConstants.EVP_PKEY_X25519, NativeCrypto.EVP_PKEY_type(privateKey));
+        byte[] rawPrivateKey = NativeCrypto.EVP_PKEY_get_raw_private_key(privateKey);
+        assertArrayEquals(privateKeyBytes, rawPrivateKey);
+
+        // At the same time, test that getting the seed fails.
+        assertThrows(
+                RuntimeException.class, () -> NativeCrypto.EVP_PKEY_get_private_seed(privateKey));
+    }
+
+    @Test
+    public void ed25519_fromToRaw_works() throws Exception {
+        // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
+        byte[] rawEd25519PrivateKey =
+                decodeHex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
+        NativeRef.EVP_PKEY privateKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                        NativeConstants.EVP_PKEY_ED25519, rawEd25519PrivateKey));
+        assertEquals(NativeConstants.EVP_PKEY_ED25519, NativeCrypto.EVP_PKEY_type(privateKey));
+
+        byte[] output = NativeCrypto.EVP_PKEY_get_raw_private_key(privateKey);
+        assertArrayEquals(rawEd25519PrivateKey, output);
+
+        // At the same time, test that getting the seed fails.
+        assertThrows(
+                RuntimeException.class, () -> NativeCrypto.EVP_PKEY_get_private_seed(privateKey));
+    }
+
+    @Test
+    public void evpKeyFromRawPrivateKey_ed25519WithInvalidKeyLength_throws() throws Exception {
+        final byte[] shortKey = new byte[31];
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_ED25519, shortKey)));
+        final byte[] longKey = new byte[33];
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_ED25519, longKey)));
+    }
+
+    @Test
+    public void evpKeyFromRawPrivateKey_x25519WithInvalidKeyLength_throws() throws Exception {
+        final byte[] shortKey = new byte[31];
+        assertThrows(Exception.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_X25519, shortKey)));
+        final byte[] longKey = new byte[33];
+        assertThrows(Exception.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_private_key(
+                                NativeConstants.EVP_PKEY_X25519, longKey)));
+    }
+
+    @Test
+    public void mldsaPrivateKey_fromAndToSeed_works() throws Exception {
+        for (int keyType : new int[] {
+                     NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
+            byte[] seed = new byte[32];
+            NativeCrypto.RAND_bytes(seed);
+            NativeRef.EVP_PKEY privateKey =
+                    new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, seed));
+            assertEquals(keyType, NativeCrypto.EVP_PKEY_type(privateKey));
+
+            byte[] output = NativeCrypto.EVP_PKEY_get_private_seed(privateKey);
+            assertArrayEquals(seed, output);
+        }
+    }
+
+    @Test
+    public void evpKeyFromPrivateSeed_invalidSeedLength_throws() throws Exception {
+        for (int keyType : new int[] {
+                     NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
+            final byte[] shortSeed = new byte[31];
+            assertThrows(ParsingException.class,
+                    ()
+                            -> new NativeRef.EVP_PKEY(
+                                    NativeCrypto.EVP_PKEY_from_private_seed(keyType, shortSeed)));
+            final byte[] longSeed = new byte[33];
+            assertThrows(ParsingException.class,
+                    ()
+                            -> new NativeRef.EVP_PKEY(
+                                    NativeCrypto.EVP_PKEY_from_private_seed(keyType, longSeed)));
+        }
+    }
+
+    @Test
+    public void parseMldsaPrivateKeyFromRfc9881_works() throws Exception {
+        // From:
+        // https://datatracker.ietf.org/doc/html/rfc9881#appendix-C.1.2.1
+        byte[] pkcs8EncodedPrivateKey = TestUtils.decodeBase64(
+                "MDQCAQAwCwYJYIZIAWUDBAMSBCKAIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f");
+        byte[] expectedSeed = TestUtils.decodeHex(
+                "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+
+        NativeRef.EVP_PKEY parsedPrivateKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_key_info(
+                        pkcs8EncodedPrivateKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey));
+        byte[] outputSeed = NativeCrypto.EVP_PKEY_get_private_seed(parsedPrivateKey);
+        assertArrayEquals(expectedSeed, outputSeed);
+
+        // Using two key types works.
+        NativeRef.EVP_PKEY parsedPrivateKey2 = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey,
+                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87,
+                                NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPrivateKey2));
+
+        // But using the wrong key type throws a parsing exception.
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(
+                                NativeCrypto.EVP_PKEY_from_private_key_info(pkcs8EncodedPrivateKey,
+                                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87})));
+    }
+
+    @Test
+    public void parseMldsaPublicKeyFromRfc9881_works() throws Exception {
+        // From:
+        // https://datatracker.ietf.org/doc/html/rfc9881#name-example-public-keys
+        String publicKeyBase64 = "MIIHsjALBglghkgBZQMEAxIDggehAEhoPZGXjjHrPd24sEc0gtK4il9iWUn9j1il"
+                + "YeaWvUwn0Fs427Lt8B5mTv2Bvh6ok2iM5oqi1RxZWPi7xutOie5n0sAyCVTVchLK"
+                + "xyKf8dbq8DkovVFRH42I2EdzbH3icw1ZeOVBBxMWCXiGdxG/VTmgv8TDUMK+Vyuv"
+                + "DuLi+xbM/qCAKNmaxJrrt1k33c4RHNq2L/886ouiIz0eVvvFxaHnJt5j+t0q8Bax"
+                + "GRd/o9lxotkncXP85VtndFrwt8IdWX2+uT5qMvNBxJpai+noJQiNHyqkUVXWyK4V"
+                + "Nn5OsAO4/feFEHGUlzn5//CQI+r0UQTSqEpFkG7tRnGkTcKNJ5h7tV32np6FYfYa"
+                + "gKcmmVA4Zf7Zt+5yqOF6GcQIFE9LKa/vcDHDpthXFhC0LJ9CEkWojxl+FoErAxFZ"
+                + "tluWh+Wz6TTFIlrpinm6c9Kzmdc1EO/60Z5TuEUPC6j84QEv2Y0mCnSqqhP64kmg"
+                + "BrHDT1uguILyY3giL7NvIoPCQ/D/618btBSgpw1V49QKVrbLyIrh8Dt7KILZje6i"
+                + "jhRcne39jq8c7y7ZSosFD4lk9G0eoNDCpD4N2mGCrb9PbtF1tnQiV4Wb8i86QX7P"
+                + "H52JMXteU51YevFrnhMT4EUU/6ZLqLP/K4Mh+IEcs/sCLI9kTnCkuAovv+5gSrtz"
+                + "eQkeqObFx038AoNma0DAeThwAoIEoTa/XalWjreY00kDi9sMEeA0ReeEfLUGnHXP"
+                + "KKxgHHeZ2VghDdvLIm5Rr++fHeR7Bzhz1tP5dFa+3ghQgudKKYss1I9LMJMVXzZs"
+                + "j6YBxq+FjfoywISRsqKYh/kDNZSaXW7apnmIKjqV1r9tlwoiH0udPYy/OEr4GqyV"
+                + "4rMpTgR4msg3J6XcBFWflq9B2KBTUW/u7rxSdG62qygZ4JEIcQ2DXwEfpjBlhyrT"
+                + "NNXN/7KyMQUH6S/Jk64xfal/TzCc2vD2ftmdkCFVdgg4SflTskbX/ts/22dnmFCl"
+                + "rUBOZBR/t89Pau3dBa+0uDSWjR/ogBSWDc5dlCI2Um4SpHjWnl++aXAxCzCMBoRQ"
+                + "GM/HsqtDChOmsax7sCzMuz2RGsLxEGhhP74Cm/3OAs9c04lQ7XLIOUTt+8dWFa+H"
+                + "+GTAUfPFVFbFQShjpAwG0dq1Yr3/BXG408ORe70wCIC7pemYI5uV+pG31kFtTzmL"
+                + "OtvNMJg+01krTZ731CNv0A9Q2YqlOiNaxBcnIPd9lhcmcpgM/o/3pacCeD7cK6Mb"
+                + "IlkBWhEvx/RoqcL5RkA5AC0w72eLTLeYvBFiFr96mnwYugO3tY/QdRXTEVBJ02FL"
+                + "56B+dEMAdQ3x0sWHUziQWer8PXhczdMcB2SL7cA6XDuK1G0GTVnBPVc3Ryn8TilT"
+                + "YuKlGRIEUwQovBUir6KP9f4WVeMEylvIwnrQ4MajndTfKJVsFLOMyTaCzv5AK71e"
+                + "gtKcRk5E6103tI/FaN/gzG6OFrrqBeUTVZDxkpTnPoNnsCFtu4FQMLneVZE/CAOc"
+                + "QjUcWeVRXdWvjgiaFeYl6Pbe5jk4bEZJfXomMoh3TeWBp96WKbQbRCQUH5ePuDMS"
+                + "CO/ew8bg3jm8VwY/Pc1sRwNzwIiR6inLx8xtZIO4iJCDrOhqp7UbHCz+birRjZfO"
+                + "NvvFbqQvrpfmp6wRSGRHjDZt8eux57EakJhQT9WXW98fSdxwACtjwXOanSY/utQH"
+                + "P2qfbCuK9LTDMqEDoM/6Xe6y0GLKPCFf02ACa+fFFk9KRCTvdJSIBNZvRkh3Msgg"
+                + "LHlUeGR7TqcdYnwIYCTMo1SkHwh3s48Zs3dK0glcjaU7Bp4hx2ri0gB+FnGe1ACA"
+                + "0zT32lLp9aWZBDnK8IOpW4M/Aq0QoIwabQ8mDAByhb1KL0dwOlrvRlKH0lOxisIl"
+                + "FDFiEP9WaBSxD4eik9bxmdPDlZmQ0MEmi09Q1fn877vyN70MKLgBgtZll0HxTxC/"
+                + "uyG7oSq2IKojlvVsBoa06pAXmQIkIWsv6K12xKkUju+ahqNjWmqne8Hc+2+6Wad9"
+                + "/am3Uw3AyoZIyNlzc44Burjwi0kF6EqkZBvWAkEM2XUgJl8vIx8rNeFesvoE0r2U"
+                + "1ad6uvHg4WEBCpkAh/W0bqmIsrwFEv2g+pI9rdbEXFMB0JSDZzJltasuEPS6Ug9r"
+                + "utVkpcPV4nvbCA99IOEylqMYGVTDnGSclD6+F99cH3quCo/hJsR3WFpdTWSKDQCL"
+                + "avXozTG+aakpbU8/0l7YbyIeS5P2X1kplnUzYkuSNXUMMHB1ULWFNtEJpxMcWlu+"
+                + "SlcVVnwSU0rsdmB2Huu5+uKJHHdFibgOVmrVV93vc2cZa3In6phw7wnd/seda5MZ"
+                + "poebUgXXa/erpazzOvtZ0X/FTmg4PWvloI6bZtpT3N4Ai7KUuFgr0TLNzEmVn9vC"
+                + "HlJyGIDIrQNSx58DpDu9hMTN/cbFKQBeHnzZo0mnFoo1Vpul3qgYlo1akUZr1uZO"
+                + "IL9iQXGYr8ToHCjdd+1AKCMjmLUvvehryE9HW5AWcQziqrwRoGtNuskB7BbPNlyj"
+                + "8tU4E5SKaToPk+ecRspdWm3KPSjKUK0YvRP8pVBZ3ZsYX3n5xHGWpOgbIQS8RgoF"
+                + "HgLy6ERP";
+        byte[] x509EncodedPublicKey = TestUtils.decodeBase64(publicKeyBase64);
+
+        NativeRef.EVP_PKEY parsedPublicKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+                        x509EncodedPublicKey, new int[] {NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPublicKey));
+
+        // Using two key types works.
+        NativeRef.EVP_PKEY parsedPublicKey2 = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_subject_public_key_info(x509EncodedPublicKey,
+                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87,
+                                NativeConstants.EVP_PKEY_ML_DSA_65}));
+        assertEquals(
+                NativeConstants.EVP_PKEY_ML_DSA_65, NativeCrypto.EVP_PKEY_type(parsedPublicKey2));
+
+        // But using the wrong key type throws a parsing exception.
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(
+                                NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+                                        x509EncodedPublicKey,
+                                        new int[] {NativeConstants.EVP_PKEY_ML_DSA_87})));
+    }
+
+    @Test
     public void test_EVP_DigestSign_Ed25519_works() throws Exception {
         // Test vectors from https://datatracker.ietf.org/doc/html/rfc8032#section-7
         // PKCS#8 encoding for Ed25519 is defined in https://datatracker.ietf.org/doc/html/rfc8410
@@ -3144,6 +3381,76 @@ public class NativeCryptoTest {
                 NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
 
         assertTrue(result);
+    }
+
+    @Test
+    public void mldsa65_evpDigestSign_works() throws Exception {
+        byte[] seed = new byte[32];
+        byte[] data = new byte[100];
+
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_65, seed));
+
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeCrypto.EVP_DigestSignInit(ctx, 0, privateKey);
+        byte[] sig = NativeCrypto.EVP_DigestSign(ctx, data, 0, data.length);
+        assertEquals(3309, sig.length);
+
+        // verify that sig is correct
+        byte[] rawPublicKey = NativeCrypto.MLDSA65_public_key_from_seed(seed);
+        NativeRef.EVP_PKEY publicKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                        NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey));
+        NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+        boolean result =
+                NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
+        assertTrue(result);
+
+        // also verify that EVP_PKEY_get_raw_public_key works
+        byte[] rawPublicKeyCopy = NativeCrypto.EVP_PKEY_get_raw_public_key(publicKey);
+        assertArrayEquals(rawPublicKey, rawPublicKeyCopy);
+
+        // check that parsing with the wrong key type fails.
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                                NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey)));
+    }
+
+    @Test
+    public void mldsa87_evpDigestSign_works() throws Exception {
+        byte[] seed = new byte[32];
+        byte[] data = new byte[100];
+
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_87, seed));
+
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeCrypto.EVP_DigestSignInit(ctx, 0, privateKey);
+        byte[] sig = NativeCrypto.EVP_DigestSign(ctx, data, 0, data.length);
+        assertEquals(4627, sig.length);
+
+        byte[] rawPublicKey = NativeCrypto.MLDSA87_public_key_from_seed(seed);
+        NativeRef.EVP_PKEY publicKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                        NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey));
+        NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+        boolean result =
+                NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
+
+        assertTrue(result);
+
+        // also verify that EVP_PKEY_get_raw_public_key works
+        byte[] rawPublicKeyCopy = NativeCrypto.EVP_PKEY_get_raw_public_key(publicKey);
+        assertArrayEquals(rawPublicKey, rawPublicKeyCopy);
+
+        // check that parsing with the wrong key type fails.
+        assertThrows(ParsingException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                                NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey)));
     }
 
     @Test
@@ -3791,139 +4098,37 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void test_mldsa65_works() throws Exception {
+    public void mldsa65_public_key_from_seed_works() throws Exception {
         byte[] privateKeySeed =
                 decodeHex("7C9935A0B07694AA0C6D10E4DB6B1ADD2FD81A25CCB148032DCD739936737F2D");
-        byte[] data =
-                decodeHex("D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8");
 
         byte[] publicKey = NativeCrypto.MLDSA65_public_key_from_seed(privateKeySeed);
         assertEquals(1952, publicKey.length);
 
-        byte[] signature = NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeed);
-        assertEquals(3309, signature.length);
-
-        int result = NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKey);
-        assertEquals(1, result);
-
-        // data buffer is larger than data
-        byte[] dataBuffer = Arrays.copyOf(data, data.length + 42);
-        assertEquals(1, NativeCrypto.MLDSA65_verify(dataBuffer, data.length, signature, publicKey));
-
-        // data too short
-        assertEquals(0, NativeCrypto.MLDSA65_verify(data, data.length - 1, signature, publicKey));
-
-        byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
-        assertEquals(
-                0, NativeCrypto.MLDSA65_verify(data, data.length, signatureTooShort, publicKey));
-
-        byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
-        assertEquals(
-                0, NativeCrypto.MLDSA65_verify(data, data.length, signatureTooLong, publicKey));
-
-        byte[] modifiedSignature = signature.clone();
-        modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
-        assertEquals(
-                0, NativeCrypto.MLDSA65_verify(data, data.length, modifiedSignature, publicKey));
-
-        byte[] modifiedData = data.clone();
-        modifiedData[0] = (byte) (modifiedData[0] ^ 0x01);
-        assertEquals(
-                0, NativeCrypto.MLDSA65_verify(modifiedData, data.length, signature, publicKey));
-
-        int invalidDataLen = data.length + 1;
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_sign(data, invalidDataLen, privateKeySeed));
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_verify(data, invalidDataLen, signature, publicKey));
-
         byte[] privateKeySeedTooShort = Arrays.copyOf(privateKeySeed, privateKeySeed.length - 1);
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.MLDSA65_public_key_from_seed(privateKeySeedTooShort));
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeedTooShort));
 
         byte[] privateKeySeedTooLong = Arrays.copyOf(privateKeySeed, privateKeySeed.length + 1);
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.MLDSA65_public_key_from_seed(privateKeySeedTooLong));
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_sign(data, data.length, privateKeySeedTooLong));
-
-        byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooShort));
-
-        byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA65_verify(data, data.length, signature, publicKeyTooLong));
     }
 
     @Test
-    public void test_mldsa87_works() throws Exception {
+    public void mldsa87_public_key_from_seed_works() throws Exception {
         byte[] privateKeySeed =
                 decodeHex("7C9935A0B07694AA0C6D10E4DB6B1ADD2FD81A25CCB148032DCD739936737F2D");
-        byte[] data =
-                decodeHex("D81C4D8D734FCBFBEADE3D3F8A039FAA2A2C9957E835AD55B22E75BF57BB556AC8");
 
         byte[] publicKey = NativeCrypto.MLDSA87_public_key_from_seed(privateKeySeed);
         assertEquals(2592, publicKey.length);
 
-        byte[] signature = NativeCrypto.MLDSA87_sign(data, data.length, privateKeySeed);
-        assertEquals(4627, signature.length);
-
-        int result = NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKey);
-        assertEquals(1, result);
-
-        // data buffer is larger than data
-        byte[] dataBuffer = Arrays.copyOf(data, data.length + 42);
-        assertEquals(1, NativeCrypto.MLDSA87_verify(dataBuffer, data.length, signature, publicKey));
-
-        // data too short
-        assertEquals(0, NativeCrypto.MLDSA87_verify(data, data.length - 1, signature, publicKey));
-
-        byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
-        assertEquals(
-                0, NativeCrypto.MLDSA87_verify(data, data.length, signatureTooShort, publicKey));
-
-        byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
-        assertEquals(
-                0, NativeCrypto.MLDSA87_verify(data, data.length, signatureTooLong, publicKey));
-
-        byte[] modifiedSignature = signature.clone();
-        modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
-        assertEquals(
-                0, NativeCrypto.MLDSA87_verify(data, data.length, modifiedSignature, publicKey));
-
-        byte[] modifiedData = data.clone();
-        modifiedData[0] = (byte) (modifiedData[0] ^ 0x01);
-        assertEquals(
-                0, NativeCrypto.MLDSA87_verify(modifiedData, data.length, signature, publicKey));
-
-        int invalidDataLen = data.length + 1;
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA87_sign(data, invalidDataLen, privateKeySeed));
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA87_verify(data, invalidDataLen, signature, publicKey));
-
         byte[] privateKeySeedTooShort = Arrays.copyOf(privateKeySeed, privateKeySeed.length - 1);
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.MLDSA87_public_key_from_seed(privateKeySeedTooShort));
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA87_sign(data, data.length, privateKeySeedTooShort));
 
         byte[] privateKeySeedTooLong = Arrays.copyOf(privateKeySeed, privateKeySeed.length + 1);
         assertThrows(RuntimeException.class,
                 () -> NativeCrypto.MLDSA87_public_key_from_seed(privateKeySeedTooLong));
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA87_sign(data, data.length, privateKeySeedTooLong));
-
-        byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooShort));
-
-        byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
-        assertThrows(RuntimeException.class,
-                () -> NativeCrypto.MLDSA87_verify(data, data.length, signature, publicKeyTooLong));
     }
 
     @Test

@@ -85,8 +85,8 @@ import sun.security.x509.AlgorithmId;
 @Internal
 final public class Platform {
     private static class NoPreloadHolder { public static final Platform MAPPER = new Platform(); }
-    static boolean DEPRECATED_TLS_V1 = true;
-    static boolean ENABLED_TLS_V1 = false;
+    private static boolean DEPRECATED_TLS_V1 = true;
+    private static boolean ENABLED_TLS_V1 = false;
     private static boolean FILTERED_TLS_V1 = true;
 
     static {
@@ -96,7 +96,7 @@ final public class Platform {
     /**
      * Runs all the setup for the platform that only needs to run once.
      */
-    public static void setup(boolean deprecatedTlsV1, boolean enabledTlsV1) {
+    public static synchronized void setup(boolean deprecatedTlsV1, boolean enabledTlsV1) {
         DEPRECATED_TLS_V1 = deprecatedTlsV1;
         ENABLED_TLS_V1 = enabledTlsV1;
         FILTERED_TLS_V1 = !enabledTlsV1;
@@ -166,6 +166,14 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
+
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -182,6 +190,15 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, AbstractConscryptSocket socket) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+
+        try {
+            Method setNamedGroupsMethod =
+                    params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
+
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(socket.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(socket.getHostname())));
@@ -193,6 +210,13 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
         List<SNIServerName> serverNames = params.getServerNames();
         if (serverNames != null) {
             for (SNIServerName serverName : serverNames) {
@@ -209,6 +233,14 @@ final public class Platform {
             SSLParameters params, SSLParametersImpl impl, ConscryptEngine engine) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+
+        try {
+            Method setNamedGroupsMethod =
+                    params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.<SNIServerName>singletonList(
                     new SNIHostName(engine.getHostname())));
@@ -576,11 +608,11 @@ final public class Platform {
         return true;
     }
 
-    public static boolean isTlsV1Deprecated() {
+    public static synchronized boolean isTlsV1Deprecated() {
         return DEPRECATED_TLS_V1;
     }
 
-    public static boolean isTlsV1Filtered() {
+    public static synchronized boolean isTlsV1Filtered() {
         Object targetSdkVersion = getTargetSdkVersion();
         if ((targetSdkVersion != null) && ((int) targetSdkVersion > 35)
                && ((int) targetSdkVersion < 100))
@@ -588,7 +620,7 @@ final public class Platform {
         return FILTERED_TLS_V1;
     }
 
-    public static boolean isTlsV1Supported() {
+    public static synchronized boolean isTlsV1Supported() {
         return ENABLED_TLS_V1;
     }
 
