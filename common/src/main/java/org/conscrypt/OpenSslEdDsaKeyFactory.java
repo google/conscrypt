@@ -65,7 +65,8 @@ public final class OpenSslEdDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (!key.getAlgorithm().equals("EdDSA") && !key.getAlgorithm().equals("Ed25519")) {
+        if (!key.getAlgorithm().equals("EdDSA") && !key.getAlgorithm().equals("Ed25519")
+                && !key.getAlgorithm().equals("1.3.101.112")) {
             throw new InvalidKeySpecException("Key must be an EdDSA or Ed25519 key");
         }
         if (key.getEncoded() == null) {

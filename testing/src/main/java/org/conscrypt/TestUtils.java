@@ -118,6 +118,14 @@ public final class TestUtils {
             return result;
         }
 
+        public ByteBuffer[] newRandomBufferArray(int arrayLength, int bufferSize) {
+            ByteBuffer[] result = new ByteBuffer[arrayLength];
+            for (int i = 0; i < arrayLength; i++) {
+                result[i] = newRandomBuffer(bufferSize);
+            }
+            return result;
+        }
+
         public ByteBuffer newRandomBuffer(int size) {
             byte[] data = new byte[size];
             random.nextBytes(data);

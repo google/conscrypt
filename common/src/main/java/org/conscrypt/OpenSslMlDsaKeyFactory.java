@@ -28,14 +28,15 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 /** An implementation of a {@link KeyFactorySpi} for MLDSA keys based on BoringSSL. */
 @Internal
 public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
-    private final MlDsaAlgorithm algorithm;
+    private final MlDsaAlgorithm defaultAlgorithm;
 
-    private OpenSslMlDsaKeyFactory(MlDsaAlgorithm algorithm) {
-        this.algorithm = algorithm;
+    private OpenSslMlDsaKeyFactory(MlDsaAlgorithm defaultAlgorithm) {
+        this.defaultAlgorithm = defaultAlgorithm;
     }
 
     abstract boolean supportsAlgorithm(MlDsaAlgorithm algorithm);
@@ -74,16 +75,110 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
     }
 
+    private OpenSslMlDsaPublicKey makePublicKeyFromRaw(byte[] raw, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        if (raw.length != algorithm.publicKeySize()) {
+            throw new InvalidKeySpecException("Invalid raw public key");
+        }
+        try {
+            return new OpenSslMlDsaPublicKey(raw, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw public key", e);
+        }
+    }
+
+    static MlDsaAlgorithm getMlDsaAlgorithm(OpenSSLKey key) {
+        int keyType = NativeCrypto.EVP_PKEY_type(key.getNativeRef());
+        if (keyType == NativeConstants.EVP_PKEY_ML_DSA_65) {
+            return MlDsaAlgorithm.ML_DSA_65;
+        } else if (keyType == NativeConstants.EVP_PKEY_ML_DSA_87) {
+            return MlDsaAlgorithm.ML_DSA_87;
+        } else {
+            throw new IllegalArgumentException("Unsupported key type");
+        }
+    }
+
+    static int getPKeyType(MlDsaAlgorithm algorithm) {
+        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+            return NativeConstants.EVP_PKEY_ML_DSA_65;
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
+            return NativeConstants.EVP_PKEY_ML_DSA_87;
+        } else {
+            throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
+        }
+    }
+
+    private OpenSslMlDsaPublicKey makePublicKey(OpenSSLKey key) throws InvalidKeySpecException {
+        MlDsaAlgorithm algorithm = getMlDsaAlgorithm(key);
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        try {
+            return new OpenSslMlDsaPublicKey(key, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid public key", e);
+        }
+    }
+
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslMlDsaPublicKey((EncodedKeySpec) keySpec, algorithm);
+        if (!(keySpec instanceof EncodedKeySpec)) {
+            throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                    + keySpec.getClass().getName());
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
+        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+            byte[] raw = encodedKeySpec.getEncoded();
+            return makePublicKeyFromRaw(raw, defaultAlgorithm);
+        }
+        if (!encodedKeySpec.getFormat().equals("X.509")) {
+            throw new InvalidKeySpecException("Encoding must be in X.509 format");
+        }
+        byte[] encoded = encodedKeySpec.getEncoded();
+        try {
+            OpenSSLKey key =
+                    new OpenSSLKey(NativeCrypto.EVP_PKEY_from_subject_public_key_info(encoded,
+                            new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                                    NativeConstants.EVP_PKEY_ML_DSA_87}));
+            return makePublicKey(key);
+        } catch (OpenSSLX509CertificateFactory.ParsingException e) {
+            throw new InvalidKeySpecException(
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported.",
+                    e);
+        }
+    }
+
+    private OpenSslMlDsaPrivateKey makePrivateKeyFromSeed(byte[] seed, MlDsaAlgorithm algorithm)
+            throws InvalidKeySpecException {
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        if (seed.length != 32) {
+            throw new InvalidKeySpecException("Invalid raw private key");
+        }
+        try {
+            return new OpenSslMlDsaPrivateKey(seed, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw private key", e);
+        }
+    }
+
+    private OpenSslMlDsaPrivateKey makePrivateKey(OpenSSLKey key) throws InvalidKeySpecException {
+        MlDsaAlgorithm algorithm = getMlDsaAlgorithm(key);
+        if (!supportsAlgorithm(algorithm)) {
+            throw new InvalidKeySpecException("Unsupported algorithm: " + algorithm);
+        }
+        try {
+            return new OpenSslMlDsaPrivateKey(key, algorithm);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid private key", e);
+        }
     }
 
     @Override
@@ -91,11 +186,32 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslMlDsaPrivateKey((EncodedKeySpec) keySpec, algorithm);
+        if (!(keySpec instanceof EncodedKeySpec)) {
+            throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                    + keySpec.getClass().getName());
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
+        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+            byte[] raw = encodedKeySpec.getEncoded();
+            return makePrivateKeyFromSeed(raw, defaultAlgorithm);
+        }
+        if (!encodedKeySpec.getFormat().equals("PKCS#8")) {
+            throw new InvalidKeySpecException("Encoding must be in PKCS#8 format");
+        }
+
+        byte[] encoded = encodedKeySpec.getEncoded();
+        try {
+            OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_key_info(encoded,
+                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                            NativeConstants.EVP_PKEY_ML_DSA_87}));
+            return makePrivateKey(key);
+        } catch (OpenSSLX509CertificateFactory.ParsingException e) {
+            throw new InvalidKeySpecException(
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported. "
+                            + "Please use ML-DSA 'seed format' as specified and recommended "
+                            + "in RFC 9881.",
+                    e);
+        }
     }
 
     @Override
@@ -116,10 +232,11 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException("Key algorithm mismatch");
             }
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException(
-                        "X509EncodedKeySpec is currently not supported");
+                @SuppressWarnings("unchecked")
+                T result = (T) new X509EncodedKeySpec(key.getEncoded());
+                return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getRaw(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         } else if (key instanceof OpenSslMlDsaPrivateKey) {
             OpenSslMlDsaPrivateKey conscryptKey = (OpenSslMlDsaPrivateKey) key;
@@ -127,42 +244,47 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                 throw new InvalidKeySpecException("Key algorithm mismatch");
             }
             if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException(
-                        "PKCS8EncodedKeySpec is currently not supported");
+                @SuppressWarnings("unchecked")
+                T result = (T) new PKCS8EncodedKeySpec(key.getEncoded());
+                return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                return makeRawKeySpec(conscryptKey.getSeed(), keySpec);
+                return KeySpecUtil.makeRawKeySpec(conscryptKey.getSeed(), keySpec);
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
                 + key.getClass().getName() + ", keySpec=" + keySpec.getName());
     }
 
-    private <T extends KeySpec> T makeRawKeySpec(byte[] bytes, Class<T> keySpecClass)
-            throws InvalidKeySpecException {
-        try {
-            Constructor<T> constructor = keySpecClass.getConstructor(byte[].class);
-            T instance = constructor.newInstance((Object) bytes);
-            EncodedKeySpec spec = (EncodedKeySpec) instance;
-            if (!spec.getFormat().equalsIgnoreCase("raw")) {
-                throw new InvalidKeySpecException("EncodedKeySpec class must be raw format");
-            }
-            return instance;
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
-                | IllegalAccessException e) {
-            throw new InvalidKeySpecException(
-                    "Can't process KeySpec class " + keySpecClass.getName(), e);
-        }
-    }
-
     @Override
     protected Key engineTranslateKey(Key key) throws InvalidKeyException {
-        if (key == null) {
-            throw new InvalidKeyException("key == null");
-        }
-        if ((key instanceof OpenSslMlDsaPublicKey) || (key instanceof OpenSslMlDsaPrivateKey)) {
+        if ((key instanceof OpenSslMlDsaPublicKey)) {
+            OpenSslMlDsaPublicKey conscryptKey = (OpenSslMlDsaPublicKey) key;
+            if (!supportsAlgorithm(conscryptKey.getMlDsaAlgorithm())) {
+                throw new InvalidKeyException("Key algorithm mismatch");
+            }
+            return conscryptKey;
+        } else if (key instanceof OpenSslMlDsaPrivateKey) {
+            OpenSslMlDsaPrivateKey conscryptKey = (OpenSslMlDsaPrivateKey) key;
+            if (!supportsAlgorithm(conscryptKey.getMlDsaAlgorithm())) {
+                throw new InvalidKeyException("Key algorithm mismatch");
+            }
             return key;
+        } else if ((key instanceof PrivateKey) && key.getFormat().equals("PKCS#8")) {
+            byte[] encoded = key.getEncoded();
+            try {
+                return engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else if ((key instanceof PublicKey) && key.getFormat().equals("X.509")) {
+            byte[] encoded = key.getEncoded();
+            try {
+                return engineGeneratePublic(new X509EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else {
+            throw new InvalidKeyException("Unable to translate key into ML-DSA key");
         }
-        throw new InvalidKeyException(
-                "Key must be OpenSslMlDsaPublicKey or OpenSslMlDsaPrivateKey");
     }
 }

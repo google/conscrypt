@@ -47,14 +47,26 @@ final class Java9PlatformUtil {
     static void setSSLParameters(
             SSLParameters src, SSLParametersImpl dest, AbstractConscryptSocket socket) {
         Java8PlatformUtil.setSSLParameters(src, dest, socket);
-
+        try {
+            Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
+            dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Method is not available. Ignore.
+        }
         dest.setApplicationProtocols(getApplicationProtocols(src));
     }
 
     static void getSSLParameters(
             SSLParameters dest, SSLParametersImpl src, AbstractConscryptSocket socket) {
         Java8PlatformUtil.getSSLParameters(dest, src, socket);
-
+        try {
+            String[] namedGroups = src.getNamedGroups();
+            Method setNamedGroupsMethod =
+                    dest.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Method is not available. Ignore.
+        }
         setApplicationProtocols(dest, src.getApplicationProtocols());
     }
 
@@ -62,12 +74,28 @@ final class Java9PlatformUtil {
             SSLParameters src, SSLParametersImpl dest, ConscryptEngine engine) {
         Java8PlatformUtil.setSSLParameters(src, dest, engine);
 
+        try {
+            Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
+            dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Method is not available. Ignore.
+        }
+
         dest.setApplicationProtocols(getApplicationProtocols(src));
     }
 
     static void getSSLParameters(
             SSLParameters dest, SSLParametersImpl src, ConscryptEngine engine) {
         Java8PlatformUtil.getSSLParameters(dest, src, engine);
+
+        try {
+            String[] namedGroups = src.getNamedGroups();
+            Method setNamedGroupsMethod =
+                    dest.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Method is not available. Ignore.
+        }
 
         setApplicationProtocols(dest, src.getApplicationProtocols());
     }

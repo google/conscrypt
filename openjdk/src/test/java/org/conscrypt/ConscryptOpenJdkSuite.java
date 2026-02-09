@@ -105,6 +105,7 @@ import org.junit.runners.Suite;
         MlDsaTest.class,
         NativeCryptoArgTest.class,
         NativeCryptoTest.class,
+        NativeSslTest.class,
         NativeRefTest.class,
         NativeSslSessionTest.class,
         OpenSSLKeyTest.class,
@@ -115,6 +116,7 @@ import org.junit.runners.Suite;
         SlhDsaTest.class,
         TestSessionBuilderTest.class,
         TrustManagerImplTest.class,
+        X25519Test.class,
         XwingTest.class,
         // org.conscrypt.ct tests
         VerifierTest.class,

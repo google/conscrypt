@@ -44,6 +44,9 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
       if (targetMethod.isSynthetic()) {
         continue;
       }
+      if (targetMethod.getName().equals("engineInitSenderForTesting")) {
+          continue;
+      }
 
       Method sourceMethod =
           sourceClass.getMethod(targetMethod.getName(), targetMethod.getParameterTypes());
@@ -132,6 +135,10 @@ public class DuckTypedHpkeSpi implements HpkeSpi {
   @Override
   public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
           byte[] psk, byte[] pskId, byte[] sKe) throws InvalidKeyException {
+      if (!methods.containsKey("engineInitSenderForTesting")) {
+          throw new UnsupportedOperationException(
+                  "engineInitSenderForTesting is not supported by the delegate");
+      }
       invokeWithPossibleInvalidKey("engineInitSenderForTesting",
               recipientKey, info, senderKey, psk, pskId, sKe);
   }
