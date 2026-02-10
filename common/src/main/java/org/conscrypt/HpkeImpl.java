@@ -221,8 +221,6 @@ public abstract class HpkeImpl implements HpkeSpi {
         }
     }
 
-    private static final OpenSslXwingKeyFactory xwingKeyFactory = new OpenSslXwingKeyFactory();
-
     private static class HpkeXwingImpl extends HpkeImpl {
         HpkeXwingImpl(HpkeSuite hpkeSuite) {
             super(hpkeSuite);
@@ -230,20 +228,20 @@ public abstract class HpkeImpl implements HpkeSpi {
 
         @Override
         byte[] getRecipientPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
-            Key translatedKey = xwingKeyFactory.engineTranslateKey(publicKey);
-            if (!(translatedKey instanceof OpenSslXwingPublicKey)) {
-                throw new IllegalStateException("Unexpected public key class");
+            if (!(publicKey instanceof OpenSslXwingPublicKey)) {
+                throw new InvalidKeyException("Unsupported recipient key class: "
+                                              + publicKey.getClass());
             }
-            return ((OpenSslXwingPublicKey) translatedKey).getRaw();
+            return ((OpenSslXwingPublicKey) publicKey).getRaw();
         }
 
         @Override
         byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
-            Key translatedKey = xwingKeyFactory.engineTranslateKey(recipientKey);
-            if (!(translatedKey instanceof OpenSslXwingPrivateKey)) {
-                throw new IllegalStateException("Unexpected private key class");
+            if (!(recipientKey instanceof OpenSslXwingPrivateKey)) {
+                throw new InvalidKeyException("Unsupported recipient private key class: "
+                                              + recipientKey.getClass());
             }
-            return ((OpenSslXwingPrivateKey) translatedKey).getRaw();
+            return ((OpenSslXwingPrivateKey) recipientKey).getRaw();
         }
     }
 

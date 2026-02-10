@@ -416,10 +416,10 @@ public class KeyPairGeneratorTest {
      * openssl gendh 512 | openssl dhparams -C
      */
     private static DHParameterSpec getDHParams() {
-        BigInteger p = new BigInteger(
-                "E7AB1768BD75CD24700960FFA32D3F1557344E587101237532CC641646ED7A7C104"
-                        + "743377F6D46251698B665CE2A6CBAB6714C2569A7D2CA22C0CF03FA40AC93",
-                16);
+        BigInteger p =
+                new BigInteger("E7AB1768BD75CD24700960FFA32D3F1557344E587101237532CC641646ED7A7C104"
+                               + "743377F6D46251698B665CE2A6CBAB6714C2569A7D2CA22C0CF03FA40AC93",
+                               16);
         BigInteger g = new BigInteger("02", 16);
         return new DHParameterSpec(p, g, 512);
     }

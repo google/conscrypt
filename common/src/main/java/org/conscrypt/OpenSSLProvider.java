@@ -565,8 +565,12 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.CertificateFactory.X.509", "X509");
 
         /* === HPKE === */
-        String baseClass = classExists("android.crypto.hpke.HpkeSpi") ? PREFIX + "AndroidHpkeSpi"
-                                                                      : PREFIX + "HpkeImpl";
+        // BEGIN google3-changed: b/393827797 - This logic was only correct in the Android platform.
+        // String baseClass = classExists("android.crypto.hpke.HpkeSpi")
+        //         ? PREFIX + "AndroidHpkeSpi"
+        //         : PREFIX + "HpkeImpl";
+        String baseClass = PREFIX + "HpkeImpl";
+        // END google3-changed: b/393827797 - This logic was only correct in the Android platform.
 
         put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
             baseClass + "$X25519_AES_128");

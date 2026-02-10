@@ -156,7 +156,7 @@ public class LogStoreImplTest {
 
         byte[] pem = ("-----BEGIN PUBLIC KEY-----\n"
                       + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnW"
-                      + "TAWUYr"
+                        + "TAWUYr"
                       + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
                       + "\n-----END PUBLIC KEY-----\n")
                              .getBytes(US_ASCII);

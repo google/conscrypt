@@ -47,7 +47,7 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
      *
      * @return The client identifier.
      */
-    public @Nullable byte[] getClientId() {
+    public byte @Nullable[] getClientId() {
         throw new RuntimeException("Stub!");
     }
 
@@ -56,7 +56,7 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
      *
      * @return The server identifier.
      */
-    public @Nullable byte[] getServerId() {
+    public byte @Nullable[] getServerId() {
         throw new RuntimeException("Stub!");
     }
 
@@ -81,7 +81,7 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
          * @param clientId The ID of the client involved in the PAKE exchange.
          * @return This builder.
          */
-        public @NonNull Builder setClientId(@Nullable byte[] clientId) {
+        public @NonNull Builder setClientId(byte @Nullable[] clientId) {
             throw new RuntimeException("Stub!");
         }
 
@@ -91,7 +91,7 @@ public final class PakeClientKeyManagerParameters implements ManagerFactoryParam
          * @param serverId The ID of the server involved in the PAKE exchange.
          * @return This builder.
          */
-        public @NonNull Builder setServerId(@Nullable byte[] serverId) {
+        public @NonNull Builder setServerId(byte @Nullable[] serverId) {
             throw new RuntimeException("Stub!");
         }
 

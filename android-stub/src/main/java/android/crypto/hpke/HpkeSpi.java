@@ -64,9 +64,9 @@ public interface HpkeSpi {
      * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
-    void engineInitSender(@NonNull PublicKey recipientKey, @Nullable byte[] info,
-                          @Nullable PrivateKey senderKey, @Nullable byte[] psk,
-                          @Nullable byte[] psk_id) throws InvalidKeyException;
+    void engineInitSender(@NonNull PublicKey recipientKey, byte @Nullable[] info,
+                          @Nullable PrivateKey senderKey, byte @Nullable[] psk,
+                          byte @Nullable[] psk_id) throws InvalidKeyException;
 
     /**
      * Initialises an HPKE SPI in one of the sender modes described in RFC 9180 with
@@ -105,9 +105,9 @@ public interface HpkeSpi {
      * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
-    void engineInitSenderWithSeed(@NonNull PublicKey recipientKey, @Nullable byte[] info,
-                                  @Nullable PrivateKey senderKey, @Nullable byte[] psk,
-                                  @Nullable byte[] psk_id, @NonNull byte[] sKe)
+    void engineInitSenderWithSeed(@NonNull PublicKey recipientKey, byte @Nullable[] info,
+                                  @Nullable PrivateKey senderKey, byte @Nullable[] psk,
+                                  byte @Nullable[] psk_id, byte @NonNull[] sKe)
             throws InvalidKeyException;
 
     /**
@@ -141,9 +141,9 @@ public interface HpkeSpi {
      * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
-    void engineInitRecipient(@NonNull byte[] encapsulated, @NonNull PrivateKey recipientKey,
-                             @Nullable byte[] info, @Nullable PublicKey senderKey,
-                             @Nullable byte[] psk, @Nullable byte[] psk_id)
+    void engineInitRecipient(byte @NonNull[] encapsulated, @NonNull PrivateKey recipientKey,
+                             byte @Nullable[] info, @Nullable PublicKey senderKey,
+                             byte @Nullable[] psk, byte @Nullable[] psk_id)
             throws InvalidKeyException;
 
     /**
@@ -156,7 +156,7 @@ public interface HpkeSpi {
      * @throws IllegalStateException if this SPI has not been initialised or if it was initialised
      *         as a recipient
      */
-    @NonNull byte[] engineSeal(@NonNull byte[] plaintext, @Nullable byte[] aad);
+    byte @NonNull[] engineSeal(byte @NonNull[] plaintext, byte @Nullable[] aad);
 
     /**
      * Opens a message, using the internal key schedule maintained by an HPKE recipient SPI.
@@ -168,8 +168,7 @@ public interface HpkeSpi {
      *         as a sender
      * @throws GeneralSecurityException on decryption failures
      */
-    @NonNull
-    byte[] engineOpen(@NonNull byte[] ciphertext, @Nullable byte[] aad)
+    byte @NonNull[] engineOpen(byte @NonNull[] ciphertext, byte @Nullable[] aad)
             throws GeneralSecurityException;
 
     /**
@@ -182,7 +181,7 @@ public interface HpkeSpi {
      * @throws IllegalStateException if this SPI has not been initialised
      *
      */
-    @NonNull byte[] engineExport(int length, @Nullable byte[] context);
+    byte @NonNull[] engineExport(int length, byte @Nullable[] context);
 
     /**
      * Returns the encapsulated key material for an HPKE sender.
@@ -191,5 +190,5 @@ public interface HpkeSpi {
      * @throws IllegalStateException if this SPI has not been initialised or if it was initialised
      *         as a recipient
      */
-    @NonNull byte[] getEncapsulated();
+    byte @NonNull[] getEncapsulated();
 }

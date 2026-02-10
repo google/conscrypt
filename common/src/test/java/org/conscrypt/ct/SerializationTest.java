@@ -177,10 +177,10 @@ public class SerializationTest {
         assertEqualByteArrays(
                 new byte[] {
                         0x00, 0x01, // entry_type
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // issuer key
-                                                                        // hash
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00,
-                        0x04, // precert_entry length
+                        0,    0,    0,    0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // issuer key
+                                                                                   // hash
+                        0,    0,    0,    0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00,
+                        0x00, 0x04, // precert_entry length
                         0x12, 0x34, 0x56, 0x78 // precert_entry
                 },
                 output.toByteArray());

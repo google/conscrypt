@@ -578,26 +578,24 @@ public class X509CertificateTest {
                          c.getExtendedKeyUsage());
 
             // TODO(davidben): Test the other name types.
-            assertGeneralNamesEqual(
-                    Arrays.asList(Arrays.asList(1, "issuer@example.com"),
-                                  Arrays.asList(2, "issuer.example.com"),
-                                  Arrays.asList(4, "CN=Test Issuer"),
-                                  Arrays.asList(6, "https://example.com/issuer"),
-                                  // TODO(https://github.com/google/conscrypt/issues/938):
-                                  // Fix IPv6 handling and include it in this test.
-                                  Arrays.asList(7, "127.0.0.1"),
-                                  Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
-                    c.getIssuerAlternativeNames());
-            assertGeneralNamesEqual(
-                    Arrays.asList(Arrays.asList(1, "subject@example.com"),
-                                  Arrays.asList(2, "subject.example.com"),
-                                  Arrays.asList(4, "CN=Test Subject"),
-                                  Arrays.asList(6, "https://example.com/subject"),
-                                  // TODO(https://github.com/google/conscrypt/issues/938):
-                                  // Fix IPv6 handling and include it in this test.
-                                  Arrays.asList(7, "127.0.0.1"),
-                                  Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
-                    c.getSubjectAlternativeNames());
+            assertGeneralNamesEqual(Arrays.asList(Arrays.asList(1, "issuer@example.com"),
+                                                  Arrays.asList(2, "issuer.example.com"),
+                                                  Arrays.asList(4, "CN=Test Issuer"),
+                                                  Arrays.asList(6, "https://example.com/issuer"),
+                                                  // TODO(https://github.com/google/conscrypt/issues/938):
+                                                  // Fix IPv6 handling and include it in this test.
+                                                  Arrays.asList(7, "127.0.0.1"),
+                                                  Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                                    c.getIssuerAlternativeNames());
+            assertGeneralNamesEqual(Arrays.asList(Arrays.asList(1, "subject@example.com"),
+                                                  Arrays.asList(2, "subject.example.com"),
+                                                  Arrays.asList(4, "CN=Test Subject"),
+                                                  Arrays.asList(6, "https://example.com/subject"),
+                                                  // TODO(https://github.com/google/conscrypt/issues/938):
+                                                  // Fix IPv6 handling and include it in this test.
+                                                  Arrays.asList(7, "127.0.0.1"),
+                                                  Arrays.asList(8, "1.2.840.113554.4.1.72585.2")),
+                                    c.getSubjectAlternativeNames());
 
             // Although the BIT STRING in the certificate only has three bits, getKeyUsage()
             // rounds up to at least 9 bits.

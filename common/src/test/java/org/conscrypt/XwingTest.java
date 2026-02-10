@@ -119,119 +119,17 @@ public class XwingTest {
                 () -> keyFactory.generatePublic(new RawKeySpec(new byte[rawPublicKey.length + 1])));
     }
 
-    /** Helper class to test KeyFactory.translateKey. */
-    static class TestPublicKey implements PublicKey {
-        public TestPublicKey(byte[] x509encoded) {
-            this.x509encoded = x509encoded;
-        }
-
-        private final byte[] x509encoded;
-
-        @Override
-        public String getAlgorithm() {
-            return "XWING";
-        }
-
-        @Override
-        public String getFormat() {
-            return "X.509";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            return x509encoded;
-        }
-    }
-
-    /** Helper class to test KeyFactory.translateKey. */
-    static class TestPrivateKey implements PrivateKey {
-        public TestPrivateKey(byte[] pkcs8encoded) {
-            this.pkcs8encoded = pkcs8encoded;
-        }
-
-        private final byte[] pkcs8encoded;
-
-        @Override
-        public String getAlgorithm() {
-            return "XWING";
-        }
-
-        @Override
-        public String getFormat() {
-            return "PKCS#8";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            return pkcs8encoded;
-        }
-    }
-
     @Test
-    public void toAndFromX509AndPkcs8_works() throws Exception {
-        // from https://datatracker.ietf.org/doc/draft-connolly-cfrg-xwing-kem/, Appendix D
-        byte[] rawPrivateKey = TestUtils.decodeHex(
-                "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
-        byte[] rawPublicKey = NativeCrypto.XWING_public_key_from_seed(rawPrivateKey);
-
-        byte[] encodedPrivateKey = TestUtils.decodeBase64(
-                "MDQCAQAwDQYLKwYBBAGD5i2ByHoEIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f");
-        byte[] encodedPublicKey = TestUtils.decodeBase64(
-                "MIIE1DANBgsrBgEEAYPmLYHIegOCBMEAb1QJigoOZBFGYUtpYLpg2GA9YvRH+atJ"
-                + "m0e9aQbMQLBh2GNKPoiQbyhJWOdEHKbHJcu5cJW3ZxpGK2aByeZYC7yNYLFJ+mAm"
-                + "EEOvu6UvIFpgKDhIUVlq3zcavqmNM0c4PSu2c0OPZ4NhK/hwFPe5Gol0AmU0XfZ5"
-                + "NARz0cTBdohuXim48Fi7fHNTFmhs/1w764wmHLAJcKacGvzFS5TLhuHOY7pjbjlc"
-                + "pFEB4hx70EwxPqGa8kFB79KtREFqJbpPZZEO99iAnDCT8EqvAOPNluNcSqPIAsGK"
-                + "1vOdpLS42YyL15Atg6B7pFOWZ0pgJDyrk+gP2bHId3N2qcwNb6EV4mOTgLnGvnhI"
-                + "vRNYjGRwOgU10ZoPgWM6l2oKEFtm7ihdD9JV6CwDMZJfQ4O278dh72CZI1oLmHJj"
-                + "WKqdAbi4llGfkhR0u3wUuyIlK1wvENQSRsmyPnZEhJNn9UGhX2O8koo5u3vHPwe2"
-                + "ZcSWu2VYyPRUiacuxLrNNOnFlMM4cbcj8DSV6ItDkasm5DBD3rYRezkZ5FxMGxar"
-                + "KOR93XI2Y4VHZhkvwYBspwq7eGy9swky5oyKNwvPsHmDoBLDJmuT76YmV/S4ODdM"
-                + "sLuV4OwGVBsHZdmc8VO8a5YTXKeApVs2R3ieMZFeRig8+ce7boRT+2aCEFFB8dwN"
-                + "ANhe7XA7bGyWH3nIRSdrQkiUnAZ4LlE+spkbldlgQuOMvto1JEmytQhOvaUiamIG"
-                + "QAeJEwowlkSYSLYp/upKLCp0PEoN3Jyz89Z2/FY3MbJsShpm3IRZFwBW1XaX8UQ7"
-                + "gamjRBK7e/BfMydXWlkR3TAdYFOGfzwwgHEfG/EVh7C7KYQnayaF53ViEOSz+JVT"
-                + "hCMeVYxvUQyR4PxWtdGIX/KUnpWka8G+4fpx9QJ+EMRDsOkdD9dED0Z6JyISEuiP"
-                + "XGumQpbK4NIHv8YPiMfPtcRaoYOdGMs3xFhD5UJqSpDIArZCj5U8NZxKwGA0UvrA"
-                + "tzYeL9NdzIhakhRdT8oBWPG31wtLzRGOSipBVEON8xDESpobmepBWQcmeoiwYkJB"
-                + "V5wXIvRu1hwuPspUXJlwUXF1OZuADbJdo5WT0GSQ1xQsAOiNLbBH6YmL23rLftkH"
-                + "9uMEFswN5UokLAohJjAvXVTIW8Zqwvg8eXlFtQZ8qkK9LgwZypdQblB6sKXJ9WM3"
-                + "CEmcGfJK7FE705A6XXO27EmR98cuuZHBw3iJgFyx6jigzAIXayfFjWOM5aMmaEV8"
-                + "+bm+AnygIUBXlxcl1UEC6JlnFusq2CNFO2BbhVNwsbIbOTLN7UFgqplzx+uuWsR2"
-                + "TZTPfMlQbwd7rXMBLbtKyBQKOHRkEuszyVFFliBfcHY1hiIX2bYJGMYmjZNEkVuE"
-                + "eiR2waJw8VSlyEI0FlrPyGk5hwLOqemgfnsOmeqb3LeEH+nA+iXIM4CSVho+3dxw"
-                + "AfR4rWV4GmAkqtFl2baXmtrESKRGL1ZGhVJ/diQ0/ppCWoRDe0VzkuyoDJE1BhUe"
-                + "OhMjnzQvynZVtuquhFoiHOs+Z/VjnGGT9v3u9X45m4CLfzqitXQKre2QFj3F13XJ"
-                + "+vfx+9B12rNE6dfRRmRygfu6ezxWyv1YM7epMOxCBufDptd2T+gdeg==");
+    public void x509AndPkcs8_areNotSupported() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("XWING", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
 
         KeyFactory keyFactory = KeyFactory.getInstance("XWING", conscryptProvider);
 
-        // Check generatePrivate from PKCS8EncodedKeySpec works.
-        PrivateKey privateKey =
-                keyFactory.generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKey));
-        assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
-        assertArrayEquals(rawPrivateKey, ((OpenSslXwingPrivateKey) privateKey).getRaw());
-
-        // Check generatePublic from X509EncodedKeySpec works.
-        PublicKey publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(encodedPublicKey));
-        assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
-        assertArrayEquals(rawPublicKey, ((OpenSslXwingPublicKey) publicKey).getRaw());
-
-        // Check getKeySpec with works for both private and public keys.
-        EncodedKeySpec privateKeySpec =
-                keyFactory.getKeySpec(privateKey, PKCS8EncodedKeySpec.class);
-        assertEquals("PKCS#8", privateKeySpec.getFormat());
-        assertArrayEquals(encodedPrivateKey, privateKeySpec.getEncoded());
-
-        EncodedKeySpec publicKeySpec = keyFactory.getKeySpec(publicKey, X509EncodedKeySpec.class);
-        assertEquals("X.509", publicKeySpec.getFormat());
-        assertArrayEquals(encodedPublicKey, publicKeySpec.getEncoded());
-
-        assertEquals(privateKey, keyFactory.translateKey(privateKey));
-        assertEquals(privateKey,
-                     keyFactory.translateKey(new TestPrivateKey(privateKey.getEncoded())));
-        assertEquals(publicKey, keyFactory.translateKey(publicKey));
-        assertEquals(publicKey, keyFactory.translateKey(new TestPublicKey(publicKey.getEncoded())));
+        assertThrows(UnsupportedOperationException.class,
+                     () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
+        assertThrows(UnsupportedOperationException.class,
+                     () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
     }
 
     @Test
@@ -269,37 +167,6 @@ public class XwingTest {
             byte[] output = contextRecipient.open(ciphertext, aad);
 
             assertArrayEquals(plaintext, output);
-        }
-    }
-
-    @Test
-    public void sealAndOpenWithForeignKeys_works() throws Exception {
-        byte[] info = TestUtils.decodeHex("aa");
-        byte[] plaintext = TestUtils.decodeHex("bb");
-        byte[] aad = TestUtils.decodeHex("cc");
-        for (int aead : new int[] {AEAD_AES_128_GCM, AEAD_AES_256_GCM, AEAD_CHACHA20POLY1305}) {
-            HpkeSuite suite = new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, aead);
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("XWING", conscryptProvider);
-            KeyPair keyPairRecipient = keyGen.generateKeyPair();
-            PublicKey foreignPublicKey =
-                    new TestPublicKey(keyPairRecipient.getPublic().getEncoded());
-            PrivateKey foreignPrivateKey =
-                    new TestPrivateKey(keyPairRecipient.getPrivate().getEncoded());
-
-            HpkeContextSender ctxSender =
-                    HpkeContextSender.getInstance(suite.name(), conscryptProvider);
-            ctxSender.init(foreignPublicKey, info);
-
-            byte[] encapsulated = ctxSender.getEncapsulated();
-            byte[] ciphertext = ctxSender.seal(plaintext, aad);
-
-            HpkeContextRecipient foreignContextRecipient =
-                    HpkeContextRecipient.getInstance(suite.name(), conscryptProvider);
-            foreignContextRecipient.init(encapsulated, foreignPrivateKey, info);
-
-            byte[] foreignOutput = foreignContextRecipient.open(ciphertext, aad);
-
-            assertArrayEquals(plaintext, foreignOutput);
         }
     }
 

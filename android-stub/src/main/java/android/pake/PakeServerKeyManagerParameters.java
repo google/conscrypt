@@ -72,8 +72,8 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
      * @param serverId The server identifier for the link.
      * @return An unmodifiable list of PAKE options for the given link.
      */
-    public @NonNull List<PakeOption> getOptions(@Nullable byte[] clientId,
-                                                @Nullable byte[] serverId) {
+    public @NonNull List<PakeOption> getOptions(byte @Nullable[] clientId,
+                                                byte @Nullable[] serverId) {
         throw new RuntimeException("Stub!");
     }
 
@@ -89,7 +89,7 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          * @param clientId The client identifier for the link.
          * @param serverId The server identifier for the link.
          */
-        private Link(@Nullable byte[] clientId, @Nullable byte[] serverId) {
+        private Link(byte @Nullable[] clientId, byte @Nullable[] serverId) {
             throw new RuntimeException("Stub!");
         }
 
@@ -98,7 +98,7 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          *
          * @return The client identifier for the link.
          */
-        public @Nullable byte[] getClientId() {
+        public byte @Nullable[] getClientId() {
             throw new RuntimeException("Stub!");
         }
 
@@ -107,7 +107,7 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          *
          * @return The server identifier for the link.
          */
-        public @Nullable byte[] getServerId() {
+        public byte @Nullable[] getServerId() {
             throw new RuntimeException("Stub!");
         }
 
@@ -138,7 +138,7 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          * @return This builder.
          * @throws InvalidParameterException If the provided options are invalid.
          */
-        public @NonNull Builder setOptions(@Nullable byte[] clientId, @Nullable byte[] serverId,
+        public @NonNull Builder setOptions(byte @Nullable[] clientId, byte @Nullable[] serverId,
                                            @NonNull List<PakeOption> options) {
             throw new RuntimeException("Stub!");
         }

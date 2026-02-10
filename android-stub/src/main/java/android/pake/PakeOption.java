@@ -50,7 +50,7 @@ public final class PakeOption {
      * @return The component data, or {@code null} if no component with the given
      *         key exists.
      */
-    public @Nullable byte[] getMessageComponent(@NonNull String key) {
+    public byte @Nullable[] getMessageComponent(@NonNull String key) {
         throw new RuntimeException("Stub!");
     }
 
@@ -78,7 +78,7 @@ public final class PakeOption {
          * @return This builder.
          * @throws InvalidParameterException If the key is invalid.
          */
-        public @NonNull Builder addMessageComponent(@NonNull String key, @Nullable byte[] value) {
+        public @NonNull Builder addMessageComponent(@NonNull String key, byte @Nullable[] value) {
             throw new RuntimeException("Stub!");
         }
 
