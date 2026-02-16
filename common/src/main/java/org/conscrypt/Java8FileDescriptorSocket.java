@@ -21,6 +21,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.List;
 import java.util.function.BiFunction;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 
@@ -47,17 +48,17 @@ final class Java8FileDescriptorSocket extends ConscryptFileDescriptorSocket {
     }
 
     Java8FileDescriptorSocket(String hostname, int port, InetAddress clientAddress, int clientPort,
-            SSLParametersImpl sslParameters) throws IOException {
+                              SSLParametersImpl sslParameters) throws IOException {
         super(hostname, port, clientAddress, clientPort, sslParameters);
     }
 
-    Java8FileDescriptorSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort,
-            SSLParametersImpl sslParameters) throws IOException {
+    Java8FileDescriptorSocket(InetAddress address, int port, InetAddress clientAddress,
+                              int clientPort, SSLParametersImpl sslParameters) throws IOException {
         super(address, port, clientAddress, clientPort, sslParameters);
     }
 
     Java8FileDescriptorSocket(Socket socket, String hostname, int port, boolean autoClose,
-            SSLParametersImpl sslParameters) throws IOException {
+                              SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose, sslParameters);
     }
 
@@ -76,7 +77,7 @@ final class Java8FileDescriptorSocket extends ConscryptFileDescriptorSocket {
     }
 
     private static ApplicationProtocolSelector toApplicationProtocolSelector(
-        final BiFunction<SSLSocket, List<String>, String> selector) {
+            final BiFunction<SSLSocket, List<String>, String> selector) {
         return selector == null ? null : new ApplicationProtocolSelector() {
             @Override
             public String selectApplicationProtocol(SSLEngine socket, List<String> protocols) {

@@ -25,6 +25,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.KeyManagementException;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -103,11 +104,10 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     @Override
     public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
         if (useEngineSocket) {
-            return createEngineSocket(
-                    hostname, port, (SSLParametersImpl) sslParameters.clone());
+            return createEngineSocket(hostname, port, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return createFileDescriptorSocket(
-                    hostname, port, (SSLParametersImpl) sslParameters.clone());
+            return createFileDescriptorSocket(hostname, port,
+                                              (SSLParametersImpl) sslParameters.clone());
         }
     }
 
@@ -115,34 +115,33 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
     public Socket createSocket(String hostname, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
         if (useEngineSocket) {
-            return createEngineSocket(hostname, port, localHost,
-                    localPort, (SSLParametersImpl) sslParameters.clone());
+            return createEngineSocket(hostname, port, localHost, localPort,
+                                      (SSLParametersImpl) sslParameters.clone());
         } else {
-            return createFileDescriptorSocket(hostname, port, localHost,
-                    localPort, (SSLParametersImpl) sslParameters.clone());
+            return createFileDescriptorSocket(hostname, port, localHost, localPort,
+                                              (SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port) throws IOException {
         if (useEngineSocket) {
-            return createEngineSocket(
-                    address, port, (SSLParametersImpl) sslParameters.clone());
+            return createEngineSocket(address, port, (SSLParametersImpl) sslParameters.clone());
         } else {
-            return createFileDescriptorSocket(
-                    address, port, (SSLParametersImpl) sslParameters.clone());
+            return createFileDescriptorSocket(address, port,
+                                              (SSLParametersImpl) sslParameters.clone());
         }
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
-            int localPort) throws IOException {
+                               int localPort) throws IOException {
         if (useEngineSocket) {
-            return createEngineSocket(address, port, localAddress,
-                    localPort, (SSLParametersImpl) sslParameters.clone());
+            return createEngineSocket(address, port, localAddress, localPort,
+                                      (SSLParametersImpl) sslParameters.clone());
         } else {
-            return createFileDescriptorSocket(address, port, localAddress,
-                    localPort, (SSLParametersImpl) sslParameters.clone());
+            return createFileDescriptorSocket(address, port, localAddress, localPort,
+                                              (SSLParametersImpl) sslParameters.clone());
         }
     }
 
@@ -155,11 +154,11 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
         }
 
         if (!useEngineSocket && hasFileDescriptor(socket)) {
-            return createFileDescriptorSocket(
-                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
+            return createFileDescriptorSocket(socket, hostname, port, autoClose,
+                                              (SSLParametersImpl) sslParameters.clone());
         } else {
-            return createEngineSocket(
-                    socket, hostname, port, autoClose, (SSLParametersImpl) sslParameters.clone());
+            return createEngineSocket(socket, hostname, port, autoClose,
+                                      (SSLParametersImpl) sslParameters.clone());
         }
     }
 

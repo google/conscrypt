@@ -29,7 +29,7 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     void checkSupportedKeySize(int keyLength) throws InvalidKeyException {
         if (keyLength != 32) {
             throw new InvalidKeyException("Unsupported key size: " + keyLength
-                    + " bytes (must be 32)");
+                                          + " bytes (must be 32)");
         }
     }
 

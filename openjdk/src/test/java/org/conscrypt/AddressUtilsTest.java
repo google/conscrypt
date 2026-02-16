@@ -109,7 +109,8 @@ public class AddressUtilsTest {
         assertFalse(AddressUtils.isLiteralIpAddress("20011::1111"));
         assertFalse(AddressUtils.isLiteralIpAddress("2001:db8:::1"));
         assertFalse(AddressUtils.isLiteralIpAddress("2001:cdba:0000:00000:0000:0000:3257:9652"));
-        assertFalse(AddressUtils.isLiteralIpAddress("2001:cdbA:0000:0000:0000:0000:0000:3257:9652"));
+        assertFalse(
+                AddressUtils.isLiteralIpAddress("2001:cdbA:0000:0000:0000:0000:0000:3257:9652"));
         assertFalse(AddressUtils.isLiteralIpAddress("2001:cdba:0::0:0:0:3257:9652"));
         assertFalse(AddressUtils.isLiteralIpAddress("02001:cdba::3257:9652"));
         assertFalse(AddressUtils.isLiteralIpAddress("2001:cdba::3257:96521"));

@@ -23,6 +23,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
+
 import javax.crypto.KeyAgreementSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
@@ -33,7 +34,6 @@ import javax.crypto.spec.SecretKeySpec;
  */
 @Internal
 public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
-
     /** OpenSSL handle of the private key. Only available after the engine has been initialized. */
     private T mPrivateKey;
 
@@ -80,7 +80,7 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
         } else {
             // The output is longer than expected
             throw new RuntimeException("Engine produced a longer than expected result. Expected: "
-                + mExpectedResultLength + ", actual: " + actualResultLength);
+                                       + mExpectedResultLength + ", actual: " + actualResultLength);
         }
         mResult = result;
 
@@ -92,10 +92,11 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
     protected abstract T convertPrivateKey(PrivateKey key) throws InvalidKeyException;
 
     /**
-     * Given the public key {@code theirPublicKey} and the private key {@code ourPrivateKey} write the shared secret
-     * to {@code buffer} and return the actual output size.
+     * Given the public key {@code theirPublicKey} and the private key {@code ourPrivateKey} write
+     * the shared secret to {@code buffer} and return the actual output size.
      */
-    protected abstract int computeKey(byte[] buffer, T theirPublicKey, T ourPrivateKey) throws InvalidKeyException;
+    protected abstract int computeKey(byte[] buffer, T theirPublicKey, T ourPrivateKey)
+            throws InvalidKeyException;
 
     @Override
     protected int engineGenerateSecret(byte[] sharedSecret, int offset)
@@ -103,8 +104,8 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
         checkCompleted();
         int available = sharedSecret.length - offset;
         if (mResult.length > available) {
-            throw new ShortBufferWithoutStackTraceException(
-                    "Needed: " + mResult.length + ", available: " + available);
+            throw new ShortBufferWithoutStackTraceException("Needed: " + mResult.length
+                                                            + ", available: " + available);
         }
 
         System.arraycopy(mResult, 0, sharedSecret, offset, mResult.length);
@@ -141,11 +142,11 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
     protected abstract int getOutputSize(T key);
 
     @Override
-    protected void engineInit(Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+    protected void engineInit(Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         // ECDH doesn't need an AlgorithmParameterSpec
         if (params != null) {
-          throw new InvalidAlgorithmParameterException("No algorithm parameters supported");
+            throw new InvalidAlgorithmParameterException("No algorithm parameters supported");
         }
         engineInit(key, random);
     }

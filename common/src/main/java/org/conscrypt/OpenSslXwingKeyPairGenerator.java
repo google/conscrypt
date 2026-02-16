@@ -43,6 +43,6 @@ public final class OpenSslXwingKeyPairGenerator extends KeyPairGenerator {
         NativeCrypto.RAND_bytes(privateKeyBytes);
         byte[] publicKeyBytes = NativeCrypto.XWING_public_key_from_seed(privateKeyBytes);
         return new KeyPair(new OpenSslXwingPublicKey(publicKeyBytes),
-                new OpenSslXwingPrivateKey(privateKeyBytes));
+                           new OpenSslXwingPrivateKey(privateKeyBytes));
     }
 }

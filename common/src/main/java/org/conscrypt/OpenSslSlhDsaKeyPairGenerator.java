@@ -46,6 +46,6 @@ public final class OpenSslSlhDsaKeyPairGenerator extends KeyPairGenerator {
         NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyBytes, privateKeyBytes);
 
         return new KeyPair(new OpenSslSlhDsaPublicKey(publicKeyBytes),
-                new OpenSslSlhDsaPrivateKey(privateKeyBytes));
+                           new OpenSslSlhDsaPrivateKey(privateKeyBytes));
     }
 }

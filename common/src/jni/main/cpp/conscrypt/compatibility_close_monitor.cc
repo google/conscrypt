@@ -36,10 +36,10 @@ CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMo
 
 void CompatibilityCloseMonitor::init() {
 #ifndef _WIN32
-    void *lib = dlopen("libandroidio.so", RTLD_NOW);
+    void* lib = dlopen("libandroidio.so", RTLD_NOW);
     if (lib != nullptr) {
-        asyncCloseMonitorCreate = (acm_create_func) dlsym(lib, "async_close_monitor_create");
-        asyncCloseMonitorDestroy = (acm_destroy_func) dlsym(lib, "async_close_monitor_destroy");
+        asyncCloseMonitorCreate = (acm_create_func)dlsym(lib, "async_close_monitor_create");
+        asyncCloseMonitorDestroy = (acm_destroy_func)dlsym(lib, "async_close_monitor_destroy");
         return;
     }
 #ifdef CONSCRYPT_UNBUNDLED

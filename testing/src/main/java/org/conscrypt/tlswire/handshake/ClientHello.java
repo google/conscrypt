@@ -15,6 +15,9 @@
  */
 package org.conscrypt.tlswire.handshake;
 
+import org.conscrypt.tlswire.util.IoUtils;
+import org.conscrypt.tlswire.util.TlsProtocolVersion;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
@@ -23,8 +26,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import org.conscrypt.tlswire.util.IoUtils;
-import org.conscrypt.tlswire.util.TlsProtocolVersion;
 
 /**
  * {@link ClientHello} {@link HandshakeMessage} from TLS 1.2 RFC 5246.
@@ -71,8 +72,8 @@ public class ClientHello extends HandshakeMessage {
                 try {
                     extensions.add(HelloExtension.read(extensionsDataIn));
                 } catch (IOException e) {
-                    throw new IOException(
-                            "Failed to read HelloExtension #" + (extensions.size() + 1));
+                    throw new IOException("Failed to read HelloExtension #"
+                                          + (extensions.size() + 1));
                 }
             }
         }
@@ -90,8 +91,8 @@ public class ClientHello extends HandshakeMessage {
     }
     @Override
     public String toString() {
-        return "ClientHello{client version: " + clientVersion + ", random: "
-                + new BigInteger(1, random).toString(16) + ", sessionId: "
+        return "ClientHello{client version: " + clientVersion
+                + ", random: " + new BigInteger(1, random).toString(16) + ", sessionId: "
                 + new BigInteger(1, sessionId).toString(16) + ", cipher suites: " + cipherSuites
                 + ", compression methods: " + compressionMethods
                 + ((extensions != null) ? (", extensions: " + String.valueOf(extensions)) : "")

@@ -20,14 +20,15 @@ import static org.conscrypt.TestUtils.openTestFile;
 import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertEquals;
 
-import java.security.PublicKey;
-import java.util.Arrays;
 import org.conscrypt.OpenSSLX509Certificate;
 import org.conscrypt.TestUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.security.PublicKey;
+import java.util.Arrays;
 
 @RunWith(JUnit4.class)
 public class VerifierTest {
@@ -146,8 +147,8 @@ public class VerifierTest {
                 ctVerifier.verifySignedCertificateTimestamps(chain, tlsExtension, null);
         assertEquals(0, result.getValidSCTs().size());
         assertEquals(1, result.getInvalidSCTs().size());
-        assertEquals(
-                VerifiedSCT.Status.INVALID_SIGNATURE, result.getInvalidSCTs().get(0).getStatus());
+        assertEquals(VerifiedSCT.Status.INVALID_SIGNATURE,
+                     result.getInvalidSCTs().get(0).getStatus());
     }
 
     @Test
@@ -201,8 +202,8 @@ public class VerifierTest {
         assertEquals(1, result.getValidSCTs().size());
         assertEquals(1, result.getInvalidSCTs().size());
         assertEquals(SignedCertificateTimestamp.Origin.OCSP_RESPONSE,
-                result.getValidSCTs().get(0).getSct().getOrigin());
+                     result.getValidSCTs().get(0).getSct().getOrigin());
         assertEquals(SignedCertificateTimestamp.Origin.TLS_EXTENSION,
-                result.getInvalidSCTs().get(0).getSct().getOrigin());
+                     result.getInvalidSCTs().get(0).getSct().getOrigin());
     }
 }

@@ -53,14 +53,8 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
     OpenSSLRSAPublicKey(RSAPublicKeySpec spec) throws InvalidKeySpecException {
         try {
             key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                    spec.getModulus().toByteArray(),
-                    spec.getPublicExponent().toByteArray(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null));
+                    spec.getModulus().toByteArray(), spec.getPublicExponent().toByteArray(), null,
+                    null, null, null, null, null));
         } catch (Exception e) {
             throw new InvalidKeySpecException(e);
         }
@@ -68,15 +62,10 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
 
     static OpenSSLKey getInstance(RSAPublicKey rsaPublicKey) throws InvalidKeyException {
         try {
-            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                    rsaPublicKey.getModulus().toByteArray(),
-                    rsaPublicKey.getPublicExponent().toByteArray(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null));
+            return new OpenSSLKey(
+                    NativeCrypto.EVP_PKEY_new_RSA(rsaPublicKey.getModulus().toByteArray(),
+                                                  rsaPublicKey.getPublicExponent().toByteArray(),
+                                                  null, null, null, null, null, null));
         } catch (Exception e) {
             throw new InvalidKeyException(e);
         }
@@ -175,15 +164,9 @@ public class OpenSSLRSAPublicKey implements RSAPublicKey, OpenSSLKeyHolder {
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
 
-        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                modulus.toByteArray(),
-                publicExponent.toByteArray(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null));
+        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(modulus.toByteArray(),
+                                                           publicExponent.toByteArray(), null, null,
+                                                           null, null, null, null));
         fetchedParams = true;
     }
 

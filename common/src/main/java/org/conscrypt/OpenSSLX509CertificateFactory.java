@@ -38,8 +38,8 @@ import java.util.List;
  */
 @Internal
 public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
-    private static final byte[] PKCS7_MARKER = new byte[] {
-            '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'};
+    private static final byte[] PKCS7_MARKER = new byte[] {'-', '-', '-', '-', '-', 'B', 'E', 'G',
+                                                           'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'};
     private static final byte[] PEM_MARKER =
             new byte[] {'-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' '};
     private static final int DASH = 45; // Value of '-'

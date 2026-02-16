@@ -71,8 +71,7 @@ public final class HpkeSuite {
     }
 
     public String name() {
-        return String.format("%s/%s/%s",
-            mKem.name(), mKdf.name(), mAead.name());
+        return String.format("%s/%s/%s", mKem.name(), mKdf.name(), mAead.name());
     }
 
     /**
@@ -146,7 +145,7 @@ public final class HpkeSuite {
         DHKEM_X25519_HKDF_SHA256(
                 /* id= */ 0x20, /* nSecret= */ 32, /* nEnc= */ 32, /* nPk= */ 32, /* nSk= */ 32),
         XWING(/* id= */ 0x647a, /* nSecret= */ 32, /* nEnc= */ 1120, /* nPk= */ 1216,
-                /* nSk= */ 32);
+              /* nSk= */ 32);
 
         private final int id;
         private final int nSecret;
@@ -338,7 +337,8 @@ public final class HpkeSuite {
          * Returns the length in bytes of a key for this algorithm.
          *
          * @return AEAD Nk
-         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
+         * @see <a
+         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
          *         AEAD ids</a>
          */
         @Deprecated // Use getKeyLength()
@@ -353,7 +353,8 @@ public final class HpkeSuite {
          * Returns the length in bytes of a nonce for this algorithm.
          *
          * @return AEAD Nn
-         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
+         * @see <a
+         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
          *         AEAD ids</a>
          */
         @Deprecated // Use getNonceLength()
@@ -368,7 +369,8 @@ public final class HpkeSuite {
          * Returns the length in bytes of the AEAD authentication tag for this algorithm.
          *
          * @return AEAD Nt
-         * @see <a href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
+         * @see <a
+         *         href="https://www.rfc-editor.org/rfc/rfc9180.html#name-authenticated-encryption-wi">
          *         AEAD ids</a>
          */
         @Deprecated // Use getTagLength()

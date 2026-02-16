@@ -27,27 +27,27 @@ public final class NativeSslTest {
     @Test
     public void toBoringSslGroups_convertsKnownValues() {
         assertArrayEquals(new int[] {NativeConstants.NID_X25519},
-                NativeSsl.toBoringSslGroups(new String[] {"X25519"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"X25519"}));
         assertArrayEquals(new int[] {NativeConstants.NID_X25519},
-                NativeSsl.toBoringSslGroups(new String[] {"x25519"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"x25519"}));
         assertArrayEquals(new int[] {NativeConstants.NID_X9_62_prime256v1},
-                NativeSsl.toBoringSslGroups(new String[] {"P-256"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"P-256"}));
         assertArrayEquals(new int[] {NativeConstants.NID_X9_62_prime256v1},
-                NativeSsl.toBoringSslGroups(new String[] {"secp256r1"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"secp256r1"}));
         assertArrayEquals(new int[] {NativeConstants.NID_secp384r1},
-                NativeSsl.toBoringSslGroups(new String[] {"P-384"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"P-384"}));
         assertArrayEquals(new int[] {NativeConstants.NID_secp384r1},
-                NativeSsl.toBoringSslGroups(new String[] {"secp384r1"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"secp384r1"}));
         assertArrayEquals(new int[] {NativeConstants.NID_secp521r1},
-                NativeSsl.toBoringSslGroups(new String[] {"P-521"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"P-521"}));
         assertArrayEquals(new int[] {NativeConstants.NID_secp521r1},
-                NativeSsl.toBoringSslGroups(new String[] {"secp521r1"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"secp521r1"}));
         assertArrayEquals(new int[] {NativeConstants.NID_X25519MLKEM768},
-                NativeSsl.toBoringSslGroups(new String[] {"X25519MLKEM768"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"X25519MLKEM768"}));
         assertArrayEquals(new int[] {NativeConstants.NID_X25519Kyber768Draft00},
-                NativeSsl.toBoringSslGroups(new String[] {"X25519Kyber768Draft00"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"X25519Kyber768Draft00"}));
         assertArrayEquals(new int[] {NativeConstants.NID_ML_KEM_1024},
-                NativeSsl.toBoringSslGroups(new String[] {"MLKEM1024"}));
+                          NativeSsl.toBoringSslGroups(new String[] {"MLKEM1024"}));
     }
 
     @Test
@@ -59,24 +59,25 @@ public final class NativeSslTest {
 
     @Test
     public void toBoringSslGroups_ignoresUnknownValues() {
-        assertArrayEquals(new int[] {NativeConstants.NID_X25519},
+        assertArrayEquals(
+                new int[] {NativeConstants.NID_X25519},
                 NativeSsl.toBoringSslGroups(new String[] {"Unknown", "X25519", "Unknown2"}));
     }
 
     @Test
     public void toBoringSslGroups_throwsIfNoKnownGroupsFound() {
-        assertThrows(
-                IllegalArgumentException.class, () -> NativeSsl.toBoringSslGroups(new String[] {}));
         assertThrows(IllegalArgumentException.class,
-                () -> NativeSsl.toBoringSslGroups(new String[] {"Unknown"}));
+                     () -> NativeSsl.toBoringSslGroups(new String[] {}));
         assertThrows(IllegalArgumentException.class,
-                () -> NativeSsl.toBoringSslGroups(new String[] {"Unknown", "Unknown2"}));
+                     () -> NativeSsl.toBoringSslGroups(new String[] {"Unknown"}));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeSsl.toBoringSslGroups(new String[] {"Unknown", "Unknown2"}));
     }
 
     @Test
     public void parseNamedGroupsProperty_parsesProperty() {
         assertArrayEquals(new int[] {NativeConstants.NID_X25519},
-                NativeSsl.parseNamedGroupsProperty("X25519"));
+                          NativeSsl.parseNamedGroupsProperty("X25519"));
         assertArrayEquals(
                 new int[] {NativeConstants.NID_X25519, NativeConstants.NID_X9_62_prime256v1},
                 NativeSsl.parseNamedGroupsProperty("X25519,P-256"));
@@ -93,11 +94,11 @@ public final class NativeSslTest {
         assertThrows(NullPointerException.class, () -> NativeSsl.parseNamedGroupsProperty(null));
         assertThrows(IllegalArgumentException.class, () -> NativeSsl.parseNamedGroupsProperty(""));
         assertThrows(IllegalArgumentException.class, () -> NativeSsl.parseNamedGroupsProperty(","));
-        assertThrows(
-                IllegalArgumentException.class, () -> NativeSsl.parseNamedGroupsProperty(" ,"));
         assertThrows(IllegalArgumentException.class,
-                () -> NativeSsl.parseNamedGroupsProperty("Unknown"));
+                     () -> NativeSsl.parseNamedGroupsProperty(" ,"));
         assertThrows(IllegalArgumentException.class,
-                () -> NativeSsl.parseNamedGroupsProperty("Unknown,Unknown2"));
+                     () -> NativeSsl.parseNamedGroupsProperty("Unknown"));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeSsl.parseNamedGroupsProperty("Unknown,Unknown2"));
     }
 }

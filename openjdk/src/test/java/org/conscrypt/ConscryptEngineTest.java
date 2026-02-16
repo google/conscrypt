@@ -120,8 +120,8 @@ public class ConscryptEngineTest {
 
     @Parameters(name = "{0}")
     public static Iterable<BufferType> data() {
-        return Arrays.asList(
-                BufferType.HEAP_ALLOCATOR, BufferType.HEAP_NO_ALLOCATOR, BufferType.DIRECT);
+        return Arrays.asList(BufferType.HEAP_ALLOCATOR, BufferType.HEAP_NO_ALLOCATOR,
+                             BufferType.DIRECT);
     }
 
     @Parameter public BufferType bufferType;
@@ -163,9 +163,9 @@ public class ConscryptEngineTest {
         assertFalse(clientEngine.isOutboundDone());
         assertFalse(serverEngine.isOutboundDone());
 
-        ByteBuffer drain = bufferType.newBuffer(
-            Math.max(clientEngine.getSession().getPacketBufferSize(),
-                serverEngine.getSession().getPacketBufferSize()));
+        ByteBuffer drain =
+                bufferType.newBuffer(Math.max(clientEngine.getSession().getPacketBufferSize(),
+                                              serverEngine.getSession().getPacketBufferSize()));
         clientEngine.wrap(ByteBuffer.wrap(new byte[0]), drain);
         drain.clear();
         serverEngine.wrap(ByteBuffer.wrap(new byte[0]), drain);
@@ -210,45 +210,47 @@ public class ConscryptEngineTest {
     @Test
     public void mutualAuthWithUntrustedServerShouldFail() throws Exception {
         assertThrows(SSLHandshakeException.class,
-                ()
-                        -> doMutualAuthHandshake(TestKeyStore.getClientCA2(),
-                                TestKeyStore.getServer(), ClientAuth.NONE));
+                     ()
+                             -> doMutualAuthHandshake(TestKeyStore.getClientCA2(),
+                                                      TestKeyStore.getServer(), ClientAuth.NONE));
     }
 
     @Test
     public void mutualAuthWithUntrustedClientShouldFail() throws Exception {
         assertThrows(SSLHandshakeException.class,
-                ()
-                        -> doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getClient(),
-                                ClientAuth.NONE));
+                     ()
+                             -> doMutualAuthHandshake(TestKeyStore.getClient(),
+                                                      TestKeyStore.getClient(), ClientAuth.NONE));
     }
 
     @Test
     public void optionalClientAuthShouldSucceed() throws Exception {
-        doMutualAuthHandshake(
-                TestKeyStore.getClient(), TestKeyStore.getServer(), ClientAuth.OPTIONAL);
+        doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getServer(),
+                              ClientAuth.OPTIONAL);
     }
 
     @Test
     public void optionalClientAuthShouldFail() throws Exception {
-        assertThrows(SSLHandshakeException.class,
+        assertThrows(
+                SSLHandshakeException.class,
                 ()
                         -> doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getClient(),
-                                ClientAuth.OPTIONAL));
+                                                 ClientAuth.OPTIONAL));
     }
 
     @Test
     public void requiredClientAuthShouldSucceed() throws Exception {
-        doMutualAuthHandshake(
-                TestKeyStore.getServer(), TestKeyStore.getServer(), ClientAuth.REQUIRED);
+        doMutualAuthHandshake(TestKeyStore.getServer(), TestKeyStore.getServer(),
+                              ClientAuth.REQUIRED);
     }
 
     @Test
     public void requiredClientAuthShouldFail() throws Exception {
-        assertThrows(SSLHandshakeException.class,
+        assertThrows(
+                SSLHandshakeException.class,
                 ()
                         -> doMutualAuthHandshake(TestKeyStore.getClient(), TestKeyStore.getClient(),
-                                ClientAuth.REQUIRED));
+                                                 ClientAuth.REQUIRED));
     }
 
     @Test
@@ -294,8 +296,8 @@ public class ConscryptEngineTest {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
 
         // Configure ALPN protocols
-        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
-        String[] serverAlpnProtocols = new String[]{"spdy/2", "foo", "bar"};
+        String[] clientAlpnProtocols = new String[] {"http/1.1", "foo", "spdy/2"};
+        String[] serverAlpnProtocols = new String[] {"spdy/2", "foo", "bar"};
 
         Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
         Conscrypt.setApplicationProtocols(serverEngine, serverAlpnProtocols);
@@ -310,8 +312,8 @@ public class ConscryptEngineTest {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
 
         // Configure ALPN protocols
-        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
-        String[] serverAlpnProtocols = new String[]{"h2", "bar", "baz"};
+        String[] clientAlpnProtocols = new String[] {"http/1.1", "foo", "spdy/2"};
+        String[] serverAlpnProtocols = new String[] {"h2", "bar", "baz"};
 
         Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
         Conscrypt.setApplicationProtocols(serverEngine, serverAlpnProtocols);
@@ -326,12 +328,13 @@ public class ConscryptEngineTest {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
 
         // Configure client protocols.
-        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
+        String[] clientAlpnProtocols = new String[] {"http/1.1", "foo", "spdy/2"};
         Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
 
         // Configure server selector
         ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
-        when(selector.selectApplicationProtocol(same(serverEngine), ArgumentMatchers.<String>anyList()))
+        when(selector.selectApplicationProtocol(same(serverEngine),
+                                                ArgumentMatchers.<String>anyList()))
                 .thenReturn("spdy/2");
         Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
@@ -345,12 +348,13 @@ public class ConscryptEngineTest {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
 
         // Configure client protocols.
-        String[] clientAlpnProtocols = new String[]{"http/1.1", "foo", "spdy/2"};
+        String[] clientAlpnProtocols = new String[] {"http/1.1", "foo", "spdy/2"};
         Conscrypt.setApplicationProtocols(clientEngine, clientAlpnProtocols);
 
         // Configure server selector
         ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
-        when(selector.selectApplicationProtocol(same(serverEngine), ArgumentMatchers.<String>anyList()))
+        when(selector.selectApplicationProtocol(same(serverEngine),
+                                                ArgumentMatchers.<String>anyList()))
                 .thenReturn("h2");
         Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
 
@@ -388,7 +392,7 @@ public class ConscryptEngineTest {
     @Test
     public void savedSessionWorksAfterClose() throws Exception {
         String alpnProtocol = "spdy/2";
-        String[] alpnProtocols = new String[]{alpnProtocol};
+        String[] alpnProtocols = new String[] {alpnProtocol};
 
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
         Conscrypt.setApplicationProtocols(clientEngine, alpnProtocols);
@@ -413,7 +417,7 @@ public class ConscryptEngineTest {
     // getApplicationProtocol should initially return null and not trigger handshake. b/146235331
     public void getAlpnIsNullBeforeHandshake() throws Exception {
         String alpnProtocol = "spdy/2";
-        String[] alpnProtocols = new String[]{alpnProtocol};
+        String[] alpnProtocols = new String[] {alpnProtocol};
 
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
 
@@ -428,8 +432,8 @@ public class ConscryptEngineTest {
         assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
     }
 
-    private void doMutualAuthHandshake(
-            TestKeyStore clientKs, TestKeyStore serverKs, ClientAuth clientAuth) throws Exception {
+    private void doMutualAuthHandshake(TestKeyStore clientKs, TestKeyStore serverKs,
+                                       ClientAuth clientAuth) throws Exception {
         setupEngines(clientKs, serverKs);
         clientAuth.apply(serverEngine);
         doHandshake(true);
@@ -447,10 +451,12 @@ public class ConscryptEngineTest {
         ByteBuffer serverPacketBuffer =
                 bufferType.newBuffer(serverEngine.getSession().getPacketBufferSize());
         TestUtils.doEngineHandshake(clientEngine, serverEngine, clientApplicationBuffer,
-                clientPacketBuffer, serverApplicationBuffer, serverPacketBuffer, beginHandshake);
+                                    clientPacketBuffer, serverApplicationBuffer, serverPacketBuffer,
+                                    beginHandshake);
     }
 
-    private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore) throws SSLException {
+    private void setupEngines(TestKeyStore clientKeyStore, TestKeyStore serverKeyStore)
+            throws SSLException {
         setupClientEngine(getConscryptProvider(), clientKeyStore);
         setupServerEngine(getConscryptProvider(), serverKeyStore);
     }
@@ -465,8 +471,7 @@ public class ConscryptEngineTest {
         serverEngine = newEngine(provider, serverKeyStore, false);
     }
 
-    private SSLEngine newEngine(
-            Provider provider, TestKeyStore keyStore, boolean client) {
+    private SSLEngine newEngine(Provider provider, TestKeyStore keyStore, boolean client) {
         SSLContext serverContext = newContext(provider, keyStore);
         SSLEngine engine = serverContext.createSSLEngine();
         engine.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());

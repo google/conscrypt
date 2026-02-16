@@ -25,6 +25,10 @@ import static org.conscrypt.TestUtils.decodeHex;
 import static org.conscrypt.TestUtils.encodeHex;
 import static org.junit.Assert.assertArrayEquals;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -32,9 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class HpkeTestVectorsTest {
@@ -60,13 +61,15 @@ public class HpkeTestVectorsTest {
 
     private static Map<String, HpkeSuite> buildSupportedHpkeSuite() {
         Map<String, HpkeSuite> suiteMap = new HashMap<>();
-        suiteMap.put("32:1:1",
+        suiteMap.put(
+                "32:1:1",
                 new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
-        suiteMap.put("32:1:2",
+        suiteMap.put(
+                "32:1:2",
                 new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
         suiteMap.put("32:1:3",
-                new HpkeSuite(
-                        KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+                     new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256,
+                                   AEAD_CHACHA20POLY1305));
         return suiteMap;
     }
 
@@ -97,17 +100,17 @@ public class HpkeTestVectorsTest {
         for (HpkeEncryptionData encryption : record.encryptions) {
             final byte[] ciphertext = contextSender.seal(encryption.pt, encryption.aad);
             assertArrayEquals("Failed encryption 'ciphertext' on data : " + encryption,
-                    encryption.ct, ciphertext);
+                              encryption.ct, ciphertext);
         }
 
         // Decryption
         final HpkeContextRecipient contextRecipient =
-            HpkeContextRecipient.getInstance(record.hpkeSuite.name());
+                HpkeContextRecipient.getInstance(record.hpkeSuite.name());
         contextRecipient.init(enc, record.skRm, record.info);
         for (HpkeEncryptionData encryption : record.encryptions) {
             final byte[] plaintext = contextRecipient.open(encryption.ct, encryption.aad);
-            assertArrayEquals(
-                    "Failed decryption on data : " + encryption, encryption.pt, plaintext);
+            assertArrayEquals("Failed decryption on data : " + encryption, encryption.pt,
+                              plaintext);
         }
     }
 
@@ -123,18 +126,18 @@ public class HpkeTestVectorsTest {
             final byte[] export =
                     contextSender.export(exporterData.l, exporterData.exporterContext);
             assertArrayEquals("Failed sender export on data : " + exporterData,
-                    exporterData.exportedValue, export);
+                              exporterData.exportedValue, export);
         }
 
         // Recipient secret export
-        final HpkeContextRecipient contextRecipient
-            = HpkeContextRecipient.getInstance(record.hpkeSuite.name());
+        final HpkeContextRecipient contextRecipient =
+                HpkeContextRecipient.getInstance(record.hpkeSuite.name());
         contextRecipient.init(enc, record.skRm, record.info);
         for (HpkeExporterData exporterData : record.exports) {
             final byte[] export =
                     contextRecipient.export(exporterData.l, exporterData.exporterContext);
             assertArrayEquals("Failed recipient export on data : " + exporterData,
-                    exporterData.exportedValue, export);
+                              exporterData.exportedValue, export);
         }
     }
 
@@ -145,21 +148,26 @@ public class HpkeTestVectorsTest {
         for (String[] line : data) {
             if (!line[0].isEmpty()) {
                 final HpkeData record = new HpkeData();
-                record.hpkeSuite =
-                        convertSuite(line[HPKE_KEM_ID], line[HPKE_KDF_ID], line[HPKE_AEAD_ID]);
-                record.info = TestUtils.decodeHex(line[HPKE_INFO]);
-                record.skRm =
-                        new OpenSSLX25519PrivateKey(decodeHex(line[HPKE_SECRET_KEY_RECIPIENT]));
-                record.skEm = decodeHex(line[HPKE_SECRET_KEY_EPHEMERAL]);
-                record.pkRm =
-                        new OpenSSLX25519PublicKey(decodeHex(line[HPKE_PUBLIC_KEY_RECIPIENT]));
-                record.pkEm = decodeHex(line[HPKE_PUBLIC_KEY_EPHEMERAL]);
+                record.hpkeSuite
+                = convertSuite(line[HPKE_KEM_ID], line[HPKE_KDF_ID], line[HPKE_AEAD_ID]);
+                record.info
+                = TestUtils.decodeHex(line[HPKE_INFO]);
+                record.skRm
+                = new OpenSSLX25519PrivateKey(decodeHex(line[HPKE_SECRET_KEY_RECIPIENT]));
+                record.skEm
+                = decodeHex(line[HPKE_SECRET_KEY_EPHEMERAL]);
+                record.pkRm
+                = new OpenSSLX25519PublicKey(decodeHex(line[HPKE_PUBLIC_KEY_RECIPIENT]));
+                record.pkEm
+                = decodeHex(line[HPKE_PUBLIC_KEY_EPHEMERAL]);
                 final HpkeEncryptionData encryptionData = new HpkeEncryptionData();
                 encryptionData.aad = decodeHex(line[HPKE_AAD]);
                 encryptionData.ct = decodeHex(line[HPKE_CIPHERTEXT]);
                 encryptionData.pt = decodeHex(line[HPKE_PLAINTEXT]);
-                record.encryptions = new ArrayList<>();
-                record.encryptions.add(encryptionData);
+                record.encryptions
+                = new ArrayList<>();
+                record.encryptions.add(encryptionData)
+                ;
                 records.add(record);
             } else {
                 final HpkeEncryptionData encryptionData = new HpkeEncryptionData();
@@ -179,21 +187,26 @@ public class HpkeTestVectorsTest {
         for (String[] line : data) {
             if (!line[0].isEmpty()) {
                 final HpkeData record = new HpkeData();
-                record.hpkeSuite =
-                        convertSuite(line[HPKE_KEM_ID], line[HPKE_KDF_ID], line[HPKE_AEAD_ID]);
-                record.info = decodeHex(line[HPKE_INFO]);
-                record.skRm =
-                        new OpenSSLX25519PrivateKey(decodeHex(line[HPKE_SECRET_KEY_RECIPIENT]));
-                record.skEm = decodeHex(line[HPKE_SECRET_KEY_EPHEMERAL]);
-                record.pkRm =
-                        new OpenSSLX25519PublicKey(decodeHex(line[HPKE_PUBLIC_KEY_RECIPIENT]));
-                record.pkEm = decodeHex(line[HPKE_PUBLIC_KEY_EPHEMERAL]);
+                record.hpkeSuite
+                = convertSuite(line[HPKE_KEM_ID], line[HPKE_KDF_ID], line[HPKE_AEAD_ID]);
+                record.info
+                = decodeHex(line[HPKE_INFO]);
+                record.skRm
+                = new OpenSSLX25519PrivateKey(decodeHex(line[HPKE_SECRET_KEY_RECIPIENT]));
+                record.skEm
+                = decodeHex(line[HPKE_SECRET_KEY_EPHEMERAL]);
+                record.pkRm
+                = new OpenSSLX25519PublicKey(decodeHex(line[HPKE_PUBLIC_KEY_RECIPIENT]));
+                record.pkEm
+                = decodeHex(line[HPKE_PUBLIC_KEY_EPHEMERAL]);
                 final HpkeExporterData exporterData = new HpkeExporterData();
                 exporterData.exporterContext = decodeHex(line[HPKE_EXPORTER_CONTEXT]);
                 exporterData.l = Integer.parseInt(line[HPKE_L]);
                 exporterData.exportedValue = decodeHex(line[HPKE_EXPORTED_VALUE]);
-                record.exports = new ArrayList<>();
-                record.exports.add(exporterData);
+                record.exports
+                = new ArrayList<>();
+                record.exports.add(exporterData)
+                ;
                 records.add(record);
             } else {
                 final HpkeExporterData exporterData = new HpkeExporterData();
@@ -217,8 +230,9 @@ public class HpkeTestVectorsTest {
         throw new IllegalArgumentException("Invalid KEM, KDF, AEAD : " + suite);
     }
 
-    private static HpkeContextSender setupBaseForTesting(
-        HpkeSuite suite, PublicKey publicKey, byte[] info, byte[] sKem) throws Exception {
+    private static HpkeContextSender setupBaseForTesting(HpkeSuite suite, PublicKey publicKey,
+                                                         byte[] info, byte[] sKem)
+            throws Exception {
         String algorithm = suite.name();
         HpkeContextSender sender = HpkeContextSender.getInstance(algorithm);
         sender.initForTesting(publicKey, info, sKem);
@@ -239,11 +253,11 @@ public class HpkeTestVectorsTest {
         @Override
         public String toString() {
             return "HpkeData{"
-                    + "kem=" + hpkeSuite.getKem() + ", kdf=" + hpkeSuite.getKdf()
-                    + ", aead=" + hpkeSuite.getAead() + ", info=" + TestUtils.encodeHex(info)
-                    + ", skRm=" + TestUtils.encodeHex(skRm.getEncoded()) + ", skEm="
-                    + TestUtils.encodeHex(skEm) + ", pkRm=" + TestUtils.encodeHex(pkRm.getEncoded())
-                    + ", pkEm=" + TestUtils.encodeHex(pkEm) + ", encryptions=" + encryptions + '}';
+                    + "kem=" + hpkeSuite.getKem() + ", kdf=" + hpkeSuite.getKdf() + ", aead="
+                    + hpkeSuite.getAead() + ", info=" + TestUtils.encodeHex(info) + ", skRm="
+                    + TestUtils.encodeHex(skRm.getEncoded()) + ", skEm=" + TestUtils.encodeHex(skEm)
+                    + ", pkRm=" + TestUtils.encodeHex(pkRm.getEncoded()) + ", pkEm="
+                    + TestUtils.encodeHex(pkEm) + ", encryptions=" + encryptions + '}';
         }
     }
 

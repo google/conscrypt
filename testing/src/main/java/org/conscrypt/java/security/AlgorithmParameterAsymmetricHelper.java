@@ -22,10 +22,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+
 import javax.crypto.Cipher;
 
 public class AlgorithmParameterAsymmetricHelper extends TestHelper<AlgorithmParameters> {
-
     private static final String plainData = "some data to encrypt and decrypt";
     private final String algorithmName;
 
@@ -34,9 +34,8 @@ public class AlgorithmParameterAsymmetricHelper extends TestHelper<AlgorithmPara
     }
 
     private String baseName() {
-        return algorithmName.contains("/")
-                ? algorithmName.substring(0, algorithmName.indexOf('/'))
-                : algorithmName;
+        return algorithmName.contains("/") ? algorithmName.substring(0, algorithmName.indexOf('/'))
+                                           : algorithmName;
     }
 
     @Override

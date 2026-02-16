@@ -21,14 +21,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
-import java.security.KeyManagementException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.security.KeyManagementException;
+
 @RunWith(JUnit4.class)
 public class ClientSessionContextTest extends AbstractSessionContextTest<ClientSessionContext> {
-
     @Override
     ClientSessionContext newContext() {
         return new ClientSessionContext();
@@ -36,8 +36,7 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
 
     @Override
     NativeSslSession getCachedSession(ClientSessionContext context, NativeSslSession s) {
-        return context.getCachedSession(s.getPeerHost(), DEFAULT_PORT,
-                getDefaultSSLParameters());
+        return context.getCachedSession(s.getPeerHost(), DEFAULT_PORT, getDefaultSSLParameters());
     }
 
     @Override
@@ -58,12 +57,12 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
         ClientSessionContext context = newContext();
 
         NativeSslSession a = new MockSessionBuilder().host("a").singleUse(false).build();
-        NativeSslSession bSingle1 = new MockSessionBuilder()
-                .id(new byte[] {1}).host("b").singleUse(true).build();
-        NativeSslSession bSingle2 = new MockSessionBuilder()
-                .id(new byte[] {2}).host("b").singleUse(true).build();
-        NativeSslSession bMulti = new MockSessionBuilder()
-                .id(new byte[] {3}).host("b").singleUse(false).build();
+        NativeSslSession bSingle1 =
+                new MockSessionBuilder().id(new byte[] {1}).host("b").singleUse(true).build();
+        NativeSslSession bSingle2 =
+                new MockSessionBuilder().id(new byte[] {2}).host("b").singleUse(true).build();
+        NativeSslSession bMulti =
+                new MockSessionBuilder().id(new byte[] {3}).host("b").singleUse(false).build();
 
         context.cacheSession(a);
         assertEquals(1, size(context));
@@ -77,8 +76,8 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
         context.cacheSession(bMulti);
         assertEquals(2, size(context));
 
-        NativeSslSession out = context.getCachedSession(
-                "b", DEFAULT_PORT, getDefaultSSLParameters());
+        NativeSslSession out =
+                context.getCachedSession("b", DEFAULT_PORT, getDefaultSSLParameters());
         assertEquals(bMulti, out);
 
         context.cacheSession(bSingle2);
@@ -95,10 +94,10 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
     public void testCanRetrieveMultipleSingleUseSessions() {
         ClientSessionContext context = newContext();
 
-        NativeSslSession single1 = new MockSessionBuilder()
-                .id(new byte[] {1}).host("host").singleUse(true).build();
-        NativeSslSession single2 = new MockSessionBuilder()
-                .id(new byte[] {2}).host("host").singleUse(true).build();
+        NativeSslSession single1 =
+                new MockSessionBuilder().id(new byte[] {1}).host("host").singleUse(true).build();
+        NativeSslSession single2 =
+                new MockSessionBuilder().id(new byte[] {2}).host("host").singleUse(true).build();
 
         context.cacheSession(single1);
         assertEquals(1, size(context));
@@ -107,10 +106,10 @@ public class ClientSessionContextTest extends AbstractSessionContextTest<ClientS
         assertEquals(2, size(context));
 
         assertSame(single1,
-                context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
+                   context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
         assertEquals(1, size(context));
         assertSame(single2,
-                context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
+                   context.getCachedSession("host", DEFAULT_PORT, getDefaultSSLParameters()));
         assertEquals(0, size(context));
     }
 }

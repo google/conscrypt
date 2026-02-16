@@ -21,6 +21,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.conscrypt.TestUtils;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.security.AlgorithmParameters;
 import java.security.spec.AlgorithmParameterSpec;
@@ -31,14 +36,9 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
-import org.conscrypt.TestUtils;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersPSSTest {
-
     // ASN.1 DER-encoded forms of DEFAULT_SPEC and WEIRD_SPEC were generated using
     // Bouncy Castle 1.52 AlgorithmParameters of type "PSS" and checked for correctness
     // using ASN.1 DER decoder.
@@ -47,22 +47,19 @@ public class AlgorithmParametersPSSTest {
 
     private static final PSSParameterSpec WEIRD_SPEC =
             new PSSParameterSpec("SHA-224", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
-    private static final byte[] WEIRD_SPEC_DER_ENCODED =
-            TestUtils.decodeHex(
-                    "3034a00f300d06096086480165030402040500a11c301a06092a864886f70d010108300d060960"
-                    + "86480165030402010500a203020120");
+    private static final byte[] WEIRD_SPEC_DER_ENCODED = TestUtils.decodeHex(
+            "3034a00f300d06096086480165030402040500a11c301a06092a864886f70d010108300d060960"
+            + "86480165030402010500a203020120");
 
     /** Truncated SEQUENCE (one more byte needed at the end) */
-    private static final byte[] BROKEN_SPEC1_DER_ENCODED =
-            TestUtils.decodeHex(
-                    "303aa00f300d06096086480165030402030500a11c301a06092a864886f70d010108300d060960"
-                    + "86480165030402020500a20302011ba303020103");
+    private static final byte[] BROKEN_SPEC1_DER_ENCODED = TestUtils.decodeHex(
+            "303aa00f300d06096086480165030402030500a11c301a06092a864886f70d010108300d060960"
+            + "86480165030402020500a20302011ba303020103");
 
     /** Payload of SEQUENCE extends beyond the SEQUENCE. */
-    private static final byte[] BROKEN_SPEC2_DER_ENCODED =
-            TestUtils.decodeHex(
-                    "3037a00f300d06096086480165030402030500a11c301a06092a864886f70d010108300d060960"
-                    + "86480165030402020500a20302011ba303020103");
+    private static final byte[] BROKEN_SPEC2_DER_ENCODED = TestUtils.decodeHex(
+            "3037a00f300d06096086480165030402030500a11c301a06092a864886f70d010108300d060960"
+            + "86480165030402020500a20302011ba303020103");
 
     @Test
     public void testGetInstance() throws Exception {
@@ -90,15 +87,18 @@ public class AlgorithmParametersPSSTest {
         try {
             params.init(DEFAULT_SPEC);
             fail();
-        } catch (InvalidParameterSpecException expected) {}
+        } catch (InvalidParameterSpecException expected) {
+        }
         try {
             params.init(DEFAULT_SPEC_DER_ENCODED);
             fail();
-        } catch (IOException expected) {}
+        } catch (IOException expected) {
+        }
         try {
             params.init(DEFAULT_SPEC_DER_ENCODED, "ASN.1");
             fail();
-        } catch (IOException expected) {}
+        } catch (IOException expected) {
+        }
     }
 
     @Test
@@ -114,8 +114,8 @@ public class AlgorithmParametersPSSTest {
         assertInitWithDerEncoded(DEFAULT_SPEC_DER_ENCODED, DEFAULT_SPEC);
     }
 
-    private void assertInitWithDerEncoded(
-            byte[] encoded, PSSParameterSpec expected) throws Exception {
+    private void assertInitWithDerEncoded(byte[] encoded, PSSParameterSpec expected)
+            throws Exception {
         AlgorithmParameters params = AlgorithmParameters.getInstance("PSS");
         params.init(encoded);
         assertPSSParameterSpecEquals(expected, params.getParameterSpec(PSSParameterSpec.class));
@@ -131,11 +131,13 @@ public class AlgorithmParametersPSSTest {
         try {
             params.getEncoded();
             fail();
-        } catch (IOException expected) {}
+        } catch (IOException expected) {
+        }
         try {
             params.getEncoded("ASN.1");
             fail();
-        } catch (IOException expected) {}
+        } catch (IOException expected) {
+        }
     }
 
     @Test
@@ -164,8 +166,7 @@ public class AlgorithmParametersPSSTest {
             // Bouncy Castle incorrectly throws an IllegalArgumentException instead of IOException.
             if (!"BC".equals(params.getProvider().getName())) {
                 throw new RuntimeException(
-                        "Unexpected exception. Provider: " + params.getProvider(),
-                        expected);
+                        "Unexpected exception. Provider: " + params.getProvider(), expected);
             }
         }
 
@@ -178,20 +179,17 @@ public class AlgorithmParametersPSSTest {
             // Bouncy Castle incorrectly throws an IllegalArgumentException instead of IOException.
             if (!"BC".equals(params.getProvider().getName())) {
                 throw new RuntimeException(
-                        "Unexpected exception. Provider: " + params.getProvider(),
-                        expected);
+                        "Unexpected exception. Provider: " + params.getProvider(), expected);
             }
         }
     }
 
-    private static void assertPSSParameterSpecEquals(
-        PSSParameterSpec spec1, PSSParameterSpec spec2) {
-        assertEquals(
-                getDigestAlgorithmCanonicalName(spec1.getDigestAlgorithm()),
-                getDigestAlgorithmCanonicalName(spec2.getDigestAlgorithm()));
-        assertEquals(
-                getMGFAlgorithmCanonicalName(spec1.getMGFAlgorithm()),
-                getMGFAlgorithmCanonicalName(spec2.getMGFAlgorithm()));
+    private static void assertPSSParameterSpecEquals(PSSParameterSpec spec1,
+                                                     PSSParameterSpec spec2) {
+        assertEquals(getDigestAlgorithmCanonicalName(spec1.getDigestAlgorithm()),
+                     getDigestAlgorithmCanonicalName(spec2.getDigestAlgorithm()));
+        assertEquals(getMGFAlgorithmCanonicalName(spec1.getMGFAlgorithm()),
+                     getMGFAlgorithmCanonicalName(spec2.getMGFAlgorithm()));
 
         AlgorithmParameterSpec spec1MgfParams = spec1.getMGFParameters();
         assertNotNull(spec1MgfParams);
@@ -206,9 +204,8 @@ public class AlgorithmParametersPSSTest {
         }
         MGF1ParameterSpec spec2Mgf1Params = (MGF1ParameterSpec) spec2MgfParams;
 
-        assertEquals(
-                getDigestAlgorithmCanonicalName(spec1Mgf1Params.getDigestAlgorithm()),
-                getDigestAlgorithmCanonicalName(spec2Mgf1Params.getDigestAlgorithm()));
+        assertEquals(getDigestAlgorithmCanonicalName(spec1Mgf1Params.getDigestAlgorithm()),
+                     getDigestAlgorithmCanonicalName(spec2Mgf1Params.getDigestAlgorithm()));
         assertEquals(spec1.getSaltLength(), spec2.getSaltLength());
         assertEquals(spec1.getTrailerField(), spec2.getTrailerField());
     }
@@ -216,10 +213,10 @@ public class AlgorithmParametersPSSTest {
     // All the craziness with supporting OIDs is needed because Bouncy Castle, when parsing from
     // ASN.1 form, returns PSSParameterSpec instances which use OIDs instead of JCA standard names
     // for digest algorithms and MGF algorithms.
-    private static final Map<String, String> DIGEST_OID_TO_NAME = new TreeMap<String, String>(
-            String.CASE_INSENSITIVE_ORDER);
-    private static final Map<String, String> DIGEST_NAME_TO_OID = new TreeMap<String, String>(
-            String.CASE_INSENSITIVE_ORDER);
+    private static final Map<String, String> DIGEST_OID_TO_NAME =
+            new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+    private static final Map<String, String> DIGEST_NAME_TO_OID =
+            new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
     private static void addDigestOid(String algorithm, String oid) {
         DIGEST_OID_TO_NAME.put(oid, algorithm);

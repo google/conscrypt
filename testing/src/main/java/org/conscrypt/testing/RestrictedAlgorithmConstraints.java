@@ -8,8 +8,8 @@ import java.util.Set;
 
 public class RestrictedAlgorithmConstraints implements AlgorithmConstraints {
     @Override
-    public boolean permits(
-            Set<CryptoPrimitive> primitives, String algorithm, AlgorithmParameters parameters) {
+    public boolean permits(Set<CryptoPrimitive> primitives, String algorithm,
+                           AlgorithmParameters parameters) {
         return false;
     }
 
@@ -20,7 +20,7 @@ public class RestrictedAlgorithmConstraints implements AlgorithmConstraints {
 
     @Override
     public boolean permits(Set<CryptoPrimitive> primitives, String algorithm, Key key,
-            AlgorithmParameters parameters) {
+                           AlgorithmParameters parameters) {
         return false;
     }
 }

@@ -54,7 +54,7 @@ public class OpenSslMlDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
 
     OpenSslMlDsaPublicKey(OpenSSLKey key, MlDsaAlgorithm algorithm) {
         if (NativeCrypto.EVP_PKEY_type(key.getNativeRef())
-                != OpenSslMlDsaKeyFactory.getPKeyType(algorithm)) {
+            != OpenSslMlDsaKeyFactory.getPKeyType(algorithm)) {
             throw new IllegalArgumentException("Invalid key type");
         }
         this.algorithm = algorithm;

@@ -3,6 +3,11 @@ package org.conscrypt.tlswire;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.conscrypt.tlswire.handshake.ClientHello;
+import org.conscrypt.tlswire.handshake.HandshakeMessage;
+import org.conscrypt.tlswire.record.TlsProtocols;
+import org.conscrypt.tlswire.record.TlsRecord;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -14,20 +19,17 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.tlswire.handshake.ClientHello;
-import org.conscrypt.tlswire.handshake.HandshakeMessage;
-import org.conscrypt.tlswire.record.TlsProtocols;
-import org.conscrypt.tlswire.record.TlsRecord;
 
 public class TlsTester {
-
     private TlsTester() {}
 
     public static ClientHello captureTlsHandshakeClientHello(ExecutorService executor,
-            SSLSocketFactory sslSocketFactory) throws Exception {
+                                                             SSLSocketFactory sslSocketFactory)
+            throws Exception {
         TlsRecord record = captureTlsHandshakeFirstTlsRecord(executor, sslSocketFactory);
         return parseClientHello(record);
     }
@@ -40,16 +42,18 @@ public class TlsTester {
         assertEquals("TLS record type", TlsProtocols.HANDSHAKE, record.type);
         ByteArrayInputStream fragmentIn = new ByteArrayInputStream(record.fragment);
         HandshakeMessage handshakeMessage = HandshakeMessage.read(new DataInputStream(fragmentIn));
-        assertEquals(
-                "HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO, handshakeMessage.type);
+        assertEquals("HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO,
+                     handshakeMessage.type);
         // Assert that the fragment does not contain any more messages
         assertEquals(0, fragmentIn.available());
         return (ClientHello) handshakeMessage;
     }
 
     public static TlsRecord captureTlsHandshakeFirstTlsRecord(ExecutorService executor,
-            SSLSocketFactory sslSocketFactory) throws Exception {
-        byte[] firstReceivedChunk = captureTlsHandshakeFirstTransmittedChunkBytes(executor, sslSocketFactory);
+                                                              SSLSocketFactory sslSocketFactory)
+            throws Exception {
+        byte[] firstReceivedChunk =
+                captureTlsHandshakeFirstTransmittedChunkBytes(executor, sslSocketFactory);
         return parseRecord(firstReceivedChunk);
     }
 
@@ -81,24 +85,24 @@ public class TlsTester {
             listeningSocket = ServerSocketFactory.getDefault().createServerSocket(0);
             final ServerSocket finalListeningSocket = listeningSocket;
             // 2. (in background) Wait for an incoming connection and read its first chunk.
-            final Future<byte[]>
-                    readFirstReceivedChunkFuture = executor.submit(new Callable<byte[]>() {
-                @Override
-                public byte[] call() throws Exception {
-                    Socket socket = finalListeningSocket.accept();
-                    sockets[1] = socket;
-                    try {
-                        byte[] buffer = new byte[64 * 1024];
-                        int bytesRead = socket.getInputStream().read(buffer);
-                        if (bytesRead == -1) {
-                            throw new EOFException("Failed to read anything");
+            final Future<byte[]> readFirstReceivedChunkFuture =
+                    executor.submit(new Callable<byte[]>() {
+                        @Override
+                        public byte[] call() throws Exception {
+                            Socket socket = finalListeningSocket.accept();
+                            sockets[1] = socket;
+                            try {
+                                byte[] buffer = new byte[64 * 1024];
+                                int bytesRead = socket.getInputStream().read(buffer);
+                                if (bytesRead == -1) {
+                                    throw new EOFException("Failed to read anything");
+                                }
+                                return Arrays.copyOf(buffer, bytesRead);
+                            } finally {
+                                closeQuietly(socket);
+                            }
                         }
-                        return Arrays.copyOf(buffer, bytesRead);
-                    } finally {
-                        closeQuietly(socket);
-                    }
-                }
-            });
+                    });
             // 3. Create a client socket, connect it to the server socket, and start the TLS/SSL
             //    handshake.
             executor.submit(new Callable<Void>() {
@@ -111,9 +115,9 @@ public class TlsTester {
                         // Initiate the TLS/SSL handshake which is expected to fail as soon as the
                         // server socket receives a ClientHello.
                         try {
-                            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(client,
-                                    "localhost.localdomain", finalListeningSocket.getLocalPort(),
-                                    true);
+                            SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(
+                                    client, "localhost.localdomain",
+                                    finalListeningSocket.getLocalPort(), true);
                             sslSocket.startHandshake();
                             fail();
                             return null;

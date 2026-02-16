@@ -16,13 +16,13 @@
 
 package android.crypto.hpke;
 
+import libcore.util.NonNull;
+import libcore.util.Nullable;
+
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import libcore.util.NonNull;
-import libcore.util.Nullable;
-
 
 /**
  * Service Provider Interface for HPKE client API classes to communicate with implementations
@@ -64,13 +64,9 @@ public interface HpkeSpi {
      * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
-    void engineInitSender(
-            @NonNull PublicKey recipientKey,
-            @Nullable byte[] info,
-            @Nullable PrivateKey senderKey,
-            @Nullable byte[] psk,
-            @Nullable byte[] psk_id)
-            throws InvalidKeyException;
+    void engineInitSender(@NonNull PublicKey recipientKey, @Nullable byte[] info,
+                          @Nullable PrivateKey senderKey, @Nullable byte[] psk,
+                          @Nullable byte[] psk_id) throws InvalidKeyException;
 
     /**
      * Initialises an HPKE SPI in one of the sender modes described in RFC 9180 with
@@ -109,13 +105,9 @@ public interface HpkeSpi {
      * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
-    void engineInitSenderWithSeed(
-            @NonNull PublicKey recipientKey,
-            @Nullable byte[] info,
-            @Nullable PrivateKey senderKey,
-            @Nullable byte[] psk,
-            @Nullable byte[] psk_id,
-            @NonNull byte[] sKe)
+    void engineInitSenderWithSeed(@NonNull PublicKey recipientKey, @Nullable byte[] info,
+                                  @Nullable PrivateKey senderKey, @Nullable byte[] psk,
+                                  @Nullable byte[] psk_id, @NonNull byte[] sKe)
             throws InvalidKeyException;
 
     /**
@@ -149,13 +141,9 @@ public interface HpkeSpi {
      * @throws UnsupportedOperationException if the mode is not supported by this implementation
      * @throws IllegalStateException if this SPI has already been initialised
      */
-    void engineInitRecipient(
-            @NonNull byte[] encapsulated,
-            @NonNull PrivateKey recipientKey,
-            @Nullable byte[] info,
-            @Nullable PublicKey senderKey,
-            @Nullable byte[] psk,
-            @Nullable byte[] psk_id)
+    void engineInitRecipient(@NonNull byte[] encapsulated, @NonNull PrivateKey recipientKey,
+                             @Nullable byte[] info, @Nullable PublicKey senderKey,
+                             @Nullable byte[] psk, @Nullable byte[] psk_id)
             throws InvalidKeyException;
 
     /**
@@ -180,7 +168,8 @@ public interface HpkeSpi {
      *         as a sender
      * @throws GeneralSecurityException on decryption failures
      */
-    @NonNull byte[] engineOpen(@NonNull byte[] ciphertext, @Nullable byte[] aad)
+    @NonNull
+    byte[] engineOpen(@NonNull byte[] ciphertext, @Nullable byte[] aad)
             throws GeneralSecurityException;
 
     /**

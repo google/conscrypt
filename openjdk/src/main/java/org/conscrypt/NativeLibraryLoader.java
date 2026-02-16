@@ -100,8 +100,8 @@ final class NativeLibraryLoader {
      * Loads the first available library in the collection with the specified
      * {@link ClassLoader}.
      */
-    static boolean loadFirstAvailable(
-            ClassLoader loader, List<LoadResult> results, String... names) {
+    static boolean loadFirstAvailable(ClassLoader loader, List<LoadResult> results,
+                                      String... names) {
         for (String name : names) {
             if (load(name, loader, results)) {
                 // Successfully loaded
@@ -121,18 +121,19 @@ final class NativeLibraryLoader {
         final boolean usingHelperClassloader;
         final Throwable error;
 
-        private static LoadResult newSuccessResult(
-                String name, boolean absolute, boolean usingHelperClassloader) {
+        private static LoadResult newSuccessResult(String name, boolean absolute,
+                                                   boolean usingHelperClassloader) {
             return new LoadResult(name, absolute, true, usingHelperClassloader, null);
         }
 
-        private static LoadResult newFailureResult(
-                String name, boolean absolute, boolean usingHelperClassloader, Throwable error) {
+        private static LoadResult newFailureResult(String name, boolean absolute,
+                                                   boolean usingHelperClassloader,
+                                                   Throwable error) {
             return new LoadResult(name, absolute, false, usingHelperClassloader, error);
         }
 
         private LoadResult(String name, boolean absolute, boolean loaded,
-                boolean usingHelperClassloader, Throwable error) {
+                           boolean usingHelperClassloader, Throwable error) {
             this.name = name;
             this.absolute = absolute;
             this.loaded = loaded;
@@ -162,8 +163,8 @@ final class NativeLibraryLoader {
         return loadFromWorkdir(name, loader, results) || loadLibrary(loader, name, false, results);
     }
 
-    private static boolean loadFromWorkdir(
-            String name, ClassLoader loader, List<LoadResult> results) {
+    private static boolean loadFromWorkdir(String name, ClassLoader loader,
+                                           List<LoadResult> results) {
         String libname = System.mapLibraryName(name);
         String path = NATIVE_RESOURCE_HOME + libname;
 
@@ -188,7 +189,8 @@ final class NativeLibraryLoader {
             // Create a temporary file.
             tmpFile = Platform.createTempFile(prefix, suffix, WORKDIR);
             if (tmpFile.isFile() && tmpFile.canRead() && !Platform.canExecuteExecutable(tmpFile)) {
-                throw new IOException(MessageFormat.format("{0} exists but cannot be executed even "
+                throw new IOException(MessageFormat.format(
+                        "{0} exists but cannot be executed even "
                                 + "when execute permissions set; check volume for "
                                 + "\"noexec\" flag; use -D{1}=[path] to set native "
                                 + "working directory separately.",
@@ -201,9 +203,10 @@ final class NativeLibraryLoader {
             return loadLibrary(loader, tmpFile.getPath(), true, results);
         } catch (IOException e) {
             // Convert to an UnsatisfiedLinkError.
-            Throwable error = new UnsatisfiedLinkError(
-                    MessageFormat.format("Failed creating temp file ({0})",
-                            tmpFile)).initCause(e);
+            Throwable error =
+                    new UnsatisfiedLinkError(
+                            MessageFormat.format("Failed creating temp file ({0})", tmpFile))
+                            .initCause(e);
             results.add(LoadResult.newFailureResult(name, true, false, error));
             return false;
         } finally {
@@ -255,7 +258,7 @@ final class NativeLibraryLoader {
      * @return {@code true} if the library was successfully loaded.
      */
     private static boolean loadLibrary(final ClassLoader loader, final String name,
-            final boolean absolute, List<LoadResult> results) {
+                                       final boolean absolute, List<LoadResult> results) {
         try {
             // Make sure the helper belongs to the target ClassLoader.
             final Class<?> newHelper = tryToLoadClass(loader, NativeLibraryUtil.class);
@@ -284,8 +287,9 @@ final class NativeLibraryLoader {
      * @param absolute true if {@code name} is an absolute path to the file.
      * @return the result of the load operation.
      */
-    private static LoadResult loadLibraryFromHelperClassloader(
-            final Class<?> helper, final String name, final boolean absolute) {
+    private static LoadResult loadLibraryFromHelperClassloader(final Class<?> helper,
+                                                               final String name,
+                                                               final boolean absolute) {
         return AccessController.doPrivileged(new PrivilegedAction<LoadResult>() {
             @Override
             public LoadResult run() {
@@ -346,8 +350,8 @@ final class NativeLibraryLoader {
                         Method defineClass = ClassLoader.class.getDeclaredMethod(
                                 "defineClass", String.class, byte[].class, int.class, int.class);
                         defineClass.setAccessible(true);
-                        return (Class<?>) defineClass.invoke(
-                                loader, helper.getName(), classBinary, 0, classBinary.length);
+                        return (Class<?>) defineClass.invoke(loader, helper.getName(), classBinary,
+                                                             0, classBinary.length);
                     } catch (Exception e) {
                         throw new IllegalStateException("Define class failed!", e);
                     }

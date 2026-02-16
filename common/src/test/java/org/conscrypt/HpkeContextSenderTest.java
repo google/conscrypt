@@ -28,6 +28,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
+import org.conscrypt.java.security.DefaultKeys;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -35,25 +40,20 @@ import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.PublicKey;
 
-import org.conscrypt.java.security.DefaultKeys;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 @RunWith(JUnit4.class)
 public class HpkeContextSenderTest {
     @Test
     public void testGetInstance() throws Exception {
+        assertThrows(NoSuchAlgorithmException.class, () -> HpkeContextSender.getInstance(null));
         assertThrows(NoSuchAlgorithmException.class,
-                () -> HpkeContextSender.getInstance(null));
-        assertThrows(NoSuchAlgorithmException.class,
-            () -> HpkeContextSender.getInstance("No/Such/Thing"));
+                     () -> HpkeContextSender.getInstance("No/Such/Thing"));
         assertThrows(IllegalArgumentException.class,
-            () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, (String) null));
+                     () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, (String) null));
         assertThrows(IllegalArgumentException.class,
-            () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, (Provider) null));
-        assertThrows(NoSuchProviderException.class,
-            () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, "NonsenseProviderName"));
+                     () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, (Provider) null));
+        assertThrows(
+                NoSuchProviderException.class,
+                () -> HpkeContextSender.getInstance(DEFAULT_SUITE_NAME, "NonsenseProviderName"));
         HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         assertNotNull(sender);
     }
@@ -63,24 +63,20 @@ public class HpkeContextSenderTest {
         HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         PublicKey dhKey = DefaultKeys.getPublicKey("DH");
 
-        assertThrows(InvalidKeyException.class,
-            () -> sender.init(null, null));
-        assertThrows(InvalidKeyException.class,
-            () -> sender.init(null, DEFAULT_INFO));
+        assertThrows(InvalidKeyException.class, () -> sender.init(null, null));
+        assertThrows(InvalidKeyException.class, () -> sender.init(null, DEFAULT_INFO));
 
         // DH keys not supported
-        assertThrows(InvalidKeyException.class,
-            () -> sender.init(dhKey , DEFAULT_INFO));
+        assertThrows(InvalidKeyException.class, () -> sender.init(dhKey, DEFAULT_INFO));
 
         assertThrows(IllegalArgumentException.class,
-            () -> sender.initForTesting(dhKey , DEFAULT_INFO, null));
+                     () -> sender.initForTesting(dhKey, DEFAULT_INFO, null));
 
         // Should succeed
         sender.init(DEFAULT_PK, DEFAULT_INFO);
 
         // Re-initialisation not supported
-        assertThrows(IllegalStateException.class,
-            () -> sender.init(DEFAULT_PK, null));
+        assertThrows(IllegalStateException.class, () -> sender.init(DEFAULT_PK, null));
 
         HpkeContextSender sender2 = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         // null info is explicitly allowed
@@ -93,29 +89,27 @@ public class HpkeContextSenderTest {
         byte[] psk = "Shhh! Secret!".getBytes(StandardCharsets.UTF_8);
         byte[] psk_id = "id".getBytes(StandardCharsets.UTF_8);
 
-        assertThrows(UnsupportedOperationException.class, () ->
-                sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK));
-        assertThrows(UnsupportedOperationException.class, () ->
-                sender.init(DEFAULT_PK, DEFAULT_INFO, psk, psk_id));
-        assertThrows(UnsupportedOperationException.class, () ->
-                sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK, psk, psk_id));
+        assertThrows(UnsupportedOperationException.class,
+                     () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK));
+        assertThrows(UnsupportedOperationException.class,
+                     () -> sender.init(DEFAULT_PK, DEFAULT_INFO, psk, psk_id));
+        assertThrows(UnsupportedOperationException.class,
+                     () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK, psk, psk_id));
     }
 
     @Test
     public void testUninitialised() throws Exception {
         HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
 
-        assertThrows(IllegalStateException.class,
-            () -> sender.seal(new byte[16], new byte[16]));
-        assertThrows(IllegalStateException.class,
-            () -> sender.export(16, new byte[16]));
+        assertThrows(IllegalStateException.class, () -> sender.seal(new byte[16], new byte[16]));
+        assertThrows(IllegalStateException.class, () -> sender.export(16, new byte[16]));
     }
     @Test
     public void testSeal_missingRequiredParameters_throwNullException() throws Exception {
         HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         ctxSender.init(DEFAULT_PK, DEFAULT_INFO);
         assertThrows(NullPointerException.class,
-                () -> ctxSender.seal(/* plaintext= */ null, DEFAULT_AAD));
+                     () -> ctxSender.seal(/* plaintext= */ null, DEFAULT_AAD));
     }
 
     @Test
@@ -149,7 +143,7 @@ public class HpkeContextSenderTest {
         assertNotNull(enc);
         assertNotNull(export);
         assertThrows(IllegalArgumentException.class,
-                () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
+                     () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
     }
 
     @Test

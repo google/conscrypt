@@ -16,13 +16,13 @@
 
 package org.conscrypt;
 
-import java.util.Enumeration;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.Enumeration;
+
 @RunWith(JUnit4.class)
 public class ServerSessionContextTest extends AbstractSessionContextTest<ServerSessionContext> {
-
     @Override
     ServerSessionContext newContext() {
         return new ServerSessionContext();

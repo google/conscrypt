@@ -27,11 +27,10 @@ import java.security.Provider;
 
 @RunWith(JUnit4.class)
 public class AndroidHpkeSpiTest {
-    private static final String[] HPKE_NAMES = new String[]{
-            "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
-            "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM",
-            "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305"
-    };
+    private static final String[] HPKE_NAMES =
+            new String[] {"DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
+                          "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM",
+                          "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305"};
 
     // This only needs to test the wrapper functionality as the implementation and client
     // APIs are tested elsewhere.  What we're looking for is that HPKE SPI instances returned
@@ -44,8 +43,7 @@ public class AndroidHpkeSpiTest {
         Class<?> platformSpiClass = TestUtils.findClass("android.crypto.hpke.HpkeSpi");
         Provider provider = TestUtils.getConscryptProvider();
         for (String algorithm : HPKE_NAMES) {
-            Object spi = provider.getService("ConscryptHpke", algorithm)
-                    .newInstance(null);
+            Object spi = provider.getService("ConscryptHpke", algorithm).newInstance(null);
             assertNotNull(spi);
             if (platformSpiClass != null) {
                 assertTrue(platformSpiClass.isAssignableFrom(spi.getClass()));

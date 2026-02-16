@@ -42,7 +42,8 @@ public final class ForEachRunner {
             try {
                 callback.run(nameAndValue.getSecond());
             } catch (Throwable e) {
-                throw new Exception("Failed for " + nameAndValue.getFirst() + ": " + e.getMessage(), e);
+                throw new Exception("Failed for " + nameAndValue.getFirst() + ": " + e.getMessage(),
+                                    e);
             }
         }
     }

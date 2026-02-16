@@ -32,15 +32,15 @@ namespace conscrypt {
  * to create and destroy AsynchronousCloseMonitor instances will be null.
  */
 class CompatibilityCloseMonitor {
- public:
-     explicit CompatibilityCloseMonitor(int fd) : monitor(nullptr) {
-         if (asyncCloseMonitorCreate != nullptr) {
-             monitor = asyncCloseMonitorCreate(fd);
-         }
+public:
+    explicit CompatibilityCloseMonitor(int fd) : monitor(nullptr) {
+        if (asyncCloseMonitorCreate != nullptr) {
+            monitor = asyncCloseMonitorCreate(fd);
+        }
 #ifdef CONSCRYPT_UNBUNDLED
-         else if (asyncCloseMonitorConstructor != nullptr) {  // NOLINT(readability/braces)
-             asyncCloseMonitorConstructor(objBuffer, fd);
-         }
+        else if (asyncCloseMonitorConstructor != nullptr) {  // NOLINT(readability/braces)
+            asyncCloseMonitorConstructor(objBuffer, fd);
+        }
 #endif  // CONSCRYPT_UNBUNDLED
     }
 
@@ -59,30 +59,30 @@ class CompatibilityCloseMonitor {
 
     static void init();
 
- private:
-     // C API: Not available on Android P and below. Maintains pointers to the C
-     // create and destroy methods, which will be null on non-Android platforms.
-     // The handle returned by the create method is stored in monitor.
-     typedef void* (*acm_create_func)(int);
-     typedef void (*acm_destroy_func)(void*);
+private:
+    // C API: Not available on Android P and below. Maintains pointers to the C
+    // create and destroy methods, which will be null on non-Android platforms.
+    // The handle returned by the create method is stored in monitor.
+    typedef void* (*acm_create_func)(int);
+    typedef void (*acm_destroy_func)(void*);
 
-     static acm_create_func asyncCloseMonitorCreate;
-     static acm_destroy_func asyncCloseMonitorDestroy;
-     void* monitor;
+    static acm_create_func asyncCloseMonitorCreate;
+    static acm_destroy_func asyncCloseMonitorDestroy;
+    void* monitor;
 
 #ifdef CONSCRYPT_UNBUNDLED
-     // C++ API: Only available on Android P and below. Maintains pointers to
-     // the C++ constructor and destructor methods, which will be null on
-     // non-Android platforms.  Calls them directly, passing in a pointer to
-     // objBuffer, which is large enough to fit an AsynchronousCloseMonitor object on
-     // Android versions where this class will be using this API.
-     // This is equivalent to placement new and explicit destruction.
-     typedef void (*acm_ctor_func)(void*, int);
-     typedef void (*acm_dtor_func)(void*);
+    // C++ API: Only available on Android P and below. Maintains pointers to
+    // the C++ constructor and destructor methods, which will be null on
+    // non-Android platforms.  Calls them directly, passing in a pointer to
+    // objBuffer, which is large enough to fit an AsynchronousCloseMonitor object on
+    // Android versions where this class will be using this API.
+    // This is equivalent to placement new and explicit destruction.
+    typedef void (*acm_ctor_func)(void*, int);
+    typedef void (*acm_dtor_func)(void*);
 
-     static acm_ctor_func asyncCloseMonitorConstructor;
-     static acm_dtor_func asyncCloseMonitorDestructor;
-     char objBuffer[256];
+    static acm_ctor_func asyncCloseMonitorConstructor;
+    static acm_dtor_func asyncCloseMonitorDestructor;
+    char objBuffer[256];
 #endif  // CONSCRYPT_UNBUNDLED
 };
 

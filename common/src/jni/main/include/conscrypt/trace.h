@@ -17,9 +17,10 @@
 #ifndef CONSCRYPT_TRACE_H_
 #define CONSCRYPT_TRACE_H_
 
-#include <stdio.h>
-#include <cstddef>
 #include <conscrypt/logging.h>
+#include <stdio.h>
+
+#include <cstddef>
 
 namespace conscrypt {
 namespace trace {
@@ -59,7 +60,7 @@ constexpr bool kWithJniTracePackets = false;
  * 4. Follow the stream that corresponds to the desired "Session-ID" in
  *    the Server Hello.
  */
- constexpr bool kWithJniTraceKeys = false;
+constexpr bool kWithJniTraceKeys = false;
 
 }  // namespace trace
 }  // namespace conscrypt

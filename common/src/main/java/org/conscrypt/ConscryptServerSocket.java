@@ -19,6 +19,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+
 import javax.net.ssl.SSLServerSocket;
 
 /**
@@ -33,23 +34,19 @@ final class ConscryptServerSocket extends SSLServerSocket {
         this.sslParameters = sslParameters;
     }
 
-    ConscryptServerSocket(int port, SSLParametersImpl sslParameters)
-        throws IOException {
+    ConscryptServerSocket(int port, SSLParametersImpl sslParameters) throws IOException {
         super(port);
         this.sslParameters = sslParameters;
     }
 
     ConscryptServerSocket(int port, int backlog, SSLParametersImpl sslParameters)
-        throws IOException {
+            throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
     }
 
-    ConscryptServerSocket(int port,
-                                      int backlog,
-                                      InetAddress iAddress,
-                                      SSLParametersImpl sslParameters)
-        throws IOException {
+    ConscryptServerSocket(int port, int backlog, InetAddress iAddress,
+                          SSLParametersImpl sslParameters) throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
     }
@@ -120,14 +117,14 @@ final class ConscryptServerSocket extends SSLServerSocket {
      * Enables/disables the TLS Channel ID extension for this server socket.
      */
     void setChannelIdEnabled(boolean enabled) {
-      channelIdEnabled = enabled;
+        channelIdEnabled = enabled;
     }
 
     /**
      * Checks whether the TLS Channel ID extension is enabled for this server socket.
      */
     boolean isChannelIdEnabled() {
-      return channelIdEnabled;
+        return channelIdEnabled;
     }
 
     /**

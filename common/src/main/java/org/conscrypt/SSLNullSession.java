@@ -22,6 +22,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
@@ -76,7 +77,7 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
     }
 
     @Override
-    public String getApplicationProtocol()  {
+    public String getApplicationProtocol() {
         return null;
     }
 
@@ -165,8 +166,7 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
     }
 
     @Override
-    public void invalidate() {
-    }
+    public void invalidate() {}
 
     @Override
     public boolean isValid() {

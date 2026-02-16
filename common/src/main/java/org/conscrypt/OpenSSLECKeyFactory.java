@@ -38,7 +38,6 @@ import java.security.spec.X509EncodedKeySpec;
  */
 @Internal
 public final class OpenSSLECKeyFactory extends KeyFactorySpi {
-
     public OpenSSLECKeyFactory() {}
 
     @Override
@@ -50,10 +49,11 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof ECPublicKeySpec) {
             return new OpenSSLECPublicKey((ECPublicKeySpec) keySpec);
         } else if (keySpec instanceof X509EncodedKeySpec) {
-            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec, NativeConstants.EVP_PKEY_EC);
+            return OpenSSLKey.getPublicKey((X509EncodedKeySpec) keySpec,
+                                           NativeConstants.EVP_PKEY_EC);
         }
         throw new InvalidKeySpecException("Must use ECPublicKeySpec or X509EncodedKeySpec; was "
-                + keySpec.getClass().getName());
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -66,10 +66,10 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
             return new OpenSSLECPrivateKey((ECPrivateKeySpec) keySpec);
         } else if (keySpec instanceof PKCS8EncodedKeySpec) {
             return OpenSSLKey.getPrivateKey((PKCS8EncodedKeySpec) keySpec,
-                    NativeConstants.EVP_PKEY_EC);
+                                            NativeConstants.EVP_PKEY_EC);
         }
         throw new InvalidKeySpecException("Must use ECPrivateKeySpec or PKCS8EncodedKeySpec; was "
-                + keySpec.getClass().getName());
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -102,7 +102,7 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
             T result = (T) new ECPublicKeySpec(ecKey.getW(), ecKey.getParams());
             return result;
         } else if (key instanceof ECPrivateKey
-                && ECPrivateKeySpec.class.isAssignableFrom(keySpec)) {
+                   && ECPrivateKeySpec.class.isAssignableFrom(keySpec)) {
             ECPrivateKey ecKey = (ECPrivateKey) key;
             @SuppressWarnings("unchecked")
             T result = (T) new ECPrivateKeySpec(ecKey.getS(), ecKey.getParams());
@@ -118,11 +118,11 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
             T result = (T) new ECPrivateKeySpec(ecKey.getS(), ecKey.getParams());
             return result;
         } else if (key instanceof PrivateKey
-                && PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
+                   && PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
             final byte[] encoded = key.getEncoded();
             if (!"PKCS#8".equals(key.getFormat())) {
                 throw new InvalidKeySpecException("Encoding type must be PKCS#8; was "
-                        + key.getFormat());
+                                                  + key.getFormat());
             } else if (encoded == null) {
                 throw new InvalidKeySpecException("Key is not encodable");
             }
@@ -132,7 +132,7 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
             final byte[] encoded = key.getEncoded();
             if (!"X.509".equals(key.getFormat())) {
                 throw new InvalidKeySpecException("Encoding type must be X.509; was "
-                        + key.getFormat());
+                                                  + key.getFormat());
             } else if (encoded == null) {
                 throw new InvalidKeySpecException("Key is not encodable");
             }
@@ -140,7 +140,8 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
             return result;
         } else {
             throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
-                    + key.getClass().getName() + ", keySpec=" + keySpec.getName());
+                                              + key.getClass().getName()
+                                              + ", keySpec=" + keySpec.getName());
         }
     }
 
@@ -197,7 +198,7 @@ public final class OpenSSLECKeyFactory extends KeyFactorySpi {
             }
         } else {
             throw new InvalidKeyException("Key must be EC public or private key; was "
-                    + key.getClass().getName());
+                                          + key.getClass().getName());
         }
     }
 }

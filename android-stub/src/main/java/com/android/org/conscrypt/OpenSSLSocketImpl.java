@@ -25,6 +25,7 @@ import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
@@ -46,7 +47,7 @@ public class OpenSSLSocketImpl
     }
 
     protected OpenSSLSocketImpl(SSLParametersImpl sslParameters, String[] enabledProtocols,
-            String[] enabledCipherSuites) throws IOException {
+                                String[] enabledCipherSuites) throws IOException {
         throw new RuntimeException("Stub!");
     }
 
@@ -61,17 +62,18 @@ public class OpenSSLSocketImpl
     }
 
     protected OpenSSLSocketImpl(String host, int port, InetAddress clientAddress, int clientPort,
-            SSLParametersImpl sslParameters) throws IOException {
+                                SSLParametersImpl sslParameters) throws IOException {
         throw new RuntimeException("Stub!");
     }
 
     protected OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress,
-            int clientPort, SSLParametersImpl sslParameters) throws IOException {
+                                int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
         throw new RuntimeException("Stub!");
     }
 
     protected OpenSSLSocketImpl(Socket socket, String host, int port, boolean autoClose,
-            SSLParametersImpl sslParameters) throws IOException {
+                                SSLParametersImpl sslParameters) throws IOException {
         throw new RuntimeException("Stub!");
     }
 

@@ -29,8 +29,7 @@ public class NativeRefTest {
         try {
             new NativeRef(0) {
                 @Override
-                void doFree(long context) {
-                }
+                void doFree(long context) {}
             };
             fail("Should throw NullPointerException when arguments are NULL");
         } catch (NullPointerException expected) {

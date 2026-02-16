@@ -45,10 +45,8 @@ public final class TestSSLSessions {
      */
     public final TestSSLSocketPair s;
 
-    private TestSSLSessions(SSLSession invalid,
-            SSLSession server,
-            SSLSession client,
-            TestSSLSocketPair s) {
+    private TestSSLSessions(SSLSession invalid, SSLSession server, SSLSession client,
+                            TestSSLSocketPair s) {
         this.invalid = invalid;
         this.server = server;
         this.client = client;

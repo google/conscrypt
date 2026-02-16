@@ -225,8 +225,8 @@ public final class Conscrypt {
         }
 
         public Provider build() {
-            return new OpenSSLProvider(
-                    name, provideTrustManager, defaultTlsProtocol, deprecatedTlsV1, enabledTlsV1);
+            return new OpenSSLProvider(name, provideTrustManager, defaultTlsProtocol,
+                                       deprecatedTlsV1, enabledTlsV1);
         }
     }
 
@@ -271,8 +271,8 @@ public final class Conscrypt {
     public static void setClientSessionCache(SSLContext context, SSLClientSessionCache cache) {
         SSLSessionContext clientContext = context.getClientSessionContext();
         if (!(clientContext instanceof ClientSessionContext)) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt client context: " + clientContext.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt client context: "
+                                               + clientContext.getClass().getName());
         }
         ((ClientSessionContext) clientContext).setPersistentCache(cache);
     }
@@ -283,8 +283,8 @@ public final class Conscrypt {
     public static void setServerSessionCache(SSLContext context, SSLServerSessionCache cache) {
         SSLSessionContext serverContext = context.getServerSessionContext();
         if (!(serverContext instanceof ServerSessionContext)) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt client context: " + serverContext.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt client context: "
+                                               + serverContext.getClass().getName());
         }
         ((ServerSessionContext) serverContext).setPersistentCache(cache);
     }
@@ -299,8 +299,8 @@ public final class Conscrypt {
 
     private static OpenSSLSocketFactoryImpl toConscrypt(SSLSocketFactory factory) {
         if (!isConscrypt(factory)) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt socket factory: " + factory.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt socket factory: "
+                                               + factory.getClass().getName());
         }
         return (OpenSSLSocketFactoryImpl) factory;
     }
@@ -332,8 +332,8 @@ public final class Conscrypt {
 
     private static OpenSSLServerSocketFactoryImpl toConscrypt(SSLServerSocketFactory factory) {
         if (!isConscrypt(factory)) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt server socket factory: " + factory.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt server socket factory: "
+                                               + factory.getClass().getName());
         }
         return (OpenSSLServerSocketFactoryImpl) factory;
     }
@@ -355,8 +355,8 @@ public final class Conscrypt {
 
     private static AbstractConscryptSocket toConscrypt(SSLSocket socket) {
         if (!isConscrypt(socket)) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt socket: " + socket.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt socket: "
+                                               + socket.getClass().getName());
         }
         return (AbstractConscryptSocket) socket;
     }
@@ -458,8 +458,8 @@ public final class Conscrypt {
             return toConscrypt(socket).getApplicationProtocol();
         }
         if (!socket.getClass().getName().contains("conscrypt")) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt socket: " + socket.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt socket: "
+                                               + socket.getClass().getName());
         }
         return invokeConscryptMethod(socket, "getApplicationProtocol");
     }
@@ -471,8 +471,8 @@ public final class Conscrypt {
      * @param socket the socket
      * @param selector the ALPN protocol selector
      */
-    public static void setApplicationProtocolSelector(
-            SSLSocket socket, ApplicationProtocolSelector selector) {
+    public static void setApplicationProtocolSelector(SSLSocket socket,
+                                                      ApplicationProtocolSelector selector) {
         toConscrypt(socket).setApplicationProtocolSelector(selector);
     }
 
@@ -522,8 +522,8 @@ public final class Conscrypt {
      * completed or the connection has been closed.
      * @throws SSLException if the value could not be exported.
      */
-    public static byte[] exportKeyingMaterial(
-            SSLSocket socket, String label, byte[] context, int length) throws SSLException {
+    public static byte[] exportKeyingMaterial(SSLSocket socket, String label, byte[] context,
+                                              int length) throws SSLException {
         return toConscrypt(socket).exportKeyingMaterial(label, context, length);
     }
 
@@ -536,8 +536,8 @@ public final class Conscrypt {
 
     private static AbstractConscryptEngine toConscrypt(SSLEngine engine) {
         if (!isConscrypt(engine)) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt engine: " + engine.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt engine: "
+                                               + engine.getClass().getName());
         }
         return (AbstractConscryptEngine) engine;
     }
@@ -664,7 +664,7 @@ public final class Conscrypt {
      * @throws SSLException thrown if an SSL error occurred
      */
     public static SSLEngineResult unwrap(SSLEngine engine, final ByteBuffer[] srcs,
-            final ByteBuffer[] dsts) throws SSLException {
+                                         final ByteBuffer[] dsts) throws SSLException {
         return toConscrypt(engine).unwrap(srcs, dsts);
     }
 
@@ -682,10 +682,11 @@ public final class Conscrypt {
      * @throws SSLException thrown if an SSL error occurred
      */
     public static SSLEngineResult unwrap(SSLEngine engine, final ByteBuffer[] srcs, int srcsOffset,
-            final int srcsLength, final ByteBuffer[] dsts, final int dstsOffset,
-            final int dstsLength) throws SSLException {
-        return toConscrypt(engine).unwrap(
-                srcs, srcsOffset, srcsLength, dsts, dstsOffset, dstsLength);
+                                         final int srcsLength, final ByteBuffer[] dsts,
+                                         final int dstsOffset, final int dstsLength)
+            throws SSLException {
+        return toConscrypt(engine).unwrap(srcs, srcsOffset, srcsLength, dsts, dstsOffset,
+                                          dstsLength);
     }
 
     /**
@@ -729,8 +730,8 @@ public final class Conscrypt {
      * @param engine the engine
      * @param selector the ALPN protocol selector
      */
-    public static void setApplicationProtocolSelector(
-            SSLEngine engine, ApplicationProtocolSelector selector) {
+    public static void setApplicationProtocolSelector(SSLEngine engine,
+                                                      ApplicationProtocolSelector selector) {
         toConscrypt(engine).setApplicationProtocolSelector(selector);
     }
 
@@ -746,8 +747,8 @@ public final class Conscrypt {
             return toConscrypt(engine).getApplicationProtocol();
         }
         if (!engine.getClass().getName().contains("conscrypt")) {
-            throw new IllegalArgumentException(
-                    "Not a conscrypt engine: " + engine.getClass().getName());
+            throw new IllegalArgumentException("Not a conscrypt engine: "
+                                               + engine.getClass().getName());
         }
         return invokeConscryptMethod(engine, "getApplicationProtocol");
     }
@@ -774,8 +775,8 @@ public final class Conscrypt {
      * completed or the connection has been closed.
      * @throws SSLException if the value could not be exported.
      */
-    public static byte[] exportKeyingMaterial(
-            SSLEngine engine, String label, byte[] context, int length) throws SSLException {
+    public static byte[] exportKeyingMaterial(SSLEngine engine, String label, byte[] context,
+                                              int length) throws SSLException {
         return toConscrypt(engine).exportKeyingMaterial(label, context, length);
     }
 
@@ -789,8 +790,8 @@ public final class Conscrypt {
 
     private static TrustManagerImpl toConscrypt(TrustManager trustManager) {
         if (!isConscrypt(trustManager)) {
-            throw new IllegalArgumentException(
-                    "Not a Conscrypt trust manager: " + trustManager.getClass().getName());
+            throw new IllegalArgumentException("Not a Conscrypt trust manager: "
+                                               + trustManager.getClass().getName());
         }
         return (TrustManagerImpl) trustManager;
     }
@@ -824,8 +825,8 @@ public final class Conscrypt {
      * @throws IllegalArgumentException if the provided trust manager is not a Conscrypt trust
      * manager per {@link #isConscrypt(TrustManager)}
      */
-    public static void setHostnameVerifier(
-            TrustManager trustManager, ConscryptHostnameVerifier verifier) {
+    public static void setHostnameVerifier(TrustManager trustManager,
+                                           ConscryptHostnameVerifier verifier) {
         toConscrypt(trustManager).setHostnameVerifier(verifier);
     }
 
@@ -847,8 +848,8 @@ public final class Conscrypt {
     public static ConscryptHostnameVerifier wrapHostnameVerifier(final HostnameVerifier verifier) {
         return new ConscryptHostnameVerifier() {
             @Override
-            public boolean verify(
-                    X509Certificate[] certificates, String hostname, SSLSession session) {
+            public boolean verify(X509Certificate[] certificates, String hostname,
+                                  SSLSession session) {
                 return verifier.verify(hostname, session);
             }
         };

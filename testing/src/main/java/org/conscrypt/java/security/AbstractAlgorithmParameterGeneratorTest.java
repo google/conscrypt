@@ -17,23 +17,25 @@ package org.conscrypt.java.security;
 
 import static org.junit.Assert.assertNotNull;
 
-import java.security.AlgorithmParameterGenerator;
-import java.security.AlgorithmParameters;
 import org.junit.Test;
 
-public abstract class AbstractAlgorithmParameterGeneratorTest {
+import java.security.AlgorithmParameterGenerator;
+import java.security.AlgorithmParameters;
 
+public abstract class AbstractAlgorithmParameterGeneratorTest {
     private final String algorithmName;
     private final TestHelper<AlgorithmParameters> helper;
 
-    protected AbstractAlgorithmParameterGeneratorTest(String algorithmName, TestHelper<AlgorithmParameters> helper) {
+    protected AbstractAlgorithmParameterGeneratorTest(String algorithmName,
+                                                      TestHelper<AlgorithmParameters> helper) {
         this.algorithmName = algorithmName;
         this.helper = helper;
     }
 
     @Test
     public void testAlgorithmParameterGenerator() throws Exception {
-        AlgorithmParameterGenerator generator = AlgorithmParameterGenerator.getInstance(algorithmName);
+        AlgorithmParameterGenerator generator =
+                AlgorithmParameterGenerator.getInstance(algorithmName);
         generator.init(1024);
 
         AlgorithmParameters parameters = generator.generateParameters();

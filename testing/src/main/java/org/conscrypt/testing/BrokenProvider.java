@@ -13,65 +13,63 @@ import java.security.SignatureSpi;
  */
 @SuppressWarnings("serial")
 public class BrokenProvider extends Provider {
+    public static final String NAME = "BrokenProvider";
 
-  public static final String NAME = "BrokenProvider";
-
-  public BrokenProvider() {
-    super(NAME, 1.0, "A broken provider");
-    put("Signature.NONEwithECDSA", BrokenSignatureSpi.ECDSA.class.getName());
-  }
-
-  private static class BrokenSignatureSpi extends SignatureSpi {
-
-    BrokenSignatureSpi() { }
-
-    public final static class ECDSA extends BrokenSignatureSpi {
-      public ECDSA() {
-        super();
-      }
+    public BrokenProvider() {
+        super(NAME, 1.0, "A broken provider");
+        put("Signature.NONEwithECDSA", BrokenSignatureSpi.ECDSA.class.getName());
     }
 
-    @Override
-    protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-      throw new UnsupportedOperationException("Nope");
-    }
+    private static class BrokenSignatureSpi extends SignatureSpi {
+        BrokenSignatureSpi() {}
 
-    @Override
-    protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
-      throw new UnsupportedOperationException("Nope");
-    }
+        public final static class ECDSA extends BrokenSignatureSpi {
+            public ECDSA() {
+                super();
+            }
+        }
 
-    @Override
-    protected void engineUpdate(byte b) throws SignatureException {
-      throw new UnsupportedOperationException("Nope");
-    }
+        @Override
+        protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
+            throw new UnsupportedOperationException("Nope");
+        }
 
-    @Override
-    protected void engineUpdate(byte[] b, int off, int len) throws SignatureException {
-      throw new UnsupportedOperationException("Nope");
-    }
+        @Override
+        protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
+            throw new UnsupportedOperationException("Nope");
+        }
 
-    @Override
-    protected byte[] engineSign() throws SignatureException {
-      throw new UnsupportedOperationException("Nope");
-    }
+        @Override
+        protected void engineUpdate(byte b) throws SignatureException {
+            throw new UnsupportedOperationException("Nope");
+        }
 
-    @Override
-    protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-      throw new UnsupportedOperationException("Nope");
-    }
+        @Override
+        protected void engineUpdate(byte[] b, int off, int len) throws SignatureException {
+            throw new UnsupportedOperationException("Nope");
+        }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    protected void engineSetParameter(String param, Object value)
-        throws InvalidParameterException {
-      throw new UnsupportedOperationException("Nope");
-    }
+        @Override
+        protected byte[] engineSign() throws SignatureException {
+            throw new UnsupportedOperationException("Nope");
+        }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    protected Object engineGetParameter(String param) throws InvalidParameterException {
-      throw new UnsupportedOperationException("Nope");
+        @Override
+        protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
+            throw new UnsupportedOperationException("Nope");
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
+        protected void engineSetParameter(String param, Object value)
+                throws InvalidParameterException {
+            throw new UnsupportedOperationException("Nope");
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
+        protected Object engineGetParameter(String param) throws InvalidParameterException {
+            throw new UnsupportedOperationException("Nope");
+        }
     }
-  }
 }

@@ -16,7 +16,7 @@
 
 package android.util;
 
-@SuppressWarnings({"unused",  "DoNotCallSuggester"})
+@SuppressWarnings({"unused", "DoNotCallSuggester"})
 public final class StatsEvent {
     public static StatsEvent.Builder newBuilder() {
         throw new RuntimeException("Stub!");
@@ -38,10 +38,9 @@ public final class StatsEvent {
         throw new RuntimeException("Stub!");
     }
 
-    private static final class Buffer {
-    }
+    private static final class Buffer {}
 
-    @SuppressWarnings({"unused",  "DoNotCallSuggester"})
+    @SuppressWarnings({"unused", "DoNotCallSuggester"})
     public static final class Builder {
         public StatsEvent.Builder setAtomId(int atomId) {
             throw new RuntimeException("Stub!");

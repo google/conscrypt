@@ -27,6 +27,7 @@ import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
@@ -44,8 +45,6 @@ import javax.net.ssl.SSLSession;
 @Internal
 public class KitKatPlatformOpenSSLSocketImplAdapter
         extends com.android.org.conscrypt.OpenSSLSocketImpl {
-
-
     private final AbstractConscryptSocket delegate;
 
     public KitKatPlatformOpenSSLSocketImplAdapter(AbstractConscryptSocket delegate)
