@@ -165,7 +165,7 @@ public class NativeCryptoTest {
         CHANNEL_ID =
                 new BigInteger("702b07871fd7955c320b26f15e244e47eed60272124c92b9ebecf0b42f90069b"
                                        + "ab53592ebfeb4f167dbf3ce61513afb0e354c479b1c1b69874fa47129"
-                                         + "3494f77",
+                                       + "3494f77",
                                16)
                         .toByteArray();
 

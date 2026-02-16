@@ -1016,7 +1016,7 @@ public final class CipherTest {
                 is_unlimited = false;
                 System.out.println("WARNING: Some tests disabled due to lack of "
                                    + "'Java Cryptography Extension (JCE) Unlimited Strength "
-                                     + "Jurisdiction Policy Files'");
+                                   + "Jurisdiction Policy Files'");
             }
         } else {
             is_unlimited = true;
