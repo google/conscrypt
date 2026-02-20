@@ -19,8 +19,9 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
-import javax.net.ServerSocketFactory;
 import java.security.KeyManagementException;
+
+import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocketFactory;
 
 /**
@@ -103,8 +104,8 @@ final class OpenSSLServerSocketFactoryImpl extends SSLServerSocketFactory {
     @Override
     public ServerSocket createServerSocket(int port, int backlog, InetAddress iAddress)
             throws IOException {
-        return new ConscryptServerSocket(
-                port, backlog, iAddress, (SSLParametersImpl) sslParameters.clone())
+        return new ConscryptServerSocket(port, backlog, iAddress,
+                                         (SSLParametersImpl) sslParameters.clone())
                 .setUseEngineSocket(useEngineSocket);
     }
 }

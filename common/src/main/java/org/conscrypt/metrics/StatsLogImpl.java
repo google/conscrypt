@@ -48,13 +48,13 @@ public final class StatsLogImpl implements StatsLog {
     }
 
     @Override
-    public void countTlsHandshake(
-            boolean success, String protocol, String cipherSuite, long duration) {
+    public void countTlsHandshake(boolean success, String protocol, String cipherSuite,
+                                  long duration) {
         Protocol proto = Protocol.forName(protocol);
         CipherSuite suite = CipherSuite.forName(cipherSuite);
 
         write(TLS_HANDSHAKE_REPORTED, success, proto.getId(), suite.getId(), (int) duration,
-                Platform.getStatsSource().getId(), Platform.getUids());
+              Platform.getStatsSource().getId(), Platform.getUids());
     }
 
     private static int logStoreStateToMetricsState(LogStore.State state) {
@@ -78,18 +78,18 @@ public final class StatsLogImpl implements StatsLog {
     public void updateCTLogListStatusChanged(LogStore logStore) {
         int state = logStoreStateToMetricsState(logStore.getState());
         write(CERTIFICATE_TRANSPARENCY_LOG_LIST_STATE_CHANGED, state, logStore.getCompatVersion(),
-                logStore.getMinCompatVersionAvailable(), logStore.getMajorVersion(),
-                logStore.getMinorVersion());
+              logStore.getMinCompatVersionAvailable(), logStore.getMajorVersion(),
+              logStore.getMinorVersion());
     }
 
-    private static int policyComplianceToMetrics(
-            VerificationResult result, PolicyCompliance compliance) {
+    private static int policyComplianceToMetrics(VerificationResult result,
+                                                 PolicyCompliance compliance) {
         if (compliance == PolicyCompliance.COMPLY) {
             return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_SUCCESS;
         } else if (result.getValidSCTs().size() == 0) {
             return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAILURE_NO_SCTS_FOUND;
         } else if (compliance == PolicyCompliance.NOT_ENOUGH_SCTS
-                || compliance == PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS) {
+                   || compliance == PolicyCompliance.NOT_ENOUGH_DIVERSE_SCTS) {
             return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAILURE_SCTS_NOT_COMPLIANT;
         }
         return CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_UNKNOWN;
@@ -97,21 +97,22 @@ public final class StatsLogImpl implements StatsLog {
 
     @Override
     public void reportCTVerificationResult(LogStore store, VerificationResult result,
-            PolicyCompliance compliance, CertificateTransparencyVerificationReason reason) {
+                                           PolicyCompliance compliance,
+                                           CertificateTransparencyVerificationReason reason) {
         if (store.getState() == LogStore.State.NOT_FOUND
-                || store.getState() == LogStore.State.MALFORMED) {
+            || store.getState() == LogStore.State.MALFORMED) {
             write(CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED,
-                    CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_NO_LOG_LIST_AVAILABLE,
-                    reason.getId(), 0, 0, 0, 0, 0, 0);
+                  CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_NO_LOG_LIST_AVAILABLE,
+                  reason.getId(), 0, 0, 0, 0, 0, 0);
         } else if (store.getState() == LogStore.State.NON_COMPLIANT) {
             write(CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED,
-                    CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_LOG_LIST_NOT_COMPLIANT,
-                    reason.getId(), 0, 0, 0, 0, 0, 0);
+                  CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_LOG_LIST_NOT_COMPLIANT,
+                  reason.getId(), 0, 0, 0, 0, 0, 0);
         } else if (store.getState() == LogStore.State.COMPLIANT) {
             int comp = policyComplianceToMetrics(result, compliance);
             write(CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED, comp, reason.getId(),
-                    store.getCompatVersion(), store.getMajorVersion(), store.getMinorVersion(),
-                    result.numCertSCTs(), result.numOCSPSCTs(), result.numTlsSCTs());
+                  store.getCompatVersion(), store.getMajorVersion(), store.getMinorVersion(),
+                  result.numCertSCTs(), result.numOCSPSCTs(), result.numTlsSCTs());
         }
     }
 
@@ -123,7 +124,7 @@ public final class StatsLogImpl implements StatsLog {
 
     @SuppressWarnings("NewApi")
     private void write(int atomId, boolean success, int protocol, int cipherSuite, int duration,
-            int source, int[] uids) {
+                       int source, int[] uids) {
         if (!sdkVersionBiggerThan32) {
             final ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
             builder.writeInt(atomId);
@@ -141,15 +142,16 @@ public final class StatsLogImpl implements StatsLog {
     }
 
     private void write(int atomId, int status, int loadedCompatVersion,
-            int minCompatVersionAvailable, int majorVersion, int minorVersion) {
+                       int minCompatVersionAvailable, int majorVersion, int minorVersion) {
         ConscryptStatsLog.write(atomId, status, loadedCompatVersion, minCompatVersionAvailable,
-                majorVersion, minorVersion);
+                                majorVersion, minorVersion);
     }
 
     private void write(int atomId, int verificationResult, int verificationReason,
-            int policyCompatVersion, int majorVersion, int minorVersion, int numEmbeddedScts,
-            int numOcspScts, int numTlsScts) {
+                       int policyCompatVersion, int majorVersion, int minorVersion,
+                       int numEmbeddedScts, int numOcspScts, int numTlsScts) {
         ConscryptStatsLog.write(atomId, verificationResult, verificationReason, policyCompatVersion,
-                majorVersion, minorVersion, numEmbeddedScts, numOcspScts, numTlsScts);
+                                majorVersion, minorVersion, numEmbeddedScts, numOcspScts,
+                                numTlsScts);
     }
 }

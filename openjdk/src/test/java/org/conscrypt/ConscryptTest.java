@@ -35,7 +35,6 @@ import javax.net.ssl.SSLContext;
 
 @RunWith(JUnit4.class)
 public class ConscryptTest {
-
     /**
      * This confirms that the version machinery is working.
      */
@@ -98,13 +97,12 @@ public class ConscryptTest {
             context.init(null, null, null);
             assertEquals(provider, context.getProvider());
             StandardNames.assertSSLContextEnabledProtocols(
-                defaultProtocol, context.createSSLEngine().getEnabledProtocols());
-
+                    defaultProtocol, context.createSSLEngine().getEnabledProtocols());
 
             context = SSLContext.getInstance("Default");
             assertEquals(provider, context.getProvider());
             StandardNames.assertSSLContextEnabledProtocols(
-                defaultProtocol, context.createSSLEngine().getEnabledProtocols());
+                    defaultProtocol, context.createSSLEngine().getEnabledProtocols());
         } finally {
             Security.removeProvider("test name");
         }

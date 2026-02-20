@@ -85,8 +85,7 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
             return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
                     modulus.toByteArray(),
                     publicExponent == null ? null : publicExponent.toByteArray(),
-                    privateExponent.toByteArray(),
-                    primeP == null ? null : primeP.toByteArray(),
+                    privateExponent.toByteArray(), primeP == null ? null : primeP.toByteArray(),
                     primeQ == null ? null : primeQ.toByteArray(),
                     primeExponentP == null ? null : primeExponentP.toByteArray(),
                     primeExponentQ == null ? null : primeExponentQ.toByteArray(),
@@ -131,8 +130,7 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
             return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
                     modulus.toByteArray(),
                     publicExponent == null ? null : publicExponent.toByteArray(),
-                    privateExponent.toByteArray(),
-                    primeP == null ? null : primeP.toByteArray(),
+                    privateExponent.toByteArray(), primeP == null ? null : primeP.toByteArray(),
                     primeQ == null ? null : primeQ.toByteArray(),
                     primeExponentP == null ? null : primeExponentP.toByteArray(),
                     primeExponentQ == null ? null : primeExponentQ.toByteArray(),
@@ -276,10 +274,8 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
         stream.defaultReadObject();
 
         key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                modulus.toByteArray(),
-                publicExponent == null ? null : publicExponent.toByteArray(),
-                privateExponent.toByteArray(),
-                primeP == null ? null : primeP.toByteArray(),
+                modulus.toByteArray(), publicExponent == null ? null : publicExponent.toByteArray(),
+                privateExponent.toByteArray(), primeP == null ? null : primeP.toByteArray(),
                 primeQ == null ? null : primeQ.toByteArray(),
                 primeExponentP == null ? null : primeExponentP.toByteArray(),
                 primeExponentQ == null ? null : primeExponentQ.toByteArray(),

@@ -17,23 +17,22 @@
 #ifndef CONSCRYPT_BIO_INPUT_STREAM_H_
 #define CONSCRYPT_BIO_INPUT_STREAM_H_
 
-#include <jni.h>
-#include <openssl/ssl.h>
-
 #include <conscrypt/bio_stream.h>
+#include <jni.h>
 #include <nativehelper/scoped_local_ref.h>
+#include <openssl/ssl.h>
 
 namespace conscrypt {
 
 class BioInputStream : public BioStream {
- public:
+public:
     BioInputStream(jobject stream, bool isFinite) : BioStream(stream), isFinite_(isFinite) {}
 
-    int read(char *buf, int len) {
+    int read(char* buf, int len) {
         return read_internal(buf, len, jniutil::inputStream_readMethod);
     }
 
-    int gets(char *buf, int len) {
+    int gets(char* buf, int len) {
         if (len > PEM_LINE_LENGTH) {
             len = PEM_LINE_LENGTH;
         }
@@ -48,11 +47,11 @@ class BioInputStream : public BioStream {
         return isFinite_;
     }
 
- private:
+private:
     const bool isFinite_;
 
-    int read_internal(char *buf, int len, jmethodID method) {
-        JNIEnv *env = jniutil::getJNIEnv();
+    int read_internal(char* buf, int len, jmethodID method) {
+        JNIEnv* env = jniutil::getJNIEnv();
         if (env == nullptr) {
             JNI_TRACE("BioInputStream::read could not get JNIEnv");
             return -1;
@@ -80,13 +79,13 @@ class BioInputStream : public BioStream {
             setEof(true);
             read = 0;
         } else if (read > 0) {
-            env->GetByteArrayRegion(javaBytes.get(), 0, read, reinterpret_cast<jbyte *>(buf));
+            env->GetByteArrayRegion(javaBytes.get(), 0, read, reinterpret_cast<jbyte*>(buf));
         }
 
         return read;
     }
 
- public:
+public:
     /** Length of PEM-encoded line (64) plus CR plus NUL */
     static const int PEM_LINE_LENGTH = 66;
 };

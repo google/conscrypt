@@ -18,21 +18,23 @@ package org.conscrypt.java.security;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-import java.security.AlgorithmParameters;
-import java.security.Provider;
-import java.security.spec.MGF1ParameterSpec;
-import javax.crypto.spec.OAEPParameterSpec;
-import javax.crypto.spec.PSource;
-import javax.crypto.spec.PSource.PSpecified;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.security.AlgorithmParameters;
+import java.security.Provider;
+import java.security.spec.MGF1ParameterSpec;
+
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
+import javax.crypto.spec.PSource.PSpecified;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestOAEP extends AbstractAlgorithmParametersTest {
-
     // The ASN.1 encoding for OAEP params (specified in RFC 4055 section 4.1) specifies
     // default values for all parameters, so we need to consider encodings with those
     // values both explicitly specified and unspecified.  When encoding values, it is required
@@ -123,127 +125,117 @@ public class AlgorithmParametersTestOAEP extends AbstractAlgorithmParametersTest
             + "GgYJKoZIhvcNAQEIMA0GCWCGSAFlAwQCAwUAog8wDQYJKoZIhvcNAQEJBAA=";
 
     public AlgorithmParametersTestOAEP() {
-        super("OAEP", new AlgorithmParameterAsymmetricHelper("RSA/ECB/OAEPPadding"), new OAEPParameterSpec("SHA-1", "MGF1", MGF1ParameterSpec.SHA1, PSource.PSpecified.DEFAULT));
+        super("OAEP", new AlgorithmParameterAsymmetricHelper("RSA/ECB/OAEPPadding"),
+              new OAEPParameterSpec("SHA-1", "MGF1", MGF1ParameterSpec.SHA1,
+                                    PSource.PSpecified.DEFAULT));
     }
 
     @Test
     public void testEncoding() throws Exception {
         ServiceTester.test("AlgorithmParameters")
-            .withAlgorithm("OAEP")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    AlgorithmParameters params = AlgorithmParameters.getInstance("OAEP", p);
+                .withAlgorithm("OAEP")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        AlgorithmParameters params = AlgorithmParameters.getInstance("OAEP", p);
 
-                    OAEPParameterSpec spec = new OAEPParameterSpec(
-                        "SHA-1", "MGF1", MGF1ParameterSpec.SHA1, PSource.PSpecified.DEFAULT);
-                    params.init(spec);
-                    if (!p.getName().equals("SunJCE")) {
-                        assertEquals(
-                            ENCODED_DATA_ALL_DEFAULTS,
-                            TestUtils.encodeBase64(params.getEncoded()));
-                    } else {
-                        // SunJCE encodes the defaults explicitly, which is not allowed by RFC 4055.
-                        assertEquals(
-                            ENCODED_DATA_EXPLICIT_DEFAULTS,
-                            TestUtils.encodeBase64(params.getEncoded()));
+                        OAEPParameterSpec spec =
+                                new OAEPParameterSpec("SHA-1", "MGF1", MGF1ParameterSpec.SHA1,
+                                                      PSource.PSpecified.DEFAULT);
+                        params.init(spec);
+                        if (!p.getName().equals("SunJCE")) {
+                            assertEquals(ENCODED_DATA_ALL_DEFAULTS,
+                                         TestUtils.encodeBase64(params.getEncoded()));
+                        } else {
+                            // SunJCE encodes the defaults explicitly, which is not allowed by RFC
+                            // 4055.
+                            assertEquals(ENCODED_DATA_EXPLICIT_DEFAULTS,
+                                         TestUtils.encodeBase64(params.getEncoded()));
+                        }
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        spec = new OAEPParameterSpec(
+                                "SHA-256", "MGF1", MGF1ParameterSpec.SHA384,
+                                new PSource.PSpecified(new byte[] {1, 2, 3, 4}));
+                        params.init(spec);
+                        assertEquals(ENCODED_DATA_NON_DEFAULTS,
+                                     TestUtils.encodeBase64(params.getEncoded()));
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        spec = new OAEPParameterSpec("SHA-1", "MGF1", MGF1ParameterSpec.SHA512,
+                                                     PSource.PSpecified.DEFAULT);
+                        params.init(spec);
+                        if (!p.getName().equals("SunJCE")) {
+                            assertEquals(ENCODED_DATA_MIXED,
+                                         TestUtils.encodeBase64(params.getEncoded()));
+                        } else {
+                            // SunJCE encodes the defaults explicitly, which is not allowed by RFC
+                            // 4055.
+                            assertEquals(ENCODED_DATA_MIXED_EXPLICIT_DEFAULTS,
+                                         TestUtils.encodeBase64(params.getEncoded()));
+                        }
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_ALL_DEFAULTS));
+                        OAEPParameterSpec producedSpec =
+                                params.getParameterSpec(OAEPParameterSpec.class);
+
+                        assertEquals("SHA-1", producedSpec.getDigestAlgorithm());
+                        assertEquals("MGF1", producedSpec.getMGFAlgorithm());
+                        assertEquals(MGF1ParameterSpec.SHA1.getDigestAlgorithm(),
+                                     ((MGF1ParameterSpec) producedSpec.getMGFParameters())
+                                             .getDigestAlgorithm());
+                        assertArrayEquals(PSpecified.DEFAULT.getValue(),
+                                          ((PSpecified) producedSpec.getPSource()).getValue());
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_EXPLICIT_DEFAULTS));
+                        producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
+
+                        assertEquals("SHA-1", producedSpec.getDigestAlgorithm());
+                        assertEquals("MGF1", producedSpec.getMGFAlgorithm());
+                        assertEquals(MGF1ParameterSpec.SHA1.getDigestAlgorithm(),
+                                     ((MGF1ParameterSpec) producedSpec.getMGFParameters())
+                                             .getDigestAlgorithm());
+                        assertArrayEquals(PSpecified.DEFAULT.getValue(),
+                                          ((PSpecified) producedSpec.getPSource()).getValue());
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_NON_DEFAULTS));
+                        producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
+
+                        assertEquals("SHA-256", producedSpec.getDigestAlgorithm());
+                        assertEquals("MGF1", producedSpec.getMGFAlgorithm());
+                        assertEquals(MGF1ParameterSpec.SHA384.getDigestAlgorithm(),
+                                     ((MGF1ParameterSpec) producedSpec.getMGFParameters())
+                                             .getDigestAlgorithm());
+                        assertArrayEquals(new byte[] {1, 2, 3, 4},
+                                          ((PSpecified) producedSpec.getPSource()).getValue());
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_MIXED));
+                        producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
+
+                        assertEquals("SHA-1", producedSpec.getDigestAlgorithm());
+                        assertEquals("MGF1", producedSpec.getMGFAlgorithm());
+                        assertEquals(MGF1ParameterSpec.SHA512.getDigestAlgorithm(),
+                                     ((MGF1ParameterSpec) producedSpec.getMGFParameters())
+                                             .getDigestAlgorithm());
+                        assertArrayEquals(PSpecified.DEFAULT.getValue(),
+                                          ((PSpecified) producedSpec.getPSource()).getValue());
+
+                        params = AlgorithmParameters.getInstance("OAEP", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA_MIXED_EXPLICIT_DEFAULTS));
+                        producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
+
+                        assertEquals("SHA-1", producedSpec.getDigestAlgorithm());
+                        assertEquals("MGF1", producedSpec.getMGFAlgorithm());
+                        assertEquals(MGF1ParameterSpec.SHA512.getDigestAlgorithm(),
+                                     ((MGF1ParameterSpec) producedSpec.getMGFParameters())
+                                             .getDigestAlgorithm());
+                        assertArrayEquals(PSpecified.DEFAULT.getValue(),
+                                          ((PSpecified) producedSpec.getPSource()).getValue());
                     }
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    spec = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA384,
-                        new PSource.PSpecified(new byte[]{1, 2, 3, 4}));
-                    params.init(spec);
-                    assertEquals(
-                        ENCODED_DATA_NON_DEFAULTS,
-                        TestUtils.encodeBase64(params.getEncoded()));
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    spec = new OAEPParameterSpec(
-                        "SHA-1", "MGF1", MGF1ParameterSpec.SHA512, PSource.PSpecified.DEFAULT);
-                    params.init(spec);
-                    if (!p.getName().equals("SunJCE")) {
-                        assertEquals(
-                            ENCODED_DATA_MIXED,
-                            TestUtils.encodeBase64(params.getEncoded()));
-                    } else {
-                        // SunJCE encodes the defaults explicitly, which is not allowed by RFC 4055.
-                        assertEquals(
-                            ENCODED_DATA_MIXED_EXPLICIT_DEFAULTS,
-                            TestUtils.encodeBase64(params.getEncoded()));
-                    }
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_ALL_DEFAULTS));
-                    OAEPParameterSpec producedSpec = params
-                        .getParameterSpec(OAEPParameterSpec.class);
-
-                    assertEquals( "SHA-1",
-                        producedSpec.getDigestAlgorithm());
-                    assertEquals( "MGF1",
-                        producedSpec.getMGFAlgorithm());
-                    assertEquals(
-                        MGF1ParameterSpec.SHA1.getDigestAlgorithm(),
-                        ((MGF1ParameterSpec) producedSpec.getMGFParameters()).getDigestAlgorithm());
-                    assertArrayEquals(PSpecified.DEFAULT.getValue(),
-                        ((PSpecified) producedSpec.getPSource()).getValue());
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_EXPLICIT_DEFAULTS));
-                    producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
-
-                    assertEquals( "SHA-1",
-                        producedSpec.getDigestAlgorithm());
-                    assertEquals( "MGF1",
-                        producedSpec.getMGFAlgorithm());
-                    assertEquals(
-                        MGF1ParameterSpec.SHA1.getDigestAlgorithm(),
-                        ((MGF1ParameterSpec) producedSpec.getMGFParameters()).getDigestAlgorithm());
-                    assertArrayEquals(PSpecified.DEFAULT.getValue(),
-                        ((PSpecified) producedSpec.getPSource()).getValue());
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_NON_DEFAULTS));
-                    producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
-
-                    assertEquals( "SHA-256",
-                        producedSpec.getDigestAlgorithm());
-                    assertEquals( "MGF1",
-                        producedSpec.getMGFAlgorithm());
-                    assertEquals(
-                        MGF1ParameterSpec.SHA384.getDigestAlgorithm(),
-                        ((MGF1ParameterSpec) producedSpec.getMGFParameters()).getDigestAlgorithm());
-                    assertArrayEquals(new byte[]{1, 2, 3, 4},
-                        ((PSpecified) producedSpec.getPSource()).getValue());
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_MIXED));
-                    producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
-
-                    assertEquals( "SHA-1",
-                        producedSpec.getDigestAlgorithm());
-                    assertEquals( "MGF1",
-                        producedSpec.getMGFAlgorithm());
-                    assertEquals(
-                        MGF1ParameterSpec.SHA512.getDigestAlgorithm(),
-                        ((MGF1ParameterSpec) producedSpec.getMGFParameters()).getDigestAlgorithm());
-                    assertArrayEquals(PSpecified.DEFAULT.getValue(),
-                        ((PSpecified) producedSpec.getPSource()).getValue());
-
-                    params = AlgorithmParameters.getInstance("OAEP", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA_MIXED_EXPLICIT_DEFAULTS));
-                    producedSpec = params.getParameterSpec(OAEPParameterSpec.class);
-
-                    assertEquals( "SHA-1",
-                        producedSpec.getDigestAlgorithm());
-                    assertEquals( "MGF1",
-                        producedSpec.getMGFAlgorithm());
-                    assertEquals(
-                        MGF1ParameterSpec.SHA512.getDigestAlgorithm(),
-                        ((MGF1ParameterSpec) producedSpec.getMGFParameters()).getDigestAlgorithm());
-                    assertArrayEquals(PSpecified.DEFAULT.getValue(),
-                        ((PSpecified) producedSpec.getPSource()).getValue());
-                }
-            });
+                });
     }
-
 }

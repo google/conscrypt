@@ -59,8 +59,8 @@ public class CpuFeatures {
                         nativeCrypto.getDeclaredMethod("EVP_has_aes_hardware");
                 EVP_has_aes_hardware.setAccessible(true);
                 return ((Integer) EVP_has_aes_hardware.invoke(null)) == 1;
-            } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException |
-                     SecurityException ignored) {
+            } catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException
+                     | SecurityException ignored) {
                 // Ignored
             } catch (InvocationTargetException e) {
                 throw new IllegalArgumentException(e);
@@ -71,7 +71,7 @@ public class CpuFeatures {
     }
 
     private static Class<?> findNativeCrypto() {
-        for (String packageName : new String[]{"com.android.org.conscrypt", "org.conscrypt"}) {
+        for (String packageName : new String[] {"com.android.org.conscrypt", "org.conscrypt"}) {
             String name = packageName + ".NativeCrypto";
             try {
                 return Class.forName(name);
@@ -85,7 +85,6 @@ public class CpuFeatures {
     @SuppressWarnings("DefaultCharset")
     private static String getFieldFromCpuinfo(String field) {
         try {
-
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/cpuinfo"))) {
                 Pattern p = Pattern.compile(field + "\\s*:\\s*(.*)");
                 String line;

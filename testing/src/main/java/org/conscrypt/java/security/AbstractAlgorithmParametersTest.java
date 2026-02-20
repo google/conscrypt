@@ -15,18 +15,19 @@
  */
 package org.conscrypt.java.security;
 
-import java.security.AlgorithmParameters;
-import java.security.spec.AlgorithmParameterSpec;
 import org.junit.Test;
 
-public abstract class AbstractAlgorithmParametersTest {
+import java.security.AlgorithmParameters;
+import java.security.spec.AlgorithmParameterSpec;
 
+public abstract class AbstractAlgorithmParametersTest {
     private final String algorithmName;
     private final TestHelper<AlgorithmParameters> helper;
     private final AlgorithmParameterSpec parameterData;
 
     public AbstractAlgorithmParametersTest(String algorithmName,
-            TestHelper<AlgorithmParameters> helper, AlgorithmParameterSpec parameterData) {
+                                           TestHelper<AlgorithmParameters> helper,
+                                           AlgorithmParameterSpec parameterData) {
         this.algorithmName = algorithmName;
         this.helper = helper;
         this.parameterData = parameterData;

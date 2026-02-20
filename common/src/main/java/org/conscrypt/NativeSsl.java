@@ -65,8 +65,8 @@ final class NativeSsl {
     private volatile long ssl;
 
     private NativeSsl(long ssl, SSLParametersImpl parameters,
-            SSLHandshakeCallbacks handshakeCallbacks, AliasChooser aliasChooser,
-            PSKCallbacks pskCallbacks) {
+                      SSLHandshakeCallbacks handshakeCallbacks, AliasChooser aliasChooser,
+                      PSKCallbacks pskCallbacks) {
         this.ssl = ssl;
         this.parameters = parameters;
         this.handshakeCallbacks = handshakeCallbacks;
@@ -75,8 +75,8 @@ final class NativeSsl {
     }
 
     static NativeSsl newInstance(SSLParametersImpl parameters,
-            SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
-            PSKCallbacks pskCallbacks) throws SSLException {
+                                 SSLHandshakeCallbacks handshakeCallbacks, AliasChooser chooser,
+                                 PSKCallbacks pskCallbacks) throws SSLException {
         long ssl = parameters.getSessionContext().newSsl();
         return new NativeSsl(ssl, parameters, handshakeCallbacks, chooser, pskCallbacks);
     }
@@ -209,7 +209,7 @@ final class NativeSsl {
     }
 
     void chooseClientCertificate(byte[] keyTypeBytes, int[] signatureAlgs,
-            byte[][] asn1DerEncodedPrincipals)
+                                 byte[][] asn1DerEncodedPrincipals)
             throws SSLException, CertificateEncodingException {
         Set<String> keyTypesSet = SSLUtils.getSupportedClientKeyTypes(keyTypeBytes, signatureAlgs);
         String[] keyTypes = keyTypesSet.toArray(new String[0]);
@@ -322,8 +322,8 @@ final class NativeSsl {
             }
         }
         if (i == 0) {
-            throw new IllegalArgumentException(
-                    "No valid known group found in: " + Arrays.toString(javaNamedGroups));
+            throw new IllegalArgumentException("No valid known group found in: "
+                                               + Arrays.toString(javaNamedGroups));
         }
         if (i < javaNamedGroups.length) {
             return Arrays.copyOf(outputGroups, i);
@@ -373,17 +373,17 @@ final class NativeSsl {
         }
 
         if (parameters.getEnabledProtocols().length == 0 && parameters.isEnabledProtocolsFiltered) {
-            throw new SSLHandshakeException("No enabled protocols; "
-                    + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3 + ", "
-                    + NativeCrypto.DEPRECATED_PROTOCOL_TLSV1
-                    + " and " + NativeCrypto.DEPRECATED_PROTOCOL_TLSV1_1
+            throw new SSLHandshakeException(
+                    "No enabled protocols; " + NativeCrypto.OBSOLETE_PROTOCOL_SSLV3 + ", "
+                    + NativeCrypto.DEPRECATED_PROTOCOL_TLSV1 + " and "
+                    + NativeCrypto.DEPRECATED_PROTOCOL_TLSV1_1
                     + " are no longer supported and were filtered from the list");
         }
         NativeCrypto.setEnabledProtocols(ssl, this, parameters.enabledProtocols);
         // We only set the cipher suites if we are not using SPAKE.
         if (!parameters.isSpake()) {
-            NativeCrypto.setEnabledCipherSuites(
-                    ssl, this, parameters.enabledCipherSuites, parameters.enabledProtocols);
+            NativeCrypto.setEnabledCipherSuites(ssl, this, parameters.enabledCipherSuites,
+                                                parameters.enabledProtocols);
         }
 
         String[] paramsNamedGroups = parameters.getNamedGroups();
@@ -408,7 +408,8 @@ final class NativeSsl {
         }
 
         if (parameters.applicationProtocols.length > 0) {
-            NativeCrypto.setApplicationProtocols(ssl, this, isClient(), parameters.applicationProtocols);
+            NativeCrypto.setApplicationProtocols(ssl, this, isClient(),
+                                                 parameters.applicationProtocols);
         }
         if (!isClient() && parameters.applicationProtocolSelector != null) {
             NativeCrypto.setHasApplicationProtocolSelector(ssl, this, true);
@@ -520,8 +521,8 @@ final class NativeSsl {
             if (isClosed() || fd == null || !fd.valid()) {
                 throw new SocketException("Socket is closed");
             }
-            return NativeCrypto
-                    .SSL_read(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
+            return NativeCrypto.SSL_read(ssl, this, fd, handshakeCallbacks, buf, offset, len,
+                                         timeoutMillis);
         } finally {
             lock.readLock().unlock();
         }
@@ -535,8 +536,8 @@ final class NativeSsl {
             if (isClosed() || fd == null || !fd.valid()) {
                 throw new SocketException("Socket is closed");
             }
-            NativeCrypto
-                    .SSL_write(ssl, this, fd, handshakeCallbacks, buf, offset, len, timeoutMillis);
+            NativeCrypto.SSL_write(ssl, this, fd, handshakeCallbacks, buf, offset, len,
+                                   timeoutMillis);
         } finally {
             lock.readLock().unlock();
         }
@@ -589,8 +590,8 @@ final class NativeSsl {
             // needing client auth takes priority...
             boolean certRequested;
             if (parameters.getNeedClientAuth()) {
-                NativeCrypto.SSL_set_verify(ssl, this, SSL_VERIFY_PEER
-                                | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+                NativeCrypto.SSL_set_verify(ssl, this,
+                                            SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
                 certRequested = true;
                 // ... over just wanting it...
             } else if (parameters.getWantClientAuth()) {
@@ -658,8 +659,8 @@ final class NativeSsl {
             throws IOException, CertificateException {
         lock.readLock().lock();
         try {
-            return NativeCrypto.ENGINE_SSL_read_direct(
-                    ssl, this, destAddress, destLength, handshakeCallbacks);
+            return NativeCrypto.ENGINE_SSL_read_direct(ssl, this, destAddress, destLength,
+                                                       handshakeCallbacks);
         } finally {
             lock.readLock().unlock();
         }
@@ -668,8 +669,8 @@ final class NativeSsl {
     int writeDirectByteBuffer(long sourceAddress, int sourceLength) throws IOException {
         lock.readLock().lock();
         try {
-            return NativeCrypto.ENGINE_SSL_write_direct(
-                    ssl, this, sourceAddress, sourceLength, handshakeCallbacks);
+            return NativeCrypto.ENGINE_SSL_write_direct(ssl, this, sourceAddress, sourceLength,
+                                                        handshakeCallbacks);
         } finally {
             lock.readLock().unlock();
         }
@@ -764,8 +765,8 @@ final class NativeSsl {
                 if (isClosed()) {
                     throw new SSLException("Connection closed");
                 }
-                return NativeCrypto.ENGINE_SSL_write_BIO_direct(
-                        ssl, NativeSsl.this, bio, address, length, handshakeCallbacks);
+                return NativeCrypto.ENGINE_SSL_write_BIO_direct(ssl, NativeSsl.this, bio, address,
+                                                                length, handshakeCallbacks);
             } finally {
                 lock.readLock().unlock();
             }

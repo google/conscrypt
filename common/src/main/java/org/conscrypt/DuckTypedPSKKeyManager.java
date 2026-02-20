@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.lang.reflect.Method;
 import java.net.Socket;
+
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLEngine;
 
@@ -34,7 +35,6 @@ import javax.net.ssl.SSLEngine;
  */
 @Deprecated
 final class DuckTypedPSKKeyManager implements PSKKeyManager {
-
     private final Object mDelegate;
 
     private DuckTypedPSKKeyManager(Object delegate) {
@@ -62,7 +62,8 @@ final class DuckTypedPSKKeyManager implements PSKKeyManager {
             Class<?> targetReturnType = targetMethod.getReturnType();
             if (!targetReturnType.isAssignableFrom(sourceReturnType)) {
                 throw new NoSuchMethodException(sourceMethod + " return value (" + sourceReturnType
-                        + ") incompatible with target return value (" + targetReturnType + ")");
+                                                + ") incompatible with target return value ("
+                                                + targetReturnType + ")");
             }
         }
 

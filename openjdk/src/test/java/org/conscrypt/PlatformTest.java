@@ -22,6 +22,12 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import org.conscrypt.testing.FailingSniMatcher;
+import org.conscrypt.testing.RestrictedAlgorithmConstraints;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -29,15 +35,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLParameters;
-import org.conscrypt.testing.FailingSniMatcher;
-import org.conscrypt.testing.RestrictedAlgorithmConstraints;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 /**
  * Test for Platform
@@ -54,7 +56,7 @@ public class PlatformTest {
         try {
             getApplicationProtocolsMethod = sslParameters.getMethod("getApplicationProtocols");
             setApplicationProtocolsMethod =
-                sslParameters.getMethod("setApplicationProtocols", String[].class);
+                    sslParameters.getMethod("setApplicationProtocols", String[].class);
         } catch (NoSuchMethodException e) {
             getApplicationProtocolsMethod = null;
             setApplicationProtocolsMethod = null;
@@ -177,7 +179,7 @@ public class PlatformTest {
         assertEquals(paramsIn.getServerNames(), paramsOut.getServerNames());
         assertEquals(paramsIn.getUseCipherSuitesOrder(), paramsOut.getUseCipherSuitesOrder());
         assertEquals(paramsIn.getEndpointIdentificationAlgorithm(),
-                paramsOut.getEndpointIdentificationAlgorithm());
+                     paramsOut.getEndpointIdentificationAlgorithm());
         assertEquals(paramsIn.getWantClientAuth(), paramsOut.getWantClientAuth());
         assertEquals(paramsIn.getNeedClientAuth(), paramsOut.getNeedClientAuth());
         assertSNIMatchersEqual(paramsIn.getSNIMatchers(), paramsOut.getSNIMatchers());

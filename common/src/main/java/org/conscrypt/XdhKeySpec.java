@@ -35,16 +35,19 @@ public final class XdhKeySpec extends EncodedKeySpec {
         return getEncoded();
     }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof EncodedKeySpec)) return false;
-    EncodedKeySpec that = (EncodedKeySpec) o;
-    return (getFormat().equals(that.getFormat()) && Arrays.equals(getEncoded(), that.getEncoded()));
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof EncodedKeySpec))
+            return false;
+        EncodedKeySpec that = (EncodedKeySpec) o;
+        return (getFormat().equals(that.getFormat())
+                && Arrays.equals(getEncoded(), that.getEncoded()));
+    }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(getFormat(), Arrays.hashCode(getEncoded()));
-  }
+    @Override
+    public int hashCode() {
+        return Objects.hash(getFormat(), Arrays.hashCode(getEncoded()));
+    }
 }

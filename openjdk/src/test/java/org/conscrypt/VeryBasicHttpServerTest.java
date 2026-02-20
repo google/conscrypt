@@ -19,6 +19,11 @@ package org.conscrypt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.SocketException;
@@ -27,10 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 /**
  * Tests for VeryBasicHttpServer.
@@ -44,8 +45,7 @@ public class VeryBasicHttpServerTest {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final VeryBasicHttpServer server = new VeryBasicHttpServer();
 
-    public VeryBasicHttpServerTest() throws IOException {
-    }
+    public VeryBasicHttpServerTest() throws IOException {}
 
     @After
     public void after() {
@@ -54,10 +54,7 @@ public class VeryBasicHttpServerTest {
 
     @Test
     public void failedConnect() throws Exception {
-        VeryBasicHttpServer.Op op = server
-                .opBuilder()
-                .noTls()
-                .build();
+        VeryBasicHttpServer.Op op = server.opBuilder().noTls().build();
         Future<Void> future = executor.submit(server.run(op));
 
         HttpURLConnection connection = server.plainConnection("/file");
@@ -69,10 +66,8 @@ public class VeryBasicHttpServerTest {
 
     @Test
     public void successfulConnect() throws Exception {
-        VeryBasicHttpServer.Op op = server.opBuilder()
-                .content("/file", "Hello\nWorld\n")
-                .noTls()
-                .build();
+        VeryBasicHttpServer.Op op =
+                server.opBuilder().content("/file", "Hello\nWorld\n").noTls().build();
         Future<Void> future = executor.submit(server.run(op));
 
         HttpURLConnection connection = server.plainConnection("/file");
@@ -85,12 +80,8 @@ public class VeryBasicHttpServerTest {
     @Test
     public void urlReadTimeout() throws Exception {
         TestUtils.assumeEngineSocket();
-        VeryBasicHttpServer.Op op = server
-                .opBuilder()
-                .noTls()
-                .postAcceptDelay(5000)
-                .closeBeforeRead()
-                .build();
+        VeryBasicHttpServer.Op op =
+                server.opBuilder().noTls().postAcceptDelay(5000).closeBeforeRead().build();
         Future<Void> future = executor.submit(server.run(op));
 
         HttpURLConnection connection = server.plainConnection("/file");

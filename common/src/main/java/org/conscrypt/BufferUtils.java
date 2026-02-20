@@ -16,8 +16,9 @@
 
 package org.conscrypt;
 
-import static java.lang.Math.min;
 import static org.conscrypt.Preconditions.checkArgument;
+
+import static java.lang.Math.min;
 
 import java.nio.ByteBuffer;
 
@@ -100,10 +101,10 @@ final class BufferUtils {
      *
      */
     static ByteBuffer copyNoConsume(ByteBuffer[] buffers, ByteBuffer destination, int maxAmount) {
-	checkArgument(destination.remaining() >= maxAmount, "Destination buffer too small");
-	int needed = maxAmount;
+        checkArgument(destination.remaining() >= maxAmount, "Destination buffer too small");
+        int needed = maxAmount;
         for (ByteBuffer buffer : buffers) {
-	    int remaining = buffer.remaining();
+            int remaining = buffer.remaining();
             if (remaining > 0) {
                 // If this buffer can fit completely then copy it all, otherwise temporarily
                 // adjust its limit to fill so as to the output buffer completely

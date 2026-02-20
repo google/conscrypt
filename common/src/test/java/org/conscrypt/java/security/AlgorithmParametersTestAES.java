@@ -18,23 +18,24 @@ package org.conscrypt.java.security;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-import java.security.AlgorithmParameters;
-import java.security.Provider;
-import javax.crypto.spec.IvParameterSpec;
 import org.conscrypt.TestUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.security.AlgorithmParameters;
+import java.security.Provider;
+
+import javax.crypto.spec.IvParameterSpec;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestAES extends AbstractAlgorithmParametersTest {
-
     private static final byte[] parameterData = new byte[] {
-        (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8,
-        (byte) 0xFF, (byte) 0x64, (byte) 0x72, (byte) 0xF5,
-        (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8,
-        (byte) 0xFF, (byte) 0x64, (byte) 0x72, (byte) 0xF5 };
+            (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8, (byte) 0xFF, (byte) 0x64,
+            (byte) 0x72, (byte) 0xF5, (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8,
+            (byte) 0xFF, (byte) 0x64, (byte) 0x72, (byte) 0xF5};
 
     // See README.ASN1 for how to understand and reproduce this data
 
@@ -42,27 +43,27 @@ public class AlgorithmParametersTestAES extends AbstractAlgorithmParametersTest 
     private static final String ENCODED_DATA = "BBAECGjI/2Ry9QQIaMj/ZHL1";
 
     public AlgorithmParametersTestAES() {
-        super("AES", new AlgorithmParameterSymmetricHelper("AES", "CBC/PKCS5PADDING", 128), new IvParameterSpec(parameterData));
+        super("AES", new AlgorithmParameterSymmetricHelper("AES", "CBC/PKCS5PADDING", 128),
+              new IvParameterSpec(parameterData));
     }
 
     @Test
     public void testEncoding() throws Exception {
         ServiceTester.test("AlgorithmParameters")
-            .withAlgorithm("AES")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    AlgorithmParameters params = AlgorithmParameters.getInstance("AES", p);
+                .withAlgorithm("AES")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        AlgorithmParameters params = AlgorithmParameters.getInstance("AES", p);
 
-                    params.init(new IvParameterSpec(parameterData));
-                    assertEquals(ENCODED_DATA, TestUtils.encodeBase64(params.getEncoded()));
+                        params.init(new IvParameterSpec(parameterData));
+                        assertEquals(ENCODED_DATA, TestUtils.encodeBase64(params.getEncoded()));
 
-                    params = AlgorithmParameters.getInstance("AES", p);
-                    params.init(TestUtils.decodeBase64(ENCODED_DATA));
-                    assertArrayEquals(parameterData,
-                        params.getParameterSpec(IvParameterSpec.class).getIV());
-                }
-            });
+                        params = AlgorithmParameters.getInstance("AES", p);
+                        params.init(TestUtils.decodeBase64(ENCODED_DATA));
+                        assertArrayEquals(parameterData,
+                                          params.getParameterSpec(IvParameterSpec.class).getIV());
+                    }
+                });
     }
-
 }

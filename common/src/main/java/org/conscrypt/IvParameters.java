@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.security.AlgorithmParametersSpi;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
+
 import javax.crypto.spec.IvParameterSpec;
 
 /**
@@ -70,8 +71,8 @@ public class IvParameters extends AlgorithmParametersSpi {
     protected <T extends AlgorithmParameterSpec> T engineGetParameterSpec(Class<T> aClass)
             throws InvalidParameterSpecException {
         if (aClass != IvParameterSpec.class) {
-            throw new InvalidParameterSpecException(
-                    "Incompatible AlgorithmParametersSpec class: " + aClass);
+            throw new InvalidParameterSpecException("Incompatible AlgorithmParametersSpec class: "
+                                                    + aClass);
         }
         return (T) new IvParameterSpec(iv);
     }

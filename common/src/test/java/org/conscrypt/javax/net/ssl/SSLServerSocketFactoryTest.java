@@ -16,14 +16,14 @@
 
 package org.conscrypt.javax.net.ssl;
 
-import javax.net.ssl.SSLServerSocketFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import javax.net.ssl.SSLServerSocketFactory;
+
 @RunWith(JUnit4.class)
 public class SSLServerSocketFactoryTest {
-
     @Test
     public void testDefaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLServerSocketFactoryDefaultConfiguration(

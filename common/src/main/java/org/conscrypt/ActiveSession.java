@@ -24,6 +24,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
 
@@ -297,8 +298,8 @@ final class ActiveSession implements ConscryptSession {
     /**
      * Configures the peer information once it has been received by the handshake.
      */
-    void onPeerCertificatesReceived(
-            String peerHost, int peerPort, X509Certificate[] peerCertificates) {
+    void onPeerCertificatesReceived(String peerHost, int peerPort,
+                                    X509Certificate[] peerCertificates) {
         configurePeer(peerHost, peerPort, peerCertificates);
     }
 

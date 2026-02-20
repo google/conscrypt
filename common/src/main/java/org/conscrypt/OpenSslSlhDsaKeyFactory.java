@@ -40,8 +40,8 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslSlhDsaPublicKey((EncodedKeySpec) keySpec);
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -52,8 +52,8 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslSlhDsaPrivateKey((EncodedKeySpec) keySpec);
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -83,7 +83,8 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
-                + key.getClass().getName() + ", keySpec=" + keySpec.getName());
+                                          + key.getClass().getName()
+                                          + ", keySpec=" + keySpec.getName());
     }
 
     @Override

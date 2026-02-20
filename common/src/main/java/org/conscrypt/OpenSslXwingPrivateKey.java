@@ -33,28 +33,9 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
     // The PKCS#8 encoding of a X-Wing private key is always the concatenation of a fixed
     // prefix and the raw key.
     private static final byte[] pkcs8Preamble = new byte[] {
-            0x30,
-            0x34,
-            0x02,
-            0x01,
-            0x00,
-            0x30,
-            0x0d,
-            0x06,
-            0x0b,
-            0x2b,
-            0x06,
-            0x01,
-            0x04,
-            0x01,
-            (byte) 0x83,
-            (byte) 0xe6,
-            0x2d,
-            (byte) 0x81,
-            (byte) 0xc8,
-            (byte) 0x7a,
-            0x04,
-            0x20,
+            0x30, 0x34,        0x02,        0x01,        0x00, 0x30, 0x0d,        0x06,
+            0x0b, 0x2b,        0x06,        0x01,        0x04, 0x01, (byte) 0x83, (byte) 0xe6,
+            0x2d, (byte) 0x81, (byte) 0xc8, (byte) 0x7a, 0x04, 0x20,
     };
 
     private byte[] raw;

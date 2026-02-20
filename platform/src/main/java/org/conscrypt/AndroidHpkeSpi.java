@@ -38,29 +38,31 @@ public class AndroidHpkeSpi implements android.crypto.hpke.HpkeSpi, org.conscryp
 
     @Override
     public void engineInitSender(PublicKey recipientKey, @Nullable byte[] info,
-            PrivateKey senderKey, @Nullable byte[] psk, @Nullable byte[] psk_id)
-            throws InvalidKeyException {
+                                 PrivateKey senderKey, @Nullable byte[] psk,
+                                 @Nullable byte[] psk_id) throws InvalidKeyException {
         delegate.engineInitSender(recipientKey, info, senderKey, psk, psk_id);
     }
 
     @Override
     public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
-            PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe)
-            throws InvalidKeyException {
+                                           PrivateKey senderKey, byte[] psk, byte[] psk_id,
+                                           byte[] sKe) throws InvalidKeyException {
         delegate.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
     }
 
     @Override
     public void engineInitSenderWithSeed(PublicKey recipientKey, @Nullable byte[] info,
-            PrivateKey senderKey, @Nullable byte[] psk, @Nullable byte[] psk_id,
-            @NonNull byte[] sKe) throws InvalidKeyException {
+                                         PrivateKey senderKey, @Nullable byte[] psk,
+                                         @Nullable byte[] psk_id, @NonNull byte[] sKe)
+            throws InvalidKeyException {
         delegate.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
     }
 
     @Override
     public void engineInitRecipient(@NonNull byte[] encapsulated, PrivateKey recipientKey,
-            @Nullable byte[] info, PublicKey senderKey, @Nullable byte[] psk,
-            @Nullable byte[] psk_id) throws InvalidKeyException {
+                                    @Nullable byte[] info, PublicKey senderKey,
+                                    @Nullable byte[] psk, @Nullable byte[] psk_id)
+            throws InvalidKeyException {
         delegate.engineInitRecipient(encapsulated, recipientKey, info, senderKey, psk, psk_id);
     }
 

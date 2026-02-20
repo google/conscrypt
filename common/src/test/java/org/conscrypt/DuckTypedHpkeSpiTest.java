@@ -119,7 +119,7 @@ public class DuckTypedHpkeSpiTest {
         final HpkeContextRecipient ctxRecipient = createDefaultHpkeContextRecipient(DEFAULT_ENC);
         assertForeign(ctxRecipient);
         final byte[] export2 =
-            ctxRecipient.export(DEFAULT_EXPORTER_LENGTH, DEFAULT_EXPORTER_CONTEXT);
+                ctxRecipient.export(DEFAULT_EXPORTER_LENGTH, DEFAULT_EXPORTER_CONTEXT);
 
         assertNotNull(enc);
         assertNotNull(export1);
@@ -135,24 +135,21 @@ public class DuckTypedHpkeSpiTest {
         HpkeContextSender sender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         PublicKey dhKey = DefaultKeys.getPublicKey("DH");
 
-        assertThrows(InvalidKeyException.class,
-                () -> sender.init(null, null));
-        assertThrows(InvalidKeyException.class,
-              () -> sender.init(null, DEFAULT_INFO));
+        assertThrows(InvalidKeyException.class, () -> sender.init(null, null));
+        assertThrows(InvalidKeyException.class, () -> sender.init(null, DEFAULT_INFO));
         // DH keys not supported
-        assertThrows(InvalidKeyException.class,
-          () -> sender.init(dhKey , DEFAULT_INFO));
+        assertThrows(InvalidKeyException.class, () -> sender.init(dhKey, DEFAULT_INFO));
         HpkeContextRecipient recipient = HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         final PrivateKey invalidKey = DefaultKeys.getPrivateKey("DH");
         assertThrows(NullPointerException.class,
-                () -> recipient.init(/* enc= */ null, DEFAULT_SK, DEFAULT_INFO));
+                     () -> recipient.init(/* enc= */ null, DEFAULT_SK, DEFAULT_INFO));
         assertThrows(InvalidKeyException.class,
-                () -> recipient.init(DEFAULT_ENC, /* privateKey= */ null, DEFAULT_INFO));
+                     () -> recipient.init(DEFAULT_ENC, /* privateKey= */ null, DEFAULT_INFO));
         // Incorrect enc size
         assertThrows(InvalidKeyException.class,
-                () -> recipient.init(new byte[1], DEFAULT_SK, DEFAULT_INFO));
+                     () -> recipient.init(new byte[1], DEFAULT_SK, DEFAULT_INFO));
         assertThrows(InvalidKeyException.class,
-                () -> recipient.init(DEFAULT_ENC, invalidKey, DEFAULT_INFO));
+                     () -> recipient.init(DEFAULT_ENC, invalidKey, DEFAULT_INFO));
     }
 
     @Test
@@ -160,7 +157,7 @@ public class DuckTypedHpkeSpiTest {
         HpkeContextSender ctxSender = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         ctxSender.init(DEFAULT_PK, DEFAULT_INFO);
         assertThrows(NullPointerException.class,
-                () -> ctxSender.seal(/* plaintext= */ null, DEFAULT_AAD));
+                     () -> ctxSender.seal(/* plaintext= */ null, DEFAULT_AAD));
     }
 
     @Test
@@ -171,7 +168,7 @@ public class DuckTypedHpkeSpiTest {
         assertNotNull(enc);
         assertNotNull(export);
         assertThrows(IllegalArgumentException.class,
-                () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
+                     () -> ctxSender.export(/* length= */ -1, DEFAULT_EXPORTER_CONTEXT));
     }
 
     @Test
@@ -181,15 +178,15 @@ public class DuckTypedHpkeSpiTest {
         byte[] pskId = "id".getBytes(StandardCharsets.UTF_8);
 
         assertThrows(UnsupportedOperationException.class,
-                () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK));
+                     () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK));
         assertThrows(UnsupportedOperationException.class,
-                () -> sender.init(DEFAULT_PK, DEFAULT_INFO, psk, pskId));
+                     () -> sender.init(DEFAULT_PK, DEFAULT_INFO, psk, pskId));
         assertThrows(UnsupportedOperationException.class,
-                () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK, psk, pskId));
+                     () -> sender.init(DEFAULT_PK, DEFAULT_INFO, DEFAULT_SK, psk, pskId));
     }
 
-    private HpkeContextSender setupBaseForTesting(
-        HpkeSuite suite, PublicKey publicKey, byte[] info, byte[] sKem) throws Exception {
+    private HpkeContextSender setupBaseForTesting(HpkeSuite suite, PublicKey publicKey, byte[] info,
+                                                  byte[] sKem) throws Exception {
         String algorithm = suite.name();
         HpkeContextSender sender = HpkeContextSender.getInstance(algorithm);
         sender.initForTesting(publicKey, info, sKem);
@@ -227,7 +224,7 @@ public class DuckTypedHpkeSpiTest {
         private static final String NAME = "Foreign_Hpke";
 
         protected ForeignHpkeProvider() {
-            super( NAME, 1.0, "HPKE unit test usage only");
+            super(NAME, 1.0, "HPKE unit test usage only");
             put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_128_GCM",
                 HpkeForeignSpi.X25519_AES_128.class.getName());
             put("ConscryptHpke.DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/AES_256_GCM",
@@ -240,27 +237,26 @@ public class DuckTypedHpkeSpiTest {
         private final HpkeSpi realSpi;
 
         public HpkeForeignSpi(String hpkeSuite) throws NoSuchAlgorithmException {
-
-            Provider.Service service =
-                conscryptProvider.getService("ConscryptHpke", hpkeSuite);
+            Provider.Service service = conscryptProvider.getService("ConscryptHpke", hpkeSuite);
             assertNotNull(service);
             realSpi = (HpkeSpi) service.newInstance(null);
             assertNotNull(realSpi);
         }
 
         public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
-                byte[] psk, byte[] psk_id) throws InvalidKeyException {
+                                     byte[] psk, byte[] psk_id) throws InvalidKeyException {
             realSpi.engineInitSender(recipientKey, info, senderKey, psk, psk_id);
         }
 
         public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
-                PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe)
-                throws InvalidKeyException {
+                                               PrivateKey senderKey, byte[] psk, byte[] psk_id,
+                                               byte[] sKe) throws InvalidKeyException {
             realSpi.engineInitSenderForTesting(recipientKey, info, senderKey, psk, psk_id, sKe);
         }
 
         public void engineInitRecipient(byte[] enc, PrivateKey recipientKey, byte[] info,
-                PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
+                                        PublicKey senderKey, byte[] psk, byte[] psk_id)
+                throws InvalidKeyException {
             realSpi.engineInitRecipient(enc, recipientKey, info, senderKey, psk, psk_id);
         }
 

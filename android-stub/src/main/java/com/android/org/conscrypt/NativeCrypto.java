@@ -18,6 +18,7 @@ package com.android.org.conscrypt;
 
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+
 import javax.net.ssl.SSLException;
 
 @SuppressWarnings("unused")
@@ -31,8 +32,8 @@ final class NativeCrypto {
          *
          * @throws CertificateException if the certificate is untrusted
          */
-        void verifyCertificateChain(byte[][] asn1DerEncodedCertificateChain,
-                String authMethod) throws CertificateException;
+        void verifyCertificateChain(byte[][] asn1DerEncodedCertificateChain, String authMethod)
+                throws CertificateException;
         /**
          * Called on an SSL client when the server requests (or
          * requires a certificate). The client can respond by using
@@ -44,8 +45,7 @@ final class NativeCrypto {
          * convertible to strings with #keyType
          * @param asn1DerEncodedX500Principals CAs known to the server
          */
-        void clientCertificateRequested(
-                byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
+        void clientCertificateRequested(byte[] keyTypes, byte[][] asn1DerEncodedX500Principals)
                 throws CertificateEncodingException, SSLException;
         /**
          * Called when SSL handshake is completed. Note that this can

@@ -40,8 +40,8 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslXwingPublicKey((EncodedKeySpec) keySpec);
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -52,8 +52,8 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslXwingPrivateKey((EncodedKeySpec) keySpec);
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -90,7 +90,8 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
-                + key.getClass().getName() + ", keySpec=" + keySpec.getName());
+                                          + key.getClass().getName()
+                                          + ", keySpec=" + keySpec.getName());
     }
 
     @Override

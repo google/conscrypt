@@ -30,9 +30,8 @@
 
 // OTOH, we need to have _GNU_SOURCE defined to pick up asprintf from stdio.h.
 #define _GNU_SOURCE
-#include <stdio.h>
-
 #include <android/log.h>
+#include <stdio.h>
 
 #else /* !ANDROID || CONSCRYPT_OPENJDK */
 
@@ -47,6 +46,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <winsock2.h>
+
 #include <cstddef>
 
 // NOLINTNEXTLINE(runtime/int)
@@ -55,14 +55,14 @@ typedef long ssize_t;
 #define strcasecmp _stricmp
 
 // Windows doesn't define this either *sigh*...
-inline int vasprintf(char **ret, const char *format, va_list args) {
+inline int vasprintf(char** ret, const char* format, va_list args) {
     va_list copy;
     va_copy(copy, args);
     *ret = nullptr;
 
     int count = vsnprintf(nullptr, 0, format, args);
     if (count >= 0) {
-        char *buffer = static_cast<char *>(malloc((std::size_t)count + 1));
+        char* buffer = static_cast<char*>(malloc((std::size_t)count + 1));
         if (buffer == nullptr) {
             count = -1;
         } else if ((count = vsnprintf(buffer, static_cast<std::size_t>(count + 1), format, copy)) <
@@ -77,7 +77,7 @@ inline int vasprintf(char **ret, const char *format, va_list args) {
     return count;
 }
 
-inline int asprintf(char **strp, const char *fmt, ...) {
+inline int asprintf(char** strp, const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int r = vasprintf(strp, fmt, ap);
@@ -85,7 +85,7 @@ inline int asprintf(char **strp, const char *fmt, ...) {
     return r;
 }
 
-inline int gettimeofday(struct timeval *tp, struct timezone *) {
+inline int gettimeofday(struct timeval* tp, struct timezone*) {
     // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing
     // zero's
     // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
@@ -101,7 +101,7 @@ inline int gettimeofday(struct timeval *tp, struct timezone *) {
     time = ((uint64_t)file_time.dwLowDateTime);
     time += ((uint64_t)file_time.dwHighDateTime) << 32;
 
-    tp->tv_sec = static_cast<long>((time - EPOCH) / 10000000L);  // NOLINT(runtime/int)
+    tp->tv_sec = static_cast<long>((time - EPOCH) / 10000000L);         // NOLINT(runtime/int)
     tp->tv_usec = static_cast<long>(system_time.wMilliseconds * 1000);  // NOLINT(runtime/int)
     return 0;
 }

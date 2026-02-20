@@ -21,41 +21,41 @@ import java.security.spec.ECPoint;
 import java.util.Objects;
 
 class TestECPublicKey implements ECPublicKey {
-  private ECPublicKey key;
-  private String format;
+    private ECPublicKey key;
+    private String format;
 
-  TestECPublicKey(ECPublicKey key) {
-    this(key, key.getFormat());
-  }
+    TestECPublicKey(ECPublicKey key) {
+        this(key, key.getFormat());
+    }
 
-  TestECPublicKey(ECPublicKey key, String format) {
-    Objects.requireNonNull(key);
-    this.key = key;
-    this.format = format;
-  }
+    TestECPublicKey(ECPublicKey key, String format) {
+        Objects.requireNonNull(key);
+        this.key = key;
+        this.format = format;
+    }
 
-  @Override
-  public String getAlgorithm() {
-    return key.getAlgorithm();
-  }
+    @Override
+    public String getAlgorithm() {
+        return key.getAlgorithm();
+    }
 
-  @Override
-  public byte[] getEncoded() {
-    return key.getEncoded();
-  }
+    @Override
+    public byte[] getEncoded() {
+        return key.getEncoded();
+    }
 
-  @Override
-  public String getFormat() {
-    return format;
-  }
+    @Override
+    public String getFormat() {
+        return format;
+    }
 
-  @Override
-  public ECParameterSpec getParams() {
-    return key.getParams();
-  }
+    @Override
+    public ECParameterSpec getParams() {
+        return key.getParams();
+    }
 
-  @Override
-  public ECPoint getW() {
-    return key.getW();
-  }
+    @Override
+    public ECPoint getW() {
+        return key.getW();
+    }
 }

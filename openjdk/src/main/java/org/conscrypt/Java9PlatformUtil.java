@@ -17,6 +17,7 @@
 package org.conscrypt;
 
 import java.lang.reflect.Method;
+
 import javax.net.ssl.SSLParameters;
 
 /**
@@ -44,8 +45,8 @@ final class Java9PlatformUtil {
         SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD = setApplicationProtocolsMethod;
     }
 
-    static void setSSLParameters(
-            SSLParameters src, SSLParametersImpl dest, AbstractConscryptSocket socket) {
+    static void setSSLParameters(SSLParameters src, SSLParametersImpl dest,
+                                 AbstractConscryptSocket socket) {
         Java8PlatformUtil.setSSLParameters(src, dest, socket);
         try {
             Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
@@ -56,8 +57,8 @@ final class Java9PlatformUtil {
         dest.setApplicationProtocols(getApplicationProtocols(src));
     }
 
-    static void getSSLParameters(
-            SSLParameters dest, SSLParametersImpl src, AbstractConscryptSocket socket) {
+    static void getSSLParameters(SSLParameters dest, SSLParametersImpl src,
+                                 AbstractConscryptSocket socket) {
         Java8PlatformUtil.getSSLParameters(dest, src, socket);
         try {
             String[] namedGroups = src.getNamedGroups();
@@ -70,8 +71,8 @@ final class Java9PlatformUtil {
         setApplicationProtocols(dest, src.getApplicationProtocols());
     }
 
-    static void setSSLParameters(
-            SSLParameters src, SSLParametersImpl dest, ConscryptEngine engine) {
+    static void setSSLParameters(SSLParameters src, SSLParametersImpl dest,
+                                 ConscryptEngine engine) {
         Java8PlatformUtil.setSSLParameters(src, dest, engine);
 
         try {
@@ -84,8 +85,8 @@ final class Java9PlatformUtil {
         dest.setApplicationProtocols(getApplicationProtocols(src));
     }
 
-    static void getSSLParameters(
-            SSLParameters dest, SSLParametersImpl src, ConscryptEngine engine) {
+    static void getSSLParameters(SSLParameters dest, SSLParametersImpl src,
+                                 ConscryptEngine engine) {
         Java8PlatformUtil.getSSLParameters(dest, src, engine);
 
         try {

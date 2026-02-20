@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.io.IoUtils;
+
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,8 +33,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.net.ssl.SSLSession;
-import org.conscrypt.io.IoUtils;
 
 /**
  * File-based cache implementation. Only one process should access the
@@ -179,9 +181,9 @@ public final class FileClientSessionCache {
 
         static void logReadError(String host, File file, Throwable t) {
             logger.log(Level.WARNING,
-                    "FileClientSessionCache: Error reading session data for " + host + " from "
-                            + file + ".",
-                    t);
+                       "FileClientSessionCache: Error reading session data for " + host + " from "
+                               + file + ".",
+                       t);
         }
 
         @Override
@@ -303,9 +305,9 @@ public final class FileClientSessionCache {
 
         static void logWriteError(String host, File file, Throwable t) {
             logger.log(Level.WARNING,
-                    "FileClientSessionCache: Error writing session data for " + host + " to " + file
-                            + ".",
-                    t);
+                       "FileClientSessionCache: Error writing session data for " + host + " to "
+                               + file + ".",
+                       t);
         }
     }
 

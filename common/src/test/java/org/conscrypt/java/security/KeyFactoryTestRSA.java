@@ -20,6 +20,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -40,14 +44,9 @@ import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class KeyFactoryTestRSA extends
-        AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
-
+public class KeyFactoryTestRSA extends AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
     public KeyFactoryTestRSA() {
         super("RSA", RSAPublicKeySpec.class, RSAPrivateKeySpec.class);
     }
@@ -85,7 +84,7 @@ public class KeyFactoryTestRSA extends
 
         try {
             factory.getKeySpec(new TestPrivateKey(DefaultKeys.getPrivateKey("RSA"), "Invalid"),
-                RSAPrivateKeySpec.class);
+                               RSAPrivateKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
@@ -93,7 +92,7 @@ public class KeyFactoryTestRSA extends
 
         try {
             factory.getKeySpec(new TestPrivateKey(DefaultKeys.getPrivateKey("RSA"), "Invalid"),
-                RSAPrivateCrtKeySpec.class);
+                               RSAPrivateCrtKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
@@ -101,7 +100,7 @@ public class KeyFactoryTestRSA extends
 
         try {
             factory.getKeySpec(new TestPublicKey(DefaultKeys.getPublicKey("RSA"), "Invalid"),
-                RSAPublicKeySpec.class);
+                               RSAPublicKeySpec.class);
             fail();
         } catch (InvalidKeySpecException e) {
             // expected
@@ -109,7 +108,7 @@ public class KeyFactoryTestRSA extends
     }
 
     @Test
-    public void javaSerialization() throws Exception{
+    public void javaSerialization() throws Exception {
         PrivateKey privatekey = getPrivateKey();
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -125,9 +124,7 @@ public class KeyFactoryTestRSA extends
 
     @Override
     protected List<KeyPair> getKeys() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        return Arrays.asList(
-                new KeyPair(DefaultKeys.getPublicKey(algorithmName), getPrivateKey())
-        );
+        return Arrays.asList(new KeyPair(DefaultKeys.getPublicKey(algorithmName), getPrivateKey()));
     }
 
     // The private RSA key returned by DefaultKeys.getPrivateKey() is built from a PKCS#8

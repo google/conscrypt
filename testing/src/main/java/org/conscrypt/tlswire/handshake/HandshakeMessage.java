@@ -15,11 +15,12 @@
  */
 package org.conscrypt.tlswire.handshake;
 
+import org.conscrypt.tlswire.util.IoUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.IOException;
-import org.conscrypt.tlswire.util.IoUtils;
 
 /**
  * Handshake Protocol message from TLS 1.2 RFC 5246.

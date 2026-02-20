@@ -43,7 +43,7 @@ public final class Hkdf {
      * @param hmacName the name of the HMAC algorithm to use
      * @throws NoSuchAlgorithmException if hmacName is not a valid HMAC name
      */
-    public Hkdf(String hmacName) throws  NoSuchAlgorithmException {
+    public Hkdf(String hmacName) throws NoSuchAlgorithmException {
         Objects.requireNonNull(hmacName);
         this.hmacName = hmacName;
 
@@ -67,7 +67,7 @@ public final class Hkdf {
      */
 
     public byte[] extract(byte[] salt, byte[] ikm)
-        throws InvalidKeyException, NoSuchAlgorithmException {
+            throws InvalidKeyException, NoSuchAlgorithmException {
         Objects.requireNonNull(salt);
         Objects.requireNonNull(ikm);
         Preconditions.checkArgument(ikm.length > 0, "Empty keying material");
@@ -90,7 +90,7 @@ public final class Hkdf {
      * @throws NoSuchAlgorithmException if the Mac algorithm is no longer available
      */
     public byte[] expand(byte[] prk, byte[] info, int length)
-        throws InvalidKeyException, NoSuchAlgorithmException {
+            throws InvalidKeyException, NoSuchAlgorithmException {
         Objects.requireNonNull(prk);
         Objects.requireNonNull(info);
         Preconditions.checkArgument(length >= 0, "Negative length");
@@ -101,7 +101,7 @@ public final class Hkdf {
         byte[] t = new byte[0];
         byte[] output = new byte[length];
         int outputOffset = 0;
-        byte[] counter = new byte[] { 0x00 };
+        byte[] counter = new byte[] {0x00};
         while (outputOffset < length) {
             counter[0]++;
             mac.update(t);

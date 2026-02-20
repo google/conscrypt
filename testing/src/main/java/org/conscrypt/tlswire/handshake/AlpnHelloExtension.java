@@ -15,19 +15,19 @@
  */
 package org.conscrypt.tlswire.handshake;
 
+import org.conscrypt.tlswire.util.IoUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import org.conscrypt.tlswire.util.IoUtils;
 
 /**
  * {@code application_layer_protocol_negotiation} {@link HelloExtension} from RFC 7301 section 3.1.
  */
 public class AlpnHelloExtension extends HelloExtension {
-
     public List<String> protocols;
 
     @Override

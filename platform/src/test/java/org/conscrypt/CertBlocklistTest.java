@@ -19,6 +19,10 @@ package org.conscrypt;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
@@ -26,15 +30,11 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import javax.net.ssl.X509TrustManager;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import javax.net.ssl.X509TrustManager;
 
 @RunWith(JUnit4.class)
 public class CertBlocklistTest {
-
     private static final String BLOCKLIST_CA = "test_blocklist_ca.pem";
     private static final String BLOCKLIST_CA2 = "test_blocklist_ca2.pem";
     private static final String BLOCKLISTED_CHAIN = "blocklist_test_chain.pem";
@@ -81,7 +81,8 @@ public class CertBlocklistTest {
         assertUntrusted(chain, getTrustManager(blocklistedCa));
     }
 
-    /** Test that the path building correctly routes around a blocklisted cert where there are
+    /**
+     * Test that the path building correctly routes around a blocklisted cert where there are
      * other valid paths available. This prevents breakage where a cert was cross signed by a
      * blocklisted CA but is still valid due to also being cross signed by CAs that remain trusted.
      * Path:

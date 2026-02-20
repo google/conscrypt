@@ -105,8 +105,8 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
             throw new SignatureException("No key provided");
         }
 
-        boolean result = NativeCrypto.EVP_DigestVerify(
-                ctxLocal, sigBytes, 0, sigBytes.length, buffer.array(), 0, buffer.size());
+        boolean result = NativeCrypto.EVP_DigestVerify(ctxLocal, sigBytes, 0, sigBytes.length,
+                                                       buffer.array(), 0, buffer.size());
         buffer.reset();
         return result;
     }

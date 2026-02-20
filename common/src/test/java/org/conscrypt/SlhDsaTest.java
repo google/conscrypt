@@ -120,11 +120,11 @@ public class SlhDsaTest {
     @Test
     public void plainSlhDsa_isNotSupported() throws Exception {
         assertThrows(NoSuchAlgorithmException.class,
-                () -> KeyPairGenerator.getInstance("SLH-DSA", conscryptProvider));
+                     () -> KeyPairGenerator.getInstance("SLH-DSA", conscryptProvider));
         assertThrows(NoSuchAlgorithmException.class,
-                () -> Signature.getInstance("SLH-DSA", conscryptProvider));
+                     () -> Signature.getInstance("SLH-DSA", conscryptProvider));
         assertThrows(NoSuchAlgorithmException.class,
-                () -> KeyFactory.getInstance("SLH-DSA", conscryptProvider));
+                     () -> KeyFactory.getInstance("SLH-DSA", conscryptProvider));
     }
 
     @Test
@@ -159,9 +159,9 @@ public class SlhDsaTest {
 
         PrivateKey unused = keyFactory.generatePrivate(new RawKeySpec(new byte[64]));
         assertThrows(InvalidKeySpecException.class,
-                () -> keyFactory.generatePrivate(new RawKeySpec(new byte[63])));
+                     () -> keyFactory.generatePrivate(new RawKeySpec(new byte[63])));
         assertThrows(InvalidKeySpecException.class,
-                () -> keyFactory.generatePrivate(new RawKeySpec(new byte[65])));
+                     () -> keyFactory.generatePrivate(new RawKeySpec(new byte[65])));
     }
 
     @Test
@@ -170,9 +170,9 @@ public class SlhDsaTest {
 
         PublicKey unused = keyFactory.generatePublic(new RawKeySpec(new byte[32]));
         assertThrows(InvalidKeySpecException.class,
-                () -> keyFactory.generatePublic(new RawKeySpec(new byte[31])));
+                     () -> keyFactory.generatePublic(new RawKeySpec(new byte[31])));
         assertThrows(InvalidKeySpecException.class,
-                () -> keyFactory.generatePublic(new RawKeySpec(new byte[33])));
+                     () -> keyFactory.generatePublic(new RawKeySpec(new byte[33])));
     }
 
     @Test
@@ -184,9 +184,9 @@ public class SlhDsaTest {
         KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
 
         assertThrows(UnsupportedOperationException.class,
-                () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
+                     () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
         assertThrows(UnsupportedOperationException.class,
-                () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
+                     () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
     }
 
     @Test

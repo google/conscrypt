@@ -34,8 +34,8 @@ final class OpenSSLECPointContext {
     }
 
     ECPoint getECPoint() {
-        final byte[][] generatorCoords = NativeCrypto.EC_POINT_get_affine_coordinates(
-                group.getNativeRef(), pointCtx);
+        final byte[][] generatorCoords =
+                NativeCrypto.EC_POINT_get_affine_coordinates(group.getNativeRef(), pointCtx);
         final BigInteger x = new BigInteger(generatorCoords[0]);
         final BigInteger y = new BigInteger(generatorCoords[1]);
         return new ECPoint(x, y);
@@ -51,13 +51,12 @@ final class OpenSSLECPointContext {
         return pointCtx;
     }
 
-    static OpenSSLECPointContext getInstance(OpenSSLECGroupContext group,
-            ECPoint javaPoint) {
-        OpenSSLECPointContext point = new OpenSSLECPointContext(group, new NativeRef.EC_POINT(
-                NativeCrypto.EC_POINT_new(group.getNativeRef())));
-        NativeCrypto.EC_POINT_set_affine_coordinates(group.getNativeRef(),
-                point.getNativeRef(), javaPoint.getAffineX().toByteArray(),
-                javaPoint.getAffineY().toByteArray());
+    static OpenSSLECPointContext getInstance(OpenSSLECGroupContext group, ECPoint javaPoint) {
+        OpenSSLECPointContext point = new OpenSSLECPointContext(
+                group, new NativeRef.EC_POINT(NativeCrypto.EC_POINT_new(group.getNativeRef())));
+        NativeCrypto.EC_POINT_set_affine_coordinates(group.getNativeRef(), point.getNativeRef(),
+                                                     javaPoint.getAffineX().toByteArray(),
+                                                     javaPoint.getAffineY().toByteArray());
         return point;
     }
 }

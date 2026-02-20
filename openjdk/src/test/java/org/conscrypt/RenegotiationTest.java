@@ -20,6 +20,15 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -35,20 +44,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This tests that server-initiated cipher renegotiation works properly with a Conscrypt client.
@@ -85,8 +87,7 @@ public class RenegotiationTest {
         return new Object[] {SocketType.FILE_DESCRIPTOR, SocketType.ENGINE};
     }
 
-    @Parameter
-    public SocketType socketType;
+    @Parameter public SocketType socketType;
 
     private Client client;
     private Server server;
@@ -142,8 +143,8 @@ public class RenegotiationTest {
             try {
                 SSLSocketFactory socketFactory = newConscryptClientContext().getSocketFactory();
                 Conscrypt.setUseEngineSocket(socketFactory, useEngineSocket);
-                socket = (SSLSocket) socketFactory.createSocket(
-                        TestUtils.getLoopbackAddress(), port);
+                socket = (SSLSocket) socketFactory.createSocket(TestUtils.getLoopbackAddress(),
+                                                                port);
                 socket.setEnabledProtocols(TestUtils.getCommonProtocolSuites());
                 socket.setEnabledCipherSuites(TestUtils.getCommonCipherSuites());
             } catch (IOException e) {
@@ -223,8 +224,8 @@ public class RenegotiationTest {
         private final ByteBuffer inboundPacketBuffer;
         private final ByteBuffer inboundAppBuffer;
         private final ByteBuffer outboundPacketBuffer;
-        private final Set<String> ciphers = new LinkedHashSet<String>(Arrays.asList(
-            TestUtils.getCommonCipherSuites()));
+        private final Set<String> ciphers =
+                new LinkedHashSet<String>(Arrays.asList(TestUtils.getCommonCipherSuites()));
         private SocketChannel channel;
         private ExecutorService executor;
         private volatile boolean stopping;
@@ -394,7 +395,9 @@ public class RenegotiationTest {
                     case OK:
                         done = true;
                         break;
-                    default: { throw new RuntimeException("Unexpected unwrap result: " + result); }
+                    default: {
+                        throw new RuntimeException("Unexpected unwrap result: " + result);
+                    }
                 }
 
                 // Compact for the next socket read.

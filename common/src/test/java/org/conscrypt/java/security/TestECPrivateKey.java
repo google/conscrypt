@@ -21,41 +21,41 @@ import java.security.spec.ECParameterSpec;
 import java.util.Objects;
 
 class TestECPrivateKey implements ECPrivateKey {
-  private ECPrivateKey key;
-  private String format;
+    private ECPrivateKey key;
+    private String format;
 
-  TestECPrivateKey(ECPrivateKey key) {
-    this(key, key.getFormat());
-  }
+    TestECPrivateKey(ECPrivateKey key) {
+        this(key, key.getFormat());
+    }
 
-  TestECPrivateKey(ECPrivateKey key, String format) {
-    Objects.requireNonNull(key);
-    this.key = key;
-    this.format = format;
-  }
+    TestECPrivateKey(ECPrivateKey key, String format) {
+        Objects.requireNonNull(key);
+        this.key = key;
+        this.format = format;
+    }
 
-  @Override
-  public String getAlgorithm() {
-    return key.getAlgorithm();
-  }
+    @Override
+    public String getAlgorithm() {
+        return key.getAlgorithm();
+    }
 
-  @Override
-  public byte[] getEncoded() {
-    return key.getEncoded();
-  }
+    @Override
+    public byte[] getEncoded() {
+        return key.getEncoded();
+    }
 
-  @Override
-  public String getFormat() {
-    return format;
-  }
+    @Override
+    public String getFormat() {
+        return format;
+    }
 
-  @Override
-  public ECParameterSpec getParams() {
-    return key.getParams();
-  }
+    @Override
+    public ECParameterSpec getParams() {
+        return key.getParams();
+    }
 
-  @Override
-  public BigInteger getS() {
-    return key.getS();
-  }
+    @Override
+    public BigInteger getS() {
+        return key.getS();
+    }
 }

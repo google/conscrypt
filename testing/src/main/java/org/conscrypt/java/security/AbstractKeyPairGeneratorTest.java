@@ -18,13 +18,13 @@ package org.conscrypt.java.security;
 
 import static org.junit.Assert.assertNotNull;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
-public abstract class AbstractKeyPairGeneratorTest {
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 
+public abstract class AbstractKeyPairGeneratorTest {
     private final String algorithmName;
     private final TestHelper<KeyPair> helper;
 

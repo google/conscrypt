@@ -20,6 +20,7 @@ import static org.conscrypt.Preconditions.checkNotNull;
 
 import java.util.Arrays;
 import java.util.List;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 
@@ -62,7 +63,7 @@ final class ApplicationProtocolSelectorAdapter {
 
         // Select the protocol.
         final String selected;
-        if (engine != null ) {
+        if (engine != null) {
             selected = selector.selectApplicationProtocol(engine, protocols);
         } else {
             selected = selector.selectApplicationProtocol(socket, protocols);

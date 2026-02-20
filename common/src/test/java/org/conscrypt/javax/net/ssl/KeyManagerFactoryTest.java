@@ -71,8 +71,8 @@ public class KeyManagerFactoryTest {
     public void setUp() throws Exception {
         // note the rare usage of DSA keys here in addition to RSA
         String[] keyAlgorithms = StandardNames.IS_RI
-                ? new String[] { "RSA", "DSA", "EC", "EC_RSA" }
-                : new String[] { "RSA", "DH_RSA", "DSA", "DH_DSA", "EC", "EC_RSA" };
+                ? new String[] {"RSA", "DSA", "EC", "EC_RSA"}
+                : new String[] {"RSA", "DH_RSA", "DSA", "DH_DSA", "EC", "EC_RSA"};
         testKeyStore = new TestKeyStore.Builder()
                                .keyAlgorithms(keyAlgorithms)
                                .aliasPrefix("rsa-dsa-ec-dh")
@@ -187,7 +187,7 @@ public class KeyManagerFactoryTest {
         KEY_TYPES_WITH_EMPTY[KEY_TYPES_WITH_EMPTY.length - 1] = "";
 
         System.arraycopy(KEY_TYPES_WITH_EMPTY, 0, KEY_TYPES_WITH_EMPTY_AND_NULL, 0,
-                KEY_TYPES_WITH_EMPTY.length);
+                         KEY_TYPES_WITH_EMPTY.length);
         // extra null at end requires no initialization
     }
 
@@ -237,8 +237,8 @@ public class KeyManagerFactoryTest {
         }
     }
 
-    private void test_X509ExtendedKeyManager(
-            X509ExtendedKeyManager km, boolean empty, String algorithm) throws Exception {
+    private void test_X509ExtendedKeyManager(X509ExtendedKeyManager km, boolean empty,
+                                             String algorithm) throws Exception {
         String[] keyTypes = keyTypes(algorithm);
         String[][] rotatedTypes = rotate(nonEmpty(keyTypes));
         for (String[] keyList : rotatedTypes) {
@@ -282,7 +282,7 @@ public class KeyManagerFactoryTest {
     }
 
     private void test_X509KeyManager_alias(X509KeyManager km, String alias, String keyType,
-            boolean many, boolean empty) throws Exception {
+                                           boolean many, boolean empty) throws Exception {
         if (empty || (!many && (keyType == null || keyType.isEmpty()))) {
             assertNull(keyType, alias);
             assertNull(keyType, km.getCertificateChain(alias));
@@ -303,7 +303,7 @@ public class KeyManagerFactoryTest {
         PrivateKeyEntry privateKeyEntry = getTestKeyStore().getPrivateKey(keyAlgName, sigAlgName);
 
         assertEquals(keyType, Arrays.asList(privateKeyEntry.getCertificateChain()),
-                Arrays.<Certificate>asList(certificateChain));
+                     Arrays.<Certificate>asList(certificateChain));
         assertEquals(keyType, privateKeyEntry.getPrivateKey(), privateKey);
 
         if (keyType != null) {
@@ -314,46 +314,46 @@ public class KeyManagerFactoryTest {
             // algorithm was.
             if (!keyType.equals("DH") && !keyType.equals("EC")) {
                 assertTrue("SigAlg: " + sigAlgName + ", KeyType: " + keyType,
-                    sigAlgName.contains(TestKeyStore.signatureAlgorithm(keyType)));
+                           sigAlgName.contains(TestKeyStore.signatureAlgorithm(keyType)));
             }
         }
     }
 
     @Test
     public void test_KeyManagerFactory_getInstance() throws Exception {
-        ServiceTester.test("KeyManagerFactory")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider provider, String algorithm) throws Exception {
-                    KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
-                    assertEquals(algorithm, kmf.getAlgorithm());
-                    test_KeyManagerFactory(kmf);
+        ServiceTester.test("KeyManagerFactory").run(new ServiceTester.Test() {
+            @Override
+            public void test(Provider provider, String algorithm) throws Exception {
+                KeyManagerFactory kmf = KeyManagerFactory.getInstance(algorithm);
+                assertEquals(algorithm, kmf.getAlgorithm());
+                test_KeyManagerFactory(kmf);
 
-                    kmf = KeyManagerFactory.getInstance(algorithm, provider);
-                    assertEquals(algorithm, kmf.getAlgorithm());
-                    assertEquals(provider, kmf.getProvider());
-                    test_KeyManagerFactory(kmf);
+                kmf = KeyManagerFactory.getInstance(algorithm, provider);
+                assertEquals(algorithm, kmf.getAlgorithm());
+                assertEquals(provider, kmf.getProvider());
+                test_KeyManagerFactory(kmf);
 
-                    kmf = KeyManagerFactory.getInstance(algorithm, provider.getName());
-                    assertEquals(algorithm, kmf.getAlgorithm());
-                    assertEquals(provider, kmf.getProvider());
-                    test_KeyManagerFactory(kmf);
-                }
-            });
+                kmf = KeyManagerFactory.getInstance(algorithm, provider.getName());
+                assertEquals(algorithm, kmf.getAlgorithm());
+                assertEquals(provider, kmf.getProvider());
+                test_KeyManagerFactory(kmf);
+            }
+        });
     }
 
     // The Conscrypt provider on OpenJDK doesn't provide the KeyManagerFactory, but we want
     // to test it on OpenJDK anyway
     @Test
     public void test_KeyManagerFactory_Conscrypt() throws Exception {
-        KeyManagerFactory kmf = new KeyManagerFactory(new KeyManagerFactoryImpl(),
-            TestUtils.getConscryptProvider(), KeyManagerFactory.getDefaultAlgorithm()) { };
+        KeyManagerFactory kmf =
+                new KeyManagerFactory(new KeyManagerFactoryImpl(), TestUtils.getConscryptProvider(),
+                                      KeyManagerFactory.getDefaultAlgorithm()) {};
         test_KeyManagerFactory(kmf);
 
         // Test that using a KeyStore that doesn't implement getEntry(), like Android Keystore
         // doesn't, still produces a functional KeyManager.
         kmf.init(new NoGetEntryKeyStore(getTestKeyStore().keyStore),
-            getTestKeyStore().storePassword);
+                 getTestKeyStore().storePassword);
         test_KeyManagerFactory_getKeyManagers(kmf, false);
     }
 
@@ -368,7 +368,6 @@ public class KeyManagerFactoryTest {
     // for testing by throwing UnsupportedOperationException and passing everything else through
     // to a working implementation.
     private static class NoGetEntryKeyStoreSpi extends KeyStoreSpi {
-
         private final KeyStore keyStore;
 
         public NoGetEntryKeyStoreSpi(KeyStore keyStore) {
@@ -382,7 +381,7 @@ public class KeyManagerFactoryTest {
 
         @Override
         public Key engineGetKey(String s, char[] chars)
-            throws NoSuchAlgorithmException, UnrecoverableKeyException {
+                throws NoSuchAlgorithmException, UnrecoverableKeyException {
             try {
                 return keyStore.getKey(s, chars);
             } catch (KeyStoreException e) {
@@ -419,7 +418,7 @@ public class KeyManagerFactoryTest {
 
         @Override
         public void engineSetKeyEntry(String s, Key key, char[] chars, Certificate[] certificates)
-            throws KeyStoreException {
+                throws KeyStoreException {
             try {
                 keyStore.setKeyEntry(s, key, chars, certificates);
             } catch (KeyStoreException e) {
@@ -429,7 +428,7 @@ public class KeyManagerFactoryTest {
 
         @Override
         public void engineSetKeyEntry(String s, byte[] bytes, Certificate[] certificates)
-            throws KeyStoreException {
+                throws KeyStoreException {
             try {
                 keyStore.setKeyEntry(s, bytes, certificates);
             } catch (KeyStoreException e) {
@@ -439,7 +438,7 @@ public class KeyManagerFactoryTest {
 
         @Override
         public void engineSetCertificateEntry(String s, Certificate certificate)
-            throws KeyStoreException {
+                throws KeyStoreException {
             try {
                 keyStore.setCertificateEntry(s, certificate);
             } catch (KeyStoreException e) {
@@ -512,7 +511,7 @@ public class KeyManagerFactoryTest {
 
         @Override
         public void engineStore(OutputStream outputStream, char[] chars)
-            throws IOException, NoSuchAlgorithmException, CertificateException {
+                throws IOException, NoSuchAlgorithmException, CertificateException {
             try {
                 keyStore.store(outputStream, chars);
             } catch (KeyStoreException e) {
@@ -522,7 +521,7 @@ public class KeyManagerFactoryTest {
 
         @Override
         public void engineLoad(InputStream inputStream, char[] chars)
-            throws IOException, NoSuchAlgorithmException, CertificateException {
+                throws IOException, NoSuchAlgorithmException, CertificateException {
             // Do nothing, the keystore is already loaded
         }
     }

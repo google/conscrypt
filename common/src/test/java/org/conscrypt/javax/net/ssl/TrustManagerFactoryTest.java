@@ -23,6 +23,15 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.conscrypt.Conscrypt;
+import org.conscrypt.Spake2PlusTrustManager;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
@@ -32,19 +41,13 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.PKIXParameters;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.Spake2PlusTrustManager;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
@@ -66,7 +69,7 @@ public class TrustManagerFactoryTest {
 
     private static boolean supportsManagerFactoryParameters(TrustManagerFactory tmf) {
         return (StandardNames.IS_RI && tmf.getAlgorithm().equals("PKIX")
-            && !Conscrypt.isConscrypt(tmf.getProvider()));
+                && !Conscrypt.isConscrypt(tmf.getProvider()));
     }
 
     @Test
@@ -179,8 +182,8 @@ public class TrustManagerFactoryTest {
             assertNotSame(issuers, tm.getAcceptedIssuers());
             boolean defaultTrustManager
                     // RI de-duplicates certs from TrustedCertificateEntry and PrivateKeyEntry
-                    = issuers.length >
-                    (StandardNames.IS_RI && !Conscrypt.isConscrypt(p) ? 1 : 2) * KEY_TYPES.length;
+                    = issuers.length
+                    > (StandardNames.IS_RI && !Conscrypt.isConscrypt(p) ? 1 : 2) * KEY_TYPES.length;
 
             String keyAlgName = TestKeyStore.keyAlgorithm(keyType);
             String sigAlgName = TestKeyStore.signatureAlgorithm(keyType);
@@ -208,25 +211,24 @@ public class TrustManagerFactoryTest {
 
     @Test
     public void test_TrustManagerFactory_getInstance() throws Exception {
-        ServiceTester.test("TrustManagerFactory")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider provider, String algorithm) throws Exception {
-                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-                    assertEquals(algorithm, tmf.getAlgorithm());
-                    test_TrustManagerFactory(tmf);
+        ServiceTester.test("TrustManagerFactory").run(new ServiceTester.Test() {
+            @Override
+            public void test(Provider provider, String algorithm) throws Exception {
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
+                assertEquals(algorithm, tmf.getAlgorithm());
+                test_TrustManagerFactory(tmf);
 
-                    tmf = TrustManagerFactory.getInstance(algorithm, provider);
-                    assertEquals(algorithm, tmf.getAlgorithm());
-                    assertEquals(provider, tmf.getProvider());
-                    test_TrustManagerFactory(tmf);
+                tmf = TrustManagerFactory.getInstance(algorithm, provider);
+                assertEquals(algorithm, tmf.getAlgorithm());
+                assertEquals(provider, tmf.getProvider());
+                test_TrustManagerFactory(tmf);
 
-                    tmf = TrustManagerFactory.getInstance(algorithm, provider.getName());
-                    assertEquals(algorithm, tmf.getAlgorithm());
-                    assertEquals(provider, tmf.getProvider());
-                    test_TrustManagerFactory(tmf);
-                }
-            });
+                tmf = TrustManagerFactory.getInstance(algorithm, provider.getName());
+                assertEquals(algorithm, tmf.getAlgorithm());
+                assertEquals(provider, tmf.getProvider());
+                test_TrustManagerFactory(tmf);
+            }
+        });
     }
 
     @Test
@@ -280,30 +282,31 @@ public class TrustManagerFactoryTest {
     @Test
     public void test_TrustManagerFactory_extendedKeyUsage() throws Exception {
         // anyExtendedKeyUsage should work for client or server
-        test_TrustManagerFactory_extendedKeyUsage(
-                KeyPurposeId.anyExtendedKeyUsage, false, true, true);
-        test_TrustManagerFactory_extendedKeyUsage(
-                KeyPurposeId.anyExtendedKeyUsage, true, true, true);
+        test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.anyExtendedKeyUsage, false, true,
+                                                  true);
+        test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.anyExtendedKeyUsage, true, true,
+                                                  true);
 
         // critical clientAuth should work for client
-        test_TrustManagerFactory_extendedKeyUsage(
-                KeyPurposeId.id_kp_clientAuth, false, true, false);
+        test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.id_kp_clientAuth, false, true,
+                                                  false);
         test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.id_kp_clientAuth, true, true, false);
 
         // critical serverAuth should work for server
-        test_TrustManagerFactory_extendedKeyUsage(
-                KeyPurposeId.id_kp_serverAuth, false, false, true);
+        test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.id_kp_serverAuth, false, false,
+                                                  true);
         test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.id_kp_serverAuth, true, false, true);
 
         // codeSigning should not work
-        test_TrustManagerFactory_extendedKeyUsage(
-                KeyPurposeId.id_kp_codeSigning, false, false, false);
-        test_TrustManagerFactory_extendedKeyUsage(
-                KeyPurposeId.id_kp_codeSigning, true, false, false);
+        test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.id_kp_codeSigning, false, false,
+                                                  false);
+        test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId.id_kp_codeSigning, true, false,
+                                                  false);
     }
 
     private void test_TrustManagerFactory_extendedKeyUsage(KeyPurposeId keyPurposeId,
-            boolean critical, boolean client, boolean server) throws Exception {
+                                                           boolean critical, boolean client,
+                                                           boolean server) throws Exception {
         String algorithm = "RSA";
         TestKeyStore intermediateCa = TestKeyStore.getIntermediateCa();
         TestKeyStore leaf = new TestKeyStore.Builder()

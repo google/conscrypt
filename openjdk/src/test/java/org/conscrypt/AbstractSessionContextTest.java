@@ -25,10 +25,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.security.cert.Certificate;
-import javax.net.ssl.SSLSession;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.security.cert.Certificate;
+
+import javax.net.ssl.SSLSession;
 
 public abstract class AbstractSessionContextTest<T extends AbstractSessionContext> {
     private T context;
@@ -122,10 +124,10 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
     public void testSerializeSession() throws Exception {
         byte[] encodedBytes = new byte[] {0x01, 0x02, 0x03};
         NativeSslSession session = new MockSessionBuilder()
-                .id(new byte[] {0x11, 0x09, 0x03, 0x20})
-                .host("ssl.example.com")
-                .encodedBytes(encodedBytes)
-                .build();
+                                           .id(new byte[] {0x11, 0x09, 0x03, 0x20})
+                                           .host("ssl.example.com")
+                                           .encodedBytes(encodedBytes)
+                                           .build();
 
         SSLClientSessionCache mockCache = mock(SSLClientSessionCache.class);
         ClientSessionContext context = new ClientSessionContext();
@@ -135,8 +137,8 @@ public abstract class AbstractSessionContextTest<T extends AbstractSessionContex
         verify(mockCache).putSessionData(any(SSLSession.class), same(encodedBytes));
     }
 
-    private void assertSessionContextContents(
-            NativeSslSession[] contains, NativeSslSession[] excludes) {
+    private void assertSessionContextContents(NativeSslSession[] contains,
+                                              NativeSslSession[] excludes) {
         assertEquals(contains.length, size(context));
 
         for (NativeSslSession s : contains) {

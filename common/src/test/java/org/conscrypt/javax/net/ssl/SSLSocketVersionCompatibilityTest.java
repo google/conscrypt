@@ -132,10 +132,10 @@ public class SSLSocketVersionCompatibilityTest {
     @Parameterized.Parameters(name = "{index}: {0} client, {1} server")
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][] {
-            { "TLSv1.2", "TLSv1.2" },
-            { "TLSv1.2", "TLSv1.3" },
-            { "TLSv1.3", "TLSv1.2" },
-            { "TLSv1.3", "TLSv1.3" },
+                {"TLSv1.2", "TLSv1.2"},
+                {"TLSv1.2", "TLSv1.3"},
+                {"TLSv1.3", "TLSv1.2"},
+                {"TLSv1.3", "TLSv1.3"},
         });
     }
 
@@ -164,8 +164,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_startHandshake() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion).build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -183,8 +184,7 @@ public class SSLSocketVersionCompatibilityTest {
             assertNotNull(localCertificates);
             TestKeyStore.assertChainLength(localCertificates);
             assertNotNull(localCertificates[0]);
-            TestSSLContext
-                .assertServerCertificateChain(c.serverTrustManager, localCertificates);
+            TestSSLContext.assertServerCertificateChain(c.serverTrustManager, localCertificates);
             TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
             return null;
         });
@@ -219,9 +219,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_confirmSessionReuse() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final SSLSocket client1 = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 c.host.getHostName(), c.port);
         final SSLSocket server1 = (SSLSocket) c.serverSocket.accept();
@@ -252,11 +252,12 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Test
     public void test_SSLSocket_NoEnabledCipherSuites_Failure() throws Exception {
-        TestSSLContext c = TestSSLContext.newBuilder()
-                .useDefaults(false)
-                .clientContext(defaultInit(SSLContext.getInstance(clientVersion)))
-                .serverContext(defaultInit(SSLContext.getInstance(serverVersion)))
-                .build();
+        TestSSLContext c =
+                TestSSLContext.newBuilder()
+                        .useDefaults(false)
+                        .clientContext(defaultInit(SSLContext.getInstance(clientVersion)))
+                        .serverContext(defaultInit(SSLContext.getInstance(serverVersion)))
+                        .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledCipherSuites(new String[0]);
@@ -284,11 +285,12 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Test
     public void test_SSLSocket_startHandshake_noKeyStore() throws Exception {
-        TestSSLContext c = TestSSLContext.newBuilder()
-                .useDefaults(false)
-                .clientContext(defaultInit(SSLContext.getInstance(clientVersion)))
-                .serverContext(defaultInit(SSLContext.getInstance(serverVersion)))
-                .build();
+        TestSSLContext c =
+                TestSSLContext.newBuilder()
+                        .useDefaults(false)
+                        .clientContext(defaultInit(SSLContext.getInstance(clientVersion)))
+                        .serverContext(defaultInit(SSLContext.getInstance(serverVersion)))
+                        .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -316,9 +318,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_startHandshake_noClientCertificate() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLContext clientContext = c.clientContext;
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
@@ -338,9 +340,9 @@ public class SSLSocketVersionCompatibilityTest {
     @SuppressWarnings("deprecation")
     public void test_SSLSocket_HandshakeCompletedListener() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -373,19 +375,19 @@ public class SSLSocketVersionCompatibilityTest {
                         assertEquals(0, id.length);
                     }
                     assertNotNull(cipherSuite);
-                    assertTrue(Arrays.asList(client.getEnabledCipherSuites())
-                            .contains(cipherSuite));
+                    assertTrue(
+                            Arrays.asList(client.getEnabledCipherSuites()).contains(cipherSuite));
                     assertTrue(Arrays.asList(c.serverSocket.getEnabledCipherSuites())
-                            .contains(cipherSuite));
+                                       .contains(cipherSuite));
 
                     assertNull(localCertificates);
                     assertNotNull(peerCertificates);
                     TestKeyStore.assertChainLength(peerCertificates);
                     assertNotNull(peerCertificates[0]);
-                    TestSSLContext
-                        .assertServerCertificateChain(c.clientTrustManager, peerCertificates);
-                    TestSSLContext
-                        .assertCertificateInKeyStore(peerCertificates[0], c.serverKeyStore);
+                    TestSSLContext.assertServerCertificateChain(c.clientTrustManager,
+                                                                peerCertificates);
+                    TestSSLContext.assertCertificateInKeyStore(peerCertificates[0],
+                                                               c.serverKeyStore);
                     assertNotNull(peerPrincipal);
                     TestSSLContext.assertCertificateInKeyStore(peerPrincipal, c.serverKeyStore);
                     assertNull(localPrincipal);
@@ -420,9 +422,8 @@ public class SSLSocketVersionCompatibilityTest {
         client.startHandshake();
         future.get();
         if (negotiatedVersion().equals("TLSv1.2")) {
-            assertNotNull(
-                    c.serverContext.getServerSessionContext()
-                            .getSession(client.getSession().getId()));
+            assertNotNull(c.serverContext.getServerSessionContext().getSession(
+                    client.getSession().getId()));
         }
         synchronized (handshakeCompletedListenerCalled) {
             while (!handshakeCompletedListenerCalled[0]) {
@@ -450,9 +451,9 @@ public class SSLSocketVersionCompatibilityTest {
         final TestUncaughtExceptionHandler test = new TestUncaughtExceptionHandler();
         self.setUncaughtExceptionHandler(test);
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -460,9 +461,7 @@ public class SSLSocketVersionCompatibilityTest {
             server.startHandshake();
             return null;
         });
-        client.addHandshakeCompletedListener(event -> {
-            throw expectedException;
-        });
+        client.addHandshakeCompletedListener(event -> { throw expectedException; });
         client.startHandshake();
         future.get();
         client.close();
@@ -475,9 +474,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_getUseClientMode() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -497,14 +496,14 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void testClientMode_reverse() throws Exception {
         // Client is server and server is client.
-        assertThrows(
-                SSLHandshakeException.class, () -> test_SSLSocket_setUseClientMode(false, true));
+        assertThrows(SSLHandshakeException.class,
+                     () -> test_SSLSocket_setUseClientMode(false, true));
     }
 
     @Test
     public void testClientMode_bothClient() throws Exception {
-        assertThrows(
-                SSLHandshakeException.class, () -> test_SSLSocket_setUseClientMode(true, true));
+        assertThrows(SSLHandshakeException.class,
+                     () -> test_SSLSocket_setUseClientMode(true, true));
     }
 
     @Test
@@ -516,17 +515,18 @@ public class SSLSocketVersionCompatibilityTest {
             // Ignore
         } catch (SSLHandshakeException expected) {
             // Depending on the timing of the socket closures, this can happen as well.
-            assertTrue("Unexpected handshake error: " + expected.getMessage(),
+            assertTrue(
+                    "Unexpected handshake error: " + expected.getMessage(),
                     expected.getMessage().toLowerCase(Locale.ROOT).contains("connection closed"));
         }
     }
 
-    private void test_SSLSocket_setUseClientMode(
-            final boolean clientClientMode, final boolean serverClientMode) throws Exception {
+    private void test_SSLSocket_setUseClientMode(final boolean clientClientMode,
+                                                 final boolean serverClientMode) throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -559,11 +559,11 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_clientAuth() throws Exception {
         TestSSLContext c = new TestSSLContext.Builder()
-                .client(TestKeyStore.getClientCertificate())
-                .server(TestKeyStore.getServer())
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                   .client(TestKeyStore.getClientCertificate())
+                                   .server(TestKeyStore.getServer())
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -588,8 +588,8 @@ public class SSLSocketVersionCompatibilityTest {
         client.startHandshake();
         assertNotNull(client.getSession().getLocalCertificates());
         TestKeyStore.assertChainLength(client.getSession().getLocalCertificates());
-        TestSSLContext.assertClientCertificateChain(
-                c.clientTrustManager, client.getSession().getLocalCertificates());
+        TestSSLContext.assertClientCertificateChain(c.clientTrustManager,
+                                                    client.getSession().getLocalCertificates());
         future.get();
         client.close();
         server.close();
@@ -599,9 +599,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_clientAuth_bogusAlias() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLContext clientContext = SSLContext.getInstance(clientVersion);
         X509ExtendedKeyManager keyManager = new X509ExtendedKeyManager() {
             @Override
@@ -627,12 +627,12 @@ public class SSLSocketVersionCompatibilityTest {
             }
             @Override
             public String chooseEngineClientAlias(String[] keyType, Principal[] issuers,
-                SSLEngine engine) {
+                                                  SSLEngine engine) {
                 throw new AssertionError();
             }
             @Override
             public String chooseEngineServerAlias(String keyType, Principal[] issuers,
-                SSLEngine engine) {
+                                                  SSLEngine engine) {
                 throw new AssertionError();
             }
             @Override
@@ -641,8 +641,8 @@ public class SSLSocketVersionCompatibilityTest {
                 return null;
             }
         };
-        clientContext.init(
-                new KeyManager[] {keyManager}, new TrustManager[] {c.clientTrustManager}, null);
+        clientContext.init(new KeyManager[] {keyManager}, new TrustManager[] {c.clientTrustManager},
+                           null);
         SSLSocket client =
                 (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -693,22 +693,22 @@ public class SSLSocketVersionCompatibilityTest {
         try {
             Security.insertProviderAt(new OpaqueProvider(), 1);
             final TestSSLContext c = new TestSSLContext.Builder()
-                    .client(keyStore)
-                    .server(TestKeyStore.getServer())
-                    .clientProtocol(clientVersion)
-                    .serverProtocol(serverVersion)
-                    .build();
+                                             .client(keyStore)
+                                             .server(TestKeyStore.getServer())
+                                             .clientProtocol(clientVersion)
+                                             .serverProtocol(serverVersion)
+                                             .build();
             SSLContext clientContext = SSLContext.getInstance("TLS");
             final X509KeyManager delegateKeyManager = (X509KeyManager) c.clientKeyManagers[0];
             X509ExtendedKeyManager keyManager = new X509ExtendedKeyManager() {
                 @Override
-                public String chooseClientAlias(
-                        String[] keyType, Principal[] issuers, Socket socket) {
+                public String chooseClientAlias(String[] keyType, Principal[] issuers,
+                                                Socket socket) {
                     return delegateKeyManager.chooseClientAlias(keyType, issuers, socket);
                 }
                 @Override
-                public String chooseServerAlias(
-                        String keyType, Principal[] issuers, Socket socket) {
+                public String chooseServerAlias(String keyType, Principal[] issuers,
+                                                Socket socket) {
                     return delegateKeyManager.chooseServerAlias(keyType, issuers, socket);
                 }
                 @Override
@@ -730,17 +730,17 @@ public class SSLSocketVersionCompatibilityTest {
                 }
                 @Override
                 public String chooseEngineClientAlias(String[] keyType, Principal[] issuers,
-                    SSLEngine engine) {
+                                                      SSLEngine engine) {
                     throw new AssertionError();
                 }
                 @Override
                 public String chooseEngineServerAlias(String keyType, Principal[] issuers,
-                    SSLEngine engine) {
+                                                      SSLEngine engine) {
                     throw new AssertionError();
                 }
             };
-            clientContext.init(
-                    new KeyManager[] {keyManager}, new TrustManager[] {c.clientTrustManager}, null);
+            clientContext.init(new KeyManager[] {keyManager},
+                               new TrustManager[] {c.clientTrustManager}, null);
             SSLSocket client =
                     (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
             final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -752,8 +752,8 @@ public class SSLSocketVersionCompatibilityTest {
             client.startHandshake();
             assertNotNull(client.getSession().getLocalCertificates());
             TestKeyStore.assertChainLength(client.getSession().getLocalCertificates());
-            TestSSLContext.assertClientCertificateChain(
-                    c.clientTrustManager, client.getSession().getLocalCertificates());
+            TestSSLContext.assertClientCertificateChain(c.clientTrustManager,
+                                                        client.getSession().getLocalCertificates());
             future.get();
             client.close();
             server.close();
@@ -766,9 +766,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_TrustManagerRuntimeException() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLContext clientContext = SSLContext.getInstance("TLS");
         X509TrustManager trustManager = new X509TrustManager() {
             @Override
@@ -812,9 +812,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_getEnableSessionCreation() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -828,9 +828,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_setEnableSessionCreation_server() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -859,9 +859,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_setEnableSessionCreation_client() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
@@ -890,9 +890,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_close() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         TestSSLSocketPair pair = TestSSLSocketPair.create(c).connect();
         SSLSocket server = pair.server;
         SSLSocket client = pair.client;
@@ -908,7 +908,7 @@ public class SSLSocketVersionCompatibilityTest {
         server.close();
         client.close();
         // ...so are a lot of other operations...
-        HandshakeCompletedListener l = e -> { };
+        HandshakeCompletedListener l = e -> {};
         client.addHandshakeCompletedListener(l);
         assertNotNull(client.getEnabledCipherSuites());
         assertNotNull(client.getEnabledProtocols());
@@ -946,15 +946,13 @@ public class SSLSocketVersionCompatibilityTest {
             // Ignored.
         }
         try {
-            @SuppressWarnings("unused")
-            int value = input.read();
+            @SuppressWarnings("unused") int value = input.read();
             fail();
         } catch (SocketException expected) {
             // Ignored.
         }
         try {
-            @SuppressWarnings("unused")
-            int bytesRead = input.read(null, -1, -1);
+            @SuppressWarnings("unused") int bytesRead = input.read(null, -1, -1);
             fail();
         } catch (NullPointerException | SocketException expected) {
             // Ignored.
@@ -988,9 +986,9 @@ public class SSLSocketVersionCompatibilityTest {
         assumeFalse("Skipping shutdownInput() test on Windows", isWindows());
 
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         byte[] buffer = new byte[1];
         TestSSLSocketPair pair = TestSSLSocketPair.create(c).connect();
         SSLSocket server = pair.server;
@@ -1006,7 +1004,7 @@ public class SSLSocketVersionCompatibilityTest {
         assertTrue(exception.getMessage().contains("already shutdown"));
 
         // The following operations should succeed, same as after close()
-        HandshakeCompletedListener listener = e -> { };
+        HandshakeCompletedListener listener = e -> {};
         client.addHandshakeCompletedListener(listener);
         assertNotNull(client.getEnabledCipherSuites());
         assertNotNull(client.getEnabledProtocols());
@@ -1039,9 +1037,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_ShutdownOutput() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         byte[] buffer = new byte[1];
         TestSSLSocketPair pair = TestSSLSocketPair.create(c).connect();
         SSLSocket server = pair.server;
@@ -1057,7 +1055,7 @@ public class SSLSocketVersionCompatibilityTest {
         assertTrue(exception.getMessage().contains("already shutdown"));
 
         // The following operations should succeed, same as after close()
-        HandshakeCompletedListener listener = e -> { };
+        HandshakeCompletedListener listener = e -> {};
         client.addHandshakeCompletedListener(listener);
         assertNotNull(client.getEnabledCipherSuites());
         assertNotNull(client.getEnabledProtocols());
@@ -1101,9 +1099,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_shutdownCloseOnClosedPeer() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 underlying, c.host.getHostName(), c.port, false);
@@ -1118,8 +1116,7 @@ public class SSLSocketVersionCompatibilityTest {
         });
         SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.startHandshake();
-        @SuppressWarnings("unused")
-        int value = server.getInputStream().read();
+        @SuppressWarnings("unused") int value = server.getInputStream().read();
         // wait for thread to finish so we know client is closed.
         clientFuture.get();
         // close should cause an SSL_shutdown which will fail
@@ -1136,9 +1133,9 @@ public class SSLSocketVersionCompatibilityTest {
         HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         try {
             final TestSSLContext c = new TestSSLContext.Builder()
-                    .clientProtocol(clientVersion)
-                    .serverProtocol(serverVersion)
-                    .build();
+                                             .clientProtocol(clientVersion)
+                                             .serverProtocol(serverVersion)
+                                             .build();
             SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
             SSLParameters p = client.getSSLParameters();
             p.setEndpointIdentificationAlgorithm("HTTPS");
@@ -1158,8 +1155,7 @@ public class SSLSocketVersionCompatibilityTest {
                 assertNotNull(localCertificates);
                 TestKeyStore.assertChainLength(localCertificates);
                 assertNotNull(localCertificates[0]);
-                TestSSLContext
-                        .assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
+                TestSSLContext.assertCertificateInKeyStore(localCertificates[0], c.serverKeyStore);
                 return null;
             });
             client.startHandshake();
@@ -1188,9 +1184,9 @@ public class SSLSocketVersionCompatibilityTest {
         HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         try {
             final TestSSLContext c = new TestSSLContext.Builder()
-                    .clientProtocol(clientVersion)
-                    .serverProtocol(serverVersion)
-                    .build();
+                                             .clientProtocol(clientVersion)
+                                             .serverProtocol(serverVersion)
+                                             .build();
             SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
             SSLParameters p = client.getSSLParameters();
             p.setEndpointIdentificationAlgorithm("HTTPS");
@@ -1235,10 +1231,10 @@ public class SSLSocketVersionCompatibilityTest {
         // to a minimal size or the write would not block.
         final int receiveBufferSize = 128;
         TestSSLContext c = TestSSLContext.newBuilder()
-                .serverReceiveBufferSize(receiveBufferSize)
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                   .serverReceiveBufferSize(receiveBufferSize)
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
 
         final SSLSocket client =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(c.host, c.port);
@@ -1274,7 +1270,6 @@ public class SSLSocketVersionCompatibilityTest {
         } while (superClass != Object.class && !superClass.getName().endsWith("OpenSSLSocketImpl"));
         assertEquals("OpenSSLSocketImpl", superClass.getSimpleName());
 
-
         try {
             setWriteTimeout(client, 1);
 
@@ -1292,14 +1287,12 @@ public class SSLSocketVersionCompatibilityTest {
 
     @Test
     public void test_SSLSocket_reusedNpnSocket() throws Exception {
-        byte[] npnProtocols = new byte[] {
-                8, 'h', 't', 't', 'p', '/', '1', '.', '1'
-        };
+        byte[] npnProtocols = new byte[] {8, 'h', 't', 't', 'p', '/', '1', '.', '1'};
 
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket();
 
         assertTrue(isConscryptSocket(client));
@@ -1378,9 +1371,9 @@ public class SSLSocketVersionCompatibilityTest {
             throws Exception {
         final int readingTimeoutMillis = 5000;
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket clientWrapping =
                 (SSLSocket) c.clientContext.getSocketFactory().createSocket(
@@ -1450,9 +1443,9 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_interrupt_read_withoutAutoClose() throws Exception {
         final int readingTimeoutMillis = 5000;
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
                 underlying, c.host.getHostName(), c.port, false);
@@ -1518,12 +1511,12 @@ public class SSLSocketVersionCompatibilityTest {
     @Ignore("See comment above")
     public void test_SSLSocket_interrupt_write_withAutoclose() throws Exception {
         final TestSSLContext c = new TestSSLContext.Builder()
-            .clientProtocol(clientVersion)
-            .serverProtocol(serverVersion)
-            .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final Socket underlying = new Socket(c.host, c.port);
         final SSLSocket wrapping = (SSLSocket) c.clientContext.getSocketFactory().createSocket(
-            underlying, c.host.getHostName(), c.port, true);
+                underlying, c.host.getHostName(), c.port, true);
         final byte[] data = new byte[1024 * 64];
 
         // TODO(b/161347005): Re-enable once engine-based socket interruption works correctly.
@@ -1554,7 +1547,6 @@ public class SSLSocketVersionCompatibilityTest {
         server.close();
     }
 
-
     @Test
     public void test_SSLSocket_ClientHello_record_size() throws Exception {
         // This test checks the size of ClientHello of the default SSLSocket. TLS/SSL handshakes
@@ -1576,48 +1568,49 @@ public class SSLSocketVersionCompatibilityTest {
                 return socket;
             }
         };
-        TlsRecord firstReceivedTlsRecord = TlsTester.captureTlsHandshakeFirstTlsRecord(executor, sslSocketFactory);
+        TlsRecord firstReceivedTlsRecord =
+                TlsTester.captureTlsHandshakeFirstTlsRecord(executor, sslSocketFactory);
         assertEquals("TLS record type", TlsProtocols.HANDSHAKE, firstReceivedTlsRecord.type);
         HandshakeMessage handshakeMessage = HandshakeMessage.read(
                 new DataInputStream(new ByteArrayInputStream(firstReceivedTlsRecord.fragment)));
-        assertEquals(
-                "HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO, handshakeMessage.type);
+        assertEquals("HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO,
+                     handshakeMessage.type);
         int fragmentLength = firstReceivedTlsRecord.fragment.length;
         if ((fragmentLength >= 256) && (fragmentLength <= 511)) {
             fail("Fragment containing ClientHello is of dangerous length: " + fragmentLength
-                    + " bytes");
+                 + " bytes");
         }
     }
 
     @Test
     public void test_SSLSocket_ClientHello_SNI() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
-            ClientHello clientHello = TlsTester
-                .captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            ClientHello clientHello =
+                    TlsTester.captureTlsHandshakeClientHello(executor, sslSocketFactory);
             ServerNameHelloExtension sniExtension =
-                (ServerNameHelloExtension) clientHello.findExtensionByType(
-                    HelloExtension.TYPE_SERVER_NAME);
+                    (ServerNameHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_SERVER_NAME);
             assertNotNull(sniExtension);
-            assertEquals(
-                Collections.singletonList("localhost.localdomain"), sniExtension.hostnames);
+            assertEquals(Collections.singletonList("localhost.localdomain"),
+                         sniExtension.hostnames);
         }, getSSLSocketFactoriesToTest());
     }
 
     @Test
     public void test_SSLSocket_ClientHello_ALPN() throws Exception {
-        final String[] protocolList = new String[] { "h2", "http/1.1" };
+        final String[] protocolList = new String[] {"h2", "http/1.1"};
 
         ForEachRunner.runNamed(sslSocketFactory -> {
-            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(executor,
-                    new DelegatingSSLSocketFactory(sslSocketFactory) {
-                        @Override public SSLSocket configureSocket(SSLSocket socket) {
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(
+                    executor, new DelegatingSSLSocketFactory(sslSocketFactory) {
+                        @Override
+                        public SSLSocket configureSocket(SSLSocket socket) {
                             Conscrypt.setApplicationProtocols(socket, protocolList);
                             return socket;
                         }
                     });
-            AlpnHelloExtension alpnExtension =
-                    (AlpnHelloExtension) clientHello.findExtensionByType(
-                            HelloExtension.TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION);
+            AlpnHelloExtension alpnExtension = (AlpnHelloExtension) clientHello.findExtensionByType(
+                    HelloExtension.TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION);
             assertNotNull(alpnExtension);
             assertEquals(Arrays.asList(protocolList), alpnExtension.protocols);
         }, getSSLSocketFactoriesToTest());
@@ -1625,8 +1618,7 @@ public class SSLSocketVersionCompatibilityTest {
 
     private List<Pair<String, SSLSocketFactory>> getSSLSocketFactoriesToTest()
             throws NoSuchAlgorithmException, KeyManagementException {
-        List<Pair<String, SSLSocketFactory>> result =
-                new ArrayList<>();
+        List<Pair<String, SSLSocketFactory>> result = new ArrayList<>();
         result.add(Pair.of("default", (SSLSocketFactory) SSLSocketFactory.getDefault()));
         for (String sslContextProtocol : StandardNames.SSL_CONTEXT_PROTOCOLS) {
             SSLContext sslContext = SSLContext.getInstance(sslContextProtocol);
@@ -1635,7 +1627,7 @@ public class SSLSocketVersionCompatibilityTest {
             }
             sslContext.init(null, null, null);
             result.add(Pair.of("SSLContext(\"" + sslContext.getProtocol() + "\")",
-                    sslContext.getSocketFactory()));
+                               sslContext.getSocketFactory()));
         }
         return result;
     }
@@ -1644,11 +1636,11 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_getPortWithSNI() throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        try (SSLSocket client
-                     = (SSLSocket) context.clientContext.getSocketFactory().createSocket()) {
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
+        try (SSLSocket client =
+                     (SSLSocket) context.clientContext.getSocketFactory().createSocket()) {
             client.connect(new InetSocketAddress(context.host, context.port));
             setHostname(client);
             assertTrue(client.getPort() > 0);
@@ -1661,9 +1653,9 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_SNIHostName() throws Exception {
         TestUtils.assumeSNIHostnameAvailable();
         final TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final SSLSocket server;
         try (SSLSocket client = (SSLSocket) c.clientContext.getSocketFactory().createSocket()) {
             SSLParameters clientParams = client.getSSLParameters();
@@ -1671,8 +1663,8 @@ public class SSLSocketVersionCompatibilityTest {
                     Collections.singletonList(new SNIHostName("www.example.com")));
             client.setSSLParameters(clientParams);
             SSLParameters serverParams = c.serverSocket.getSSLParameters();
-            serverParams.setSNIMatchers(Collections.singletonList(
-                    SNIHostName.createSNIMatcher("www\\.example\\.com")));
+            serverParams.setSNIMatchers(
+                    Collections.singletonList(SNIHostName.createSNIMatcher("www\\.example\\.com")));
             c.serverSocket.setSSLParameters(serverParams);
             client.connect(new InetSocketAddress(c.host, c.port));
             server = (SSLSocket) c.serverSocket.accept();
@@ -1701,9 +1693,9 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_ClientGetsAlertDuringHandshake_HasGoodExceptionMessage()
             throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final ServerSocket listener = ServerSocketFactory.getDefault().createServerSocket(0);
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, listener.getLocalPort());
@@ -1721,15 +1713,12 @@ public class SSLSocketVersionCompatibilityTest {
         Future<Void> s = runAsync(() -> {
             // Wait until the client sends something.
             byte[] scratch = new byte[8192];
-            @SuppressWarnings("unused")
-            int bytesRead = server.getInputStream().read(scratch);
+            @SuppressWarnings("unused") int bytesRead = server.getInputStream().read(scratch);
             // Write a bogus TLS alert:
             // TLSv1.2 Record Layer: Alert (Level: Warning, Description: Protocol Version)
-            server.getOutputStream()
-                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
+            server.getOutputStream().write(new byte[] {0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
             // TLSv1.2 Record Layer: Alert (Level: Warning, Description: Close Notify)
-            server.getOutputStream()
-                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
+            server.getOutputStream().write(new byte[] {0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
             return null;
         });
         c.get(5, TimeUnit.SECONDS);
@@ -1744,9 +1733,9 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_ServerGetsAlertDuringHandshake_HasGoodExceptionMessage()
             throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         final Socket client = SocketFactory.getDefault().createSocket(context.host, context.port);
         final SSLSocket server = (SSLSocket) context.serverSocket.accept();
         Future<Void> s = runAsync(() -> {
@@ -1762,59 +1751,50 @@ public class SSLSocketVersionCompatibilityTest {
         Future<Void> c = runAsync(() -> {
             // Send bogus ClientHello:
             // TLSv1.2 Record Layer: Handshake Protocol: Client Hello
-            client.getOutputStream().write(new byte[]{
-                (byte) 0x16, (byte) 0x03, (byte) 0x01, (byte) 0x00, (byte) 0xb9,
-                (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0xb5, (byte) 0x03,
-                (byte) 0x03, (byte) 0x5a, (byte) 0x31, (byte) 0xba, (byte) 0x44,
-                (byte) 0x24, (byte) 0xfd, (byte) 0xf0, (byte) 0x56, (byte) 0x46,
-                (byte) 0xea, (byte) 0xee, (byte) 0x1c, (byte) 0x62, (byte) 0x8f,
-                (byte) 0x18, (byte) 0x04, (byte) 0xbd, (byte) 0x1c, (byte) 0xbc,
-                (byte) 0xbf, (byte) 0x6d, (byte) 0x84, (byte) 0x12, (byte) 0xe9,
-                (byte) 0x94, (byte) 0xf5, (byte) 0x1c, (byte) 0x15, (byte) 0x3e,
-                (byte) 0x79, (byte) 0x01, (byte) 0xe2, (byte) 0x00, (byte) 0x00,
-                (byte) 0x28, (byte) 0xc0, (byte) 0x2b, (byte) 0xc0, (byte) 0x2c,
-                (byte) 0xc0, (byte) 0x2f, (byte) 0xc0, (byte) 0x30, (byte) 0x00,
-                (byte) 0x9e, (byte) 0x00, (byte) 0x9f, (byte) 0xc0, (byte) 0x09,
-                (byte) 0xc0, (byte) 0x0a, (byte) 0xc0, (byte) 0x13, (byte) 0xc0,
-                (byte) 0x14, (byte) 0x00, (byte) 0x33, (byte) 0x00, (byte) 0x39,
-                (byte) 0xc0, (byte) 0x07, (byte) 0xc0, (byte) 0x11, (byte) 0x00,
-                (byte) 0x9c, (byte) 0x00, (byte) 0x9d, (byte) 0x00, (byte) 0x2f,
-                (byte) 0x00, (byte) 0x35, (byte) 0x00, (byte) 0x05, (byte) 0x00,
-                (byte) 0xff, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x64,
-                (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x04, (byte) 0x03,
-                (byte) 0x00, (byte) 0x01, (byte) 0x02, (byte) 0x00, (byte) 0x0a,
-                (byte) 0x00, (byte) 0x34, (byte) 0x00, (byte) 0x32, (byte) 0x00,
-                (byte) 0x0e, (byte) 0x00, (byte) 0x0d, (byte) 0x00, (byte) 0x19,
-                (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x0c, (byte) 0x00,
-                (byte) 0x18, (byte) 0x00, (byte) 0x09, (byte) 0x00, (byte) 0x0a,
-                (byte) 0x00, (byte) 0x16, (byte) 0x00, (byte) 0x17, (byte) 0x00,
-                (byte) 0x08, (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x07,
-                (byte) 0x00, (byte) 0x14, (byte) 0x00, (byte) 0x15, (byte) 0x00,
-                (byte) 0x04, (byte) 0x00, (byte) 0x05, (byte) 0x00, (byte) 0x12,
-                (byte) 0x00, (byte) 0x13, (byte) 0x00, (byte) 0x01, (byte) 0x00,
-                (byte) 0x02, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x0f,
-                (byte) 0x00, (byte) 0x10, (byte) 0x00, (byte) 0x11, (byte) 0x00,
-                (byte) 0x0d, (byte) 0x00, (byte) 0x20, (byte) 0x00, (byte) 0x1e,
-                (byte) 0x06, (byte) 0x01, (byte) 0x06, (byte) 0x02, (byte) 0x06,
-                (byte) 0x03, (byte) 0x05, (byte) 0x01, (byte) 0x05, (byte) 0x02,
-                (byte) 0x05, (byte) 0x03, (byte) 0x04, (byte) 0x01, (byte) 0x04,
-                (byte) 0x02, (byte) 0x04, (byte) 0x03, (byte) 0x03, (byte) 0x01,
-                (byte) 0x03, (byte) 0x02, (byte) 0x03, (byte) 0x03, (byte) 0x02,
-                (byte) 0x01, (byte) 0x02, (byte) 0x02, (byte) 0x02, (byte) 0x03,
+            client.getOutputStream().write(new byte[] {
+                    (byte) 0x16, (byte) 0x03, (byte) 0x01, (byte) 0x00, (byte) 0xb9, (byte) 0x01,
+                    (byte) 0x00, (byte) 0x00, (byte) 0xb5, (byte) 0x03, (byte) 0x03, (byte) 0x5a,
+                    (byte) 0x31, (byte) 0xba, (byte) 0x44, (byte) 0x24, (byte) 0xfd, (byte) 0xf0,
+                    (byte) 0x56, (byte) 0x46, (byte) 0xea, (byte) 0xee, (byte) 0x1c, (byte) 0x62,
+                    (byte) 0x8f, (byte) 0x18, (byte) 0x04, (byte) 0xbd, (byte) 0x1c, (byte) 0xbc,
+                    (byte) 0xbf, (byte) 0x6d, (byte) 0x84, (byte) 0x12, (byte) 0xe9, (byte) 0x94,
+                    (byte) 0xf5, (byte) 0x1c, (byte) 0x15, (byte) 0x3e, (byte) 0x79, (byte) 0x01,
+                    (byte) 0xe2, (byte) 0x00, (byte) 0x00, (byte) 0x28, (byte) 0xc0, (byte) 0x2b,
+                    (byte) 0xc0, (byte) 0x2c, (byte) 0xc0, (byte) 0x2f, (byte) 0xc0, (byte) 0x30,
+                    (byte) 0x00, (byte) 0x9e, (byte) 0x00, (byte) 0x9f, (byte) 0xc0, (byte) 0x09,
+                    (byte) 0xc0, (byte) 0x0a, (byte) 0xc0, (byte) 0x13, (byte) 0xc0, (byte) 0x14,
+                    (byte) 0x00, (byte) 0x33, (byte) 0x00, (byte) 0x39, (byte) 0xc0, (byte) 0x07,
+                    (byte) 0xc0, (byte) 0x11, (byte) 0x00, (byte) 0x9c, (byte) 0x00, (byte) 0x9d,
+                    (byte) 0x00, (byte) 0x2f, (byte) 0x00, (byte) 0x35, (byte) 0x00, (byte) 0x05,
+                    (byte) 0x00, (byte) 0xff, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x64,
+                    (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x04, (byte) 0x03, (byte) 0x00,
+                    (byte) 0x01, (byte) 0x02, (byte) 0x00, (byte) 0x0a, (byte) 0x00, (byte) 0x34,
+                    (byte) 0x00, (byte) 0x32, (byte) 0x00, (byte) 0x0e, (byte) 0x00, (byte) 0x0d,
+                    (byte) 0x00, (byte) 0x19, (byte) 0x00, (byte) 0x0b, (byte) 0x00, (byte) 0x0c,
+                    (byte) 0x00, (byte) 0x18, (byte) 0x00, (byte) 0x09, (byte) 0x00, (byte) 0x0a,
+                    (byte) 0x00, (byte) 0x16, (byte) 0x00, (byte) 0x17, (byte) 0x00, (byte) 0x08,
+                    (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x07, (byte) 0x00, (byte) 0x14,
+                    (byte) 0x00, (byte) 0x15, (byte) 0x00, (byte) 0x04, (byte) 0x00, (byte) 0x05,
+                    (byte) 0x00, (byte) 0x12, (byte) 0x00, (byte) 0x13, (byte) 0x00, (byte) 0x01,
+                    (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x0f,
+                    (byte) 0x00, (byte) 0x10, (byte) 0x00, (byte) 0x11, (byte) 0x00, (byte) 0x0d,
+                    (byte) 0x00, (byte) 0x20, (byte) 0x00, (byte) 0x1e, (byte) 0x06, (byte) 0x01,
+                    (byte) 0x06, (byte) 0x02, (byte) 0x06, (byte) 0x03, (byte) 0x05, (byte) 0x01,
+                    (byte) 0x05, (byte) 0x02, (byte) 0x05, (byte) 0x03, (byte) 0x04, (byte) 0x01,
+                    (byte) 0x04, (byte) 0x02, (byte) 0x04, (byte) 0x03, (byte) 0x03, (byte) 0x01,
+                    (byte) 0x03, (byte) 0x02, (byte) 0x03, (byte) 0x03, (byte) 0x02, (byte) 0x01,
+                    (byte) 0x02, (byte) 0x02, (byte) 0x02, (byte) 0x03,
             });
             // Wait until the server sends something.
             byte[] scratch = new byte[8192];
-            @SuppressWarnings("unused")
-            int bytesRead = client.getInputStream().read(scratch);
+            @SuppressWarnings("unused") int bytesRead = client.getInputStream().read(scratch);
             // Write a bogus TLS alert:
             // TLSv1.2 Record Layer: Alert (Level: Warning, Description:
             // Protocol Version)
-            client.getOutputStream()
-                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
+            client.getOutputStream().write(new byte[] {0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x46});
             // TLSv1.2 Record Layer: Alert (Level: Warning, Description:
             // Close Notify)
-            client.getOutputStream()
-                .write(new byte[]{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
+            client.getOutputStream().write(new byte[] {0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00});
             return null;
         });
         c.get(5, TimeUnit.SECONDS);
@@ -1828,12 +1808,12 @@ public class SSLSocketVersionCompatibilityTest {
     public void test_SSLSocket_TLSv1Supported() throws Exception {
         assumeTrue(isTlsV1Supported());
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
-        try (SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket())
-        {
-            client.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
+        try (SSLSocket client =
+                     (SSLSocket) context.clientContext.getSocketFactory().createSocket()) {
+            client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
             assertEquals(2, client.getEnabledProtocols().length);
         }
     }
@@ -1850,9 +1830,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_finalizeThrowsProperException() throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         TestSSLSocketPair test = TestSSLSocketPair.create(context).connect();
         try {
             if (isConscryptFdSocket(test.client)) {
@@ -1873,7 +1853,7 @@ public class SSLSocketVersionCompatibilityTest {
                 method.setAccessible(true);
                 method.invoke(test.client);
                 try {
-                    test.client.getOutputStream().write(new byte[] { 0x01 });
+                    test.client.getOutputStream().write(new byte[] {0x01});
                     fail("The socket shouldn't work after being finalized");
                 } catch (SocketException expected) {
                     // Expected
@@ -1889,9 +1869,9 @@ public class SSLSocketVersionCompatibilityTest {
         // tls_unique isn't supported in TLS 1.3
         assumeTlsV1_2Connection();
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         TestSSLSocketPair pair = TestSSLSocketPair.create(context);
         try {
             assertNull(Conscrypt.getTlsUnique(pair.client));
@@ -1918,21 +1898,21 @@ public class SSLSocketVersionCompatibilityTest {
         assumeTlsV1_2Connection();
         // note the rare usage of non-RSA keys
         TestKeyStore testKeyStore = new TestKeyStore.Builder()
-                .keyAlgorithms("RSA", "DSA", "EC", "EC_RSA")
-                .aliasPrefix("rsa-dsa-ec")
-                .ca(true)
-                .build();
+                                            .keyAlgorithms("RSA", "DSA", "EC", "EC_RSA")
+                                            .aliasPrefix("rsa-dsa-ec")
+                                            .ca(true)
+                                            .build();
         KeyManager pskKeyManager =
                 PSKKeyManagerProxy.getConscryptPSKKeyManager(new PSKKeyManagerProxy() {
                     @Override
-                    protected SecretKey getKey(
-                            String identityHint, String identity, Socket socket) {
+                    protected SecretKey getKey(String identityHint, String identity,
+                                               Socket socket) {
                         return newKey();
                     }
 
                     @Override
-                    protected SecretKey getKey(
-                            String identityHint, String identity, SSLEngine engine) {
+                    protected SecretKey getKey(String identityHint, String identity,
+                                               SSLEngine engine) {
                         return newKey();
                     }
 
@@ -1941,16 +1921,16 @@ public class SSLSocketVersionCompatibilityTest {
                     }
                 });
         TestSSLContext c = TestSSLContext.newBuilder()
-                .client(testKeyStore)
-                .server(testKeyStore)
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
-                .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
-                .build();
+                                   .client(testKeyStore)
+                                   .server(testKeyStore)
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .additionalClientKeyManagers(new KeyManager[] {pskKeyManager})
+                                   .additionalServerKeyManagers(new KeyManager[] {pskKeyManager})
+                                   .build();
         for (String cipherSuite : c.clientContext.getSocketFactory().getSupportedCipherSuites()) {
             if (cipherSuite.equals(StandardNames.CIPHER_SUITE_FALLBACK)
-                    || cipherSuite.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)) {
+                || cipherSuite.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)) {
                 continue;
             }
             /*
@@ -1985,9 +1965,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_EKM() throws Exception {
         TestSSLContext context = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                         .clientProtocol(clientVersion)
+                                         .serverProtocol(serverVersion)
+                                         .build();
         TestSSLSocketPair pair = TestSSLSocketPair.create(context);
         try {
             // No EKM values available before handshaking
@@ -2004,10 +1984,10 @@ public class SSLSocketVersionCompatibilityTest {
             assertEquals(20, serverEkm.length);
             assertArrayEquals(clientEkm, serverEkm);
 
-            byte[] clientContextEkm = Conscrypt.exportKeyingMaterial(
-                    pair.client, "FOO", new byte[0], 20);
-            byte[] serverContextEkm = Conscrypt.exportKeyingMaterial(
-                    pair.server, "FOO", new byte[0], 20);
+            byte[] clientContextEkm =
+                    Conscrypt.exportKeyingMaterial(pair.client, "FOO", new byte[0], 20);
+            byte[] serverContextEkm =
+                    Conscrypt.exportKeyingMaterial(pair.server, "FOO", new byte[0], 20);
             assertNotNull(clientContextEkm);
             assertNotNull(serverContextEkm);
             assertEquals(20, clientContextEkm.length);
@@ -2031,9 +2011,9 @@ public class SSLSocketVersionCompatibilityTest {
     @Test
     public void test_SSLSocket_CloseCleanlyOnConstructorFailure() throws Exception {
         TestSSLContext c = new TestSSLContext.Builder()
-                .clientProtocol(clientVersion)
-                .serverProtocol(serverVersion)
-                .build();
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
         try {
             c.clientContext.getSocketFactory().createSocket(c.host, 1);
             fail();
@@ -2069,8 +2049,7 @@ public class SSLSocketVersionCompatibilityTest {
 
     private static void enableSessionTickets(SSLSocket socket) {
         try {
-            Method method =
-                    socket.getClass().getMethod("setUseSessionTickets", boolean.class);
+            Method method = socket.getClass().getMethod("setUseSessionTickets", boolean.class);
             method.setAccessible(true);
             method.invoke(socket, true);
         } catch (NoSuchMethodException ignored) {
@@ -2086,7 +2065,8 @@ public class SSLSocketVersionCompatibilityTest {
 
     private static boolean isConscryptFdSocket(SSLSocket socket) {
         Class<?> clazz = socket.getClass();
-        while (clazz != Object.class && !"ConscryptFileDescriptorSocket".equals(clazz.getSimpleName())) {
+        while (clazz != Object.class
+               && !"ConscryptFileDescriptorSocket".equals(clazz.getSimpleName())) {
             clazz = clazz.getSuperclass();
         }
         return "ConscryptFileDescriptorSocket".equals(clazz.getSimpleName());

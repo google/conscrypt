@@ -45,10 +45,10 @@ import java.util.Arrays;
 
 @RunWith(JUnit4.class)
 public class OpenSSLX509CertificateTest {
-  @Test
+    @Test
     public void testSerialization_NoContextDeserialization() throws Exception {
-      // TODO(prb): Re-work avoiding reflection for Java 17+
-      assumeFalse(TestUtils.isJavaVersion(17));
+        // TODO(prb): Re-work avoiding reflection for Java 17+
+        assumeFalse(TestUtils.isJavaVersion(17));
         // Set correct serialVersionUID
         {
             ObjectStreamClass clDesc = ObjectStreamClass.lookup(OpenSSLX509Certificate.class);
@@ -65,7 +65,8 @@ public class OpenSSLX509CertificateTest {
                     modifiersField = Field.class.getDeclaredField("modifiers");
                 } catch (NoSuchFieldException e) {
                     try {
-                        Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+                        Method getDeclaredFields0 =
+                                Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
                         getDeclaredFields0.setAccessible(true);
                         Field[] fields = (Field[]) getDeclaredFields0.invoke(Field.class, false);
                         for (Field field : fields) {
@@ -102,7 +103,7 @@ public class OpenSSLX509CertificateTest {
             boolean fixed = false;
             for (int i = 0; i < impostorBytes.length - 4; i++) {
                 if (impostorBytes[i] == 'Z' && impostorBytes[i + 1] == 'p'
-                        && impostorBytes[i + 2] == 'e' && impostorBytes[i + 3] == 'n') {
+                    && impostorBytes[i + 2] == 'e' && impostorBytes[i + 3] == 'n') {
                     impostorBytes[i] = 'O';
                     fixed = true;
                     break;
@@ -137,13 +138,11 @@ public class OpenSSLX509CertificateTest {
         OpenSSLX509Certificate cert = loadTestCertificate("cert.pem");
         OpenSSLX509Certificate certPoisoned = loadTestCertificate("cert-ct-poisoned.pem");
 
-        assertFalse(Arrays.equals(
-                certPoisoned.getTBSCertificate(),
-                cert.getTBSCertificate()));
+        assertFalse(Arrays.equals(certPoisoned.getTBSCertificate(), cert.getTBSCertificate()));
 
-        assertTrue(Arrays.equals(
-                certPoisoned.getTBSCertificateWithoutExtension(CT_POISON_EXTENSION),
-                cert.getTBSCertificate()));
+        assertTrue(
+                Arrays.equals(certPoisoned.getTBSCertificateWithoutExtension(CT_POISON_EXTENSION),
+                              cert.getTBSCertificate()));
     }
 
     @Test

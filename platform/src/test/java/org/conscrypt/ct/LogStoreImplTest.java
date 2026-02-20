@@ -58,8 +58,8 @@ public class LogStoreImplTest {
             return true;
         }
         @Override
-        public PolicyCompliance doesResultConformToPolicy(
-                VerificationResult result, X509Certificate leaf) {
+        public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                          X509Certificate leaf) {
             return PolicyCompliance.COMPLY;
         }
     };
@@ -70,8 +70,8 @@ public class LogStoreImplTest {
             return false;
         }
         @Override
-        public PolicyCompliance doesResultConformToPolicy(
-                VerificationResult result, X509Certificate leaf) {
+        public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                          X509Certificate leaf) {
             return PolicyCompliance.COMPLY;
         }
     };
@@ -155,9 +155,10 @@ public class LogStoreImplTest {
         assertNull("A null logId should return null", store.getKnownLog(null));
 
         byte[] pem = ("-----BEGIN PUBLIC KEY-----\n"
-                + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnWTAWUYr"
-                + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
-                + "\n-----END PUBLIC KEY-----\n")
+                      + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnW"
+                      + "TAWUYr"
+                      + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
+                      + "\n-----END PUBLIC KEY-----\n")
                              .getBytes(US_ASCII);
         ByteArrayInputStream is = new ByteArrayInputStream(pem);
 
@@ -173,7 +174,7 @@ public class LogStoreImplTest {
         assertEquals("An existing logId should be returned", log1, store.getKnownLog(log1Id));
         assertEquals("One metric update should be emitted", metrics.states.size(), 1);
         assertEquals("The metric update for log list state should be compliant",
-                metrics.states.get(0), LogStore.State.COMPLIANT);
+                     metrics.states.get(0), LogStore.State.COMPLIANT);
     }
 
     @Test
@@ -183,11 +184,11 @@ public class LogStoreImplTest {
         File logList = writeFile(content);
         LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
-        assertEquals(
-                "The log state should be malformed", store.getState(), LogStore.State.MALFORMED);
+        assertEquals("The log state should be malformed", store.getState(),
+                     LogStore.State.MALFORMED);
         assertEquals("One metric update should be emitted", metrics.states.size(), 1);
         assertEquals("The metric update for log list state should be malformed",
-                metrics.states.get(0), LogStore.State.MALFORMED);
+                     metrics.states.get(0), LogStore.State.MALFORMED);
     }
 
     @Test
@@ -196,11 +197,11 @@ public class LogStoreImplTest {
         File logList = new File("does_not_exist");
         LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList.toPath(), metrics);
 
-        assertEquals(
-                "The log state should be not found", store.getState(), LogStore.State.NOT_FOUND);
+        assertEquals("The log state should be not found", store.getState(),
+                     LogStore.State.NOT_FOUND);
         assertEquals("One metric update should be emitted", metrics.states.size(), 1);
         assertEquals("The metric update for log list state should be not found",
-                metrics.states.get(0), LogStore.State.NOT_FOUND);
+                     metrics.states.get(0), LogStore.State.NOT_FOUND);
     }
 
     private File writeFile(String content) throws IOException {

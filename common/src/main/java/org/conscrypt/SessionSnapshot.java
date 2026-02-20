@@ -21,6 +21,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
 
@@ -143,7 +144,7 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     @SuppressWarnings("deprecation") // Public API
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
-        throws SSLPeerUnverifiedException {
+            throws SSLPeerUnverifiedException {
         if (!Platform.isJavaxCertificateSupported()) {
             throw new UnsupportedOperationException("Use getPeerCertificates() instead");
         }

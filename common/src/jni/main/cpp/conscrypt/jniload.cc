@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#include <jni.h>
-
 #include <conscrypt/compatibility_close_monitor.h>
 #include <conscrypt/jniutil.h>
 #include <conscrypt/logging.h>
 #include <conscrypt/native_crypto.h>
+#include <jni.h>
 
 #ifndef CONSCRYPT_JNI_VERSION
 #define CONSCRYPT_JNI_VERSION JNI_VERSION_1_6

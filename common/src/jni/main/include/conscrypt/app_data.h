@@ -22,8 +22,8 @@
 #include <conscrypt/jniutil.h>
 #include <conscrypt/netutil.h>
 #include <conscrypt/trace.h>
-
 #include <jni.h>
+
 #include <atomic>
 #include <memory>
 #include <mutex>  // NOLINT(build/c++11)
@@ -104,7 +104,7 @@ namespace conscrypt {
  * SSL_do_handshake, SSL_read, SSL_write, and SSL_shutdown.
  */
 class AppData {
- public:
+public:
     std::atomic<bool> aliveAndKicking;
     int waitingThreads;
 #ifdef _WIN32
@@ -175,7 +175,7 @@ class AppData {
         clearApplicationProtocols();
         if (applicationProtocolsJava != nullptr) {
             jbyte* applicationProtocols =
-                e->GetByteArrayElements(applicationProtocolsJava, nullptr);
+                    e->GetByteArrayElements(applicationProtocolsJava, nullptr);
             if (applicationProtocols == nullptr) {
                 clearCallbackState();
                 JNI_TRACE("appData=%p setApplicationCallbackState => applicationProtocols == null",
@@ -183,7 +183,7 @@ class AppData {
                 return false;
             }
             applicationProtocolsLength =
-                static_cast<size_t>(e->GetArrayLength(applicationProtocolsJava));
+                    static_cast<size_t>(e->GetArrayLength(applicationProtocolsJava));
             applicationProtocolsData = new char[applicationProtocolsLength];
             memcpy(applicationProtocolsData, applicationProtocols, applicationProtocolsLength);
             e->ReleaseByteArrayElements(applicationProtocolsJava, applicationProtocols, JNI_ABORT);
@@ -219,7 +219,7 @@ class AppData {
         env = nullptr;
     }
 
- private:
+private:
     AppData()
         : aliveAndKicking(true),
           waitingThreads(0),

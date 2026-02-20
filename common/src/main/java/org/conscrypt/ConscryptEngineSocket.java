@@ -90,36 +90,36 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     ConscryptEngineSocket(String hostname, int port, InetAddress clientAddress, int clientPort,
-            SSLParametersImpl sslParameters) throws IOException {
+                          SSLParametersImpl sslParameters) throws IOException {
         super(hostname, port, clientAddress, clientPort);
         engine = newEngine(sslParameters, this);
     }
 
     ConscryptEngineSocket(InetAddress address, int port, InetAddress clientAddress, int clientPort,
-            SSLParametersImpl sslParameters) throws IOException {
+                          SSLParametersImpl sslParameters) throws IOException {
         super(address, port, clientAddress, clientPort);
         engine = newEngine(sslParameters, this);
     }
 
     ConscryptEngineSocket(Socket socket, String hostname, int port, boolean autoClose,
-            SSLParametersImpl sslParameters) throws IOException {
+                          SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose);
         engine = newEngine(sslParameters, this);
     }
 
-    private static ConscryptEngine newEngine(
-            SSLParametersImpl sslParameters, final ConscryptEngineSocket socket) {
+    private static ConscryptEngine newEngine(SSLParametersImpl sslParameters,
+                                             final ConscryptEngineSocket socket) {
         SSLParametersImpl modifiedParams;
         if (sslParameters.isSpake()) {
             modifiedParams = sslParameters.cloneWithSpake();
         } else if (Platform.supportsX509ExtendedTrustManager()) {
             modifiedParams = sslParameters.cloneWithTrustManager(
-                getDelegatingTrustManager(sslParameters.getX509TrustManager(), socket));
+                    getDelegatingTrustManager(sslParameters.getX509TrustManager(), socket));
         } else {
             modifiedParams = sslParameters;
         }
         ConscryptEngine engine =
-            new ConscryptEngine(modifiedParams, socket.peerInfoProvider(), socket);
+                new ConscryptEngine(modifiedParams, socket.peerInfoProvider(), socket);
 
         // When the handshake completes, notify any listeners.
         engine.setHandshakeListener(new HandshakeListener() {
@@ -143,35 +143,42 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
     // methods to get called.
     private static X509TrustManager getDelegatingTrustManager(final X509TrustManager delegate,
-        final ConscryptEngineSocket socket) {
+                                                              final ConscryptEngineSocket socket) {
         if (delegate instanceof X509ExtendedTrustManager) {
             final X509ExtendedTrustManager extendedDelegate = (X509ExtendedTrustManager) delegate;
             return new X509ExtendedTrustManager() {
-                @Override public void checkClientTrusted(X509Certificate[] x509Certificates,
-                    String s, Socket socket) throws CertificateException {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                                               Socket socket) throws CertificateException {
                     throw new AssertionError("Should not be called");
                 }
-                @Override public void checkServerTrusted(X509Certificate[] x509Certificates,
-                    String s, Socket socket) throws CertificateException {
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                                               Socket socket) throws CertificateException {
                     throw new AssertionError("Should not be called");
                 }
-                @Override public void checkClientTrusted(X509Certificate[] x509Certificates,
-                    String s, SSLEngine sslEngine) throws CertificateException {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                                               SSLEngine sslEngine) throws CertificateException {
                     extendedDelegate.checkClientTrusted(x509Certificates, s, socket);
                 }
-                @Override public void checkServerTrusted(X509Certificate[] x509Certificates,
-                    String s, SSLEngine sslEngine) throws CertificateException {
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                                               SSLEngine sslEngine) throws CertificateException {
                     extendedDelegate.checkServerTrusted(x509Certificates, s, socket);
                 }
-                @Override public void checkClientTrusted(X509Certificate[] x509Certificates,
-                    String s) throws CertificateException {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                        throws CertificateException {
                     extendedDelegate.checkClientTrusted(x509Certificates, s);
                 }
-                @Override public void checkServerTrusted(X509Certificate[] x509Certificates,
-                    String s) throws CertificateException {
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                        throws CertificateException {
                     extendedDelegate.checkServerTrusted(x509Certificates, s);
                 }
-                @Override public X509Certificate[] getAcceptedIssuers() {
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
                     return extendedDelegate.getAcceptedIssuers();
                 }
             };
@@ -256,8 +263,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                         break;
                     }
                     default: {
-                        throw new IllegalStateException(
-                            "Unknown handshake status: " + engine.getHandshakeStatus());
+                        throw new IllegalStateException("Unknown handshake status: "
+                                                        + engine.getHandshakeStatus());
                     }
                 }
             }
@@ -304,7 +311,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 case STATE_READY_HANDSHAKE_CUT_THROUGH:
                     if (handshakeStartedMillis > 0) {
                         StatsLog statsLog = Platform.getStatsLog();
-                        statsLog.countTlsHandshake(true, engine.getSession().getProtocol(),
+                        statsLog.countTlsHandshake(
+                                true, engine.getSession().getProtocol(),
                                 engine.getSession().getCipherSuite(),
                                 Platform.getMillisSinceBoot() - handshakeStartedMillis);
                         handshakeStartedMillis = 0;
@@ -320,7 +328,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     if (handshakeStartedMillis > 0) {
                         StatsLog statsLog = Platform.getStatsLog();
                         // Handshake was in progress and so must have failed.
-                        statsLog.countTlsHandshake(false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED",
+                        statsLog.countTlsHandshake(
+                                false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED",
                                 Platform.getMillisSinceBoot() - handshakeStartedMillis);
                         handshakeStartedMillis = 0;
                     }
@@ -606,9 +615,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
         synchronized (stateLock) {
             while (state != STATE_READY
-                    // Waiting threads are allowed to compete with handshake listeners for access.
-                    && state != STATE_READY_HANDSHAKE_CUT_THROUGH
-                    && state != STATE_CLOSED) {
+                   // Waiting threads are allowed to compete with handshake listeners for access.
+                   && state != STATE_READY_HANDSHAKE_CUT_THROUGH && state != STATE_CLOSED) {
                 try {
                     stateLock.wait();
                 } catch (InterruptedException e) {
@@ -714,7 +722,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 }
                 if (target.position() != engineResult.bytesProduced()) {
                     throw new SSLException("Engine bytesProduced " + engineResult.bytesProduced()
-                            + " does not match bytes written " + target.position());
+                                           + " does not match bytes written "
+                                           + target.position());
                 }
                 len -= engineResult.bytesConsumed();
                 if (len != buffer.remaining()) {
@@ -779,7 +788,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 fromEngine = allocatedBuffer.nioBuffer();
             } else {
                 allocatedBuffer = null;
-                fromEngine = ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize());
+                fromEngine =
+                        ByteBuffer.allocateDirect(engine.getSession().getApplicationBufferSize());
             }
             // Initially fromEngine.remaining() == 0.
             fromEngine.flip();
@@ -846,7 +856,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
         }
 
         private boolean isHandshaking(HandshakeStatus status) {
-            switch(status) {
+            switch (status) {
                 case NEED_TASK:
                 case NEED_WRAP:
                 case NEED_UNWRAP:
@@ -932,8 +942,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                     }
                     default: {
                         // Anything else is an error.
-                        throw new SSLException(
-                                "Unexpected engine result " + engineResult.getStatus());
+                        throw new SSLException("Unexpected engine result "
+                                               + engineResult.getStatus());
                     }
                 }
 
@@ -980,8 +990,8 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 // appropriate.
                 int pos = fromSocket.position();
                 int lim = fromSocket.limit();
-                int read = socketInputStream.read(
-                    fromSocket.array(), fromSocketArrayOffset + pos, lim - pos);
+                int read = socketInputStream.read(fromSocket.array(), fromSocketArrayOffset + pos,
+                                                  lim - pos);
 
                 if (read > 0) {
                     fromSocket.position(pos + read);

@@ -46,7 +46,8 @@ public class OpenSslMlDsaKeyPairGenerator extends KeyPairGenerator {
             byte[] privateKeyBytes = new byte[32];
             NativeCrypto.RAND_bytes(privateKeyBytes);
             byte[] publicKeyBytes = NativeCrypto.MLDSA65_public_key_from_seed(privateKeyBytes);
-            return new KeyPair(new OpenSslMlDsaPublicKey(publicKeyBytes, MlDsaAlgorithm.ML_DSA_65),
+            return new KeyPair(
+                    new OpenSslMlDsaPublicKey(publicKeyBytes, MlDsaAlgorithm.ML_DSA_65),
                     new OpenSslMlDsaPrivateKey(privateKeyBytes, MlDsaAlgorithm.ML_DSA_65));
         }
     }
@@ -69,7 +70,8 @@ public class OpenSslMlDsaKeyPairGenerator extends KeyPairGenerator {
             byte[] privateKeyBytes = new byte[32];
             NativeCrypto.RAND_bytes(privateKeyBytes);
             byte[] publicKeyBytes = NativeCrypto.MLDSA87_public_key_from_seed(privateKeyBytes);
-            return new KeyPair(new OpenSslMlDsaPublicKey(publicKeyBytes, MlDsaAlgorithm.ML_DSA_87),
+            return new KeyPair(
+                    new OpenSslMlDsaPublicKey(publicKeyBytes, MlDsaAlgorithm.ML_DSA_87),
                     new OpenSslMlDsaPrivateKey(privateKeyBytes, MlDsaAlgorithm.ML_DSA_87));
         }
     }

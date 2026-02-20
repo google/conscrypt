@@ -15,16 +15,15 @@
  */
 package org.conscrypt.java.security;
 
-import java.security.KeyPair;
-import java.security.spec.DSAPrivateKeySpec;
-import java.security.spec.DSAPublicKeySpec;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class KeyFactoryTestDSA extends
-        AbstractKeyFactoryTest<DSAPublicKeySpec, DSAPrivateKeySpec> {
+import java.security.KeyPair;
+import java.security.spec.DSAPrivateKeySpec;
+import java.security.spec.DSAPublicKeySpec;
 
+@RunWith(JUnit4.class)
+public class KeyFactoryTestDSA extends AbstractKeyFactoryTest<DSAPublicKeySpec, DSAPrivateKeySpec> {
     public KeyFactoryTestDSA() {
         super("DSA", DSAPublicKeySpec.class, DSAPrivateKeySpec.class);
     }

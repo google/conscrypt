@@ -26,7 +26,6 @@ import java.util.Set;
  */
 @Internal
 public interface ConscryptCertStore {
-
     /**
      * Returns a stored CA certificate with the same name and public key as the
      * provided {@link X509Certificate}.
