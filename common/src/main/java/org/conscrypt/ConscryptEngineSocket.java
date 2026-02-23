@@ -142,6 +142,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     // references to the given ConscryptEngineSocket.  Our internal engine will call
     // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
     // methods to get called.
+    @SuppressWarnings("CustomX509TrustManager")
     private static X509TrustManager getDelegatingTrustManager(final X509TrustManager delegate,
                                                               final ConscryptEngineSocket socket) {
         if (delegate instanceof X509ExtendedTrustManager) {

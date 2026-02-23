@@ -168,8 +168,7 @@ public interface HpkeSpi {
      *         as a sender
      * @throws GeneralSecurityException on decryption failures
      */
-    @NonNull
-    byte[] engineOpen(@NonNull byte[] ciphertext, @Nullable byte[] aad)
+    @NonNull byte[] engineOpen(@NonNull byte[] ciphertext, @Nullable byte[] aad)
             throws GeneralSecurityException;
 
     /**
