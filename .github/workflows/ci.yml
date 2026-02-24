@@ -314,7 +314,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest, macos-14, macos-latest, windows-latest]
-        java: [8, 11, 17, 21]
+        java: [8, 11, 17, 21, 25, EA]
         dist: ['temurin', 'zulu']
         include:
           - platform: ubuntu-latest
@@ -338,10 +338,18 @@ jobs:
 
     steps:
       - name: Set up Java
+        if: ${{ matrix.java != 'EA' }}
         uses: actions/setup-java@v4
         with:
           distribution: ${{ matrix.dist }}
           java-version: ${{ matrix.java }}
+
+      - name: 'Set up JDK ${{ matrix.java }} from jdk.java.net'
+        if: ${{ matrix.java == 'EA' }}
+        uses: oracle-actions/setup-java@v1
+        with:
+          website: jdk.java.net
+          release: ${{ matrix.java }}
 
       - name: Download UberJAR
         uses: actions/download-artifact@v4
