@@ -276,6 +276,11 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     }
 
     @Override
+    void setEchConfigList(byte[] echConfigList) {
+        delegate.setEchConfigList(echConfigList);
+    }
+
+    @Override
     void setApplicationProtocols(String[] protocols) {
         delegate.setApplicationProtocols(protocols);
     }

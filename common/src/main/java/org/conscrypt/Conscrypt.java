@@ -401,6 +401,16 @@ public final class Conscrypt {
     }
 
     /**
+     * This method sets the ECH config data to be used in the TLS handshake.
+     *
+     * @param socket the socket
+     * @param echConfigList the ECH config data to be used in the TLS handshake
+     */
+    public static void setEchConfigList(SSLSocket socket, byte[] echConfigList) {
+        toConscrypt(socket).setEchConfigList(echConfigList);
+    }
+
+    /**
      * Enables/disables TLS Channel ID for the given server-side socket.
      *
      * <p>This method needs to be invoked before the handshake starts.
@@ -697,6 +707,16 @@ public final class Conscrypt {
      */
     public static void setUseSessionTickets(SSLEngine engine, boolean useSessionTickets) {
         toConscrypt(engine).setUseSessionTickets(useSessionTickets);
+    }
+
+    /**
+     * This method sets the ECH config data to be used in the TLS handshake.
+     *
+     * @param engine the engine
+     * @param echConfigList the ECH config data to be used in the TLS handshake
+     */
+    public static void setEchConfigList(SSLEngine engine, byte[] echConfigList) {
+        toConscrypt(engine).setEchConfigList(echConfigList);
     }
 
     /**

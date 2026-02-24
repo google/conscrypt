@@ -143,4 +143,17 @@ public class CertificateEntry {
         }
         Serialization.writeVariableBytes(output, certificate, Constants.CERTIFICATE_LENGTH_BYTES);
     }
+
+    /**
+     * Expected size of the encoded CertificateEntry structure.
+     */
+    public int encodedLength() {
+        int size = Constants.LOG_ENTRY_TYPE_LENGTH;
+        if (entryType == LogEntryType.PRECERT_ENTRY) {
+            size += issuerKeyHash.length;
+        }
+        size += Constants.CERTIFICATE_LENGTH_BYTES;
+        size += certificate.length;
+        return size;
+    }
 }

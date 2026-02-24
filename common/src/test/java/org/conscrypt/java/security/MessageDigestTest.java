@@ -18,8 +18,11 @@ package org.conscrypt.java.security;
 
 import static org.junit.Assert.assertEquals;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -34,6 +37,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public final class MessageDigestTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private final byte[] sha_456 = {-24, 9,   -59, -47, -50,  -92,  123, 69, -29, 71,
                                     1,   -46, 63,  96,  -118, -102, 88,  3,  77,  -55};
 

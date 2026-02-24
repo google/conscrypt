@@ -64,7 +64,11 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyPairGeneratorTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     @Test
+    // android-add: @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    // android-add: @NonMts(reason = NonMtsReasons.API_LEVEL_GATING)
     public void test_getInstance() throws Exception {
         ServiceTester
                 .test("KeyPairGenerator")

@@ -305,6 +305,7 @@ public class OpaqueProvider extends Provider {
             this.delegate = delegate;
         }
 
+        // g3-add: getParams()
         @Override
         public AlgorithmParameterSpec getParams() {
             return delegate.getParams();

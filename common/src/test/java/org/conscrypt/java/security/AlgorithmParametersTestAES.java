@@ -18,8 +18,11 @@ package org.conscrypt.java.security;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -32,6 +35,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestAES extends AbstractAlgorithmParametersTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static final byte[] parameterData = new byte[] {
             (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8, (byte) 0xFF, (byte) 0x64,
             (byte) 0x72, (byte) 0xF5, (byte) 0x04, (byte) 0x08, (byte) 0x68, (byte) 0xC8,

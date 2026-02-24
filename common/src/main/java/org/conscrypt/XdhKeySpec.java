@@ -43,7 +43,7 @@ public final class XdhKeySpec extends EncodedKeySpec {
             return false;
         EncodedKeySpec that = (EncodedKeySpec) o;
         return (getFormat().equals(that.getFormat())
-                && Arrays.equals(getEncoded(), that.getEncoded()));
+                && (Arrays.equals(getEncoded(), that.getEncoded())));
     }
 
     @Override

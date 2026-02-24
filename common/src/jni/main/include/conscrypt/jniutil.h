@@ -26,6 +26,14 @@
 namespace conscrypt {
 namespace jniutil {
 
+#ifdef __ANDROID__
+    #define CRITICAL_JNI_PARAMS
+    #define CRITICAL_JNI_PARAMS_COMMA
+#else
+    #define CRITICAL_JNI_PARAMS JNIEnv*, jclass
+    #define CRITICAL_JNI_PARAMS_COMMA JNIEnv*, jclass,
+#endif
+
 extern JavaVM* gJavaVM;
 extern jclass cryptoUpcallsClass;
 extern jclass openSslInputStreamClass;

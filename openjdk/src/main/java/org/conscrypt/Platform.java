@@ -77,9 +77,11 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
@@ -648,57 +650,8 @@ final public class Platform {
         return true;
     }
 
-    /**
-     * Check if SCT verification is required for a given hostname.
-     *
-     * SCT Verification is enabled using {@code Security} properties.
-     * The "conscrypt.ct.enable" property must be true, as well as a per domain property.
-     * The reverse notation of the domain name, prefixed with "conscrypt.ct.enforce."
-     * is used as the property name.
-     * Basic globbing is also supported.
-     *
-     * For example, for the domain foo.bar.com, the following properties will be
-     * looked up, in order of precedence.
-     * - conscrypt.ct.enforce.com.bar.foo
-     * - conscrypt.ct.enforce.com.bar.*
-     * - conscrypt.ct.enforce.com.*
-     * - conscrypt.ct.enforce.*
-     */
-    public static boolean isCTVerificationRequired(String hostname) {
-        if (hostname == null) {
-            return false;
-        }
-
-        String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || !Boolean.parseBoolean(property.toLowerCase(Locale.ROOT))) {
-            return false;
-        }
-
-        List<String> parts = Arrays.asList(hostname.split("\\."));
-        Collections.reverse(parts);
-
-        boolean enable = false;
-        StringBuilder propertyName = new StringBuilder("conscrypt.ct.enforce");
-        // The loop keeps going on even once we've found a match
-        // This allows for finer grained settings on subdomains
-        for (String part : parts) {
-            property = Security.getProperty(propertyName + ".*");
-            if (property != null) {
-                enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
-            }
-            propertyName.append(".").append(part);
-        }
-
-        property = Security.getProperty(propertyName.toString());
-        if (property != null) {
-            enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
-        }
-        return enable;
-    }
-
-    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
-            String hostname) {
-        return CertificateTransparencyVerificationReason.UNKNOWN;
+    static SSLException wrapInvalidEchDataException(SSLException e) {
+        return e;
     }
 
     static boolean supportsConscryptCertStore() {
@@ -765,7 +718,8 @@ final public class Platform {
         return null;
     }
 
-    static CertificateTransparency newDefaultCertificateTransparency() {
+    static CertificateTransparency newDefaultCertificateTransparency(
+            Supplier<NetworkSecurityPolicy> policySupplier) {
         return null;
     }
 
