@@ -16,9 +16,9 @@
 
 package org.conscrypt;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -61,9 +61,13 @@ public class ScryptSecretKeyFactory extends SecretKeyFactorySpi {
             throw new InvalidKeySpecException("Cannot produce fractional-byte outputs");
         }
 
-        return new ScryptKey(NativeCrypto.Scrypt_generate_key(
-                new String(password).getBytes(StandardCharsets.UTF_8), salt, n, r, p,
-                keyOutputBits / 8));
+        try {
+            return new ScryptKey(NativeCrypto.Scrypt_generate_key(
+                    new String(password).getBytes("UTF-8"), salt, n, r, p, keyOutputBits / 8));
+        } catch (UnsupportedEncodingException e) {
+            // Impossible according to the Java docs: UTF-8 is always supported.
+            throw new IllegalStateException(e);
+        }
     }
 
     private Object getValue(KeySpec spec, String methodName)
@@ -116,8 +120,6 @@ public class ScryptSecretKeyFactory extends SecretKeyFactorySpi {
     }
 
     private static class NotImplementedException extends RuntimeException {
-        private static final long serialVersionUID = -7755435858585859108L;
-
         NotImplementedException() {
             super("Not implemented");
         }

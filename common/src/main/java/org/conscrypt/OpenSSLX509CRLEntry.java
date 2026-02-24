@@ -31,7 +31,7 @@ import java.util.Set;
  * An implementation of {@link X509CRLEntry} based on BoringSSL.
  */
 final class OpenSSLX509CRLEntry extends X509CRLEntry {
-    private final long mContext;
+    private long mContext;
     private final Date revocationDate;
 
     OpenSSLX509CRLEntry(long ctx) throws ParsingException {

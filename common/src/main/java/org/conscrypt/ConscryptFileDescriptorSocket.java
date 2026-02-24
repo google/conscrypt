@@ -773,6 +773,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         sslParameters.setUseSessionTickets(useSessionTickets);
     }
 
+    @Override
+    public final void setEchConfigList(byte[] echConfigList) {
+        sslParameters.setEchConfigList(echConfigList);
+    }
+
     /**
      * This method enables Server Name Indication.  If the hostname is not a valid SNI hostname,
      * the SNI extension will be omitted from the handshake.

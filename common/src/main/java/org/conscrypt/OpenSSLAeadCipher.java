@@ -24,6 +24,7 @@ import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -33,6 +34,8 @@ import javax.crypto.spec.IvParameterSpec;
 
 @Internal
 public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
+    private static final Logger logger = Logger.getLogger(OpenSSLAeadCipher.class.getName());
+
     /**
      * Controls whether no-copy optimizations for direct ByteBuffers are enabled.
      */

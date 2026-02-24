@@ -104,4 +104,22 @@ public class AndroidHpkeSpi implements android.crypto.hpke.HpkeSpi, org.conscryp
             super(new HpkeImpl.X25519_CHACHA20());
         }
     }
+
+    public static class XwingHkdfSha256Aes128Gcm extends AndroidHpkeSpi {
+        public XwingHkdfSha256Aes128Gcm() {
+            super(new HpkeImpl.XwingHkdfSha256Aes128Gcm());
+        }
+    }
+
+    public static class XwingHkdfSha256Aes256Gcm extends AndroidHpkeSpi {
+        public XwingHkdfSha256Aes256Gcm() {
+            super(new HpkeImpl.XwingHkdfSha256Aes256Gcm());
+        }
+    }
+
+    public static class XwingHkdfSha256ChaCha20Poly1305 extends AndroidHpkeSpi {
+        public XwingHkdfSha256ChaCha20Poly1305() {
+            super(new HpkeImpl.XwingHkdfSha256ChaCha20Poly1305());
+        }
+    }
 }

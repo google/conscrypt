@@ -39,6 +39,8 @@ import javax.net.ssl.SSLSocket;
 
 @RunWith(JUnit4.class)
 public class TlsDeprecationTest {
+    // android-add: test rule for switching target SDK version to 36.
+
     @Test
     @TargetSdkVersion(36)
     public void test_SSLSocket_SSLv3Unsupported_36() throws Exception {

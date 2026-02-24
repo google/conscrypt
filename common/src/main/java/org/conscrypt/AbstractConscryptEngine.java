@@ -136,6 +136,13 @@ abstract class AbstractConscryptEngine extends SSLEngine {
     abstract void setUseSessionTickets(boolean useSessionTickets);
 
     /**
+     * This method sets the ECH config data to be used in the TLS handshake.
+     *
+     * @param echConfigList the ECH config data to be used in the TLS handshake
+     */
+    abstract void setEchConfigList(byte[] echConfigList);
+
+    /**
      * Sets the list of ALPN protocols.
      *
      * @param protocols the list of ALPN protocols

@@ -44,6 +44,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class X509CRLTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static final String CA_CERT = "-----BEGIN CERTIFICATE-----\n"
             + "MIIC0DCCAjmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBVMQswCQYDVQQGEwJHQjEk\n"
             + "MCIGA1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVX\n"

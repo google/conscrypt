@@ -135,11 +135,22 @@ public class SignedCertificateTimestamp {
         Serialization.writeVariableBytes(output, extensions, Constants.EXTENSIONS_LENGTH_BYTES);
     }
 
+    private int encodedLength(CertificateEntry certEntry) {
+        int size = Constants.VERSION_LENGTH;
+        size += Constants.SIGNATURE_TYPE_LENGTH;
+        size += Constants.TIMESTAMP_LENGTH;
+        size += certEntry.encodedLength();
+        size += Constants.EXTENSIONS_LENGTH_BYTES;
+        size += extensions.length;
+        return size;
+    }
+
     /**
      * TLS encode the signed part of the SCT, as described by RFC6962 section 3.2.
      */
     public byte[] encodeTBS(CertificateEntry certEntry) throws SerializationException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        int bufferSize = encodedLength(certEntry);
+        ByteArrayOutputStream output = new ByteArrayOutputStream(bufferSize);
         encodeTBS(output, certEntry);
         return output.toByteArray();
     }

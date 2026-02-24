@@ -38,6 +38,7 @@ import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,6 +57,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class X509CertificateTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static final String VALID_CERT = "-----BEGIN CERTIFICATE-----\n"
             + "MIIFMjCCAxqgAwIBAgIJAL0mG5fOeJ7xMA0GCSqGSIb3DQEBCwUAMC0xCzAJBgNV\n"
             + "BAYTAkdCMQ8wDQYDVQQHDAZMb25kb24xDTALBgNVBAoMBFRlc3QwIBcNMTgwOTE3\n"

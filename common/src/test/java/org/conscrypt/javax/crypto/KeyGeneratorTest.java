@@ -19,10 +19,13 @@ package org.conscrypt.javax.crypto;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -40,6 +43,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyGeneratorTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static boolean isUnsupported(KeyGenerator kg) {
         // Don't bother testing "Sun..." KeyGenerators or BC outside of Android
         return kg.getProvider().getName().startsWith("Sun")

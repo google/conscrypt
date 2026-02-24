@@ -18,8 +18,11 @@ package org.conscrypt.java.security;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -35,6 +38,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestOAEP extends AbstractAlgorithmParametersTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     // The ASN.1 encoding for OAEP params (specified in RFC 4055 section 4.1) specifies
     // default values for all parameters, so we need to consider encodings with those
     // values both explicitly specified and unspecified.  When encoding values, it is required

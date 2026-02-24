@@ -42,11 +42,14 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import java.util.Arrays;
 import java.util.List;
 
 @RunWith(JUnit4.class)
 public class KeyFactoryTestRSA extends AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
+    // android-add: Allow access to deprecated BC algorithms.
+
     public KeyFactoryTestRSA() {
         super("RSA", RSAPublicKeySpec.class, RSAPrivateKeySpec.class);
     }

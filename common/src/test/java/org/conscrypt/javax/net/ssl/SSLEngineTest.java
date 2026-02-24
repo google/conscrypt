@@ -597,11 +597,6 @@ public class SSLEngineTest {
                                     // should be agreed
                                     assertEquals(referenceContext.host.getHostName(),
                                                  session.getPeerHost());
-
-                                    // The negotiated cipher suite should be one of the enabled
-                                    // ones, but BoringSSL may have reordered them based on things
-                                    // like hardware support, so we don't know which one may have
-                                    // been negotiated.
                                     String sessionSuite = session.getCipherSuite();
                                     List<String> enabledSuites =
                                             Arrays.asList(referenceEngine.getEnabledCipherSuites());

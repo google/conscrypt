@@ -24,6 +24,7 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.ECPublicKeySpec;
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +33,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyFactoryTestEC extends AbstractKeyFactoryTest<ECPublicKeySpec, ECPrivateKeySpec> {
+    // android-add: Allow access to deprecated BC algorithms.
+
     public KeyFactoryTestEC() {
         super("EC", ECPublicKeySpec.class, ECPrivateKeySpec.class);
     }

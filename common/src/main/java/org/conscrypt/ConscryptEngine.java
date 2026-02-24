@@ -1746,6 +1746,11 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     @Override
+    void setEchConfigList(byte[] echConfigList) {
+        sslParameters.setEchConfigList(echConfigList);
+    }
+
+    @Override
     String[] getApplicationProtocols() {
         return sslParameters.getApplicationProtocols();
     }

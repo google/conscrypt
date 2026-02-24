@@ -18,8 +18,11 @@ package org.conscrypt.java.security;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -34,6 +37,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class AlgorithmParametersTestEC extends AbstractAlgorithmParametersTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static final String CURVE_NAME = "secp384r1";
     private static final String CURVE_OID = "1.3.132.0.34";
 

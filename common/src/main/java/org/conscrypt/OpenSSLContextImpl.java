@@ -67,6 +67,10 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
         serverSessionContext = new ServerSessionContext();
     }
 
+    private OpenSSLContextImpl() throws GeneralSecurityException, IOException {
+        this(NativeCrypto.TLSV13_PROTOCOLS, true);
+    }
+
     /**
      * Constructor for the DefaultSSLContextImpl.  The unused boolean parameter is solely to
      * indicate that this constructor is desired.
