@@ -1058,6 +1058,116 @@ public class SSLEngineTest {
         }
     }
 
+    /*
+     * The preconditions for the unwrap() methods of SSLEngine have a relatively
+     * complex mapping from precondition to the exception thrown on failure.  This method
+     * checks that all the failure cases throw the correct exception and that
+     * corner cases which should not throw are also handled correctly.
+     */
+    @Test
+    public void unwrapPreconditions() throws Exception {
+        int bufferSize = 128;
+        int arrayLength = 5;
+        ByteBuffer srcBuffer = BufferType.HEAP.newRandomBuffer(bufferSize);
+        ByteBuffer dstBuffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyDestBuffer = dstBuffer.asReadOnlyBuffer();
+
+        ByteBuffer[] dsts = BufferType.HEAP.newBufferArray(arrayLength, bufferSize);
+        ByteBuffer[] dstsWithNullEntry = Arrays.copyOf(dsts, dsts.length);
+        int nullBufferIndex = 2;
+        dstsWithNullEntry[nullBufferIndex] = null;
+        ByteBuffer[] dstsWithReadOnlyEntry = Arrays.copyOf(dsts, dsts.length);
+        int readOnlyBufferIndex = 2;
+        dstsWithReadOnlyEntry[readOnlyBufferIndex] =
+                dstsWithReadOnlyEntry[readOnlyBufferIndex].asReadOnlyBuffer();
+
+        // Failure cases
+        // Client/server mode not set => IllegalStateException
+        assertThrows(IllegalStateException.class,
+                     () -> newUnconnectedEngine().unwrap(srcBuffer, dstBuffer));
+        assertThrows(IllegalStateException.class,
+                     () -> newUnconnectedEngine().unwrap(srcBuffer, dsts));
+        assertThrows(IllegalStateException.class,
+                     () -> newUnconnectedEngine().unwrap(srcBuffer, dsts, 0, 1));
+
+        // Read-only destination => ReadOnlyBufferException
+        assertThrows(ReadOnlyBufferException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, readOnlyDestBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, dstsWithReadOnlyEntry));
+        assertThrows(ReadOnlyBufferException.class,
+                     () -> newConnectedEngine().unwrap(
+                             srcBuffer, dstsWithReadOnlyEntry, 0, arrayLength));
+
+        // Null destination => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, (ByteBuffer) null));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, (ByteBuffer[]) null));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, null, 0, 1));
+
+        // Null source => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(null, dstBuffer));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(null, dsts));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(null, dsts, 0, 1));
+
+        // Null entries in destination buffer array => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, dstsWithNullEntry));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().unwrap(
+                             srcBuffer, dstsWithNullEntry, 0, arrayLength));
+
+        // Bad offset or length => IndexOutOfBoundsException
+        assertThrows(IndexOutOfBoundsException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, dsts, 0, arrayLength + 1));
+        assertThrows(IndexOutOfBoundsException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, dsts, arrayLength, 1));
+        assertThrows(IndexOutOfBoundsException.class,
+                     () -> newConnectedEngine().unwrap(srcBuffer, dsts, arrayLength - 1, 2));
+
+        // Corner cases which should not throw
+        // Zero length arrays of output buffers should never throw
+        assertUnwrapDoesNotThrow(dsts, 0, 0);
+        assertUnwrapDoesNotThrow(dsts, arrayLength, 0);
+
+        // TODO(prb): Add tests for null/read-only entries outside the selected offset and length
+        // after https://github.com/google/conscrypt/issues/1372 is fixed.
+    }
+
+    // Asserts that an unwrap call with the given arguments does not throw a precondition
+    // exception. Note that the unwrap call itself may not produce plaintext if the selected
+    // destination buffers don't have enough capacity, but this is purely a precondition test
+    // and actual unwrap functionality is tested elsewhere.
+    private void assertUnwrapDoesNotThrow(ByteBuffer[] dsts, int offset, int length) throws Exception {
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            assertConnected(pair);
+
+            // Wrap some plaintext to get TLS ciphertext to unwrap.
+            ByteBuffer plaintext = BufferType.HEAP.newRandomBuffer(128);
+            ByteBuffer ciphertext =
+                    ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+            SSLEngineResult wrapResult = pair.client.wrap(plaintext, ciphertext);
+            assertEquals(Status.OK, wrapResult.getStatus());
+            ciphertext.flip();
+
+            // Reset the selected destination buffers to their initial (empty) state.
+            for (int i = offset; i < offset + length; i++) {
+                dsts[i].clear();
+            }
+
+            // Unwrap: may return BUFFER_OVERFLOW if the selected buffers don't have enough capacity but that's
+            // fine for this *precondition* test.
+            SSLEngineResult result = pair.server.unwrap(ciphertext, dsts, offset, length);
+            assertTrue(result.getStatus() == Status.OK
+                    || result.getStatus() == Status.BUFFER_OVERFLOW);
+        }
+    }
+
     @Test
     public void unwrapPreconditions() throws Exception {
         int bufferSize = 128;
@@ -1145,7 +1255,7 @@ public class SSLEngineTest {
     }
 
     @Test
-    public void bufferArrayOffsets() throws Exception{
+    public void bufferArrayOffsets() throws Exception {
         TestSSLEnginePair pair = TestSSLEnginePair.create();
         ByteBuffer tlsBuffer = ByteBuffer.allocate(600);
         int bufferSize = 100;
