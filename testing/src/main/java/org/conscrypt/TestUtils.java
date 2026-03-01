@@ -134,6 +134,14 @@ public final class TestUtils {
             buffer.flip();
             return buffer;
         }
+
+        public ByteBuffer[] newBufferArray(int arrayLength, int bufferSize) {
+            ByteBuffer[] result = new ByteBuffer[arrayLength];
+            for (int i = 0; i < arrayLength; i++) {
+                result[i] = newBuffer(bufferSize);
+            }
+            return result;
+        }
     }
 
     private TestUtils() {}

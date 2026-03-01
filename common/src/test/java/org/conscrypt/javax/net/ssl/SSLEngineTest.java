@@ -1059,7 +1059,93 @@ public class SSLEngineTest {
     }
 
     @Test
-    public void bufferArrayOffsets() throws Exception {
+    public void unwrapPreconditions() throws Exception {
+        int bufferSize = 128;
+        int arrayLength = 5;
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyBuffer = buffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = BufferType.HEAP.newBufferArray(arrayLength, bufferSize);
+        ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
+        int nullBufferIndex = 2;
+        buffersWithNullEntry[nullBufferIndex] = null;
+        ByteBuffer[] buffersWithReadOnlyEntry = Arrays.copyOf(buffers, buffers.length);
+        int readOnlyBufferIndex = 2;
+        buffersWithReadOnlyEntry[readOnlyBufferIndex] =
+                buffersWithReadOnlyEntry[readOnlyBufferIndex].asReadOnlyBuffer();
+
+        // Client/server mode not set => IllegalStateException
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().unwrap(buffer, buffer));
+        assertThrows(
+                IllegalStateException.class, () -> newUnconnectedEngine().unwrap(buffer, buffers));
+        assertThrows(IllegalStateException.class,
+                () -> newUnconnectedEngine().unwrap(buffer, buffers, 0, 1));
+
+        // Read-only destination => ReadOnlyBufferException
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().unwrap(buffer, readOnlyBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffersWithReadOnlyEntry));
+        assertThrows(ReadOnlyBufferException.class,
+                ()
+                        -> newConnectedEngine().unwrap(
+                                buffer, buffersWithReadOnlyEntry, 0, arrayLength));
+
+        // Null destination => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, (ByteBuffer) null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, (ByteBuffer[]) null));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, null, 0, 1));
+
+        // Null source => IllegalArgumentException
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().unwrap(null, buffer));
+        assertThrows(
+                IllegalArgumentException.class, () -> newConnectedEngine().unwrap(null, buffers));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(null, buffers, 0, 1));
+
+        // Null entries in buffer array => IllegalArgumentException
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffersWithNullEntry));
+        assertThrows(IllegalArgumentException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffersWithNullEntry, 0, arrayLength));
+
+        // Bad offset or length => IndexOutOfBoundsException
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffers, 0, arrayLength + 1));
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> newConnectedEngine().unwrap(buffer, buffers, arrayLength, 1));
+        wrapThenUnwrap(bufferSize, buffers, 0, arrayLength);
+        // Zero length array is allowed
+        wrapThenUnwrap(bufferSize, buffers, 0, 0);
+        wrapThenUnwrap(bufferSize, buffers, arrayLength, 0);
+    }
+
+    private void wrapThenUnwrap(int bufferSize, ByteBuffer[] dest, int offset, int length)
+            throws Exception {
+        ByteBuffer src = ByteBuffer.allocate(bufferSize);
+        ByteBuffer tlsBuffer = ByteBuffer.allocate(bufferSize + 128);
+        tlsBuffer.clear();
+
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            SSLEngineResult result = pair.client.wrap(src, tlsBuffer);
+            assertEquals(Status.OK, result.getStatus());
+
+            tlsBuffer.flip();
+            for (int i = offset; i < offset + length; i++) {
+                dest[i].clear();
+            }
+            // Unwrap result ignored because unwrap may not succeed (e.g. overflowing zero length
+            // buffer array), but it should not throw any exception due to preconditions
+            pair.server.unwrap(tlsBuffer, dest, offset, length);
+        }
+    }
+
+    @Test
+    public void bufferArrayOffsets() throws Exception{
         TestSSLEnginePair pair = TestSSLEnginePair.create();
         ByteBuffer tlsBuffer = ByteBuffer.allocate(600);
         int bufferSize = 100;
