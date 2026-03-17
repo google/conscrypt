@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,20 @@ package org.conscrypt;
 
 import org.conscrypt.Internal;
 
-import java.math.BigInteger;
-import java.security.PublicKey;
-
 /**
- * A set of certificates that are blacklisted from trust.
+ * An entry in the blocklist, for the purpose of reporting.
  */
 @Internal
-public interface CertBlocklist {
-    /**
-     * Returns whether the given public key is in the blacklist.
-     */
-    boolean isPublicKeyBlockListed(PublicKey publicKey);
+public interface CertBlocklistEntry {
+    enum Origin { SHA1_TEST, SHA1_BUILT_IN, SHA1_FILE, SHA256_TEST, SHA256_BUILT_IN, SHA256_FILE }
 
     /**
-     * Returns whether the given serial number is in the blacklist.
+     * Returns the origin of this entry.
      */
-    boolean isSerialNumberBlockListed(BigInteger serial);
+    Origin getOrigin();
+
+    /**
+     * Returns the index of this entry in its blocklist.
+     */
+    int getIndex();
 }

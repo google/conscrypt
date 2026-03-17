@@ -28,15 +28,6 @@ import javax.net.ssl.SSLSessionContext;
  * on Java 7+.
  */
 class Java7ExtendedSSLSession extends ExtendedSSLSession implements ConscryptSession {
-    // TODO: use BoringSSL API to actually fetch the real data
-    private static final String[] LOCAL_SUPPORTED_SIGNATURE_ALGORITHMS = new String[] {
-            "SHA512withRSA", "SHA512withECDSA", "SHA384withRSA", "SHA384withECDSA",
-            "SHA256withRSA", "SHA256withECDSA", "SHA224withRSA", "SHA224withECDSA",
-            "SHA1withRSA",   "SHA1withECDSA",
-    };
-    // TODO: use BoringSSL API to actually fetch the real data
-    private static final String[] PEER_SUPPORTED_SIGNATURE_ALGORITHMS =
-            new String[] {"SHA1withRSA", "SHA1withECDSA"};
     protected final ExternalSession delegate;
 
     Java7ExtendedSSLSession(ExternalSession delegate) {
@@ -44,15 +35,15 @@ class Java7ExtendedSSLSession extends ExtendedSSLSession implements ConscryptSes
     }
 
     /* @Override */
-    @SuppressWarnings("MissingOverride") // For Android backward-compatibility.
+    @SuppressWarnings("MissingOverride")
     public final String[] getLocalSupportedSignatureAlgorithms() {
-        return LOCAL_SUPPORTED_SIGNATURE_ALGORITHMS.clone();
+        return delegate.getLocalSupportedSignatureAlgorithms();
     }
 
     /* @Override */
-    @SuppressWarnings("MissingOverride") // For Android backward-compatibility.
+    @SuppressWarnings("MissingOverride")
     public final String[] getPeerSupportedSignatureAlgorithms() {
-        return PEER_SUPPORTED_SIGNATURE_ALGORITHMS.clone();
+        return delegate.getPeerSupportedSignatureAlgorithms();
     }
 
     @Override

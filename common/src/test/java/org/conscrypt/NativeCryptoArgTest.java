@@ -66,12 +66,6 @@ public class NativeCryptoArgTest {
     private final Map<String, Class<?>> classCache = new HashMap<>();
     private final Map<String, Method> methodMap = buildMethodMap();
 
-    @AfterClass
-    public static void after() {
-        // TODO(prb): Temporary hacky check - remove
-        assertTrue(testedMethods.size() >= 190);
-    }
-
     @Test
     public void ecMethods() throws Throwable {
         markTestRun();

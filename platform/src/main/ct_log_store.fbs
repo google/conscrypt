@@ -1,0 +1,38 @@
+namespace com.android.org.conscrypt.ct.fbs;
+
+file_identifier "CTFB";
+file_extension "ctfb";
+
+enum LogType:byte {
+  Unknown = 0,
+  Rfc6962 = 1,
+  Static = 2
+}
+
+enum LogState:byte {
+  Unknown = 0,
+  Pending = 1,
+  Qualified = 2,
+  Usable = 3,
+  Readonly = 4,
+  Retired = 5,
+  Rejected = 6
+}
+
+table Log {
+  log_id:string (key);
+  public_key:[byte];
+  operator:string;
+  type:LogType;
+  state:LogState;
+  state_timestamp:long;
+}
+
+table LogList {
+  version_major:long;
+  version_minor:long;
+  timestamp:long;
+  logs:[Log];
+}
+
+root_type LogList;

@@ -66,6 +66,12 @@ public final class ConscryptStatsLog {
      */
     public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED = 989;
 
+    /**
+     * CertificateBlocklistBlockReported certificate_blocklist_block_reported<br>
+     * Usage: StatsLog.write(StatsLog.CERTIFICATE_BLOCKLIST_BLOCK_REPORTED, int source, int index, int uid);<br>
+     */
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED = 1143;
+
     // Constants for enum values.
 
     // Values for TlsHandshakeReported.protocol
@@ -179,10 +185,22 @@ public final class ConscryptStatsLog {
     public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_SDK_TARGET_DEFAULT_ENABLED = 2;
     public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_NSCONFIG_APP_OPT_IN = 3;
     public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_NSCONFIG_DOMAIN_OPT_IN = 4;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__REASON__REASON_DRY_RUN = 5;
+
 
     // Values for CertificateTransparencyVerificationReported.policy_compatibility_version
     public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__POLICY_COMPATIBILITY_VERSION__COMPAT_VERSION_UNKNOWN = 0;
     public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__POLICY_COMPATIBILITY_VERSION__COMPAT_VERSION_V1 = 1;
+    public static final int CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__POLICY_COMPATIBILITY_VERSION__COMPAT_VERSION_V2 = 2;
+
+    // Values for CertificateBlocklistBlockReported.source
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_UNKNOWN = 0;
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_SHA1_TEST = 1;
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_SHA1_BUILT_IN = 2;
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_SHA1_FILE = 3;
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_SHA256_TEST = 4;
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_SHA256_BUILT_IN = 5;
+    public static final int CERTIFICATE_BLOCKLIST_BLOCK_REPORTED__SOURCE__BLOCKLIST_SOURCE_SHA256_FILE = 6;
 
     // Write methods
     public static void write(int code, boolean arg1, int arg2, int arg3, int arg4, int arg5, int[] arg6) {
@@ -224,7 +242,18 @@ public final class ConscryptStatsLog {
         ReflexiveStatsLog.write(builder.build());
     }
 
-    public static void write(int code, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8) {
+    public static void write(int code, int arg1, int arg2, int arg3) {
+        final ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
+        builder.setAtomId(code);
+        builder.writeInt(arg1);
+        builder.writeInt(arg2);
+        builder.writeInt(arg3);
+
+        builder.usePooledBuffer();
+        ReflexiveStatsLog.write(builder.build());
+    }
+
+    public static void write(int code, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8, int arg9) {
         final ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder();
         builder.setAtomId(code);
         builder.writeInt(arg1);
@@ -235,6 +264,7 @@ public final class ConscryptStatsLog {
         builder.writeInt(arg6);
         builder.writeInt(arg7);
         builder.writeInt(arg8);
+        builder.writeInt(arg9);
 
         builder.usePooledBuffer();
         ReflexiveStatsLog.write(builder.build());

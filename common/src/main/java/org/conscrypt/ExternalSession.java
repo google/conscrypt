@@ -211,6 +211,16 @@ final class ExternalSession implements ConscryptSession {
         }
     }
 
+    @Override
+    public String[] getPeerSupportedSignatureAlgorithms() {
+        return provider.provideSession().getPeerSupportedSignatureAlgorithms();
+    }
+
+    @Override
+    public String[] getLocalSupportedSignatureAlgorithms() {
+        return provider.provideSession().getLocalSupportedSignatureAlgorithms();
+    }
+
     /**
      * The provider of the current delegate session.
      */
