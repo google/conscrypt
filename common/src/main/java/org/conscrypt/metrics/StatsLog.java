@@ -15,6 +15,7 @@
  */
 package org.conscrypt.metrics;
 
+import org.conscrypt.CertBlocklistEntry;
 import org.conscrypt.Internal;
 import org.conscrypt.ct.LogStore;
 import org.conscrypt.ct.PolicyCompliance;
@@ -30,4 +31,6 @@ public interface StatsLog {
     public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
                                            PolicyCompliance compliance,
                                            CertificateTransparencyVerificationReason reason);
+
+    public void reportBlocklistHit(CertBlocklistEntry entry);
 }

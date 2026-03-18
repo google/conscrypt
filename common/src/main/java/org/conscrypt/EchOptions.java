@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The Android Open Source Project
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,21 @@
 
 package org.conscrypt;
 
-import org.conscrypt.Internal;
-
-import java.math.BigInteger;
-import java.security.PublicKey;
-
-/**
- * A set of certificates that are blacklisted from trust.
- */
 @Internal
-public interface CertBlocklist {
-    /**
-     * Returns whether the given public key is in the blacklist.
-     */
-    boolean isPublicKeyBlockListed(PublicKey publicKey);
+class EchOptions {
+    private final byte[] configList;
+    private final boolean enableGrease;
 
-    /**
-     * Returns whether the given serial number is in the blacklist.
-     */
-    boolean isSerialNumberBlockListed(BigInteger serial);
+    EchOptions(byte[] configList, boolean enableGrease) {
+        this.configList = configList;
+        this.enableGrease = enableGrease;
+    }
+
+    byte[] getConfigList() {
+        return configList;
+    }
+
+    boolean isGreaseEnabled() {
+        return enableGrease;
+    }
 }

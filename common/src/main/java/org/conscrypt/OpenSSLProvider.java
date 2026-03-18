@@ -225,6 +225,10 @@ public final class OpenSSLProvider extends Provider {
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyPairGenerator.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyPairGenerator");
 
+        put("KeyPairGenerator.ML-KEM", PREFIX + "OpenSslMlKemKeyPairGenerator$MlKem");
+        put("KeyPairGenerator.ML-KEM-768", PREFIX + "OpenSslMlKemKeyPairGenerator$MlKem768");
+        put("KeyPairGenerator.ML-KEM-1024", PREFIX + "OpenSslMlKemKeyPairGenerator$MlKem1024");
+
         put("KeyPairGenerator.XWING", PREFIX + "OpenSslXwingKeyPairGenerator");
 
         /* == KeyFactory == */
@@ -255,6 +259,10 @@ public final class OpenSSLProvider extends Provider {
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         put("KeyFactory.SLH-DSA-SHA2-128S", PREFIX + "OpenSslSlhDsaKeyFactory");
+
+        put("KeyFactory.ML-KEM", PREFIX + "OpenSslMlKemKeyFactory$MlKem");
+        put("KeyFactory.ML-KEM-768", PREFIX + "OpenSslMlKemKeyFactory$MlKem768");
+        put("KeyFactory.ML-KEM-1024", PREFIX + "OpenSslMlKemKeyFactory$MlKem1024");
 
         put("KeyFactory.XWING", PREFIX + "OpenSslXwingKeyFactory");
 
@@ -580,6 +588,20 @@ public final class OpenSSLProvider extends Provider {
             baseClass + "$X25519_CHACHA20");
         put("Alg.Alias.ConscryptHpke.DHKEM_X25519_HKDF_SHA256_HKDF_SHA256_GhpkeCHACHA20POLY1305",
             "DHKEM_X25519_HKDF_SHA256/HKDF_SHA256/CHACHA20POLY1305");
+
+        put("ConscryptHpke.MLKEM_768/HKDF_SHA256/AES_128_GCM",
+            baseClass + "$MlKem768HkdfSha256Aes128Gcm");
+        put("ConscryptHpke.MLKEM_768/HKDF_SHA256/AES_256_GCM",
+            baseClass + "$MlKem768HkdfSha256Aes256Gcm");
+        put("ConscryptHpke.MLKEM_768/HKDF_SHA256/CHACHA20POLY1305",
+            baseClass + "$MlKem768HkdfSha256ChaCha20Poly1305");
+        put("ConscryptHpke.MLKEM_1024/HKDF_SHA256/AES_128_GCM",
+            baseClass + "$MlKem1024HkdfSha256Aes128Gcm");
+        put("ConscryptHpke.MLKEM_1024/HKDF_SHA256/AES_256_GCM",
+            baseClass + "$MlKem1024HkdfSha256Aes256Gcm");
+        put("ConscryptHpke.MLKEM_1024/HKDF_SHA256/CHACHA20POLY1305",
+            baseClass + "$MlKem1024HkdfSha256ChaCha20Poly1305");
+
         put("ConscryptHpke.XWING/HKDF_SHA256/AES_128_GCM", baseClass + "$XwingHkdfSha256Aes128Gcm");
         put("ConscryptHpke.XWING/HKDF_SHA256/AES_256_GCM", baseClass + "$XwingHkdfSha256Aes256Gcm");
         put("ConscryptHpke.XWING/HKDF_SHA256/CHACHA20POLY1305",

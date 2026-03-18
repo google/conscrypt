@@ -26,6 +26,14 @@
 namespace conscrypt {
 namespace jniutil {
 
+#ifdef __ANDROID__
+#define CRITICAL_JNI_PARAMS
+#define CRITICAL_JNI_PARAMS_COMMA
+#else
+#define CRITICAL_JNI_PARAMS JNIEnv*, jclass
+#define CRITICAL_JNI_PARAMS_COMMA JNIEnv*, jclass,
+#endif
+
 extern JavaVM* gJavaVM;
 extern jclass cryptoUpcallsClass;
 extern jclass openSslInputStreamClass;
@@ -153,8 +161,8 @@ extern int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor);
 extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer);
 
 /**
- * Returns true if the VM's JNI GetByteArrayElements method is likely to create a copy when
- * invoked on an array of the provided size.
+ * Returns true if the VM's JNI GetByteArrayElements method is likely to create
+ * a copy when invoked on an array of the provided size.
  */
 extern bool isGetByteArrayElementsLikelyToReturnACopy(size_t size);
 
@@ -281,7 +289,8 @@ extern int throwSSLHandshakeExceptionStr(JNIEnv* env, const char* message);
 extern int throwSSLExceptionStr(JNIEnv* env, const char* message);
 
 /**
- * Throws a javax.net.ssl.SSLProcotolException with the given string as a message.
+ * Throws a javax.net.ssl.SSLProcotolException with the given string as a
+ * message.
  */
 extern int throwSSLProtocolExceptionStr(JNIEnv* env, const char* message);
 
@@ -302,9 +311,10 @@ extern int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCod
 
 #ifdef CONSCRYPT_CHECK_ERROR_QUEUE
 /**
- * Class that checks that the error queue is empty on destruction.  It should only be used
- * via the macro CHECK_ERROR_QUEUE_ON_RETURN, which can be placed at the top of a function to
- * ensure that the error queue is empty whenever the function exits.
+ * Class that checks that the error queue is empty on destruction.  It should
+ * only be used via the macro CHECK_ERROR_QUEUE_ON_RETURN, which can be placed
+ * at the top of a function to ensure that the error queue is empty whenever the
+ * function exits.
  */
 class ErrorQueueChecker {
 public:
@@ -319,7 +329,8 @@ public:
             char result[500];
             snprintf(result, sizeof(result),
                      "Error queue should have been empty but was (%s:%d) %s", file, line, message);
-            // If there's a pending exception, we want to throw the assertion error instead
+            // If there's a pending exception, we want to throw the assertion error
+            // instead
             env->ExceptionClear();
             throwAssertionError(env, result);
         }

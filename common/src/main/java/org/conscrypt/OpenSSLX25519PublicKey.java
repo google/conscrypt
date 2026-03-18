@@ -28,10 +28,14 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
     private static final byte[] X509_PREAMBLE = new byte[] {
-            0x30, 0x2a, // Sequence: 42 bytes
-            0x30, 0x05, // Sequence: 5 bytes
-            0x06, 0x03, 0x2b, 0x65, 0x6e, // OID: 1.3.101.110 (X25519)
-            0x03, 0x21, 0x00, // Bit string: 256 bits
+            0x30,
+            0x2a, // Sequence: 42 bytes
+            0x30,
+            0x05, // Sequence: 5 bytes
+            0x06, 0x03, 0x2b, 0x65,
+            0x6e, // OID: 1.3.101.110 (X25519)
+            0x03, 0x21,
+            0x00, // Bit string: 256 bits
             // Key bytes follow directly
     };
 

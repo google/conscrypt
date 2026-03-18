@@ -309,6 +309,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
                                                  byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
+        String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
+        activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
         ssl.chooseClientCertificate(keyTypeBytes, signatureAlgs, asn1DerEncodedPrincipals);
     }
 
@@ -382,8 +384,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    public final void serverCertificateRequested() throws IOException {
+    public final void serverCertificateRequested(int[] signatureAlgs) throws IOException {
         synchronized (ssl) {
+            String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
+            activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
             ssl.configureServerCertificate();
         }
     }
