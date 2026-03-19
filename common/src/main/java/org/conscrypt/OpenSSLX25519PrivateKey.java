@@ -30,11 +30,16 @@ import java.util.Arrays;
 public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
     private static final long serialVersionUID = -3136201500221850916L;
     private static final byte[] PKCS8_PREAMBLE = new byte[] {
-            0x30, 0x2e, // Sequence: 46 bytes
-            0x02, 0x01, 0x00, // Integer: 0 (version)
-            0x30, 0x05, // Sequence: 5 bytes
-            0x06, 0x03, 0x2b, 0x65, 0x6e, // OID: 1.3.101.110 (X25519)
-            0x04, 0x22, 0x04, 0x20, // Octet string: 32 bytes
+            0x30,
+            0x2e, // Sequence: 46 bytes
+            0x02, 0x01,
+            0x00, // Integer: 0 (version)
+            0x30,
+            0x05, // Sequence: 5 bytes
+            0x06, 0x03, 0x2b, 0x65,
+            0x6e, // OID: 1.3.101.110 (X25519)
+            0x04, 0x22, 0x04,
+            0x20, // Octet string: 32 bytes
             // Key bytes follow directly
     };
 

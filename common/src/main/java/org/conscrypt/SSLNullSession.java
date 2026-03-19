@@ -184,4 +184,14 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
         throw new UnsupportedOperationException(
                 "All calls to this method should be intercepted by ExternalSession.");
     }
+
+    @Override
+    public String[] getPeerSupportedSignatureAlgorithms() {
+        return new String[0];
+    }
+
+    @Override
+    public String[] getLocalSupportedSignatureAlgorithms() {
+        return new String[0];
+    }
 }

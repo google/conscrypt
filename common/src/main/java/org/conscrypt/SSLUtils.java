@@ -47,9 +47,11 @@ import java.nio.ByteBuffer;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.net.ssl.SSLException;
@@ -576,6 +578,67 @@ final class SSLUtils {
             resultOffset += array.length;
         }
         return result;
+    }
+
+    /**
+     * Maps BoringSSL/TLS signature scheme identifiers to standard JSSE algorithm names.
+     * See RFC 8446, Section 4.2.3.
+     */
+    static String[] mapSignatureAlgorithms(int[] algorithms) {
+        if (algorithms == null || algorithms.length == 0) {
+            // Fallback for TLS 1.2 peers that don't send the signature_algorithms extension
+            return new String[] {"SHA256withRSA",   "SHA256withECDSA", "SHA384withRSA",
+                                 "SHA384withECDSA", "SHA512withRSA",   "SHA512withECDSA",
+                                 "SHA1withRSA",     "SHA1withECDSA"};
+        }
+        List<String> result = new ArrayList<>();
+        for (int alg : algorithms) {
+            switch (alg) {
+                // TLS 1.3 and modern TLS 1.2
+                case 0x0401:
+                    result.add("SHA256withRSA");
+                    break;
+                case 0x0501:
+                    result.add("SHA384withRSA");
+                    break;
+                case 0x0601:
+                    result.add("SHA512withRSA");
+                    break;
+                case 0x0403:
+                    result.add("SHA256withECDSA");
+                    break;
+                case 0x0503:
+                    result.add("SHA384withECDSA");
+                    break;
+                case 0x0603:
+                    result.add("SHA512withECDSA");
+                    break;
+                // RSASSA-PSS schemes
+                case 0x0804:
+                case 0x0805:
+                case 0x0806:
+                case 0x0809:
+                case 0x080a:
+                case 0x080b:
+                    result.add("RSASSA-PSS");
+                    break;
+                // EdDSA schemes
+                case 0x0807:
+                    result.add("Ed25519");
+                    break;
+                // Legacy TLS 1.2
+                case 0x0201:
+                    result.add("SHA1withRSA");
+                    break;
+                case 0x0203:
+                    result.add("SHA1withECDSA");
+                    break;
+                default:
+                    // Ignore unknown or unsupported algorithms
+                    break;
+            }
+        }
+        return result.toArray(new String[0]);
     }
 
     private SSLUtils() {}

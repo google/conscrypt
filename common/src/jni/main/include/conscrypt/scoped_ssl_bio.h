@@ -22,8 +22,9 @@
 namespace conscrypt {
 
 /*
- * Sets the read and write BIO for an SSL connection and removes it when it goes out of scope.
- * We hang on to BIO with a JNI GlobalRef and we want to remove them as soon as possible.
+ * Sets the read and write BIO for an SSL connection and removes it when it goes
+ * out of scope. We hang on to BIO with a JNI GlobalRef and we want to remove
+ * them as soon as possible.
  */
 class ScopedSslBio {
 public:

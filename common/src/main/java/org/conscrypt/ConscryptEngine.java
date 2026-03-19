@@ -1591,8 +1591,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     @Override
-    public void serverCertificateRequested() throws IOException {
+    public void serverCertificateRequested(int[] signatureAlgs) throws IOException {
         synchronized (ssl) {
+            String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
+            activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
             ssl.configureServerCertificate();
         }
     }
@@ -1658,6 +1660,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
                                            byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
+        String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
+        activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
         ssl.chooseClientCertificate(keyTypeBytes, signatureAlgs, asn1DerEncodedPrincipals);
     }
 
