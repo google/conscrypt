@@ -363,6 +363,7 @@ final class NativeSsl {
             if (parameters.isCTVerificationEnabled(hostname)) {
                 NativeCrypto.SSL_enable_signed_cert_timestamps(ssl, this);
             }
+            enableEchBasedOnPolicy(hostname);
         } else {
             NativeCrypto.SSL_set_accept_state(ssl, this);
 
@@ -581,6 +582,27 @@ final class NativeSsl {
         } else {
             // Server-side TLS Channel ID
             NativeCrypto.SSL_enable_tls_channel_id(ssl, this);
+        }
+    }
+
+    private void enableEchBasedOnPolicy(String hostname) throws SSLException {
+        EchOptions opts = parameters.getEchOptions(hostname);
+        if (opts == null) {
+            return;
+        }
+
+        byte[] configList = opts.getConfigList();
+        if (configList != null) {
+            try {
+                NativeCrypto.SSL_set1_ech_config_list(ssl, this, configList);
+            } catch (SSLException e) {
+                // The platform may provide a more specialized exception type for this error.
+                throw Platform.wrapInvalidEchDataException(e);
+            }
+        }
+
+        if (opts.isGreaseEnabled()) {
+            NativeCrypto.SSL_set_enable_ech_grease(ssl, this, /* enable= */ true);
         }
     }
 

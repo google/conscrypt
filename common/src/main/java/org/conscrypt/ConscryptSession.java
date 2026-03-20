@@ -53,4 +53,8 @@ interface ConscryptSession extends SSLSession {
     @Override X509Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException;
 
     String getApplicationProtocol();
+
+    public String[] getPeerSupportedSignatureAlgorithms();
+
+    public String[] getLocalSupportedSignatureAlgorithms();
 }

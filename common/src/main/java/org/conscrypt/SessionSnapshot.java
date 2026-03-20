@@ -42,6 +42,8 @@ final class SessionSnapshot implements ConscryptSession {
     private final String peerHost;
     private final String applicationProtocol;
     private final int peerPort;
+    private final String[] peerSupportedSignatureAlgorithms;
+    private final String[] localSupportedSignatureAlgorithms;
 
     SessionSnapshot(ConscryptSession session) {
         sessionContext = session.getSessionContext();
@@ -56,6 +58,8 @@ final class SessionSnapshot implements ConscryptSession {
         peerHost = session.getPeerHost();
         peerPort = session.getPeerPort();
         applicationProtocol = session.getApplicationProtocol();
+        peerSupportedSignatureAlgorithms = session.getPeerSupportedSignatureAlgorithms();
+        localSupportedSignatureAlgorithms = session.getLocalSupportedSignatureAlgorithms();
     }
 
     @Override
@@ -195,5 +199,17 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     public String getApplicationProtocol() {
         return applicationProtocol;
+    }
+
+    @Override
+    public String[] getPeerSupportedSignatureAlgorithms() {
+        return peerSupportedSignatureAlgorithms != null ? peerSupportedSignatureAlgorithms.clone()
+                                                        : new String[0];
+    }
+
+    @Override
+    public String[] getLocalSupportedSignatureAlgorithms() {
+        return localSupportedSignatureAlgorithms != null ? localSupportedSignatureAlgorithms.clone()
+                                                         : new String[0];
     }
 }
