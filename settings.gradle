@@ -14,7 +14,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "conscrypt"
-if (System.env.ANDROID_HOME && file(System.env.ANDROID_HOME).exists()) {
+if (providers.gradleProperty('conscrypt.includeAndroid').getOrElse('true').toBoolean()
+        && System.env.ANDROID_HOME && file(System.env.ANDROID_HOME).exists()) {
     include ":conscrypt-android"
     include ":conscrypt-android-platform"
     include ":conscrypt-android-stub"
@@ -27,7 +28,9 @@ if (System.env.ANDROID_HOME && file(System.env.ANDROID_HOME).exists()) {
     project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
     project(':conscrypt-libcore-stub').projectDir = "$rootDir/libcore-stub" as File
 } else {
-    logger.warn('Android SDK has not been detected. Skipping Android projects.')
+    logger.warn('Android projects not included. ' +
+                'Ensure ANDROID_HOME is set and set conscrypt.includeAndroid=true ' +
+                'in gradle.properties to include them.')
 }
 
 include ":conscrypt-api-doclet"
