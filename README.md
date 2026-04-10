@@ -1,3 +1,4 @@
+
 # Evolving Conscrypt's Open Source Approach
 
 Hello Conscrypt Developers,
@@ -68,7 +69,7 @@ try {
     // Example: Listing providers to see what's available
     // val providers = Security.getProviders()
     // providers.forEach { provider ->
-    //     println("Provider: ${provider.name}")
+    //     println("Provider: " + provider.name)
     // }
 } catch (e: NoSuchAlgorithmException) {
     // Handle exception

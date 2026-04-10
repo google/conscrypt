@@ -20,7 +20,6 @@ import static org.conscrypt.TestUtils.UTF_8;
 import static org.conscrypt.TestUtils.isLinux;
 import static org.conscrypt.TestUtils.isOsx;
 import static org.conscrypt.TestUtils.isTlsV1Deprecated;
-import static org.conscrypt.TestUtils.isTlsV1Filtered;
 import static org.conscrypt.TestUtils.isTlsV1Supported;
 import static org.conscrypt.TestUtils.isWindows;
 import static org.conscrypt.TestUtils.osName;

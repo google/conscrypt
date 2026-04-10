@@ -20,6 +20,8 @@ import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
 import static org.conscrypt.HpkeSuite.AEAD_CHACHA20POLY1305;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
+import static org.conscrypt.HpkeSuite.KEM_MLKEM_1024;
+import static org.conscrypt.HpkeSuite.KEM_MLKEM_768;
 import static org.conscrypt.HpkeSuite.KEM_XWING;
 
 import java.security.GeneralSecurityException;
@@ -265,6 +267,72 @@ public abstract class HpkeImpl implements HpkeSpi {
     public static class XwingHkdfSha256ChaCha20Poly1305 extends HpkeXwingImpl {
         public XwingHkdfSha256ChaCha20Poly1305() {
             super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+        }
+    }
+
+    private static class HpkeMlKemImpl extends HpkeImpl {
+        HpkeMlKemImpl(HpkeSuite hpkeSuite) {
+            super(hpkeSuite);
+        }
+
+        @Override
+        byte[] getRecipientPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
+            if (!(publicKey instanceof OpenSslMlKemPublicKey)) {
+                throw new InvalidKeyException("Unsupported recipient key class: "
+                                              + publicKey.getClass());
+            }
+            return ((OpenSslMlKemPublicKey) publicKey).getRaw();
+        }
+
+        @Override
+        byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
+            if (!(recipientKey instanceof OpenSslMlKemPrivateKey)) {
+                throw new InvalidKeyException("Unsupported recipient private key class: "
+                                              + recipientKey.getClass());
+            }
+            return ((OpenSslMlKemPrivateKey) recipientKey).getSeed();
+        }
+    }
+
+    /** Implementation of MLKEM_768/HKDF_SHA256/AES_128_GCM. */
+    public static class MlKem768HkdfSha256Aes128Gcm extends HpkeMlKemImpl {
+        public MlKem768HkdfSha256Aes128Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_768, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_768/HKDF_SHA256/AES_256_GCM. */
+    public static class MlKem768HkdfSha256Aes256Gcm extends HpkeMlKemImpl {
+        public MlKem768HkdfSha256Aes256Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_768, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_768/HKDF_SHA256/CHACHA20_POLY1305. */
+    public static class MlKem768HkdfSha256ChaCha20Poly1305 extends HpkeMlKemImpl {
+        public MlKem768HkdfSha256ChaCha20Poly1305() {
+            super(new HpkeSuite(KEM_MLKEM_768, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+        }
+    }
+
+    /** Implementation of MLKEM_1024/HKDF_SHA256/AES_128_GCM. */
+    public static class MlKem1024HkdfSha256Aes128Gcm extends HpkeMlKemImpl {
+        public MlKem1024HkdfSha256Aes128Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_1024, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_1024/HKDF_SHA256/AES_256_GCM. */
+    public static class MlKem1024HkdfSha256Aes256Gcm extends HpkeMlKemImpl {
+        public MlKem1024HkdfSha256Aes256Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_1024, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_1024/HKDF_SHA256/CHACHA20_POLY1305. */
+    public static class MlKem1024HkdfSha256ChaCha20Poly1305 extends HpkeMlKemImpl {
+        public MlKem1024HkdfSha256ChaCha20Poly1305() {
+            super(new HpkeSuite(KEM_MLKEM_1024, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
         }
     }
 }

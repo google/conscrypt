@@ -22,14 +22,16 @@
 namespace conscrypt {
 
 /*
- * Where possible, this class hooks into the Android C API for AsynchronousCloseMonitor,
- * allowing Java thread wakeup semantics during POSIX system calls. It is only used in sslSelect().
+ * Where possible, this class hooks into the Android C API for
+ * AsynchronousCloseMonitor, allowing Java thread wakeup semantics during POSIX
+ * system calls. It is only used in sslSelect().
  *
  * When unbundled, if the C API methods are not available, this class will fall
  * back to looking for the C++ API methods which existed on Android P and below.
  *
- * On non-Android platforms, this class becomes a no-op as all of the function pointers
- * to create and destroy AsynchronousCloseMonitor instances will be null.
+ * On non-Android platforms, this class becomes a no-op as all of the function
+ * pointers to create and destroy AsynchronousCloseMonitor instances will be
+ * null.
  */
 class CompatibilityCloseMonitor {
 public:
@@ -74,9 +76,9 @@ private:
     // C++ API: Only available on Android P and below. Maintains pointers to
     // the C++ constructor and destructor methods, which will be null on
     // non-Android platforms.  Calls them directly, passing in a pointer to
-    // objBuffer, which is large enough to fit an AsynchronousCloseMonitor object on
-    // Android versions where this class will be using this API.
-    // This is equivalent to placement new and explicit destruction.
+    // objBuffer, which is large enough to fit an AsynchronousCloseMonitor object
+    // on Android versions where this class will be using this API. This is
+    // equivalent to placement new and explicit destruction.
     typedef void (*acm_ctor_func)(void*, int);
     typedef void (*acm_dtor_func)(void*);
 

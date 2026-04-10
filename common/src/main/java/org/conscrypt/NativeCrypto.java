@@ -260,6 +260,11 @@ public final class NativeCrypto {
 
     static native byte[] XWING_public_key_from_seed(byte[] privateKeySeed);
 
+    // --- ML-KEM --------------
+
+    static native byte[] MLKEM768_public_key_from_seed(byte[] privateKeySeed);
+    static native byte[] MLKEM1024_public_key_from_seed(byte[] privateKeySeed);
+
     // --- Message digest functions --------------
 
     // These return const references
@@ -1470,7 +1475,8 @@ public final class NativeCrypto {
          *
          * @throws IOException if there was an error during certificate selection.
          */
-        @SuppressWarnings("unused") void serverCertificateRequested() throws IOException;
+        @SuppressWarnings("unused")
+        void serverCertificateRequested(int[] signatureAlgs) throws IOException;
 
         /**
          * Gets the key to be used in client mode for this connection in Pre-Shared Key (PSK) key
