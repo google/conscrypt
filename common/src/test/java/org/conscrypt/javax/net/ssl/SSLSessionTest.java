@@ -352,7 +352,7 @@ public class SSLSessionTest {
         assertEquals("NONE", s.invalid.getProtocol());
         assertNotNull(s.server.getProtocol());
         assertNotNull(s.client.getProtocol());
-        assertEquals(s.server.getProtocol(), s.client.getProtocol());
+        assertEquals("TLSv1.3", s.client.getProtocol());
         assertTrue(StandardNames.SSL_SOCKET_PROTOCOLS.contains(s.server.getProtocol()));
         s.close();
     }

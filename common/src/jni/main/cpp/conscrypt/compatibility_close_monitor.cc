@@ -43,7 +43,8 @@ void CompatibilityCloseMonitor::init() {
         return;
     }
 #ifdef CONSCRYPT_UNBUNDLED
-    // Only attempt to initialise the legacy C++ API if the C API symbols were not found.
+    // Only attempt to initialise the legacy C++ API if the C API symbols were not
+    // found.
     lib = dlopen("libjavacore.so", RTLD_NOW);
     if (lib != nullptr) {
         if (asyncCloseMonitorCreate == nullptr) {
