@@ -38,7 +38,8 @@ constexpr std::size_t kWithJniTraceDataChunkSize = 512;
  * For example, if you were interested in ssl=0x12345678, you would do:
  *
  *  address=0x12345678
- *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap -T 443,1337 -t
+ *  awk "match(\$0,/ssl=$address SSL_DATA: (.*)\$/,a){print a[1]}" | text2pcap
+ * -T 443,1337 -t
  * '%s.' -n -D - $address.pcapng
  */
 constexpr bool kWithJniTracePackets = false;

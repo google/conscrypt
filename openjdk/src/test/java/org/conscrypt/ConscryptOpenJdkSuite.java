@@ -103,6 +103,7 @@ import org.junit.runners.Suite;
         HpkeTestVectorsTest.class,
         KeySpecUtilTest.class,
         MlDsaTest.class,
+        MlKemTest.class,
         NativeCryptoArgTest.class,
         NativeCryptoTest.class,
         NativeSslTest.class,

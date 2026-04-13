@@ -19,10 +19,11 @@
 
 #include <conscrypt/jniutil.h>
 
-// ScopedBooleanArrayRO, ScopedByteArrayRO, ScopedCharArrayRO, ScopedDoubleArrayRO,
-// ScopedFloatArrayRO, ScopedIntArrayRO, ScopedLongArrayRO, and ScopedShortArrayRO provide
-// convenient read-only access to Java arrays from JNI code. This is cheaper than read-write
-// access and should be used by default.
+// ScopedBooleanArrayRO, ScopedByteArrayRO, ScopedCharArrayRO,
+// ScopedDoubleArrayRO, ScopedFloatArrayRO, ScopedIntArrayRO, ScopedLongArrayRO,
+// and ScopedShortArrayRO provide convenient read-only access to Java arrays
+// from JNI code. This is cheaper than read-write access and should be used by
+// default.
 #define INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(PRIMITIVE_TYPE, NAME)                   \
     class Scoped##NAME##ArrayRO {                                                     \
     public:                                                                           \
@@ -77,10 +78,11 @@ INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO(jshort, Short);
 
 #undef INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RO
 
-// ScopedBooleanArrayRW, ScopedByteArrayRW, ScopedCharArrayRW, ScopedDoubleArrayRW,
-// ScopedFloatArrayRW, ScopedIntArrayRW, ScopedLongArrayRW, and ScopedShortArrayRW provide
-// convenient read-write access to Java arrays from JNI code. These are more expensive,
-// since they entail a copy back onto the Java heap, and should only be used when necessary.
+// ScopedBooleanArrayRW, ScopedByteArrayRW, ScopedCharArrayRW,
+// ScopedDoubleArrayRW, ScopedFloatArrayRW, ScopedIntArrayRW, ScopedLongArrayRW,
+// and ScopedShortArrayRW provide convenient read-write access to Java arrays
+// from JNI code. These are more expensive, since they entail a copy back onto
+// the Java heap, and should only be used when necessary.
 #define INSTANTIATE_SCOPED_PRIMITIVE_ARRAY_RW(PRIMITIVE_TYPE, NAME)              \
     class Scoped##NAME##ArrayRW {                                                \
     public:                                                                      \

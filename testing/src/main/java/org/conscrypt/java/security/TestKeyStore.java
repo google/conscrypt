@@ -98,7 +98,7 @@ public final class TestKeyStore {
     private static final int EC_KEY_SIZE_BITS = 256;
 
     /** Size of RSA keys to generate for testing. */
-    private static final int RSA_KEY_SIZE_BITS = 1024;
+    private static final int RSA_KEY_SIZE_BITS = 2048;
 
     // Generated with: openssl dhparam -C 1024
     private static final BigInteger DH_PARAMS_P = new BigInteger(

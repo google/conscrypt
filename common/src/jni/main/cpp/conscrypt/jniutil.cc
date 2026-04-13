@@ -93,7 +93,10 @@ void init(JavaVM* vm, JNIEnv* env) {
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
     sslHandshakeCallbacksClass = getGlobalRefToClass(
-            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks");
+      env,
+      TO_STRING(
+          JNI_JARJAR_PREFIX) "org/conscrypt/"
+                             "NativeCrypto$SSLHandshakeCallbacks");
 
     nativeRef_address = getFieldRef(env, nativeRefClass, "address", "J");
 #if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
@@ -119,7 +122,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     sslHandshakeCallbacks_clientCertificateRequested = getMethodRef(
             env, sslHandshakeCallbacksClass, "clientCertificateRequested", "([B[I[[B)V");
     sslHandshakeCallbacks_serverCertificateRequested =
-            getMethodRef(env, sslHandshakeCallbacksClass, "serverCertificateRequested", "()V");
+            getMethodRef(env, sslHandshakeCallbacksClass, "serverCertificateRequested", "([I)V");
     sslHandshakeCallbacks_clientPSKKeyRequested = getMethodRef(
             env, sslHandshakeCallbacksClass, "clientPSKKeyRequested", "(Ljava/lang/String;[B[B)I");
     sslHandshakeCallbacks_serverPSKKeyRequested =
@@ -178,8 +181,8 @@ int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor) {
 }
 
 extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer) {
-    // Some versions of ART do not check the buffer validity when handling GetDirectBufferAddress()
-    // and GetDirectBufferCapacity().
+    // Some versions of ART do not check the buffer validity when handling
+    // GetDirectBufferAddress() and GetDirectBufferCapacity().
     if (buffer == nullptr) {
         return false;
     }
@@ -191,7 +194,8 @@ extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer) {
 
 bool isGetByteArrayElementsLikelyToReturnACopy(size_t size) {
 #if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
-    // ART's GetByteArrayElements creates copies only for arrays smaller than 12 kB.
+    // ART's GetByteArrayElements creates copies only for arrays smaller than 12
+    // kB.
     return size <= 12 * 1024;
 #else
     (void)size;
@@ -447,8 +451,9 @@ void throwExceptionFromBoringSSLError(JNIEnv* env, CONSCRYPT_UNUSED const char* 
         return;
     }
 
-    // If there's an error from BoringSSL it may have been caused by an exception in Java code, so
-    // ensure there isn't a pending exception before we throw a new one.
+    // If there's an error from BoringSSL it may have been caused by an exception
+    // in Java code, so ensure there isn't a pending exception before we throw a
+    // new one.
     if (!env->ExceptionCheck()) {
         char message[256];
         ERR_error_string_n(error, message, sizeof(message));

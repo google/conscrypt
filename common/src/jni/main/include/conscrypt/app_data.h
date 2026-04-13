@@ -87,13 +87,14 @@ namespace conscrypt {
  *
  * (5) the JNIEnv so we can invoke the Java callback
  *
- * (6) a NativeCrypto.SSLHandshakeCallbacks instance for callbacks from native to Java
+ * (6) a NativeCrypto.SSLHandshakeCallbacks instance for callbacks from native
+ * to Java
  *
  * (7) a java.io.FileDescriptor wrapper to check for socket close
  *
- * We store the ALPN protocols list so we can either send it (from the server) or
- * select a protocol (on the client). We eagerly acquire a pointer to the array
- * data so the callback doesn't need to acquire resources that it cannot
+ * We store the ALPN protocols list so we can either send it (from the server)
+ * or select a protocol (on the client). We eagerly acquire a pointer to the
+ * array data so the callback doesn't need to acquire resources that it cannot
  * release.
  *
  * Because renegotiation can be requested by the peer at any time,
@@ -178,8 +179,10 @@ public:
                     e->GetByteArrayElements(applicationProtocolsJava, nullptr);
             if (applicationProtocols == nullptr) {
                 clearCallbackState();
-                JNI_TRACE("appData=%p setApplicationCallbackState => applicationProtocols == null",
-                          this);
+                JNI_TRACE(
+                        "appData=%p setApplicationCallbackState => applicationProtocols == "
+                        "null",
+                        this);
                 return false;
             }
             applicationProtocolsLength =

@@ -42,7 +42,6 @@ import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.NoopStatsLog;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
-import org.conscrypt.metrics.StatsLogImpl;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -776,16 +775,28 @@ final public class Platform {
         return true;
     }
 
-    private static boolean isAndroid() {
-        boolean android;
+    /** {@return the Android SDK int if this is an Android platform, or 0 if it is not} */
+    private static int androidSdkInt() {
+        boolean isAndroid = false;
         try {
             Class.forName("android.app.Application", false, getSystemClassLoader());
-            android = true;
+            isAndroid = true;
         } catch (Throwable ignored) {
             // Failed to load the class uniquely available in Android.
-            android = false;
+            isAndroid = false;
         }
-        return android;
+        if (!isAndroid) {
+            return 0;
+        }
+        int sdkInt = 1;
+        try {
+            Class<?> versionClass =
+                    Class.forName("android.os.Build$VERSION", false, getSystemClassLoader());
+            sdkInt = versionClass.getField("SDK_INT").getInt(null);
+        } catch (ReflectiveOperationException | UnsatisfiedLinkError ignored) {
+            // Ignored
+        }
+        return sdkInt;
     }
 
     static int javaVersion() {
@@ -795,8 +806,9 @@ final public class Platform {
     private static int javaVersion0() {
         final int majorVersion;
 
-        if (isAndroid()) {
-            majorVersion = 6;
+        int androidSdkInt = androidSdkInt();
+        if (androidSdkInt != 0) {
+            majorVersion = androidSdkInt >= 24 ? 8 : 7;
         } else {
             majorVersion = majorVersionFromJavaSpecificationVersion();
         }
