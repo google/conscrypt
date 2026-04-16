@@ -62,6 +62,8 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
 ninja
 ```
 
+You can also use the `rebuild_boringssl.sh` script (see below) to automate this process.
+
 ##### Building on macOS.
 When building Conscrypt on macOS it will build libraries for both x86 and ARM, and so BoringSSL
 must also be build for each of these.
@@ -90,6 +92,7 @@ cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
 ninja
 ```
 
+You can also use the `rebuild_boringssl.sh` script (see below) to automate this process.
 
 ##### Building on Windows
 This assumes that you have Microsoft Visual Studio 2017 installed along
@@ -116,6 +119,26 @@ ninja
 ```
 
 32-bit mode is no longer supported.
+
+If running `bash`, you can use the `rebuild_boringssl` script (see below)
+to automate this process.
+
+##### rebuild_boringssl.sh script
+
+The script `scripts/rebuild_boringssl.sh` will build or rebuild BoringSSL
+with the correct configuration for the current host architecture.
+
+When run with no arguments, the script assumes that `BORINGSSL_HOME` is set
+correctly and will re-run `cmake` and `ninja` with the correct arguments.
+
+The following arguments can be used to modify its behaviour:
+
+* `--clone` May only be used if `BORINGSSL_HOME` is set but does not
+yet exist.  Will clone BoringSSL from Github and build it.
+
+* `--clean` Delete the current build directly and rebuild from scratch.
+* `--pull` or `--update` Updates the source tree to the latest revision and
+then builds. Note will not clean old builds unless `--clean` is also specified.
 
 Coverage
 --------
