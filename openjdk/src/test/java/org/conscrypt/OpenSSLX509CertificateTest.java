@@ -25,8 +25,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
-import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
