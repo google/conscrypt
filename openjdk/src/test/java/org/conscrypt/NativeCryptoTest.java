@@ -524,6 +524,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_grease_only() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
@@ -572,6 +575,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_client_server() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
@@ -1302,11 +1308,11 @@ public class NativeCryptoTest {
     }
 
     // wrapper method added for ECH testing
+    // Note: This method only works for pre Java 17 as it uses FD sockets.
+    // TODO(b/502061834): Rewrite this for engine sockets to make it work on Java 17+.
     public static Future<TestSSLHandshakeCallbacks> handshake(
             final ServerSocket listener, final int timeout, final boolean client, final Hooks hooks,
             final byte[] alpnProtocols, final ApplicationProtocolSelectorAdapter alpnSelector) {
-        // TODO(prb) rewrite for engine socket. FD socket calls infeasible to test on Java 17+
-        assumeFalse(TestUtils.isJavaVersion(17));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<TestSSLHandshakeCallbacks> future =
                 executor.submit(new Callable<TestSSLHandshakeCallbacks>() {
@@ -1404,6 +1410,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_normal() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // normal client and server case
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
@@ -1435,6 +1444,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_reusedSession() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // normal client and server case
         final ServerSocket listener = newServerSocket();
 
@@ -1519,6 +1531,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_optional_client_certificate() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // optional client certificate case
         final ServerSocket listener = newServerSocket();
 
@@ -1575,6 +1590,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_missing_required_certificate() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // required client certificate negative case
         final ServerSocket listener = newServerSocket();
         try {
@@ -1603,6 +1621,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_client_timeout() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // client timeout
         final ServerSocket listener = newServerSocket();
         Socket serverSocket = null;
@@ -1626,6 +1647,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_server_timeout() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // server timeout
         final ServerSocket listener = newServerSocket();
         Socket clientSocket = null;
@@ -1649,6 +1673,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_channel_id_normal() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // Normal handshake with TLS Channel ID.
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
@@ -1685,6 +1712,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_channel_id_not_supported_by_server() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // Client tries to use TLS Channel ID but the server does not enable/offer the extension.
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
@@ -1721,6 +1751,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_channel_id_not_enabled_by_client() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // Client does not use TLS Channel ID when the server has the extension enabled/offered.
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
@@ -1757,6 +1790,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_normal() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // normal TLS-PSK client and server case
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new ClientHooks();
@@ -1793,6 +1829,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // normal TLS-PSK client and server case where the server provides the client with a PSK
         // identity hint, and the client provides the server with a PSK identity.
         final ServerSocket listener = newServerSocket();
@@ -1834,6 +1873,9 @@ public class NativeCryptoTest {
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint_of_max_length()
             throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // normal TLS-PSK client and server case where the server provides the client with a PSK
         // identity hint, and the client provides the server with a PSK identity.
         final ServerSocket listener = newServerSocket();
@@ -1873,6 +1915,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_key_mismatch() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks();
         ServerHooks sHooks = new ServerHooks();
@@ -1894,6 +1939,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_with_no_client_key() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks();
         ServerHooks sHooks = new ServerHooks();
@@ -1915,6 +1963,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_with_no_server_key() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks();
         ServerHooks sHooks = new ServerHooks();
@@ -1937,6 +1988,9 @@ public class NativeCryptoTest {
     @Test
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_do_handshake_with_psk_key_too_long() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks() {
             @Override
@@ -1964,6 +2018,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_ocsp_response() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final byte[] OCSP_TEST_DATA = new byte[] {1, 2, 3, 4};
 
         final ServerSocket listener = newServerSocket();
@@ -2006,6 +2063,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_sct_extension() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // Fake SCT extension has a length of overall extension (unsigned 16-bit).
         // Each SCT entry has a length (unsigned 16-bit) and data.
         final byte[] SCT_TEST_DATA = new byte[] {0, 6, 0, 4, 1, 2, 3, 4};
@@ -2087,6 +2147,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_set_session() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
         NativeCrypto.SSL_set_session(s, null, NULL);
@@ -2189,6 +2252,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_set_session_creation_enabled() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
         NativeCrypto.SSL_set_session_creation_enabled(s, null, false);
@@ -2299,6 +2365,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_set_tlsext_host_name() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final String hostname = "www.android.com";
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
@@ -2338,6 +2407,9 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithProtocolListShouldSucceed() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
         final byte[] serverAlpnProtocols =
@@ -2375,6 +2447,9 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithProtocolListShouldFail() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
         final byte[] serverAlpnProtocols =
@@ -2412,6 +2487,9 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithServerProtocolSelectorShouldSucceed() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
 
@@ -2454,6 +2532,9 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithServerProtocolSelectorShouldFail() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
 
@@ -2518,6 +2599,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_get0_peer_certificates() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -2539,6 +2623,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_cipher_names() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
         Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES);
@@ -2622,6 +2709,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_read() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         // normal case
@@ -2770,6 +2860,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_interrupt() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -2887,6 +2980,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_session_id() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -2914,6 +3010,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_get_time() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         // TODO(prb) seems to fail regularly on Windows with time < System.currentTimeMillis()
         assumeFalse("Skipping SSLSession_getCreationTime() test on Windows", isWindows());
 
@@ -2947,6 +3046,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_get_version() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -2973,6 +3075,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_cipher() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -3011,6 +3116,9 @@ public class NativeCryptoTest {
 
     @Test
     public void test_i2d_SSL_SESSION() throws Exception {
+        // This test only works on older versions of Java, see b/502061834.
+        assumeFalse(TestUtils.isJavaVersion(17));
+
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
