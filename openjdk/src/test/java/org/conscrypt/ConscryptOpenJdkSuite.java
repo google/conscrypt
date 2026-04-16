@@ -187,6 +187,11 @@ import org.junit.runners.Suite;
 public class ConscryptOpenJdkSuite {
     @BeforeClass
     public static void setupStatic() {
+        // Java 26 introduced additional certificate checking in SunX509KeyManagerImpl
+        // that rejects test certificates lacking proper Key Usage extensions.  Disable
+        // it here so that certificate quality issues are not masked as TLS failures.
+        // TODO(#1486) Fix test certificate generation in TestKeyStore and remove this.
+        System.setProperty("jdk.tls.SunX509KeyManager.certChecking", "false");
         installConscryptAsDefaultProvider();
     }
 }
