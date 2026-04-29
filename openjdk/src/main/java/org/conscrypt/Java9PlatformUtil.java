@@ -45,6 +45,17 @@ final class Java9PlatformUtil {
         SSL_PARAMETERS_SET_APPLICATION_PROTOCOLS_METHOD = setApplicationProtocolsMethod;
     }
 
+    static void setSSLParameters(SSLParameters src, SSLParametersImpl dest) {
+        Java8PlatformUtil.setSSLParameters(src, dest);
+        try {
+            Method getNamedGroupsMethod = src.getClass().getMethod("getNamedGroups");
+            dest.setNamedGroups((String[]) getNamedGroupsMethod.invoke(src));
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Method is not available. Ignore.
+        }
+        dest.setApplicationProtocols(getApplicationProtocols(src));
+    }
+
     static void setSSLParameters(SSLParameters src, SSLParametersImpl dest,
                                  AbstractConscryptSocket socket) {
         Java8PlatformUtil.setSSLParameters(src, dest, socket);
@@ -83,6 +94,21 @@ final class Java9PlatformUtil {
         }
 
         dest.setApplicationProtocols(getApplicationProtocols(src));
+    }
+
+    static void getSSLParameters(SSLParameters dest, SSLParametersImpl src) {
+        Java8PlatformUtil.getSSLParameters(dest, src);
+
+        try {
+            String[] namedGroups = src.getNamedGroups();
+            Method setNamedGroupsMethod =
+                    dest.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(dest, (Object) namedGroups);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Method is not available. Ignore.
+        }
+
+        setApplicationProtocols(dest, src.getApplicationProtocols());
     }
 
     static void getSSLParameters(SSLParameters dest, SSLParametersImpl src,

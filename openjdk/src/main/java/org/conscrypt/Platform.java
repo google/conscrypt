@@ -256,6 +256,16 @@ final public class Platform {
         // TODO: figure this out on the RI
     }
 
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        if (JAVA_VERSION >= 9) {
+            Java9PlatformUtil.setSSLParameters(params, impl);
+        } else if (JAVA_VERSION >= 8) {
+            Java8PlatformUtil.setSSLParameters(params, impl);
+        } else {
+            impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        }
+    }
+
     static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
                                  AbstractConscryptSocket socket) {
         if (JAVA_VERSION >= 9) {
@@ -264,6 +274,16 @@ final public class Platform {
             Java8PlatformUtil.setSSLParameters(params, impl, socket);
         } else {
             impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        }
+    }
+
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        if (JAVA_VERSION >= 9) {
+            Java9PlatformUtil.getSSLParameters(params, impl);
+        } else if (JAVA_VERSION >= 8) {
+            Java8PlatformUtil.getSSLParameters(params, impl);
+        } else {
+            params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         }
     }
 

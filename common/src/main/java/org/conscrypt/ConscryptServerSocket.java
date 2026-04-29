@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 
 /**
@@ -77,6 +78,19 @@ final class ConscryptServerSocket extends SSLServerSocket {
     @Override
     public String[] getSupportedProtocols() {
         return NativeCrypto.getSupportedProtocols();
+    }
+
+    @Override
+    public SSLParameters getSSLParameters() {
+        SSLParameters params = super.getSSLParameters();
+        Platform.getSSLParameters(params, sslParameters);
+        return params;
+    }
+
+    @Override
+    public void setSSLParameters(SSLParameters params) {
+        super.setSSLParameters(params);
+        Platform.setSSLParameters(params, sslParameters);
     }
 
     /**
