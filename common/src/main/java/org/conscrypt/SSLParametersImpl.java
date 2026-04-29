@@ -240,6 +240,7 @@ final class SSLParametersImpl implements Cloneable {
         this.useSessionTickets = sslParams.useSessionTickets;
         this.useSni = sslParams.useSni;
         this.channelIdEnabled = sslParams.channelIdEnabled;
+        this.namedGroups = (sslParams.namedGroups == null) ? null : sslParams.namedGroups.clone();
     }
 
     /**

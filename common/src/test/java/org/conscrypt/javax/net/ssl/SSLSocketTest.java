@@ -73,14 +73,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -1099,6 +1096,65 @@ public class SSLSocketTest {
             SSLParameters parameters = client.getSSLParameters();
             setNamedGroups(parameters, new String[] {"P-521", "X25519", "P-384"});
             client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        if (sslParametersSupportsNamedGroups()) {
+            // P-384 is the first named group in the server's list that both support.
+            assertEquals("P-384", getCurveName(client));
+            assertEquals("P-384", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_setsNamedGroupsBeforeAccept_usesFirstServerNamedGroupThatClientSupports()
+            throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+
+        {
+            SSLParameters parameters = context.serverSocket.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-384", "X25519"});
+            context.serverSocket.setSSLParameters(parameters);
+
+            if (sslParametersSupportsNamedGroups()) {
+                assertArrayEquals(new String[] {"P-384", "X25519"},
+                                  getNamedGroupsOrNull(context.serverSocket.getSSLParameters()));
+            } else {
+                assertArrayEquals(null,
+                                  getNamedGroupsOrNull(context.serverSocket.getSSLParameters()));
+            }
+        }
+        {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-521", "X25519", "P-384"});
+            client.setSSLParameters(parameters);
+
+            if (sslParametersSupportsNamedGroups()) {
+                assertArrayEquals(new String[] {"P-521", "X25519", "P-384"},
+                                  getNamedGroupsOrNull(client.getSSLParameters()));
+            } else {
+                assertArrayEquals(null, getNamedGroupsOrNull(client.getSSLParameters()));
+            }
+        }
+
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
             client.startHandshake();
             return null;
         });

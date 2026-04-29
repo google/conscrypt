@@ -83,14 +83,14 @@ final class Java8PlatformUtil {
         return null;
     }
 
-    private static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
         impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
         impl.setSNIMatchers(params.getSNIMatchers());
         impl.setAlgorithmConstraints(params.getAlgorithmConstraints());
     }
 
-    private static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
         params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         params.setSNIMatchers(impl.getSNIMatchers());

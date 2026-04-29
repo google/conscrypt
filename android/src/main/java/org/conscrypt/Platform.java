@@ -263,6 +263,16 @@ final public class Platform {
         }
     }
 
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        try {
+            setSSLParametersOnImpl(params, impl);
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+            // Ignored
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
+        }
+    }
+
     public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
                                         AbstractConscryptSocket socket) {
         try {
@@ -274,9 +284,7 @@ final public class Platform {
                     socket.setHostname(sniHostname);
                 }
             }
-        } catch (NoSuchMethodException ignored) {
-            // Ignored
-        } catch (IllegalAccessException ignored) {
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
             // Ignored
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
@@ -294,9 +302,7 @@ final public class Platform {
                     engine.setHostname(sniHostname);
                 }
             }
-        } catch (NoSuchMethodException ignored) {
-            // Ignored
-        } catch (IllegalAccessException ignored) {
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
             // Ignored
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
@@ -340,6 +346,16 @@ final public class Platform {
         }
     }
 
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        try {
+            getSSLParametersFromImpl(params, impl);
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
+            // Ignored
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
+        }
+    }
+
     public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
                                         AbstractConscryptSocket socket) {
         try {
@@ -348,9 +364,7 @@ final public class Platform {
             if (Build.VERSION.SDK_INT >= 24) {
                 setParametersSniHostname(params, impl, socket);
             }
-        } catch (NoSuchMethodException ignored) {
-            // Ignored
-        } catch (IllegalAccessException ignored) {
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
             // Ignored
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
@@ -377,9 +391,7 @@ final public class Platform {
             if (Build.VERSION.SDK_INT >= 24) {
                 setParametersSniHostname(params, impl, engine);
             }
-        } catch (NoSuchMethodException ignored) {
-            // Ignored
-        } catch (IllegalAccessException ignored) {
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {
             // Ignored
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e.getCause());
