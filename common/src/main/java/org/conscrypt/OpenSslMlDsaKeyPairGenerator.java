@@ -22,8 +22,8 @@ import java.security.KeyPairGenerator;
 
 /**
  * An implementation of {@link KeyPairGenerator} for ML-DSA keys which uses BoringSSL to perform all
- * the operations. It supports algorithms "ML-DSA", "ML-DSA-44", "ML-DSA-65" and "ML-DSA-87". "ML-DSA" uses
- * ML-DSA-65.
+ * the operations. It supports algorithms "ML-DSA", "ML-DSA-44", "ML-DSA-65" and "ML-DSA-87".
+ * "ML-DSA" uses ML-DSA-65.
  */
 @Internal
 public class OpenSslMlDsaKeyPairGenerator extends KeyPairGenerator {

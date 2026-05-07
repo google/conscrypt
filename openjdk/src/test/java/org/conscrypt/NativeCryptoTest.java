@@ -3333,7 +3333,8 @@ public class NativeCryptoTest {
     @Test
     public void mldsaPrivateKey_fromAndToSeed_works() throws Exception {
         for (int keyType :
-             new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
+             new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65,
+                        NativeConstants.EVP_PKEY_ML_DSA_87}) {
             byte[] seed = new byte[32];
             NativeCrypto.RAND_bytes(seed);
             NativeRef.EVP_PKEY privateKey =
@@ -3348,7 +3349,8 @@ public class NativeCryptoTest {
     @Test
     public void evpKeyFromPrivateSeed_invalidSeedLength_throws() throws Exception {
         for (int keyType :
-             new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
+             new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65,
+                        NativeConstants.EVP_PKEY_ML_DSA_87}) {
             final byte[] shortSeed = new byte[31];
             assertThrows(ParsingException.class,
                          ()

@@ -481,7 +481,8 @@ public class MlDsaTest {
 
     @Test
     public void generateFromInvalidRawKey_throws() throws Exception {
-        for (String keyFactoryAlgorithm : new String[] {"ML-DSA-44", "ML-DSA-65", "ML-DSA-87", "ML-DSA"}) {
+        for (String keyFactoryAlgorithm :
+             new String[] {"ML-DSA-44", "ML-DSA-65", "ML-DSA-87", "ML-DSA"}) {
             KeyFactory keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm, conscryptProvider);
 
             assertThrows(InvalidKeySpecException.class, () -> keyFactory.generatePrivate(null));
