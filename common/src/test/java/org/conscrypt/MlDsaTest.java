@@ -745,13 +745,13 @@ public class MlDsaTest {
         // Test that privateKey and publicKey are a ML-DSA-44 key pair.
         byte[] message = new byte[42];
 
-        Signature signer = Signature.getInstance("ML-DSA", conscryptProvider);
+        Signature signer = Signature.getInstance("ML-DSA-44", conscryptProvider);
         signer.initSign(privateKey);
         signer.update(message);
         byte[] sig = signer.sign();
         assertEquals(2420, sig.length);
 
-        Signature verifier = Signature.getInstance("ML-DSA", conscryptProvider);
+        Signature verifier = Signature.getInstance("ML-DSA-44", conscryptProvider);
         verifier.initVerify(publicKey);
         verifier.update(message);
         assertTrue(verifier.verify(sig));
