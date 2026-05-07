@@ -3533,7 +3533,7 @@ public class NativeCryptoTest {
 
         NativeCrypto.EVP_DigestSignInit(ctx, 0, privateKey);
         byte[] sig = NativeCrypto.EVP_DigestSign(ctx, data, 0, data.length);
-        assertEquals(3309, sig.length);
+        assertEquals(2420, sig.length);
 
         // verify that sig is correct
         byte[] rawPublicKey = NativeCrypto.MLDSA44_public_key_from_seed(seed);
