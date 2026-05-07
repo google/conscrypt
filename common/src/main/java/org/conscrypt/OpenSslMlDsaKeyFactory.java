@@ -166,7 +166,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             return makePublicKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
             throw new InvalidKeySpecException("Unable to parse key. Only ML-DSA-44, ML-DSA-65 and "
-                                              + "ML-DSA-87 are currently supported.",
+                                                      + "ML-DSA-87 are currently supported.",
                                               e);
         }
     }
@@ -227,9 +227,8 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
             throw new InvalidKeySpecException(
                     "Unable to parse key. Only ML-DSA-44, ML-DSA-65 and ML-DSA-87 are currently "
-                    + "supported. "
-                            + "Please use ML-DSA 'seed format' as specified and recommended "
-                            + "in RFC 9881.",
+                            + "supported. Please use ML-DSA 'seed format' as specified and "
+                            + "recommended in RFC 9881.",
                     e);
         }
     }
