@@ -50,8 +50,20 @@ public abstract class OpenSslSignatureMlDsa extends SignatureSpi {
         }
         @Override
         boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
-            return algorithm.equals(MlDsaAlgorithm.ML_DSA_65)
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_44)
+                    || algorithm.equals(MlDsaAlgorithm.ML_DSA_65)
                     || algorithm.equals(MlDsaAlgorithm.ML_DSA_87);
+        }
+    }
+
+    /** ML-DSA-44 */
+    public static class MlDsa44 extends OpenSslSignatureMlDsa {
+        public MlDsa44() {
+            super();
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_44);
         }
     }
 

@@ -230,6 +230,10 @@ public final class NativeCrypto {
 
     static native int ECDSA_verify(byte[] data, int dataLen, byte[] sig, NativeRef.EVP_PKEY pkey);
 
+    // --- MLDSA44 --------------------------------------------------------------
+
+    static native byte[] MLDSA44_public_key_from_seed(byte[] privateKeySeed);
+
     // --- MLDSA65 --------------------------------------------------------------
 
     static native byte[] MLDSA65_public_key_from_seed(byte[] privateKeySeed);

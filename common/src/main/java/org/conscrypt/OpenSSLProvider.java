@@ -215,6 +215,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyPairGenerator.Ed25519", "EdDSA");
 
         put("KeyPairGenerator.ML-DSA", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa");
+        put("KeyPairGenerator.ML-DSA-44", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa44");
+        put("Alg.Alias.KeyPairGenerator.2.16.840.1.101.3.4.3.17", "ML-DSA-44");
+        put("Alg.Alias.KeyPairGenerator.OID.2.16.840.1.101.3.4.3.17", "ML-DSA-44");
         put("KeyPairGenerator.ML-DSA-65", PREFIX + "OpenSslMlDsaKeyPairGenerator$MlDsa65");
         put("Alg.Alias.KeyPairGenerator.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
         put("Alg.Alias.KeyPairGenerator.OID.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
@@ -250,6 +253,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.KeyFactory.Ed25519", "EdDSA");
 
         put("KeyFactory.ML-DSA", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa");
+        put("KeyFactory.ML-DSA-44", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa44");
+        put("Alg.Alias.KeyFactory.2.16.840.1.101.3.4.3.17", "ML-DSA-44");
+        put("Alg.Alias.KeyFactory.OID.2.16.840.1.101.3.4.3.17", "ML-DSA-44");
         put("KeyFactory.ML-DSA-65", PREFIX + "OpenSslMlDsaKeyFactory$MlDsa65");
         put("Alg.Alias.KeyFactory.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
         put("Alg.Alias.KeyFactory.OID.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
@@ -387,6 +393,9 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.Signature.Ed25519", "EdDSA");
 
         putSignatureImplClass("ML-DSA", "OpenSslSignatureMlDsa$MlDsa");
+        putSignatureImplClass("ML-DSA-44", "OpenSslSignatureMlDsa$MlDsa44");
+        put("Alg.Alias.Signature.2.16.840.1.101.3.4.3.17", "ML-DSA-44");
+        put("Alg.Alias.Signature.OID.2.16.840.1.101.3.4.3.17", "ML-DSA-44");
         putSignatureImplClass("ML-DSA-65", "OpenSslSignatureMlDsa$MlDsa65");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.3.18", "ML-DSA-65");
         put("Alg.Alias.Signature.OID.2.16.840.1.101.3.4.3.18", "ML-DSA-65");

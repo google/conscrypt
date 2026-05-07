@@ -29,8 +29,10 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 0x3bacc385e8e106a3L;
 
     // To preserve the serialization format, "seed" is the only variable that gets
-    // serialized. To be able to distinguish between ML-DSA-65 and ML-DSA-87, we add
-    // and additional byte to the end of the seed if the algorithm is ML-DSA-87. So:
+    // serialized. To be able to distinguish between ML-DSA-44, ML-DSA-65 and ML-DSA-87, we add
+    // and additional byte to the end of the seed if the algorithm is ML-DSA-44 or ML-DSA-87. So:
+    // - for ML-DSA-44, "seed" has length 33, where the first 32 bytes are the seed, and
+    //   the last byte has value 44 = 0x2c.
     // - for ML-DSA-65, "seed" has length 32 and is equal to the seed.
     // - for ML-DSA-87, "seed" has length 33, where the first 32 bytes are the seed, and
     //   the last byte has value 87 = 0x57.
@@ -48,6 +50,9 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
     }
 
     private static boolean isValid(byte[] encodedSeed, MlDsaAlgorithm algorithm) {
+        if (algorithm == MlDsaAlgorithm.ML_DSA_44) {
+            return encodedSeed.length == 33 && encodedSeed[32] == 44;
+        }
         if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
             return encodedSeed.length == 32;
         }
@@ -58,6 +63,9 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
     }
 
     private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed) {
+        if (encodedSeed.length == 33 && encodedSeed[32] == 44) {
+            return MlDsaAlgorithm.ML_DSA_44;
+        }
         if (encodedSeed.length == 32) {
             return MlDsaAlgorithm.ML_DSA_65;
         }
@@ -73,6 +81,11 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
         }
         if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
             return unencodedSeed.clone();
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_44) {
+            // add the suffix 44 to the end of the seed.
+            byte[] encodedSeed = Arrays.copyOf(unencodedSeed, 33);
+            encodedSeed[32] = 44;
+            return encodedSeed;
         } else {
             // add the suffix 87 to the end of the seed.
             byte[] encodedSeed = Arrays.copyOf(unencodedSeed, 33);

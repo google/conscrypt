@@ -37,6 +37,9 @@ public class OpenSslMlDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
     }
 
     private static MlDsaAlgorithm getAlgorithmFromRaw(byte[] raw) {
+        if (raw.length == MlDsaAlgorithm.ML_DSA_44.publicKeySize()) {
+            return MlDsaAlgorithm.ML_DSA_44;
+        }
         if (raw.length == MlDsaAlgorithm.ML_DSA_65.publicKeySize()) {
             return MlDsaAlgorithm.ML_DSA_65;
         }
