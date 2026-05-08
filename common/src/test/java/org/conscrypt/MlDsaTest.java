@@ -693,9 +693,9 @@ public class MlDsaTest {
         KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA", conscryptProvider);
 
         // From:
-        // https://datatracker.ietf.org/doc/html/rfc9881#appendix-C.1.2.1
+        // https://datatracker.ietf.org/doc/html/rfc9881#appendix-C.1.1.1
         String privateKeyBase64 =
-                "MDQCAQAwCwYJYIZIAWUDBAMSBCKAIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f";
+                "MDQCAQAwCwYJYIZIAWUDBAMRBCKAIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f";
         byte[] pkcs8EncodedPrivateKey = decodeBase64(privateKeyBase64);
         assertEquals(54, pkcs8EncodedPrivateKey.length);
 
