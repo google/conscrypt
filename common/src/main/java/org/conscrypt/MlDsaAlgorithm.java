@@ -18,6 +18,7 @@ package org.conscrypt;
 
 /** ML-DSA algorithm. */
 public enum MlDsaAlgorithm {
+    ML_DSA_44("ML-DSA-44", 1312),
     ML_DSA_65("ML-DSA-65", 1952),
     ML_DSA_87("ML-DSA-87", 2592);
 
@@ -40,6 +41,8 @@ public enum MlDsaAlgorithm {
 
     public static MlDsaAlgorithm parse(String name) {
         switch (name) {
+            case "ML-DSA-44":
+                return ML_DSA_44;
             case "ML-DSA-65":
                 return ML_DSA_65;
             case "ML-DSA-87":

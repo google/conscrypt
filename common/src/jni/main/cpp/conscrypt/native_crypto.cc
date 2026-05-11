@@ -1236,6 +1236,8 @@ static const EVP_PKEY_ALG* GetAlg(int pkeyType) {
             return EVP_pkey_ed25519();
         case EVP_PKEY_X25519:
             return EVP_pkey_x25519();
+        case EVP_PKEY_ML_DSA_44:
+            return EVP_pkey_ml_dsa_44();
         case EVP_PKEY_ML_DSA_65:
             return EVP_pkey_ml_dsa_65();
         case EVP_PKEY_ML_DSA_87:
@@ -1522,7 +1524,9 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
     }
 
     const EVP_PKEY_ALG* alg;
-    if (pkeyType == EVP_PKEY_ML_DSA_65) {
+    if (pkeyType == EVP_PKEY_ML_DSA_44) {
+        alg = EVP_pkey_ml_dsa_44();
+    } else if (pkeyType == EVP_PKEY_ML_DSA_65) {
         alg = EVP_pkey_ml_dsa_65();
     } else if (pkeyType == EVP_PKEY_ML_DSA_87) {
         alg = EVP_pkey_ml_dsa_87();
@@ -2876,6 +2880,55 @@ static jint NativeCrypto_ECDSA_verify(JNIEnv* env, jclass, jbyteArray data, jint
     return static_cast<jint>(result);
 }
 
+static jbyteArray NativeCrypto_MLDSA44_public_key_from_seed(JNIEnv* env, jclass,
+                                                            jbyteArray privateKeySeed) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO seedArray(env, privateKeySeed);
+    if (seedArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_MLDSA44_public_key_from_seed => privateKeySeed == null");
+        return nullptr;
+    }
+
+    MLDSA44_private_key privateKey;
+    if (!MLDSA44_private_key_from_seed(
+                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
+        JNI_TRACE("MLDSA44_private_key_from_seed failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA44_private_key_from_seed");
+        return nullptr;
+    }
+
+    MLDSA44_public_key publicKey;
+    if (!MLDSA44_public_from_private(&publicKey, &privateKey)) {
+        JNI_TRACE("MLDSA44_public_from_private failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA44_public_from_private");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> publicKeyRef(
+            env, env->NewByteArray(static_cast<jsize>(MLDSA44_PUBLIC_KEY_BYTES)));
+    if (publicKeyRef.get() == nullptr) {
+        return nullptr;
+    }
+
+    ScopedByteArrayRW publicKeyArray(env, publicKeyRef.get());
+    if (publicKeyArray.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBB cbb;
+    size_t size;
+    if (!CBB_init_fixed(&cbb, reinterpret_cast<uint8_t*>(publicKeyArray.get()),
+                        MLDSA44_PUBLIC_KEY_BYTES) ||
+        !MLDSA44_marshal_public_key(&cbb, &publicKey) || !CBB_finish(&cbb, nullptr, &size) ||
+        size != MLDSA44_PUBLIC_KEY_BYTES) {
+        JNI_TRACE("Failed to serialize ML-DSA public key.");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "MLDSA44_marshal_public_key");
+        return nullptr;
+    }
+    return publicKeyRef.release();
+}
+
 static jbyteArray NativeCrypto_MLDSA65_public_key_from_seed(JNIEnv* env, jclass,
                                                             jbyteArray privateKeySeed) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -3558,11 +3611,11 @@ static jlong evpDigestSignVerifyInit(JNIEnv* env,
     }
     JNI_TRACE("%s(%p, %p, %p) <- ptr", jniName, mdCtx, md, pkey);
 
-    // Allow md to be null for ED25519, ML_DSA_65, and ML_DSA_87. See
+    // Allow md to be null for ED25519, ML_DSA_44, ML_DSA_65, and ML_DSA_87. See
     // https://github.com/google/boringssl/blob/main/include/openssl/evp.h
     int pkey_id = EVP_PKEY_id(pkey);
-    if (md == nullptr && (pkey_id != EVP_PKEY_ED25519 && pkey_id != EVP_PKEY_ML_DSA_65 &&
-                          pkey_id != EVP_PKEY_ML_DSA_87)) {
+    if (md == nullptr && (pkey_id != EVP_PKEY_ED25519 && pkey_id != EVP_PKEY_ML_DSA_44 &&
+                          pkey_id != EVP_PKEY_ML_DSA_65 && pkey_id != EVP_PKEY_ML_DSA_87)) {
         JNI_TRACE("ctx=%p %s => md == null", mdCtx, jniName);
         conscrypt::jniutil::throwNullPointerException(env, "md == null");
         return 0;
@@ -12549,6 +12602,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ECDSA_size, "(" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(ECDSA_sign, "([BI[B" REF_EVP_PKEY ")I"),
         CONSCRYPT_NATIVE_METHOD(ECDSA_verify, "([BI[B" REF_EVP_PKEY ")I"),
+        CONSCRYPT_NATIVE_METHOD(MLDSA44_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLDSA65_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLDSA87_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_generate_key, "([B[B)V"),

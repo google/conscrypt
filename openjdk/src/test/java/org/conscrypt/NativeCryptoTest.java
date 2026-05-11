@@ -3333,7 +3333,8 @@ public class NativeCryptoTest {
     @Test
     public void mldsaPrivateKey_fromAndToSeed_works() throws Exception {
         for (int keyType :
-             new int[] {NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
+             new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65,
+                        NativeConstants.EVP_PKEY_ML_DSA_87}) {
             byte[] seed = new byte[32];
             NativeCrypto.RAND_bytes(seed);
             NativeRef.EVP_PKEY privateKey =
@@ -3348,7 +3349,8 @@ public class NativeCryptoTest {
     @Test
     public void evpKeyFromPrivateSeed_invalidSeedLength_throws() throws Exception {
         for (int keyType :
-             new int[] {NativeConstants.EVP_PKEY_ML_DSA_65, NativeConstants.EVP_PKEY_ML_DSA_87}) {
+             new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65,
+                        NativeConstants.EVP_PKEY_ML_DSA_87}) {
             final byte[] shortSeed = new byte[31];
             assertThrows(ParsingException.class,
                          ()
@@ -3517,6 +3519,41 @@ public class NativeCryptoTest {
                 NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
 
         assertTrue(result);
+    }
+
+    @Test
+    public void mldsa44_evpDigestSign_works() throws Exception {
+        byte[] seed = new byte[32];
+        byte[] data = new byte[100];
+
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_44, seed));
+
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeCrypto.EVP_DigestSignInit(ctx, 0, privateKey);
+        byte[] sig = NativeCrypto.EVP_DigestSign(ctx, data, 0, data.length);
+        assertEquals(2420, sig.length);
+
+        // verify that sig is correct
+        byte[] rawPublicKey = NativeCrypto.MLDSA44_public_key_from_seed(seed);
+        NativeRef.EVP_PKEY publicKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                        NativeConstants.EVP_PKEY_ML_DSA_44, rawPublicKey));
+        NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+        boolean result =
+                NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length);
+        assertTrue(result);
+
+        // also verify that EVP_PKEY_get_raw_public_key works
+        byte[] rawPublicKeyCopy = NativeCrypto.EVP_PKEY_get_raw_public_key(publicKey);
+        assertArrayEquals(rawPublicKey, rawPublicKeyCopy);
+
+        // check that parsing with the wrong key type fails.
+        assertThrows(ParsingException.class,
+                     ()
+                             -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                                     NativeConstants.EVP_PKEY_ML_DSA_87, rawPublicKey)));
     }
 
     @Test
@@ -4415,6 +4452,23 @@ public class NativeCryptoTest {
         byte[] output =
                 NativeCrypto.EVP_HPKE_CTX_export(ctxRecipient, exporterContext, exporterLength);
         assertArrayEquals(exportedValue, output);
+    }
+
+    @Test
+    public void mldsa44_public_key_from_seed_works() throws Exception {
+        byte[] privateKeySeed =
+                decodeHex("7C9935A0B07694AA0C6D10E4DB6B1ADD2FD81A25CCB148032DCD739936737F2D");
+
+        byte[] publicKey = NativeCrypto.MLDSA44_public_key_from_seed(privateKeySeed);
+        assertEquals(1312, publicKey.length);
+
+        byte[] privateKeySeedTooShort = Arrays.copyOf(privateKeySeed, privateKeySeed.length - 1);
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLDSA44_public_key_from_seed(privateKeySeedTooShort));
+
+        byte[] privateKeySeedTooLong = Arrays.copyOf(privateKeySeed, privateKeySeed.length + 1);
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLDSA44_public_key_from_seed(privateKeySeedTooLong));
     }
 
     @Test

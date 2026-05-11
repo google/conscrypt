@@ -48,8 +48,20 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
         @Override
         boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
-            return algorithm.equals(MlDsaAlgorithm.ML_DSA_65)
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_44)
+                    || algorithm.equals(MlDsaAlgorithm.ML_DSA_65)
                     || algorithm.equals(MlDsaAlgorithm.ML_DSA_87);
+        }
+    }
+
+    /** ML-DSA-44 */
+    public static class MlDsa44 extends OpenSslMlDsaKeyFactory {
+        public MlDsa44() {
+            super(MlDsaAlgorithm.ML_DSA_44);
+        }
+        @Override
+        boolean supportsAlgorithm(MlDsaAlgorithm algorithm) {
+            return algorithm.equals(MlDsaAlgorithm.ML_DSA_44);
         }
     }
 
@@ -92,7 +104,9 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
 
     static MlDsaAlgorithm getMlDsaAlgorithm(OpenSSLKey key) {
         int keyType = NativeCrypto.EVP_PKEY_type(key.getNativeRef());
-        if (keyType == NativeConstants.EVP_PKEY_ML_DSA_65) {
+        if (keyType == NativeConstants.EVP_PKEY_ML_DSA_44) {
+            return MlDsaAlgorithm.ML_DSA_44;
+        } else if (keyType == NativeConstants.EVP_PKEY_ML_DSA_65) {
             return MlDsaAlgorithm.ML_DSA_65;
         } else if (keyType == NativeConstants.EVP_PKEY_ML_DSA_87) {
             return MlDsaAlgorithm.ML_DSA_87;
@@ -102,7 +116,9 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
     }
 
     static int getPKeyType(MlDsaAlgorithm algorithm) {
-        if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
+        if (algorithm == MlDsaAlgorithm.ML_DSA_44) {
+            return NativeConstants.EVP_PKEY_ML_DSA_44;
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
             return NativeConstants.EVP_PKEY_ML_DSA_65;
         } else if (algorithm == MlDsaAlgorithm.ML_DSA_87) {
             return NativeConstants.EVP_PKEY_ML_DSA_87;
@@ -144,13 +160,14 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         try {
             OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_subject_public_key_info(
                     encoded,
-                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_44,
+                               NativeConstants.EVP_PKEY_ML_DSA_65,
                                NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePublicKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
-            throw new InvalidKeySpecException(
-                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported.",
-                    e);
+            throw new InvalidKeySpecException("Unable to parse key. Only ML-DSA-44, ML-DSA-65 and "
+                                                      + "ML-DSA-87 are currently supported.",
+                                              e);
         }
     }
 
@@ -203,14 +220,15 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         try {
             OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_key_info(
                     encoded,
-                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_44,
+                               NativeConstants.EVP_PKEY_ML_DSA_65,
                                NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePrivateKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
             throw new InvalidKeySpecException(
-                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported. "
-                            + "Please use ML-DSA 'seed format' as specified and recommended "
-                            + "in RFC 9881.",
+                    "Unable to parse key. Only ML-DSA-44, ML-DSA-65 and ML-DSA-87 are currently "
+                            + "supported. Please use ML-DSA 'seed format' as specified and "
+                            + "recommended in RFC 9881.",
                     e);
         }
     }

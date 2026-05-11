@@ -55,6 +55,7 @@ int main(int /* argc */, char** /* argv */) {
     CONST(EVP_PKEY_EC);
     CONST(EVP_PKEY_ED25519);
     CONST(EVP_PKEY_X25519);
+    CONST(EVP_PKEY_ML_DSA_44);
     CONST(EVP_PKEY_ML_DSA_65);
     CONST(EVP_PKEY_ML_DSA_87);
 
