@@ -3096,16 +3096,6 @@ static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteA
         return nullptr;
     }
 
-    uint8_t result[SLHDSA_SHA2_128S_SIGNATURE_BYTES];
-    if (!SLHDSA_SHA2_128S_sign(result,
-                               reinterpret_cast<const unsigned char*>(privateKeyArray.get()),
-                               reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
-                               /* context */ NULL, /* context_len */ 0)) {
-        JNI_TRACE("SLHDSA_SHA2_128S_sign failed");
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SLHDSA_SHA2_128S_sign");
-        return nullptr;
-    }
-
     ScopedLocalRef<jbyteArray> resultRef(
             env, env->NewByteArray(static_cast<jsize>(SLHDSA_SHA2_128S_SIGNATURE_BYTES)));
     if (resultRef.get() == nullptr) {
@@ -3116,7 +3106,16 @@ static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteA
     if (resultArray.get() == nullptr) {
         return nullptr;
     }
-    memcpy(resultArray.get(), result, SLHDSA_SHA2_128S_SIGNATURE_BYTES);
+
+    if (!SLHDSA_SHA2_128S_sign(reinterpret_cast<uint8_t*>(resultArray.get()),
+                               reinterpret_cast<const unsigned char*>(privateKeyArray.get()),
+                               reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
+                               /* context */ NULL, /* context_len */ 0)) {
+        JNI_TRACE("SLHDSA_SHA2_128S_sign failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SLHDSA_SHA2_128S_sign");
+        return nullptr;
+    }
+
     return resultRef.release();
 }
 
@@ -3174,16 +3173,31 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
                   pubkeyArray);
         return JNI_FALSE;
     }
+    if (out.size() != 32) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Output array length != 32");
+        return JNI_FALSE;
+    }
 
     ScopedByteArrayRO privkey(env, privkeyArray);
     if (privkey.get() == nullptr) {
         JNI_TRACE("X25519(%p) => privkey == null", outArray);
         return JNI_FALSE;
     }
+    if (privkey.size() != 32) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Private key array length != 32");
+        return JNI_FALSE;
+    }
 
     ScopedByteArrayRO pubkey(env, pubkeyArray);
     if (pubkey.get() == nullptr) {
         JNI_TRACE("X25519(%p) => pubkey == null", outArray);
+        return JNI_FALSE;
+    }
+    if (pubkey.size() != 32) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Public key array length != 32");
         return JNI_FALSE;
     }
 

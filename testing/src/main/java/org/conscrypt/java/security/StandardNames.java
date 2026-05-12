@@ -333,6 +333,8 @@ public final class StandardNames {
     // https://boringssl.googlesource.com/boringssl/+/main/ssl/extensions.cc#215
     private static final List<String> ELLIPTIC_CURVES_DEFAULT =
             Arrays.asList("x25519 (29)", "secp256r1 (23)", "secp384r1 (24)");
+    private static final List<String> ELLIPTIC_CURVES_DEFAULT_PQC = Arrays.asList(
+            "x25519mlkem768 (4588)", "x25519 (29)", "secp256r1 (23)", "secp384r1 (24)");
 
     /**
      * Asserts that the cipher suites array is non-null and that it
@@ -441,7 +443,10 @@ public final class StandardNames {
     }
 
     public static void assertDefaultEllipticCurves(String[] curves) {
-        assertEquals(ELLIPTIC_CURVES_DEFAULT, Arrays.asList(curves));
+        List<String> actualList = Arrays.asList(curves);
+        assertTrue("Unexpected default curves list: " + actualList,
+                   actualList.equals(ELLIPTIC_CURVES_DEFAULT)
+                           || actualList.equals(ELLIPTIC_CURVES_DEFAULT_PQC));
     }
 
     public static void assertSSLContextEnabledProtocols(String version, String[] protocols) {
