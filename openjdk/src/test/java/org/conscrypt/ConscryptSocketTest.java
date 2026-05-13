@@ -474,8 +474,13 @@ public class ConscryptSocketTest {
 
         // By default, BoringSSL supports curves "X25519", "P-256" and "P-384".
         // X25519 gets priority, so that curve will be used in the handshake here.
-        assertEquals("X25519", connection.server.getCurveNameForTesting());
-        assertEquals("X25519", connection.client.getCurveNameForTesting());
+        // We also allow for X25519MLKEM768, as that may be the default in the future.
+        String serverCurve = connection.server.getCurveNameForTesting();
+        String clientCurve = connection.client.getCurveNameForTesting();
+        assertTrue("Unexpected server curve: " + serverCurve,
+                   serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+        assertTrue("Unexpected client curve: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
     }
 
     @Test

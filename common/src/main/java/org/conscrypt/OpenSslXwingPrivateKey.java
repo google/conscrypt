@@ -43,8 +43,7 @@ public class OpenSslXwingPrivateKey implements PrivateKey {
     public OpenSslXwingPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         byte[] encoded = keySpec.getEncoded();
         if (keySpec.getFormat().equals("PKCS#8")) {
-            byte[] preamble = Arrays.copyOf(encoded, pkcs8Preamble.length);
-            if (!Arrays.equals(preamble, pkcs8Preamble)) {
+            if (!ArrayUtils.startsWith(encoded, pkcs8Preamble)) {
                 throw new InvalidKeySpecException("Invalid X-Wing PKCS8 key preamble");
             }
             raw = Arrays.copyOfRange(encoded, pkcs8Preamble.length, encoded.length);

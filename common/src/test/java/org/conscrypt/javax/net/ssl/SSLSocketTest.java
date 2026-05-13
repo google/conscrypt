@@ -409,7 +409,7 @@ public class SSLSocketTest {
             ssl.setEnabledProtocols(ssl.getSupportedProtocols());
             // Check that setEnabledProtocols affects getEnabledProtocols
             for (String protocol : ssl.getSupportedProtocols()) {
-                if ("SSLv2Hello".equals(protocol)) {
+                if (protocol.equals("SSLv2Hello")) {
                     // Should fail when SSLv2Hello is set by itself
                     assertThrows(IllegalArgumentException.class,
                                  () -> ssl.setEnabledProtocols(new String[] {protocol}));
@@ -977,8 +977,13 @@ public class SSLSocketTest {
         c.get();
         // By default, BoringSSL uses X25519, P-256, and P-384, in this order.
         // So X25519 gets priority.
-        assertEquals("X25519", getCurveName(client));
-        assertEquals("X25519", getCurveName(server));
+        // We also allow for X25519MLKEM768, as that may be the default in the future.
+        String clientCurve = getCurveName(client);
+        String serverCurve = getCurveName(server);
+        assertTrue("Unexpected client curve: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+        assertTrue("Unexpected server curve: " + serverCurve,
+                   serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         client.close();
         server.close();
         context.close();

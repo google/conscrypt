@@ -4595,4 +4595,62 @@ public class NativeCryptoTest {
                 RuntimeException.class,
                 () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyTooLong, privateKey));
     }
+
+    @Test
+    public void x25519_testVector1FromRfc7748_works() throws Exception {
+        // Test vector from RFC 7748, Section 6.1 (Alice's side)
+        byte[] privateKey =
+                decodeHex("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a");
+        byte[] expectedOutput =
+                decodeHex("8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a");
+        byte[] base = new byte[32];
+        base[0] = 9;
+
+        byte[] out = new byte[32];
+        boolean success = NativeCrypto.X25519(out, privateKey, base);
+
+        assertTrue(success);
+        assertArrayEquals(expectedOutput, out);
+    }
+
+    @Test
+    public void x25519_testVector2FromRfc7748_works() throws Exception {
+        // Test vector from RFC 7748, Section 6.1 (Bob's side)
+        byte[] privateKey =
+                decodeHex("5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb");
+        byte[] expectedOutput =
+                decodeHex("de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f");
+        byte[] base = new byte[32];
+        base[0] = 9;
+
+        byte[] out = new byte[32];
+        boolean success = NativeCrypto.X25519(out, privateKey, base);
+
+        assertTrue(success);
+        assertArrayEquals(expectedOutput, out);
+    }
+
+    @Test
+    public void x25519_invalidInputSize_throwsIllegalArgumentException() throws Exception {
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.X25519(new byte[31], new byte[32], new byte[32]));
+
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.X25519(new byte[32], new byte[31], new byte[32]));
+
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.X25519(new byte[32], new byte[32], new byte[31]));
+    }
+
+    @Test
+    public void x25519_nullInput_throwsIllegalArgumentException() throws Exception {
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.X25519(null, new byte[32], new byte[32]));
+
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.X25519(new byte[32], null, new byte[32]));
+
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.X25519(new byte[32], new byte[32], null));
+    }
 }
