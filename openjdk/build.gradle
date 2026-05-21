@@ -126,10 +126,6 @@ ext {
 
     assert !nativeBuilds.isEmpty() : "No native builds selected."
     assert buildToTest != null : "No test build selected for os.arch = ${osdetector.arch}"
-
-    // Compatibility with other sub-projects
-    preferredSourceSet = buildToTest.mavenClassifier()
-    preferredNativeFileDir = buildToTest.nativeResourcesDir()
 }
 
 // Since we're not taking a direct dependency on the constants module, we need to add an
@@ -160,8 +156,6 @@ sourceSets {
         }
         resources {
             srcDirs += "${rootDir}/common/src/test/resources"
-            // This shouldn't be needed but seems to help IntelliJ locate the native artifact.
-            // srcDirs += preferredNativeFileDir
             srcDirs += buildToTest.nativeResourcesDir()
         }
     }
@@ -288,7 +282,7 @@ dependencies {
             libs.junit,
             libs.mockito
 
-    testRuntimeOnly sourceSets["$preferredSourceSet"].output
+    testRuntimeOnly sourceSets[buildToTest.mavenClassifier()].output
 
     platformCompileOnly sourceSets.main.output
 }
