@@ -2,5 +2,5 @@ description = 'Conscrypt is an alternate Java Security Provider that uses Boring
 
 subprojects {
     // Keep this in `subprojects` for scripts and ease of use. Migrate to properties later.
-    version = "2.6-alpha"
+    version = "2.6-SNAPSHOT"
 }
