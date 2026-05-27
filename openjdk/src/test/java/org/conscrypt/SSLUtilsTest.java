@@ -98,6 +98,17 @@ public class SSLUtilsTest {
     }
 
     @Test
+    public void decodeProtocolsWithLongLengthsShouldSucceed() {
+        byte[][] protocols = new byte[][] {
+                newValidProtocol(128),
+                newValidProtocol(255),
+        };
+        byte[] encoded = getExpectedEncodedBytes(protocols);
+        String[] strings = SSLUtils.decodeProtocols(encoded);
+        assertArrayEquals(toStrings(protocols), strings);
+    }
+
+    @Test
     public void testGetClientKeyType() throws Exception {
         // See http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
         byte b = Byte.MIN_VALUE;

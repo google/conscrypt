@@ -94,7 +94,7 @@ public final class Hkdf {
         Objects.requireNonNull(prk);
         Objects.requireNonNull(info);
         Preconditions.checkArgument(length >= 0, "Negative length");
-        Preconditions.checkArgument(length < 255 * getMacLength(), "Length too long");
+        Preconditions.checkArgument(length <= 255 * getMacLength(), "Length too long");
         Mac mac = getMac(prk);
         int macLength = getMacLength();
 
