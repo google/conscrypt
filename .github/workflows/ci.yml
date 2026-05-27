@@ -313,11 +313,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-20.04, ubuntu-latest, macos-14, macos-latest, windows-latest]
+        platform: [ubuntu-22.04, ubuntu-latest, macos-14, macos-latest, windows-latest]
         java: [8, 11, 17, 21, 25, EA]
         dist: ['temurin', 'zulu']
         include:
-          - platform: ubuntu-20.04
+          - platform: ubuntu-22.04
             separator: ':'
           - platform: ubuntu-latest
             separator: ':'
