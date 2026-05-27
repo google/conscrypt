@@ -76,7 +76,7 @@ public abstract class OpenSSLBaseDHKeyAgreement<T> extends KeyAgreementSpi {
         } else if (actualResultLength < mExpectedResultLength) {
             // The output is shorter than expected -- use only what's produced by the engine
             result = new byte[actualResultLength];
-            System.arraycopy(buffer, 0, mResult, 0, mResult.length);
+            System.arraycopy(buffer, 0, result, 0, result.length);
         } else {
             // The output is longer than expected
             throw new RuntimeException("Engine produced a longer than expected result. Expected: "

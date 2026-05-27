@@ -401,7 +401,7 @@ final class SSLUtils {
 
         int numProtocols = 0;
         for (int i = 0; i < protocols.length;) {
-            int protocolLength = protocols[i];
+            int protocolLength = protocols[i] & 0xFF;
             if (protocolLength < 0 || protocolLength > protocols.length - i) {
                 throw new IllegalArgumentException("Protocol has invalid length (" + protocolLength
                                                    + " at position " + i + "): "
@@ -416,7 +416,7 @@ final class SSLUtils {
 
         String[] decoded = new String[numProtocols];
         for (int i = 0, d = 0; i < protocols.length;) {
-            int protocolLength = protocols[i];
+            int protocolLength = protocols[i] & 0xFF;
             decoded[d++] = protocolLength > 0
                     ? new String(protocols, i + 1, protocolLength, US_ASCII)
                     : "";
