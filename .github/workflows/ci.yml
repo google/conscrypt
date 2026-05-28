@@ -10,7 +10,7 @@ on:
 jobs:
   boringssl_clone:
     # This step ensures that all builders have the same version of BoringSSL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Clone BoringSSL repo
@@ -30,7 +30,7 @@ jobs:
   clang_format_check:
     # Only run on pull requests.
     if: ${{ startsWith(github.ref, 'refs/pull/') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -54,9 +54,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [ubuntu-22.04, macos-latest, windows-latest]
         include:
-          - platform: ubuntu-latest
+          - platform: ubuntu-22.04
             tools_url: https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           - platform: macos-latest
             tools_url: https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
@@ -217,7 +217,7 @@ jobs:
   uberjar:
     needs: build
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -313,10 +313,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-14, macos-latest, windows-latest]
+        platform: [ubuntu-22.04, ubuntu-latest, macos-14, macos-latest, windows-latest]
         java: [8, 11, 17, 21, 25, EA]
         dist: ['temurin', 'zulu']
         include:
+          - platform: ubuntu-22.04
+            separator: ':'
           - platform: ubuntu-latest
             separator: ':'
           - platform: macos-latest
