@@ -161,6 +161,12 @@ jobs:
                 -DCMAKE_BUILD_TYPE=Release \
                 -GNinja ..
           ninja
+          echo "=== Files in build.arm ==="
+          ls -la
+          echo "=== Files in build.arm/ssl ==="
+          ls -la ssl || true
+          echo "=== Files in build.arm/crypto ==="
+          ls -la crypto || true
           popd
 
       - name: Set up MSVC paths on Windows
