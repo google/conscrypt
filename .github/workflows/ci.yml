@@ -92,9 +92,9 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo add-apt-repository ppa:openjdk-r/ppa
           sudo apt-get -qq update
+          sudo add-apt-repository ppa:openjdk-r/ppa
+          sudo apt-get -qq update
           sudo apt-get -qq install -y --no-install-recommends \
-            gcc-multilib \
-            g++-multilib \
             g++-aarch64-linux-gnu \
             ninja-build \
             openjdk-11-jre-headless
