@@ -150,7 +150,7 @@ jobs:
           popd
           
       - name: Build BoringSSL AArch64 Linux
-      	# Please keep this in sync with other "Build BoringSSL AArch64 Linux"
+        # Please keep this in sync with other "Build BoringSSL AArch64 Linux"
         if: runner.os == 'Linux'
         run: |
           mkdir -p "$BORINGSSL_HOME/build.arm"
