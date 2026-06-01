@@ -280,6 +280,19 @@ jobs:
           cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -GNinja ..
           ninja
           popd
+          
+      - name: Build BoringSSL AArch64 Linux
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build.arm"
+          pushd "$BORINGSSL_HOME/build.arm"
+          cmake -DCMAKE_SYSTEM_NAME=Linux \
+                -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+                -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+                -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+                -DCMAKE_BUILD_TYPE=Release \
+                -GNinja ..
+          ninja
 
       # TODO(prb) remove build dependency above and go back to this.
       # - name: Make fake BoringSSL directories
