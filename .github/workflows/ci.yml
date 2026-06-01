@@ -140,6 +140,7 @@ jobs:
           popd
 
       - name: Build BoringSSL 64-bit Linux
+        # Please keep this in sync with other "Build BoringSSL 64-bit Linux"
         if: runner.os == 'Linux'
         run: |
           mkdir -p "$BORINGSSL_HOME/build64"
@@ -149,6 +150,7 @@ jobs:
           popd
           
       - name: Build BoringSSL AArch64 Linux
+      	# Please keep this in sync with other "Build BoringSSL AArch64 Linux"
         if: runner.os == 'Linux'
         run: |
           mkdir -p "$BORINGSSL_HOME/build.arm"
@@ -268,6 +270,7 @@ jobs:
           git checkout --progress --force -B main
 
       - name: Build BoringSSL 64-bit Linux
+        # Please keep this in sync with other "Build BoringSSL 64-bit Linux"
         run: |
           mkdir -p "$BORINGSSL_HOME/build64"
           pushd "$BORINGSSL_HOME/build64"
@@ -276,6 +279,7 @@ jobs:
           popd
           
       - name: Build BoringSSL AArch64 Linux
+        # Please keep this in sync with other "Build BoringSSL AArch64 Linux"
         run: |
           mkdir -p "$BORINGSSL_HOME/build.arm"
           pushd "$BORINGSSL_HOME/build.arm"
@@ -339,13 +343,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-22.04, ubuntu-24.04-arm, ubuntu-latest, macos-14, macos-latest, windows-latest]
+        platform: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-latest, macos-14, macos-latest, windows-latest]
         java: [8, 11, 17, 21, 25, EA]
         dist: ['temurin', 'zulu']
         include:
           - platform: ubuntu-22.04
             separator: ':'
-          - platform: ubuntu-24.04-arm
+          - platform: ubuntu-22.04-arm
             separator: ':'
           - platform: ubuntu-latest
             separator: ':'
