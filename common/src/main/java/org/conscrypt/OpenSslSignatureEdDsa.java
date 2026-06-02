@@ -69,6 +69,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_DigestSignInit(ctxLocal, 0, key.getNativeRef());
         this.ctx = ctxLocal;
+        buffer.reset();
     }
 
     @Override
@@ -77,6 +78,7 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         NativeCrypto.EVP_DigestVerifyInit(ctxLocal, 0, key.getNativeRef());
         this.ctx = ctxLocal;
+        buffer.reset();
     }
 
     @Override
@@ -103,8 +105,8 @@ public class OpenSslSignatureEdDsa extends SignatureSpi {
             throw new SignatureException("No key provided");
         }
 
-        boolean result = NativeCrypto.EVP_DigestVerify(
-                ctxLocal, sigBytes, 0, sigBytes.length, buffer.array(), 0, buffer.size());
+        boolean result = NativeCrypto.EVP_DigestVerify(ctxLocal, sigBytes, 0, sigBytes.length,
+                                                       buffer.array(), 0, buffer.size());
         buffer.reset();
         return result;
     }

@@ -35,9 +35,7 @@ public final class OpenSSLRSAKeyPairGenerator extends KeyPairGeneratorSpi {
     /**
      * Default modulus size is 0x10001 (65537)
      */
-    private byte[] publicExponent = new byte[] {
-            0x01, 0x00, 0x01
-    };
+    private byte[] publicExponent = new byte[] {0x01, 0x00, 0x01};
 
     /**
      * Default RSA key size 2048 bits.
@@ -46,8 +44,8 @@ public final class OpenSSLRSAKeyPairGenerator extends KeyPairGeneratorSpi {
 
     @Override
     public KeyPair generateKeyPair() {
-        final OpenSSLKey key = new OpenSSLKey(NativeCrypto.RSA_generate_key_ex(modulusBits,
-                publicExponent));
+        final OpenSSLKey key =
+                new OpenSSLKey(NativeCrypto.RSA_generate_key_ex(modulusBits, publicExponent));
 
         PrivateKey privKey = OpenSSLRSAPrivateKey.getInstance(key);
         PublicKey pubKey = new OpenSSLRSAPublicKey(key);

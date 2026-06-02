@@ -21,6 +21,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.spec.AlgorithmParameterSpec;
+
 import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 
@@ -65,8 +66,8 @@ public abstract class OpenSSLMac extends MacSpi {
     }
 
     @Override
-    protected void engineInit(Key key, AlgorithmParameterSpec params) throws InvalidKeyException,
-            InvalidAlgorithmParameterException {
+    protected void engineInit(Key key, AlgorithmParameterSpec params)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (!(key instanceof SecretKey)) {
             throw new InvalidKeyException("key must be a SecretKey");
         }
@@ -192,7 +193,6 @@ public abstract class OpenSSLMac extends MacSpi {
             final NativeRef.HMAC_CTX ctxLocal = ctx;
             return NativeCrypto.HMAC_Final(ctxLocal);
         }
-
     }
 
     public static final class HmacMD5 extends Hmac {

@@ -50,14 +50,14 @@ public class PolicyImpl implements Policy {
     }
 
     @Override
-    public PolicyCompliance doesResultConformToPolicy(
-            VerificationResult result, X509Certificate leaf) {
+    public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                      X509Certificate leaf) {
         long now = System.currentTimeMillis();
         return doesResultConformToPolicyAt(result, leaf, now);
     }
 
-    public PolicyCompliance doesResultConformToPolicyAt(
-            VerificationResult result, X509Certificate leaf, long atTime) {
+    public PolicyCompliance doesResultConformToPolicyAt(VerificationResult result,
+                                                        X509Certificate leaf, long atTime) {
         List<VerifiedSCT> validSCTs = new ArrayList<VerifiedSCT>(result.getValidSCTs());
         /* While the log list supports logs without a state, these entries are
          * not supported by the log policy. Filter them out. */
@@ -122,14 +122,14 @@ public class PolicyImpl implements Policy {
         while (it.hasNext()) {
             VerifiedSCT vsct = it.next();
             if (vsct.getLogInfo().getState() == LogInfo.STATE_RETIRED
-                    && minTimestamp > vsct.getLogInfo().getStateTimestamp()) {
+                && minTimestamp > vsct.getLogInfo().getStateTimestamp()) {
                 it.remove();
             }
         }
     }
 
-    private PolicyCompliance conformEmbeddedSCTs(
-            Set<VerifiedSCT> embeddedValidSCTs, X509Certificate leaf, long atTime) {
+    private PolicyCompliance conformEmbeddedSCTs(Set<VerifiedSCT> embeddedValidSCTs,
+                                                 X509Certificate leaf, long atTime) {
         /* 1. At least one Embedded SCT from a CT Log that was Qualified,
          *    Usable, or ReadOnly at the time of check;
          */
@@ -193,8 +193,8 @@ public class PolicyImpl implements Policy {
         return PolicyCompliance.COMPLY;
     }
 
-    private PolicyCompliance conformOCSPorTLSSCTs(
-            Set<VerifiedSCT> ocspOrTLSValidSCTs, long atTime) {
+    private PolicyCompliance conformOCSPorTLSSCTs(Set<VerifiedSCT> ocspOrTLSValidSCTs,
+                                                  long atTime) {
         /* 1. At least two SCTs from a CT Log that was Qualified, Usable, or
          *    ReadOnly at the time of check;
          */

@@ -28,7 +28,6 @@ import java.util.List;
  */
 @Internal
 public final class ChainStrengthAnalyzer {
-
     private static final int MIN_RSA_MODULUS_LEN_BITS = 1024;
 
     private static final int MIN_EC_FIELD_SIZE_BITS = 160;
@@ -37,12 +36,12 @@ public final class ChainStrengthAnalyzer {
     private static final int MIN_DSA_Q_LEN_BITS = 160;
 
     private static final String[] SIGNATURE_ALGORITHM_OID_BLACKLIST = {
-        "1.2.840.113549.1.1.2", // md2WithRSAEncryption
-        "1.2.840.113549.1.1.3", // md4WithRSAEncryption
-        "1.2.840.113549.1.1.4", // md5WithRSAEncryption
-        "1.2.840.113549.1.1.5", // sha1WithRSAEncryption
-        "1.2.840.10040.4.3", //dsa-with-sha1
-        "1.2.840.10045.4.1", //ecdsa-with-sha1
+            "1.2.840.113549.1.1.2", // md2WithRSAEncryption
+            "1.2.840.113549.1.1.3", // md4WithRSAEncryption
+            "1.2.840.113549.1.1.4", // md5WithRSAEncryption
+            "1.2.840.113549.1.1.5", // sha1WithRSAEncryption
+            "1.2.840.10040.4.3", // dsa-with-sha1
+            "1.2.840.10045.4.1", // ecdsa-with-sha1
     };
 
     public static final void check(X509Certificate[] chain) throws CertificateException {
@@ -50,8 +49,8 @@ public final class ChainStrengthAnalyzer {
             try {
                 checkCert(cert);
             } catch (CertificateException e) {
-                throw new CertificateException("Unacceptable certificate: "
-                        + cert.getSubjectX500Principal(), e);
+                throw new CertificateException(
+                        "Unacceptable certificate: " + cert.getSubjectX500Principal(), e);
             }
         }
     }
@@ -61,8 +60,8 @@ public final class ChainStrengthAnalyzer {
             try {
                 checkCert(cert);
             } catch (CertificateException e) {
-                throw new CertificateException("Unacceptable certificate: "
-                        + cert.getSubjectX500Principal(), e);
+                throw new CertificateException(
+                        "Unacceptable certificate: " + cert.getSubjectX500Principal(), e);
             }
         }
     }
@@ -77,32 +76,31 @@ public final class ChainStrengthAnalyzer {
         if (pubkey instanceof RSAPublicKey) {
             int modulusLength = ((RSAPublicKey) pubkey).getModulus().bitLength();
             if (modulusLength < MIN_RSA_MODULUS_LEN_BITS) {
-                throw new CertificateException(
-                        "RSA modulus is < " + MIN_RSA_MODULUS_LEN_BITS + " bits");
+                throw new CertificateException("RSA modulus is < " + MIN_RSA_MODULUS_LEN_BITS
+                                               + " bits");
             }
         } else if (pubkey instanceof ECPublicKey) {
             int fieldSizeBits =
                     ((ECPublicKey) pubkey).getParams().getCurve().getField().getFieldSize();
             if (fieldSizeBits < MIN_EC_FIELD_SIZE_BITS) {
-                throw new CertificateException(
-                        "EC key field size is < " + MIN_EC_FIELD_SIZE_BITS + " bits");
+                throw new CertificateException("EC key field size is < " + MIN_EC_FIELD_SIZE_BITS
+                                               + " bits");
             }
         } else if (pubkey instanceof DSAPublicKey) {
             int pLength = ((DSAPublicKey) pubkey).getParams().getP().bitLength();
             int qLength = ((DSAPublicKey) pubkey).getParams().getQ().bitLength();
             if ((pLength < MIN_DSA_P_LEN_BITS) || (qLength < MIN_DSA_Q_LEN_BITS)) {
-                throw new CertificateException(
-                        "DSA key length is < (" + MIN_DSA_P_LEN_BITS + ", " + MIN_DSA_Q_LEN_BITS
-                        + ") bits");
+                throw new CertificateException("DSA key length is < (" + MIN_DSA_P_LEN_BITS + ", "
+                                               + MIN_DSA_Q_LEN_BITS + ") bits");
             }
         } else {
             // Unknown keys will be of type X509PublicKey.
-            throw new CertificateException("Rejecting unknown key class " + pubkey.getClass().getName());
+            throw new CertificateException("Rejecting unknown key class "
+                                           + pubkey.getClass().getName());
         }
     }
 
-    private static void checkSignatureAlgorithm(
-            X509Certificate cert) throws CertificateException {
+    private static void checkSignatureAlgorithm(X509Certificate cert) throws CertificateException {
         String oid = cert.getSigAlgOID();
         for (String blacklisted : SIGNATURE_ALGORITHM_OID_BLACKLIST) {
             if (oid.equals(blacklisted)) {
@@ -111,4 +109,3 @@ public final class ChainStrengthAnalyzer {
         }
     }
 }
-

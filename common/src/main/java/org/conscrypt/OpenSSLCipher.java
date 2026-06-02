@@ -47,7 +47,6 @@ import javax.crypto.spec.SecretKeySpec;
  */
 @Internal
 public abstract class OpenSSLCipher extends CipherSpi {
-
     /**
      * Modes that a block cipher may support.
      */
@@ -124,8 +123,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     private int blockSize;
 
-    OpenSSLCipher() {
-    }
+    OpenSSLCipher() {}
 
     OpenSSLCipher(Mode mode, Padding padding) {
         this.mode = mode;
@@ -140,7 +138,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * the bytes of a supported key size.
      */
     abstract void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException;
+                                     SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException;
 
     /**
      * API-specific implementation of updating the cipher. The
@@ -149,8 +148,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
      * number of bytes processed and placed into {@code output}. On error, an
      * exception must be thrown.
      */
-    abstract int updateInternal(byte[] input, int inputOffset, int inputLen,
-            byte[] output, int outputOffset, int maximumLen) throws ShortBufferException;
+    abstract int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
+                                int outputOffset, int maximumLen) throws ShortBufferException;
 
     /**
      * Returns the standard name for the particular algorithm.
@@ -191,7 +190,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
         try {
             mode = Mode.getNormalized(modeStr);
         } catch (IllegalArgumentException e) {
-            NoSuchAlgorithmException newE = new NoSuchAlgorithmException("No such mode: " + modeStr);
+            NoSuchAlgorithmException newE =
+                    new NoSuchAlgorithmException("No such mode: " + modeStr);
             newE.initCause(e);
             throw newE;
         }
@@ -205,8 +205,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
         try {
             padding = Padding.getNormalized(paddingStr);
         } catch (IllegalArgumentException e) {
-            NoSuchPaddingException newE = new NoSuchPaddingException("No such padding: "
-                    + paddingStr);
+            NoSuchPaddingException newE =
+                    new NoSuchPaddingException("No such padding: " + paddingStr);
             newE.initCause(e);
             throw newE;
         }
@@ -292,7 +292,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+                              SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         checkAndSetEncodedKey(opmode, key);
         engineInitInternal(this.encodedKey, params, random);
     }
@@ -335,7 +336,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+                               int outputOffset) throws ShortBufferException {
         final int maximumLen = getOutputSizeForUpdate(inputLen);
         return updateInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
     }
@@ -416,5 +417,4 @@ public abstract class OpenSSLCipher extends CipherSpi {
     boolean isEncrypting() {
         return encrypting;
     }
-
 }

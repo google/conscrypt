@@ -70,7 +70,7 @@ public class HpkeContextRecipient extends HpkeContext {
      * @throws NoSuchProviderException if providerName is null or no such Provider exists
      */
     public static HpkeContextRecipient getInstance(String suite, String providerName)
-        throws NoSuchAlgorithmException, NoSuchProviderException {
+            throws NoSuchAlgorithmException, NoSuchProviderException {
         return new HpkeContextRecipient(findSpi(suite, providerName));
     }
 
@@ -84,7 +84,7 @@ public class HpkeContextRecipient extends HpkeContext {
      * @throws NoSuchProviderException if providerName is null or no such Provider exists
      */
     public static HpkeContextRecipient getInstance(String suite, Provider provider)
-        throws NoSuchAlgorithmException, NoSuchProviderException {
+            throws NoSuchAlgorithmException, NoSuchProviderException {
         return new HpkeContextRecipient(findSpi(suite, provider));
     }
 
@@ -100,8 +100,8 @@ public class HpkeContextRecipient extends HpkeContext {
      */
     public void init(byte[] encapsulated, PrivateKey recipientKey, byte[] info)
             throws InvalidKeyException {
-        spi.engineInitRecipient(encapsulated, recipientKey, info, null,
-                HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
+        spi.engineInitRecipient(encapsulated, recipientKey, info, null, HpkeSpi.DEFAULT_PSK,
+                                HpkeSpi.DEFAULT_PSK_ID);
     }
 
     /**
@@ -118,13 +118,13 @@ public class HpkeContextRecipient extends HpkeContext {
      * @throws IllegalStateException if this HpkeContextRecipient has already been initialised
      */
     public void init(byte[] encapsulated, PrivateKey recipientKey, byte[] info, PublicKey senderKey)
-        throws InvalidKeyException {
+            throws InvalidKeyException {
         if (senderKey == null) {
             throw new InvalidKeyException("null sender key");
         }
         // Remaining argument checks are performed by the SPI
-        spi.engineInitRecipient(encapsulated, recipientKey, info, senderKey,
-                HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
+        spi.engineInitRecipient(encapsulated, recipientKey, info, senderKey, HpkeSpi.DEFAULT_PSK,
+                                HpkeSpi.DEFAULT_PSK_ID);
     }
 
     /**
@@ -141,8 +141,8 @@ public class HpkeContextRecipient extends HpkeContext {
      * @throws UnsupportedOperationException if mode is not a supported HPKE mode
      * @throws IllegalStateException if this HpkeContextRecipient has already been initialised
      */
-    public void init(byte[] encapsulated, PrivateKey recipientKey, byte[] info,
-            byte[] psk, byte[] psk_id) throws InvalidKeyException {
+    public void init(byte[] encapsulated, PrivateKey recipientKey, byte[] info, byte[] psk,
+                     byte[] psk_id) throws InvalidKeyException {
         spi.engineInitRecipient(encapsulated, recipientKey, info, null, psk, psk_id);
     }
 
@@ -163,7 +163,7 @@ public class HpkeContextRecipient extends HpkeContext {
      * @throws IllegalStateException if this HpkeContextRecipient has already been initialised
      */
     public void init(byte[] encapsulated, PrivateKey recipientKey, byte[] info, PublicKey senderKey,
-            byte[] psk, byte[] psk_id) throws InvalidKeyException {
+                     byte[] psk, byte[] psk_id) throws InvalidKeyException {
         if (senderKey == null) {
             throw new InvalidKeyException("null sender key");
         }

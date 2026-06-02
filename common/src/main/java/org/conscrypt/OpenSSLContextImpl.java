@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContextSpi;
 import javax.net.ssl.SSLEngine;
@@ -56,7 +57,7 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     SSLParametersImpl sslParameters;
 
     /** Allows outside callers to get the preferred SSLContext. */
-    static OpenSSLContextImpl getPreferred() {
+    public static OpenSSLContextImpl getPreferred() {
         return new TLSv13();
     }
 
@@ -85,13 +86,16 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
                 defaultSslContextImpl = (DefaultSSLContextImpl) this;
             } else {
                 clientSessionContext =
-                    (ClientSessionContext) defaultSslContextImpl.engineGetClientSessionContext();
+                        (ClientSessionContext)
+                                defaultSslContextImpl.engineGetClientSessionContext();
                 serverSessionContext =
-                    (ServerSessionContext) defaultSslContextImpl.engineGetServerSessionContext();
+                        (ServerSessionContext)
+                                defaultSslContextImpl.engineGetServerSessionContext();
             }
-            sslParameters = new SSLParametersImpl(defaultSslContextImpl.getKeyManagers(),
-                    defaultSslContextImpl.getTrustManagers(), null, clientSessionContext,
-                    serverSessionContext, protocols);
+            sslParameters =
+                    new SSLParametersImpl(defaultSslContextImpl.getKeyManagers(),
+                                          defaultSslContextImpl.getTrustManagers(), null,
+                                          clientSessionContext, serverSessionContext, protocols);
         }
     }
 
@@ -108,8 +112,8 @@ public abstract class OpenSSLContextImpl extends SSLContextSpi {
     @Override
     public void engineInit(KeyManager[] kms, TrustManager[] tms, SecureRandom sr)
             throws KeyManagementException {
-        sslParameters = new SSLParametersImpl(
-                kms, tms, sr, clientSessionContext, serverSessionContext, protocols);
+        sslParameters = new SSLParametersImpl(kms, tms, sr, clientSessionContext,
+                                              serverSessionContext, protocols);
     }
 
     @Override

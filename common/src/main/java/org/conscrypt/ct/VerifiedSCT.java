@@ -16,20 +16,16 @@
 
 package org.conscrypt.ct;
 
-import java.util.Objects;
 import org.conscrypt.Internal;
+
+import java.util.Objects;
 
 /**
  * Verification result for a single SCT.
  */
 @Internal
 public final class VerifiedSCT {
-    public enum Status {
-        VALID,
-        INVALID_SIGNATURE,
-        UNKNOWN_LOG,
-        INVALID_SCT
-    }
+    public enum Status { VALID, INVALID_SIGNATURE, UNKNOWN_LOG, INVALID_SCT }
 
     private final SignedCertificateTimestamp sct;
     private final Status status;
@@ -88,4 +84,3 @@ public final class VerifiedSCT {
         }
     }
 }
-

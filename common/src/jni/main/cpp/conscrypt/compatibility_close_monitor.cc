@@ -36,14 +36,15 @@ CompatibilityCloseMonitor::acm_dtor_func CompatibilityCloseMonitor::asyncCloseMo
 
 void CompatibilityCloseMonitor::init() {
 #ifndef _WIN32
-    void *lib = dlopen("libandroidio.so", RTLD_NOW);
+    void* lib = dlopen("libandroidio.so", RTLD_NOW);
     if (lib != nullptr) {
-        asyncCloseMonitorCreate = (acm_create_func) dlsym(lib, "async_close_monitor_create");
-        asyncCloseMonitorDestroy = (acm_destroy_func) dlsym(lib, "async_close_monitor_destroy");
+        asyncCloseMonitorCreate = (acm_create_func)dlsym(lib, "async_close_monitor_create");
+        asyncCloseMonitorDestroy = (acm_destroy_func)dlsym(lib, "async_close_monitor_destroy");
         return;
     }
 #ifdef CONSCRYPT_UNBUNDLED
-    // Only attempt to initialise the legacy C++ API if the C API symbols were not found.
+    // Only attempt to initialise the legacy C++ API if the C API symbols were not
+    // found.
     lib = dlopen("libjavacore.so", RTLD_NOW);
     if (lib != nullptr) {
         if (asyncCloseMonitorCreate == nullptr) {

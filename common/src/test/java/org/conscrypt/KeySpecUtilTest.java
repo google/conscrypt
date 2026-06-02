@@ -65,6 +65,6 @@ public final class KeySpecUtilTest {
         byte[] rawBytes = new byte[] {1, 2, 3};
 
         assertThrows(InvalidKeySpecException.class,
-                () -> KeySpecUtil.makeRawKeySpec(rawBytes, OtherKeySpec.class));
+                     () -> KeySpecUtil.makeRawKeySpec(rawBytes, OtherKeySpec.class));
     }
 }

@@ -103,9 +103,10 @@
 #endif
 
 /**
- * Many OpenSSL APIs take ownership of an argument on success but don't free the argument
- * on failure. This means we need to tell our scoped pointers when we've transferred ownership,
- * without triggering a warning by not using the result of release().
+ * Many OpenSSL APIs take ownership of an argument on success but don't free the
+ * argument on failure. This means we need to tell our scoped pointers when
+ * we've transferred ownership, without triggering a warning by not using the
+ * result of release().
  */
 #define OWNERSHIP_TRANSFERRED(obj)                                           \
     do {                                                                     \
@@ -133,7 +134,8 @@
      (len) > static_cast<ssize_t>((array).size()) - (offset))
 
 /**
- * Check array bounds for arguments when an array length, chunk offset, and chunk length are given.
+ * Check array bounds for arguments when an array length, chunk offset, and
+ * chunk length are given.
  */
 #define ARRAY_CHUNK_INVALID(array_len, chunk_offset, chunk_len)                                   \
     ((chunk_offset) < 0 || (chunk_offset) > static_cast<ssize_t>(array_len) || (chunk_len) < 0 || \

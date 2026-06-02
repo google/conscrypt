@@ -15,15 +15,16 @@
  */
 package org.conscrypt.java.security;
 
-import java.security.KeyPair;
-import javax.crypto.spec.DHPrivateKeySpec;
-import javax.crypto.spec.DHPublicKeySpec;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.security.KeyPair;
+
+import javax.crypto.spec.DHPrivateKeySpec;
+import javax.crypto.spec.DHPublicKeySpec;
+
 @RunWith(JUnit4.class)
 public class KeyFactoryTestDH extends AbstractKeyFactoryTest<DHPublicKeySpec, DHPrivateKeySpec> {
-
     public KeyFactoryTestDH() {
         super("DH", DHPublicKeySpec.class, DHPrivateKeySpec.class);
     }

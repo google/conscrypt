@@ -44,8 +44,8 @@ public class HpkeFixture {
 
     static final byte[] DEFAULT_PT =
             decodeHex("4265617574792069732074727574682c20747275746820626561757479");
-    static final byte[] DEFAULT_CT = decodeHex(
-            "f938558b5d72f1a23810b4be2ab4f84331acc02fc97babc53a52ae8218a355a96d8770ac83d07bea87e13c512a");
+    static final byte[] DEFAULT_CT = decodeHex("f938558b5d72f1a23810b4be2ab4f84331acc02fc97babc53a5"
+                                               + "2ae8218a355a96d8770ac83d07bea87e13c512a");
 
     static final int DEFAULT_EXPORTER_LENGTH = 32;
     static final byte[] DEFAULT_EXPORTER_CONTEXT = decodeHex("00");
@@ -55,12 +55,12 @@ public class HpkeFixture {
     static final String DEFAULT_SUITE_NAME = DEFAULT_SUITE.name();
 
     static HpkeContextRecipient createDefaultHpkeContextRecipient(byte[] enc)
-        throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException {
         return createDefaultHpkeContextRecipient(enc, DEFAULT_INFO);
     }
 
     static HpkeContextRecipient createDefaultHpkeContextRecipient(byte[] enc, byte[] info)
-        throws NoSuchAlgorithmException, InvalidKeyException {
+            throws NoSuchAlgorithmException, InvalidKeyException {
         HpkeContextRecipient contextRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         contextRecipient.init(enc, DEFAULT_SK, info);
@@ -68,12 +68,12 @@ public class HpkeFixture {
     }
 
     static HpkeContextSender createDefaultHpkeContextSender()
-        throws NoSuchAlgorithmException, InvalidKeyException {
+            throws NoSuchAlgorithmException, InvalidKeyException {
         return createDefaultHpkeContextSender(DEFAULT_INFO);
     }
 
     static HpkeContextSender createDefaultHpkeContextSender(byte[] info)
-        throws NoSuchAlgorithmException, InvalidKeyException {
+            throws NoSuchAlgorithmException, InvalidKeyException {
         HpkeContextSender hpke = HpkeContextSender.getInstance(DEFAULT_SUITE_NAME);
         hpke.init(DEFAULT_PK, info);
         return hpke;

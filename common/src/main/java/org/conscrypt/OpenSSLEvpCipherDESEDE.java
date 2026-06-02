@@ -86,8 +86,7 @@ public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
             case PKCS5PADDING:
                 return;
             default:
-                throw new NoSuchPaddingException("Unsupported padding "
-                        + padding.toString());
+                throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
         }
     }
 

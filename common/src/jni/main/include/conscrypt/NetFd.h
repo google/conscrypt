@@ -20,10 +20,11 @@
 #include <conscrypt/jniutil.h>
 
 /**
- * Wraps access to the int inside a java.io.FileDescriptor, taking care of throwing exceptions.
+ * Wraps access to the int inside a java.io.FileDescriptor, taking care of
+ * throwing exceptions.
  */
 class NetFd {
- public:
+public:
     NetFd(JNIEnv* env, jobject fileDescriptor)
         : mEnv(env), mFileDescriptor(fileDescriptor), mFd(-1) {}
 
@@ -40,7 +41,7 @@ class NetFd {
         return mFd;
     }
 
- private:
+private:
     JNIEnv* mEnv;
     jobject mFileDescriptor;
     int mFd;
@@ -51,9 +52,9 @@ class NetFd {
 };
 
 /**
- * Used to retry syscalls that can return EINTR. This differs from TEMP_FAILURE_RETRY in that
- * it also considers the case where the reason for failure is that another thread called
- * Socket.close.
+ * Used to retry syscalls that can return EINTR. This differs from
+ * TEMP_FAILURE_RETRY in that it also considers the case where the reason for
+ * failure is that another thread called Socket.close.
  */
 #define NET_FAILURE_RETRY(fd, exp)                     \
     ({                                                 \

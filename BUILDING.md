@@ -64,7 +64,7 @@ ninja
 
 ##### Building on macOS.
 When building Conscrypt on macOS it will build libraries for both x86 and ARM, and so BoringSSL
-must also be build for each of these.
+must also be built for each of these.
 
 To build the x86_64 version:
 ```bash

@@ -15,13 +15,14 @@
  */
 package org.conscrypt.tlswire.handshake;
 
+import org.conscrypt.tlswire.util.IoUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import org.conscrypt.tlswire.util.IoUtils;
 
 /**
  * {@code server_name} (SNI) {@link HelloExtension} from TLS 1.2 RFC 5246.

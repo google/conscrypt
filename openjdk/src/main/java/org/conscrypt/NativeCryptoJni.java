@@ -16,11 +16,12 @@
 
 package org.conscrypt;
 
+import org.conscrypt.NativeLibraryLoader.LoadResult;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import org.conscrypt.NativeLibraryLoader.LoadResult;
 
 /**
  * Helper to initialize the JNI libraries. This version runs when compiled as part of a host OpenJDK
@@ -47,8 +48,8 @@ final class NativeCryptoJni {
      */
     static void init() throws UnsatisfiedLinkError {
         List<LoadResult> results = new ArrayList<LoadResult>();
-        if (!NativeLibraryLoader.loadFirstAvailable(classLoader(), results,
-                platformLibName(), DYNAMIC_LIB_NAME_PREFIX, STATIC_LIB_NAME)) {
+        if (!NativeLibraryLoader.loadFirstAvailable(classLoader(), results, platformLibName(),
+                                                    DYNAMIC_LIB_NAME_PREFIX, STATIC_LIB_NAME)) {
             logResults(results);
             throwBestError(results);
         }
@@ -76,7 +77,7 @@ final class NativeCryptoJni {
             throw (Error) bestError;
         }
 
-        throw (Error) new UnsatisfiedLinkError(bestError.getMessage()).initCause(bestError);
+        throw(Error) new UnsatisfiedLinkError(bestError.getMessage()).initCause(bestError);
     }
 
     private static ClassLoader classLoader() {

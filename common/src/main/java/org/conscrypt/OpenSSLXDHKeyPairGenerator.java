@@ -42,7 +42,7 @@ public final class OpenSSLXDHKeyPairGenerator extends KeyPairGenerator {
         NativeCrypto.X25519_keypair(publicKeyBytes, privateKeyBytes);
 
         return new KeyPair(new OpenSSLX25519PublicKey(publicKeyBytes),
-                new OpenSSLX25519PrivateKey(privateKeyBytes));
+                           new OpenSSLX25519PrivateKey(privateKeyBytes));
     }
 
     @Override

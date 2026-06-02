@@ -17,7 +17,9 @@ package org.conscrypt.tlswire.handshake;
 /**
  * {@code EllipticCurve} enum from RFC 4492 section 5.1.1. Curves are assigned
  * via the
- * <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8">IANA registry</a>.
+ * <a
+ * href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8">IANA
+ * registry</a>.
  */
 public enum EllipticCurve {
     SECT163K1(1, "sect163k1"),
@@ -50,6 +52,9 @@ public enum EllipticCurve {
     BRAINPOOLP521R1(28, "brainpoolP521r1"),
     X25519(29, "x25519"),
     X448(30, "x448"),
+    MLKEM1024(514, "mlkem1024"),
+    X25519MLKEM768(4588, "x25519mlkem768"),
+    X25519KYBER768DRAFT00(25055, "x25519kyber768draft00"),
     ARBITRARY_PRIME(0xFF01, "arbitrary_explicit_prime_curves"),
     ARBITRARY_CHAR2(0xFF02, "arbitrary_explicit_char2_curves");
     public final int identifier;

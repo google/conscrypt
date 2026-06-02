@@ -79,7 +79,7 @@ public class HpkeContextSender extends HpkeContext {
      * @throws NoSuchProviderException if providerName is null or no such Provider exists
      */
     public static HpkeContextSender getInstance(String suite, String providerName)
-        throws NoSuchAlgorithmException, NoSuchProviderException {
+            throws NoSuchAlgorithmException, NoSuchProviderException {
         return new HpkeContextSender(findSpi(suite, providerName));
     }
 
@@ -93,7 +93,7 @@ public class HpkeContextSender extends HpkeContext {
      * @throws NoSuchProviderException if provider is null
      */
     public static HpkeContextSender getInstance(String suite, Provider provider)
-        throws NoSuchAlgorithmException, NoSuchProviderException {
+            throws NoSuchAlgorithmException, NoSuchProviderException {
         return new HpkeContextSender(findSpi(suite, provider));
     }
 
@@ -107,8 +107,7 @@ public class HpkeContextSender extends HpkeContext {
      * @throws IllegalStateException if this HpkeContextSender has already been initialised
      */
     public void init(PublicKey recipientKey, byte[] info) throws InvalidKeyException {
-        spi.engineInitSender(
-                recipientKey, info, null, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
+        spi.engineInitSender(recipientKey, info, null, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
     }
 
     /**
@@ -129,8 +128,8 @@ public class HpkeContextSender extends HpkeContext {
             throw new InvalidKeyException("Sender private key is null");
         }
         // Remaining argument checks are performed by the SPI
-        spi.engineInitSender(
-                recipientKey, info, senderKey, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK_ID);
+        spi.engineInitSender(recipientKey, info, senderKey, HpkeSpi.DEFAULT_PSK,
+                             HpkeSpi.DEFAULT_PSK_ID);
     }
 
     /**
@@ -166,8 +165,8 @@ public class HpkeContextSender extends HpkeContext {
      * @throws UnsupportedOperationException if mode is not a supported HPKE mode
      * @throws IllegalStateException if this HpkeContextSender has already been initialised
      */
-    public void init(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
-            byte[] psk, byte[] psk_id) throws InvalidKeyException {
+    public void init(PublicKey recipientKey, byte[] info, PrivateKey senderKey, byte[] psk,
+                     byte[] psk_id) throws InvalidKeyException {
         if (senderKey == null) {
             throw new InvalidKeyException("Sender private key is null");
         }
@@ -188,11 +187,11 @@ public class HpkeContextSender extends HpkeContext {
      */
     @Internal
     public void initForTesting(PublicKey recipientKey, byte[] info, byte[] sKe)
-        throws InvalidKeyException {
+            throws InvalidKeyException {
         if (sKe == null) {
             throw new IllegalArgumentException("null seed");
         }
-        spi.engineInitSenderForTesting(
-                recipientKey, info, null, HpkeSpi.DEFAULT_PSK, HpkeSpi.DEFAULT_PSK, sKe);
+        spi.engineInitSenderForTesting(recipientKey, info, null, HpkeSpi.DEFAULT_PSK,
+                                       HpkeSpi.DEFAULT_PSK, sKe);
     }
 }

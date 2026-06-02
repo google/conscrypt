@@ -1,4 +1,6 @@
 plugins {
+    id 'conventions.common'
+    id 'conventions.jvm'
     alias libs.plugins.shadow
 }
 

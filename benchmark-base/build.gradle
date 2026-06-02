@@ -1,6 +1,0 @@
-description = 'Conscrypt: Base library for benchmarks'
-
-dependencies {
-    implementation project(path: ":conscrypt-testing", configuration: "shadow"),
-            libs.junit
-}

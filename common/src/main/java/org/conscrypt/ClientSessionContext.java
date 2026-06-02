@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.net.ssl.SSLContext;
 
 /**
@@ -37,7 +38,8 @@ public final class ClientSessionContext extends AbstractSessionContext {
      * a session of one kind will remove all sessions of the other kind.
      */
     @SuppressWarnings("serial")
-    private final Map<HostAndPort, List<NativeSslSession>> sessionsByHostAndPort = new HashMap<HostAndPort, List<NativeSslSession>>();
+    private final Map<HostAndPort, List<NativeSslSession>> sessionsByHostAndPort =
+            new HashMap<HostAndPort, List<NativeSslSession>>();
 
     private SSLClientSessionCache persistentCache;
 
@@ -57,7 +59,7 @@ public final class ClientSessionContext extends AbstractSessionContext {
      * Gets the suitable session reference from the session cache container.
      */
     synchronized NativeSslSession getCachedSession(String hostName, int port,
-            SSLParametersImpl sslParameters) {
+                                                   SSLParametersImpl sslParameters) {
         if (hostName == null) {
             return null;
         }

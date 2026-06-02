@@ -29,7 +29,6 @@ import java.security.spec.PSSParameterSpec;
  */
 @Internal
 public class PSSParameters extends AlgorithmParametersSpi {
-
     private PSSParameterSpec spec = PSSParameterSpec.DEFAULT;
 
     public PSSParameters() {}
@@ -79,11 +78,11 @@ public class PSSParameters extends AlgorithmParametersSpi {
             }
 
             if (!NativeCrypto.asn1_read_is_empty(seqRef)
-                    || !NativeCrypto.asn1_read_is_empty(readRef)) {
+                || !NativeCrypto.asn1_read_is_empty(readRef)) {
                 throw new IOException("Error reading ASN.1 encoding");
             }
             this.spec = new PSSParameterSpec(hash, "MGF1", new MGF1ParameterSpec(mgfHash),
-                    saltLength, 1);
+                                             saltLength, 1);
         } finally {
             NativeCrypto.asn1_read_free(seqRef);
             NativeCrypto.asn1_read_free(readRef);
@@ -118,7 +117,7 @@ public class PSSParameters extends AlgorithmParametersSpi {
             cbbRef = NativeCrypto.asn1_write_init();
             seqRef = NativeCrypto.asn1_write_sequence(cbbRef);
             OAEPParameters.writeHashAndMgfHash(seqRef, spec.getDigestAlgorithm(),
-                    (MGF1ParameterSpec) spec.getMGFParameters());
+                                               (MGF1ParameterSpec) spec.getMGFParameters());
             // Implementations are prohibited from writing the default value for any of the fields
             if (spec.getSaltLength() != 20) {
                 long tagRef = 0;

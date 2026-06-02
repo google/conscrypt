@@ -58,7 +58,7 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     }
 
     private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx,
-            boolean digestInitializedInContext) {
+                                    boolean digestInitializedInContext) {
         this.evp_md = evp_md;
         this.size = size;
         this.ctx = ctx;

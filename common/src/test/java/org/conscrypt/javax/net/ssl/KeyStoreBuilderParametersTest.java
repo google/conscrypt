@@ -22,20 +22,21 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-import java.security.KeyStore;
-import java.security.KeyStore.PasswordProtection;
-import java.util.Arrays;
-import java.util.List;
-import javax.net.ssl.KeyStoreBuilderParameters;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.security.KeyStore;
+import java.security.KeyStore.PasswordProtection;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.net.ssl.KeyStoreBuilderParameters;
+
 @RunWith(JUnit4.class)
 public class KeyStoreBuilderParametersTest {
-
     private static void assumeObjectsAvailable() {
         boolean available = false;
         try {

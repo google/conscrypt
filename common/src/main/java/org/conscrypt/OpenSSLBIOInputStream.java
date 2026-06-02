@@ -95,7 +95,7 @@ class OpenSSLBIOInputStream extends FilterInputStream {
         int totalRead = 0;
         int read;
         do {
-            read = super.read(buffer, offset + totalRead, len - totalRead - offset);
+            read = super.read(buffer, offset + totalRead, len - totalRead);
             if (read == -1) {
                 break;
             }

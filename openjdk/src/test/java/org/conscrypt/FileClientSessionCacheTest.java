@@ -19,26 +19,25 @@ package org.conscrypt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.IOException;
 import org.conscrypt.javax.net.ssl.FakeSSLSession;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.File;
+import java.io.IOException;
+
 @RunWith(JUnit4.class)
 public class FileClientSessionCacheTest {
-
     @Test
     public void testMaxSize() throws IOException, InterruptedException {
         String tmpDir = System.getProperty("java.io.tmpdir");
         if (tmpDir == null) {
             fail("Please set 'java.io.tmpdir' system property.");
         }
-        File cacheDir = new File(tmpDir
-                + "/" + FileClientSessionCacheTest.class.getName() + "/cache");
-        final SSLClientSessionCache cache
-                = FileClientSessionCache.usingDirectory(cacheDir);
+        File cacheDir =
+                new File(tmpDir + "/" + FileClientSessionCacheTest.class.getName() + "/cache");
+        final SSLClientSessionCache cache = FileClientSessionCache.usingDirectory(cacheDir);
         Thread[] threads = new Thread[10];
         final int iterations = FileClientSessionCache.MAX_SIZE * 10;
         for (int i = 0; i < threads.length; i++) {

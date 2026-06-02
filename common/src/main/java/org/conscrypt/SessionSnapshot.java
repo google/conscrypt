@@ -21,6 +21,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
 
@@ -41,6 +42,8 @@ final class SessionSnapshot implements ConscryptSession {
     private final String peerHost;
     private final String applicationProtocol;
     private final int peerPort;
+    private final String[] peerSupportedSignatureAlgorithms;
+    private final String[] localSupportedSignatureAlgorithms;
 
     SessionSnapshot(ConscryptSession session) {
         sessionContext = session.getSessionContext();
@@ -55,6 +58,8 @@ final class SessionSnapshot implements ConscryptSession {
         peerHost = session.getPeerHost();
         peerPort = session.getPeerPort();
         applicationProtocol = session.getApplicationProtocol();
+        peerSupportedSignatureAlgorithms = session.getPeerSupportedSignatureAlgorithms();
+        localSupportedSignatureAlgorithms = session.getLocalSupportedSignatureAlgorithms();
     }
 
     @Override
@@ -143,7 +148,7 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     @SuppressWarnings("deprecation") // Public API
     public javax.security.cert.X509Certificate[] getPeerCertificateChain()
-        throws SSLPeerUnverifiedException {
+            throws SSLPeerUnverifiedException {
         if (!Platform.isJavaxCertificateSupported()) {
             throw new UnsupportedOperationException("Use getPeerCertificates() instead");
         }
@@ -194,5 +199,17 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     public String getApplicationProtocol() {
         return applicationProtocol;
+    }
+
+    @Override
+    public String[] getPeerSupportedSignatureAlgorithms() {
+        return peerSupportedSignatureAlgorithms != null ? peerSupportedSignatureAlgorithms.clone()
+                                                        : new String[0];
+    }
+
+    @Override
+    public String[] getLocalSupportedSignatureAlgorithms() {
+        return localSupportedSignatureAlgorithms != null ? localSupportedSignatureAlgorithms.clone()
+                                                         : new String[0];
     }
 }

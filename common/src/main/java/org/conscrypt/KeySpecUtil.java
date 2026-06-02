@@ -40,7 +40,7 @@ public final class KeySpecUtil {
             }
             return instance;
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException
-                | IllegalAccessException e) {
+                 | IllegalAccessException e) {
             throw new InvalidKeySpecException(
                     "Can't process KeySpec class " + keySpecClass.getName(), e);
         }

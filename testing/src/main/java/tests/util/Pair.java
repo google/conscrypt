@@ -77,8 +77,7 @@ public class Pair<F, S> {
         if (!(obj instanceof Pair)) {
             return false;
         }
-        @SuppressWarnings("rawtypes")
-        Pair other = (Pair) obj;
+        @SuppressWarnings("rawtypes") Pair other = (Pair) obj;
         if (mFirst == null) {
             if (other.mFirst != null) {
                 return false;

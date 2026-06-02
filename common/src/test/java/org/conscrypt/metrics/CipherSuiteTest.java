@@ -8,7 +8,6 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class CipherSuiteTest {
-
     @Test
     public void consistency() {
         for (CipherSuite cipherSuite : CipherSuite.values()) {

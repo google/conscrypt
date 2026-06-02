@@ -32,14 +32,14 @@ public final class ArrayUtils {
     static void checkOffsetAndCount(int arrayLength, int offset, int count) {
         if ((offset | count) < 0 || offset > arrayLength || arrayLength - offset < count) {
             throw new ArrayIndexOutOfBoundsException("length=" + arrayLength + "; regionStart="
-                    + offset + "; regionLength=" + count);
+                                                     + offset + "; regionLength=" + count);
         }
     }
 
     @SafeVarargs
     @SuppressWarnings("varargs")
     public static <T> T[] concatValues(T[] a1, T... values) {
-        return concat (a1, values);
+        return concat(a1, values);
     }
 
     public static <T> T[] concat(T[] a1, T[] a2) {

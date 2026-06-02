@@ -35,13 +35,8 @@ import java.lang.annotation.Target;
  */
 @Internal
 @Retention(RetentionPolicy.SOURCE)
-@Target({
-        ElementType.ANNOTATION_TYPE,
-        ElementType.CONSTRUCTOR,
-        ElementType.FIELD,
-        ElementType.METHOD,
-        ElementType.PACKAGE,
-        ElementType.TYPE})
+@Target({ElementType.ANNOTATION_TYPE, ElementType.CONSTRUCTOR, ElementType.FIELD,
+         ElementType.METHOD, ElementType.PACKAGE, ElementType.TYPE})
 @Documented
 public @interface ExperimentalApi {
     /**

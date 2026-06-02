@@ -39,7 +39,8 @@ import java.security.spec.PSSParameterSpec;
 @Internal
 public class OpenSSLSignature extends SignatureSpi {
     private enum EngineType {
-        RSA, EC,
+        RSA,
+        EC,
     }
 
     private NativeRef.EVP_MD_CTX ctx;
@@ -178,13 +179,13 @@ public class OpenSSLSignature extends SignatureSpi {
             case RSA:
                 if (pkeyType != NativeConstants.EVP_PKEY_RSA) {
                     throw new InvalidKeyException("Signature initialized as " + engineType
-                            + " (not RSA)");
+                                                  + " (not RSA)");
                 }
                 break;
             case EC:
                 if (pkeyType != NativeConstants.EVP_PKEY_EC) {
                     throw new InvalidKeyException("Signature initialized as " + engineType
-                            + " (not EC)");
+                                                  + " (not EC)");
                 }
                 break;
             default:
@@ -353,8 +354,8 @@ public class OpenSSLSignature extends SignatureSpi {
         private long mgf1EvpMdRef;
         private int saltSizeBytes;
 
-        RSAPSSPadding(
-                long contentDigestEvpMdRef, String contentDigestAlgorithm, int saltSizeBytes) {
+        RSAPSSPadding(long contentDigestEvpMdRef, String contentDigestAlgorithm,
+                      int saltSizeBytes) {
             super(contentDigestEvpMdRef, EngineType.RSA);
             this.contentDigestAlgorithm = contentDigestAlgorithm;
             this.mgf1DigestAlgorithm = contentDigestAlgorithm;
@@ -376,11 +377,11 @@ public class OpenSSLSignature extends SignatureSpi {
             if (!(params instanceof PSSParameterSpec)) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported parameter: " + params + ". Only "
-                                + PSSParameterSpec.class.getName() + " supported");
+                        + PSSParameterSpec.class.getName() + " supported");
             }
             PSSParameterSpec spec = (PSSParameterSpec) params;
-            String specContentDigest = EvpMdRef
-                    .getJcaDigestAlgorithmStandardName(spec.getDigestAlgorithm());
+            String specContentDigest =
+                    EvpMdRef.getJcaDigestAlgorithmStandardName(spec.getDigestAlgorithm());
             if (specContentDigest == null) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported content digest algorithm: " + spec.getDigestAlgorithm());
@@ -391,45 +392,45 @@ public class OpenSSLSignature extends SignatureSpi {
 
             String specMgfAlgorithm = spec.getMGFAlgorithm();
             if (!EvpMdRef.MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm)
-                    && !EvpMdRef.MGF1_OID.equals(specMgfAlgorithm)) {
+                && !EvpMdRef.MGF1_OID.equals(specMgfAlgorithm)) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported MGF algorithm: " + specMgfAlgorithm + ". Only "
-                                + EvpMdRef.MGF1_ALGORITHM_NAME + " supported");
+                        + EvpMdRef.MGF1_ALGORITHM_NAME + " supported");
             }
 
             AlgorithmParameterSpec mgfSpec = spec.getMGFParameters();
             if (!(mgfSpec instanceof MGF1ParameterSpec)) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported MGF parameters: " + mgfSpec + ". Only "
-                                + MGF1ParameterSpec.class.getName() + " supported");
+                        + MGF1ParameterSpec.class.getName() + " supported");
             }
             MGF1ParameterSpec specMgf1Spec = (MGF1ParameterSpec) spec.getMGFParameters();
 
-            String specMgf1Digest = EvpMdRef
-                    .getJcaDigestAlgorithmStandardName(specMgf1Spec.getDigestAlgorithm());
+            String specMgf1Digest =
+                    EvpMdRef.getJcaDigestAlgorithmStandardName(specMgf1Spec.getDigestAlgorithm());
             if (specMgf1Digest == null) {
-                throw new InvalidAlgorithmParameterException(
-                        "Unsupported MGF1 digest algorithm: " + specMgf1Spec.getDigestAlgorithm());
+                throw new InvalidAlgorithmParameterException("Unsupported MGF1 digest algorithm: "
+                                                             + specMgf1Spec.getDigestAlgorithm());
             }
             long specMgf1EvpMdRef;
             try {
-                specMgf1EvpMdRef = EvpMdRef
-                        .getEVP_MDByJcaDigestAlgorithmStandardName(specMgf1Digest);
+                specMgf1EvpMdRef =
+                        EvpMdRef.getEVP_MDByJcaDigestAlgorithmStandardName(specMgf1Digest);
             } catch (NoSuchAlgorithmException e) {
                 throw new ProviderException("Failed to obtain EVP_MD for " + specMgf1Digest, e);
             }
 
             int specSaltSizeBytes = spec.getSaltLength();
             if (specSaltSizeBytes < 0) {
-                throw new InvalidAlgorithmParameterException(
-                        "Salt length must be non-negative: " + specSaltSizeBytes);
+                throw new InvalidAlgorithmParameterException("Salt length must be non-negative: "
+                                                             + specSaltSizeBytes);
             }
 
             int specTrailer = spec.getTrailerField();
             if (specTrailer != TRAILER_FIELD_BC_ID) {
-                throw new InvalidAlgorithmParameterException(
-                        "Unsupported trailer field: " + specTrailer + ". Only "
-                                + TRAILER_FIELD_BC_ID + " supported");
+                throw new InvalidAlgorithmParameterException("Unsupported trailer field: "
+                                                             + specTrailer + ". Only "
+                                                             + TRAILER_FIELD_BC_ID + " supported");
             }
 
             this.mgf1DigestAlgorithm = specMgf1Digest;
@@ -446,13 +447,10 @@ public class OpenSSLSignature extends SignatureSpi {
         protected final AlgorithmParameters engineGetParameters() {
             try {
                 AlgorithmParameters result = AlgorithmParameters.getInstance("PSS");
-                result.init(
-                        new PSSParameterSpec(
-                                contentDigestAlgorithm,
-                                EvpMdRef.MGF1_ALGORITHM_NAME,
-                                new MGF1ParameterSpec(mgf1DigestAlgorithm),
-                                saltSizeBytes,
-                                TRAILER_FIELD_BC_ID));
+                result.init(new PSSParameterSpec(contentDigestAlgorithm,
+                                                 EvpMdRef.MGF1_ALGORITHM_NAME,
+                                                 new MGF1ParameterSpec(mgf1DigestAlgorithm),
+                                                 saltSizeBytes, TRAILER_FIELD_BC_ID));
                 return result;
             } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
                 throw new ProviderException("Failed to create PSS AlgorithmParameters", e);

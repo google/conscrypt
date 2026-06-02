@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-#include <jni.h>
-
 #include <conscrypt/compatibility_close_monitor.h>
 #include <conscrypt/jniutil.h>
 #include <conscrypt/logging.h>
 #include <conscrypt/native_crypto.h>
+#include <jni.h>
 
 #ifndef CONSCRYPT_JNI_VERSION
 #define CONSCRYPT_JNI_VERSION JNI_VERSION_1_6
@@ -42,15 +41,17 @@ jint libconscrypt_JNI_OnLoad(JavaVM* vm, void*) {
     // Register all of the native JNI methods.
     NativeCrypto::registerNativeMethods(env);
 
-    // Perform static initialization of the close monitor (if required on this platform).
+    // Perform static initialization of the close monitor (if required on this
+    // platform).
     CompatibilityCloseMonitor::init();
     return CONSCRYPT_JNI_VERSION;
 }
 
 #ifdef STATIC_LIB
 
-// A version of OnLoad called when the Conscrypt library has been statically linked to the JVM (For
-// Java >= 1.8). The manner in which the library is statically linked is implementation specific.
+// A version of OnLoad called when the Conscrypt library has been statically
+// linked to the JVM (For Java >= 1.8). The manner in which the library is
+// statically linked is implementation specific.
 //
 // See http://openjdk.java.net/jeps/178
 CONSCRYPT_PUBLIC jint JNI_OnLoad_conscrypt(JavaVM* vm, void* reserved) {

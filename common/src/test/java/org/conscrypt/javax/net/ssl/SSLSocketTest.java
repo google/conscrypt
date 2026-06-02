@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import org.conscrypt.OpenSSLSocketImpl;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -39,6 +40,7 @@ import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
 import org.conscrypt.tlswire.handshake.HelloExtension;
 import org.conscrypt.tlswire.util.TlsProtocolVersion;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -46,6 +48,7 @@ import org.junit.runners.JUnit4;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -60,6 +63,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -69,14 +73,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -90,10 +91,53 @@ import tests.util.Pair;
 public class SSLSocketTest {
     private final ThreadGroup threadGroup = new ThreadGroup("SSLSocketTest");
     private final ExecutorService executor =
-        Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
+            Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
+
+    String getCurveName(SSLSocket socket) {
+        return ((OpenSSLSocketImpl) socket).getCurveNameForTesting();
+    }
+
+    /**
+     * Returns the named groups, or null if the method is not available (older versions of
+     * Java/Android).
+     */
+    String[] getNamedGroupsOrNull(SSLParameters params) {
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            return (String[]) getNamedGroupsMethod.invoke(params);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            return null;
+        }
+    }
+
+    /** Sets the named groups, or does nothing if the method is not available. */
+    void setNamedGroups(SSLParameters params, String[] namedGroups) {
+        try {
+            Method setNamedGroupsMethod =
+                    params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) namedGroups);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            // Ignored
+        }
+    }
+
+    // value of jdk.tls.namedGroups property before the test. null if the property was not set.
+    private String tlsNamedGroupsProperty;
+
+    @Before
+    public void setUp() throws Exception {
+        tlsNamedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
+    }
 
     @After
     public void teardown() throws InterruptedException {
+        // Restore the property to its original value, to make sure that the test does not
+        // have any side effects on other tests when setting the property.
+        if (tlsNamedGroupsProperty == null) {
+            System.clearProperty("jdk.tls.namedGroups");
+        } else {
+            System.setProperty("jdk.tls.namedGroups", tlsNamedGroupsProperty);
+        }
         executor.shutdownNow();
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
     }
@@ -124,12 +168,12 @@ public class SSLSocketTest {
         test_SSLSocket_getSupportedCipherSuites_connect(testKeyStore, error);
         if (error.length() > 0) {
             throw new Exception("One or more problems in "
-                    + "test_SSLSocket_getSupportedCipherSuites_connect:\n" + error);
+                                + "test_SSLSocket_getSupportedCipherSuites_connect:\n" + error);
         }
     }
 
-    private void test_SSLSocket_getSupportedCipherSuites_connect(
-            TestKeyStore testKeyStore, StringBuilder error) {
+    private void test_SSLSocket_getSupportedCipherSuites_connect(TestKeyStore testKeyStore,
+                                                                 StringBuilder error) {
         String clientToServerString = "this is sent from the client to the server...";
         String serverToClientString = "... and this from the server to the client";
         byte[] clientToServer = clientToServerString.getBytes(UTF_8);
@@ -137,14 +181,14 @@ public class SSLSocketTest {
         KeyManager pskKeyManager =
                 PSKKeyManagerProxy.getConscryptPSKKeyManager(new PSKKeyManagerProxy() {
                     @Override
-                    protected SecretKey getKey(
-                            String identityHint, String identity, Socket socket) {
+                    protected SecretKey getKey(String identityHint, String identity,
+                                               Socket socket) {
                         return newKey();
                     }
 
                     @Override
-                    protected SecretKey getKey(
-                            String identityHint, String identity, SSLEngine engine) {
+                    protected SecretKey getKey(String identityHint, String identity,
+                                               SSLEngine engine) {
                         return newKey();
                     }
 
@@ -225,7 +269,7 @@ public class SSLSocketTest {
     public void test_SSLSocket_getInputStream_available() throws Exception {
         TestSSLSocketPair pair = TestSSLSocketPair.create().connect();
 
-        pair.client.getOutputStream().write(new byte[] { 1, 2, 3, 4 });
+        pair.client.getOutputStream().write(new byte[] {1, 2, 3, 4});
         // We read a single byte first because it's okay if available() returns zero
         // before we've checked the network to see if any packets are available to
         // be decrypted, but we should show available bytes once we've decrypted a packet
@@ -234,7 +278,7 @@ public class SSLSocketTest {
         assertEquals(3, pair.server.getInputStream().read(new byte[4]));
         assertEquals(0, pair.server.getInputStream().available());
 
-        pair.server.getOutputStream().write(new byte[] { 1, 2, 3, 4 });
+        pair.server.getOutputStream().write(new byte[] {1, 2, 3, 4});
         // We read a single byte first because it's okay if available() returns zero
         // before we've checked the network to see if any packets are available to
         // be decrypted, but we should show available bytes once we've decrypted a packet
@@ -268,7 +312,7 @@ public class SSLSocketTest {
     public void test_SSLSocket_setEnabledCipherSuites_storesCopy() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
-            String[] array = new String[]{ssl.getEnabledCipherSuites()[0]};
+            String[] array = new String[] {ssl.getEnabledCipherSuites()[0]};
             String originalFirstElement = array[0];
             ssl.setEnabledCipherSuites(array);
             array[0] = "Modified after having been set";
@@ -281,19 +325,17 @@ public class SSLSocketTest {
         SSLContext context = SSLContext.getInstance("TLSv1.2");
         context.init(null, null, null);
         try (SSLSocket ssl = (SSLSocket) context.getSocketFactory().createSocket()) {
+            assertThrows(IllegalArgumentException.class, () -> ssl.setEnabledCipherSuites(null));
             assertThrows(IllegalArgumentException.class,
-                () -> ssl.setEnabledCipherSuites(null));
+                         () -> ssl.setEnabledCipherSuites(new String[1]));
             assertThrows(IllegalArgumentException.class,
-                () -> ssl.setEnabledCipherSuites(new String[1]));
-            assertThrows(IllegalArgumentException.class,
-                () -> ssl.setEnabledCipherSuites(new String[]{"Bogus"}));
+                         () -> ssl.setEnabledCipherSuites(new String[] {"Bogus"}));
             ssl.setEnabledCipherSuites(new String[0]);
             ssl.setEnabledCipherSuites(ssl.getEnabledCipherSuites());
             ssl.setEnabledCipherSuites(ssl.getSupportedCipherSuites());
             // Check that setEnabledCipherSuites affects getEnabledCipherSuites
-            String[] cipherSuites = new String[]{
-                    TestUtils.pickArbitraryNonTls13Suite(ssl.getSupportedCipherSuites())
-            };
+            String[] cipherSuites = new String[] {
+                    TestUtils.pickArbitraryNonTls13Suite(ssl.getSupportedCipherSuites())};
             ssl.setEnabledCipherSuites(cipherSuites);
             assertEquals(Arrays.asList(cipherSuites), Arrays.asList(ssl.getEnabledCipherSuites()));
         }
@@ -307,22 +349,21 @@ public class SSLSocketTest {
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             // The TLS 1.3 cipher suites should be enabled by default
             assertTrue(new HashSet<>(Arrays.asList(ssl.getEnabledCipherSuites()))
-                    .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                               .containsAll(StandardNames.CIPHER_SUITES_TLS13));
             // Disabling them should be ignored
             ssl.setEnabledCipherSuites(new String[0]);
             assertTrue(new HashSet<>(Arrays.asList(ssl.getEnabledCipherSuites()))
-                    .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                               .containsAll(StandardNames.CIPHER_SUITES_TLS13));
 
-            ssl.setEnabledCipherSuites(new String[]{
-                    TestUtils.pickArbitraryNonTls13Suite(ssl.getSupportedCipherSuites())
-            });
+            ssl.setEnabledCipherSuites(new String[] {
+                    TestUtils.pickArbitraryNonTls13Suite(ssl.getSupportedCipherSuites())});
             assertTrue(new HashSet<>(Arrays.asList(ssl.getEnabledCipherSuites()))
-                    .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                               .containsAll(StandardNames.CIPHER_SUITES_TLS13));
 
             // Disabling TLS 1.3 should disable 1.3 cipher suites
-            ssl.setEnabledProtocols(new String[]{"TLSv1.2"});
+            ssl.setEnabledProtocols(new String[] {"TLSv1.2"});
             assertFalse(new HashSet<>(Arrays.asList(ssl.getEnabledCipherSuites()))
-                    .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
         }
     }
 
@@ -346,7 +387,7 @@ public class SSLSocketTest {
     public void test_SSLSocket_setEnabledProtocols_storesCopy() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
-            String[] array = new String[]{ssl.getEnabledProtocols()[0]};
+            String[] array = new String[] {ssl.getEnabledProtocols()[0]};
             String originalFirstElement = array[0];
             ssl.setEnabledProtocols(array);
             array[0] = "Modified after having been set";
@@ -358,26 +399,25 @@ public class SSLSocketTest {
     public void test_SSLSocket_setEnabledProtocols() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            assertThrows(IllegalArgumentException.class, () -> ssl.setEnabledProtocols(null));
             assertThrows(IllegalArgumentException.class,
-                () -> ssl.setEnabledProtocols(null));
+                         () -> ssl.setEnabledProtocols(new String[1]));
             assertThrows(IllegalArgumentException.class,
-                () -> ssl.setEnabledProtocols(new String[1]));
-            assertThrows(IllegalArgumentException.class,
-                () -> ssl.setEnabledProtocols(new String[]{"Bogus"}));
+                         () -> ssl.setEnabledProtocols(new String[] {"Bogus"}));
             ssl.setEnabledProtocols(new String[0]);
             ssl.setEnabledProtocols(ssl.getEnabledProtocols());
             ssl.setEnabledProtocols(ssl.getSupportedProtocols());
             // Check that setEnabledProtocols affects getEnabledProtocols
             for (String protocol : ssl.getSupportedProtocols()) {
-                if ("SSLv2Hello".equals(protocol)) {
+                if (protocol.equals("SSLv2Hello")) {
                     // Should fail when SSLv2Hello is set by itself
                     assertThrows(IllegalArgumentException.class,
-                        () -> ssl.setEnabledProtocols(new String[]{protocol}));
+                                 () -> ssl.setEnabledProtocols(new String[] {protocol}));
                 } else {
-                    String[] protocols = new String[]{protocol};
+                    String[] protocols = new String[] {protocol};
                     ssl.setEnabledProtocols(protocols);
                     assertEquals(Arrays.deepToString(protocols),
-                            Arrays.deepToString(ssl.getEnabledProtocols()));
+                                 Arrays.deepToString(ssl.getEnabledProtocols()));
                 }
             }
         }
@@ -393,8 +433,8 @@ public class SSLSocketTest {
         SSLContext clientContext = c.clientContext;
         // Can't test fallback without at least 3 protocol versions enabled.
         TestUtils.assumeTlsV11Enabled(clientContext);
-        SSLSocket client = (SSLSocket)
-                clientContext.getSocketFactory().createSocket(c.host, c.port);
+        SSLSocket client =
+                (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.1"});
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.2", "TLSv1.1"});
@@ -424,8 +464,8 @@ public class SSLSocketTest {
         SSLContext clientContext = c.clientContext;
         // Can't test fallback without at least 3 protocol versions enabled.
         TestUtils.assumeTlsV11Enabled(clientContext);
-        SSLSocket client = (SSLSocket)
-                clientContext.getSocketFactory().createSocket(c.host, c.port);
+        SSLSocket client =
+                (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         client.setEnabledProtocols(new String[] {"TLSv1.3", "TLSv1.1"});
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
         server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1"});
@@ -471,72 +511,80 @@ public class SSLSocketTest {
         // we can test against.
         final TestSSLContext referenceContext = TestSSLContext.create();
         final SSLSocket referenceClientSocket =
-            (SSLSocket) referenceContext.clientContext.getSocketFactory().createSocket();
+                (SSLSocket) referenceContext.clientContext.getSocketFactory().createSocket();
 
         final AtomicInteger checkServerTrustedWasCalled = new AtomicInteger(0);
-        TestSSLContext c = TestSSLContext.newBuilder()
-            .clientTrustManager(new X509ExtendedTrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+        TestSSLContext c =
+                TestSSLContext.newBuilder()
+                        .clientTrustManager(new X509ExtendedTrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    try {
-                        SSLSocket sslSocket = (SSLSocket) socket;
-                        SSLSession session = sslSocket.getHandshakeSession();
-                        assertNotNull(session);
-                        // By the point of the handshake where we're validating certificates,
-                        // the hostname is known and the cipher suite should be agreed
-                        assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
-                        String sessionSuite = session.getCipherSuite();
-                        List<String> enabledSuites =
-                            Arrays.asList(referenceClientSocket.getEnabledCipherSuites());
-                        String message = "Handshake session has invalid cipher suite: "
-                                + (sessionSuite == null ? "(null)" : sessionSuite);
-                        assertTrue(message, enabledSuites.contains(sessionSuite));
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                try {
+                                    SSLSocket sslSocket = (SSLSocket) socket;
+                                    SSLSession session = sslSocket.getHandshakeSession();
+                                    assertNotNull(session);
+                                    // By the point of the handshake where we're validating
+                                    // certificates, the hostname is known and the cipher suite
+                                    // should be agreed
+                                    assertEquals(referenceContext.host.getHostName(),
+                                                 session.getPeerHost());
+                                    String sessionSuite = session.getCipherSuite();
+                                    List<String> enabledSuites = Arrays.asList(
+                                            referenceClientSocket.getEnabledCipherSuites());
+                                    String message = "Handshake session has invalid cipher suite: "
+                                            + (sessionSuite == null ? "(null)" : sessionSuite);
+                                    assertTrue(message, enabledSuites.contains(sessionSuite));
 
-                        checkServerTrustedWasCalled.incrementAndGet();
-                    } catch (Exception e) {
-                        throw new CertificateException("Something broke", e);
-                    }
-                }
+                                    checkServerTrustedWasCalled.incrementAndGet();
+                                } catch (Exception e) {
+                                    throw new CertificateException("Something broke", e);
+                                }
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-            }).build();
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return new X509Certificate[0];
+                            }
+                        })
+                        .build();
         SSLContext clientContext = c.clientContext;
-        SSLSocket client = (SSLSocket)
-            clientContext.getSocketFactory().createSocket(c.host, c.port);
+        SSLSocket client =
+                (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<Void> future = executor.submit(() -> {
@@ -560,84 +608,95 @@ public class SSLSocketTest {
         // we can test against.
         final TestSSLContext referenceContext = TestSSLContext.create();
         final SSLSocket referenceClientSocket =
-            (SSLSocket) referenceContext.clientContext.getSocketFactory().createSocket();
+                (SSLSocket) referenceContext.clientContext.getSocketFactory().createSocket();
 
         final AtomicInteger checkClientTrustedWasCalled = new AtomicInteger(0);
-        TestSSLContext c = TestSSLContext.newBuilder()
-            .client(TestKeyStore.getClientCertificate())
-            .serverTrustManager(new X509ExtendedTrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    try {
-                        SSLSocket sslSocket = (SSLSocket) socket;
-                        SSLSession session = sslSocket.getHandshakeSession();
-                        assertNotNull(session);
-                        // By the point of the handshake where we're validating client certificates,
-                        // the cipher suite should be agreed and the server's own certificates
-                        // should have been delivered
+        TestSSLContext c =
+                TestSSLContext.newBuilder()
+                        .client(TestKeyStore.getClientCertificate())
+                        .serverTrustManager(new X509ExtendedTrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                try {
+                                    SSLSocket sslSocket = (SSLSocket) socket;
+                                    SSLSession session = sslSocket.getHandshakeSession();
+                                    assertNotNull(session);
+                                    // By the point of the handshake where we're validating client
+                                    // certificates, the cipher suite should be agreed and the
+                                    // server's own certificates should have been delivered
 
-                        // The negotiated cipher suite should be one of the enabled ones, but
-                        // BoringSSL may have reordered them based on things like hardware support,
-                        // so we don't know which one may have been negotiated.
-                        String sessionSuite = session.getCipherSuite();
-                        List<String> enabledSuites =
-                                Arrays.asList(referenceClientSocket.getEnabledCipherSuites());
-                        String message = "Handshake session has invalid cipher suite: "
-                                + (sessionSuite == null ? "(null)" : sessionSuite);
-                        assertTrue(message, enabledSuites.contains(sessionSuite));
+                                    // The negotiated cipher suite should be one of the enabled
+                                    // ones, but BoringSSL may have reordered them based on things
+                                    // like hardware support, so we don't know which one may have
+                                    // been negotiated.
+                                    String sessionSuite = session.getCipherSuite();
+                                    List<String> enabledSuites = Arrays.asList(
+                                            referenceClientSocket.getEnabledCipherSuites());
+                                    String message = "Handshake session has invalid cipher suite: "
+                                            + (sessionSuite == null ? "(null)" : sessionSuite);
+                                    assertTrue(message, enabledSuites.contains(sessionSuite));
 
-                        assertNotNull(session.getLocalCertificates());
-                        assertEquals("CN=localhost",
-                            ((X509Certificate) session.getLocalCertificates()[0])
-                                .getSubjectDN().getName());
-                        assertEquals("CN=Test Intermediate Certificate Authority",
-                            ((X509Certificate) session.getLocalCertificates()[0])
-                                .getIssuerDN().getName());
-                        checkClientTrustedWasCalled.incrementAndGet();
-                    } catch (Exception e) {
-                        throw new CertificateException("Something broke", e);
-                    }
-                }
+                                    assertNotNull(session.getLocalCertificates());
+                                    assertEquals(
+                                            "CN=localhost",
+                                            ((X509Certificate) session.getLocalCertificates()[0])
+                                                    .getSubjectDN()
+                                                    .getName());
+                                    assertEquals(
+                                            "CN=Test Intermediate Certificate Authority",
+                                            ((X509Certificate) session.getLocalCertificates()[0])
+                                                    .getIssuerDN()
+                                                    .getName());
+                                    checkClientTrustedWasCalled.incrementAndGet();
+                                } catch (Exception e) {
+                                    throw new CertificateException("Something broke", e);
+                                }
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return referenceContext.serverTrustManager.getAcceptedIssuers();
-                }
-            }).build();
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return referenceContext.serverTrustManager.getAcceptedIssuers();
+                            }
+                        })
+                        .build();
         SSLContext clientContext = c.clientContext;
-        SSLSocket client = (SSLSocket)
-            clientContext.getSocketFactory().createSocket(c.host, c.port);
+        SSLSocket client =
+                (SSLSocket) clientContext.getSocketFactory().createSocket(c.host, c.port);
         final SSLSocket server = (SSLSocket) c.serverSocket.accept();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<Void> future = executor.submit(() -> {
@@ -675,7 +734,7 @@ public class SSLSocketTest {
             return null;
         });
         SSLHandshakeException expected =
-            assertThrows(SSLHandshakeException.class, client::startHandshake);
+                assertThrows(SSLHandshakeException.class, client::startHandshake);
         assertTrue(expected.getCause() instanceof CertificateException);
 
         future.get();
@@ -721,16 +780,17 @@ public class SSLSocketTest {
                 SSLParameters p = new SSLParameters();
                 ssl.setSSLParameters(p);
                 assertEquals(Arrays.asList(defaultCipherSuites),
-                        Arrays.asList(ssl.getEnabledCipherSuites()));
-                assertEquals(Arrays.asList(defaultProtocols), Arrays.asList(ssl.getEnabledProtocols()));
+                             Arrays.asList(ssl.getEnabledCipherSuites()));
+                assertEquals(Arrays.asList(defaultProtocols),
+                             Arrays.asList(ssl.getEnabledProtocols()));
             }
             {
                 SSLParameters p = new SSLParameters(supportedCipherSuites, supportedProtocols);
                 ssl.setSSLParameters(p);
                 assertEquals(Arrays.asList(supportedCipherSuites),
-                        Arrays.asList(ssl.getEnabledCipherSuites()));
-                assertEquals(
-                        Arrays.asList(supportedProtocols), Arrays.asList(ssl.getEnabledProtocols()));
+                             Arrays.asList(ssl.getEnabledCipherSuites()));
+                assertEquals(Arrays.asList(supportedProtocols),
+                             Arrays.asList(ssl.getEnabledProtocols()));
             }
             {
                 SSLParameters p = new SSLParameters();
@@ -757,6 +817,65 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void setAndGetSSLParameters_alwaysSupportsDefaultCipherSuites() throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters inputParameters = new SSLParameters(
+                    new String[] {"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"},
+                    new String[] {"TLSv1.3"});
+            ssl.setSSLParameters(inputParameters);
+
+            SSLParameters outputParameters = ssl.getSSLParameters();
+            // The default cipher suites (the first three entries) are always supported.
+            assertArrayEquals(new String[] {"TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384",
+                                            "TLS_CHACHA20_POLY1305_SHA256",
+                                            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"},
+                              outputParameters.getCipherSuites());
+            assertArrayEquals(new String[] {"TLSv1.3"}, outputParameters.getProtocols());
+        }
+    }
+
+    @Test
+    public void setSSLParameters_invalidCipherSuite_throwsIllegalArgumentException()
+            throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters parameters =
+                    new SSLParameters(new String[] {"invalid"}, new String[] {"TLSv1.3"});
+            assertThrows(IllegalArgumentException.class, () -> ssl.setSSLParameters(parameters));
+        }
+    }
+
+    boolean sslParametersSupportsNamedGroups() throws SecurityException {
+        try {
+            Method unused = SSLParameters.class.getMethod("getNamedGroups");
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    @Test
+    public void setAndGetSSLParameters_withSetNamedGroups_worksIfSupported() throws Exception {
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
+            SSLParameters parameters = new SSLParameters(new String[] {"TLS_AES_128_GCM_SHA256"},
+                                                         new String[] {"TLSv1.3"});
+            assertArrayEquals(null, getNamedGroupsOrNull(ssl.getSSLParameters()));
+
+            setNamedGroups(parameters, new String[] {"foo", "bar"});
+            ssl.setSSLParameters(parameters);
+
+            SSLParameters sslParameters = ssl.getSSLParameters();
+            if (sslParametersSupportsNamedGroups()) {
+                assertArrayEquals(new String[] {"foo", "bar"}, getNamedGroupsOrNull(sslParameters));
+            } else {
+                assertArrayEquals(null, getNamedGroupsOrNull(sslParameters));
+            }
+        }
+    }
+
+    @Test
     public void test_SSLSocket_setSoTimeout_basic() throws Exception {
         try (ServerSocket listening = new ServerSocket(0)) {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
@@ -765,9 +884,11 @@ public class SSLSocketTest {
             Socket wrapping = sf.createSocket(underlying, null, -1, false);
             assertEquals(0, wrapping.getSoTimeout());
             // setting wrapper sets underlying and ...
-            int expectedTimeoutMillis = 1000; // 10 was too small because it was affected by rounding
+            int expectedTimeoutMillis =
+                    1000; // 10 was too small because it was affected by rounding
             wrapping.setSoTimeout(expectedTimeoutMillis);
-            // The kernel can round the requested value based on the HZ setting. We allow up to 10ms.
+            // The kernel can round the requested value based on the HZ setting. We allow up to
+            // 10ms.
             assertTrue(Math.abs(expectedTimeoutMillis - wrapping.getSoTimeout()) <= 10);
             assertTrue(Math.abs(expectedTimeoutMillis - underlying.getSoTimeout()) <= 10);
             // ... getting wrapper inspects underlying
@@ -813,20 +934,19 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_ClientHello_cipherSuites() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
-            ClientHello clientHello = TlsTester
-                    .captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            ClientHello clientHello =
+                    TlsTester.captureTlsHandshakeClientHello(executor, sslSocketFactory);
             final String[] cipherSuites;
             // RFC 5746 allows you to send an empty "renegotiation_info" extension *or*
             // a special signaling cipher suite. The TLS API has no way to check or
             // indicate that a certain TLS extension should be used.
             HelloExtension renegotiationInfoExtension =
-                clientHello.findExtensionByType(HelloExtension.TYPE_RENEGOTIATION_INFO);
-            if (renegotiationInfoExtension != null
-                && renegotiationInfoExtension.data.length == 1
+                    clientHello.findExtensionByType(HelloExtension.TYPE_RENEGOTIATION_INFO);
+            if (renegotiationInfoExtension != null && renegotiationInfoExtension.data.length == 1
                 && renegotiationInfoExtension.data[0] == 0) {
                 cipherSuites = new String[clientHello.cipherSuites.size() + 1];
                 cipherSuites[clientHello.cipherSuites.size()] =
-                    StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION;
+                        StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION;
             } else {
                 cipherSuites = new String[clientHello.cipherSuites.size()];
             }
@@ -835,18 +955,333 @@ public class SSLSocketTest {
                 cipherSuites[i] = cipherSuite.getAndroidName();
             }
             StandardNames.assertDefaultCipherSuites(cipherSuites);
-        },
-            getSSLSocketFactoriesToTest());
+        }, getSSLSocketFactoriesToTest());
+    }
+
+    @Test
+    public void handshake_noNamedGroupsProperty_usesDefaultGroups() throws Exception {
+        System.clearProperty("jdk.tls.namedGroups");
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // By default, BoringSSL uses X25519, P-256, and P-384, in this order.
+        // So X25519 gets priority.
+        // We also allow for X25519MLKEM768, as that may be the default in the future.
+        String clientCurve = getCurveName(client);
+        String serverCurve = getCurveName(server);
+        assertTrue("Unexpected client curve: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+        assertTrue("Unexpected server curve: " + serverCurve,
+                   serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_namedGroupsProperty_usesFirstKnownEntry() throws Exception {
+        System.setProperty("jdk.tls.namedGroups", "X25519MLKEM768,X25519");
+
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        assertEquals("X25519MLKEM768", getCurveName(client));
+        assertEquals("X25519MLKEM768", getCurveName(server));
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_p256IsSupportedByDefault() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-256"});
+            client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // By default, BoringSSL uses X25519, P-256, and P-384.
+        if (sslParametersSupportsNamedGroups()) {
+            // If the client requests P-256, it will be chosen.
+            assertEquals("P-256", getCurveName(client));
+            assertEquals("P-256", getCurveName(server));
+        } else {
+            // Otherwise, X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_p384IsSupportedByDefault() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            SSLParameters parameters = server.getSSLParameters();
+            // secp384r1 is an alias for P-384.
+            setNamedGroups(parameters, new String[] {"secp384r1"});
+            server.setSSLParameters(parameters);
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // By default, BoringSSL uses X25519, P-256, and P-384.
+        if (sslParametersSupportsNamedGroups()) {
+            // If the client requests P-384, it will be chosen.
+            assertEquals("P-384", getCurveName(client));
+            assertEquals("P-384", getCurveName(server));
+        } else {
+            // Otherwise, X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_setsNamedGroups_usesFirstServerNamedGroupThatClientSupports()
+            throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            SSLParameters parameters = server.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-384", "X25519"});
+            server.setSSLParameters(parameters);
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-521", "X25519", "P-384"});
+            client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        if (sslParametersSupportsNamedGroups()) {
+            // P-384 is the first named group in the server's list that both support.
+            assertEquals("P-384", getCurveName(client));
+            assertEquals("P-384", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_setsNamedGroupsBeforeAccept_usesFirstServerNamedGroupThatClientSupports()
+            throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+
+        {
+            SSLParameters parameters = context.serverSocket.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-384", "X25519"});
+            context.serverSocket.setSSLParameters(parameters);
+
+            if (sslParametersSupportsNamedGroups()) {
+                assertArrayEquals(new String[] {"P-384", "X25519"},
+                                  getNamedGroupsOrNull(context.serverSocket.getSSLParameters()));
+            } else {
+                assertArrayEquals(null,
+                                  getNamedGroupsOrNull(context.serverSocket.getSSLParameters()));
+            }
+        }
+        {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-521", "X25519", "P-384"});
+            client.setSSLParameters(parameters);
+
+            if (sslParametersSupportsNamedGroups()) {
+                assertArrayEquals(new String[] {"P-521", "X25519", "P-384"},
+                                  getNamedGroupsOrNull(client.getSSLParameters()));
+            } else {
+                assertArrayEquals(null, getNamedGroupsOrNull(client.getSSLParameters()));
+            }
+        }
+
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        if (sslParametersSupportsNamedGroups()) {
+            // P-384 is the first named group in the server's list that both support.
+            assertEquals("P-384", getCurveName(client));
+            assertEquals("P-384", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_withX25519MLKEM768_works() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            SSLParameters parameters = server.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"X25519MLKEM768"});
+            server.setSSLParameters(parameters);
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"X25519MLKEM768"});
+            client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        if (sslParametersSupportsNamedGroups()) {
+            assertEquals("X25519MLKEM768", getCurveName(client));
+            assertEquals("X25519MLKEM768", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_namedGroupsDontIntersect_throwsException() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            SSLParameters parameters = server.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"X25519", "P-384"});
+            server.setSSLParameters(parameters);
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"P-256", "P-521"});
+            client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        if (sslParametersSupportsNamedGroups()) {
+            ExecutionException serverException = assertThrows(ExecutionException.class, s::get);
+            assertTrue(serverException.getCause() instanceof SSLHandshakeException);
+            ExecutionException clientException = assertThrows(ExecutionException.class, c::get);
+            assertTrue(clientException.getCause() instanceof SSLHandshakeException);
+        } else {
+            s.get();
+            c.get();
+            // The defaults are used, and X25519 gets priority.
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_namedGroupsProperty_failsIfAllValuesAreInvalid() throws Exception {
+        System.setProperty("jdk.tls.namedGroups", "invalid,invalid2");
+
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        assertThrows(ExecutionException.class, s::get);
+        assertThrows(ExecutionException.class, c::get);
+        client.close();
+        server.close();
+        context.close();
     }
 
     @Test
     public void test_SSLSocket_ClientHello_supportedCurves() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
-            ClientHello clientHello = TlsTester
-                    .captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            ClientHello clientHello =
+                    TlsTester.captureTlsHandshakeClientHello(executor, sslSocketFactory);
             EllipticCurvesHelloExtension ecExtension =
-                (EllipticCurvesHelloExtension) clientHello.findExtensionByType(
-                    HelloExtension.TYPE_ELLIPTIC_CURVES);
+                    (EllipticCurvesHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_ELLIPTIC_CURVES);
             final String[] supportedCurves;
             if (ecExtension == null) {
                 supportedCurves = new String[0];
@@ -859,29 +1294,26 @@ public class SSLSocketTest {
                 }
             }
             StandardNames.assertDefaultEllipticCurves(supportedCurves);
-        },
-            getSSLSocketFactoriesToTest());
+        }, getSSLSocketFactoriesToTest());
     }
 
     @Test
     public void test_SSLSocket_ClientHello_clientProtocolVersion() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
-            ClientHello clientHello = TlsTester
-                    .captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            ClientHello clientHello =
+                    TlsTester.captureTlsHandshakeClientHello(executor, sslSocketFactory);
             assertEquals(TlsProtocolVersion.TLSv1_2, clientHello.clientVersion);
-        },
-            getSSLSocketFactoriesToTest());
+        }, getSSLSocketFactoriesToTest());
     }
 
     @Test
     public void test_SSLSocket_ClientHello_compressionMethods() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
-            ClientHello clientHello = TlsTester
-                    .captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            ClientHello clientHello =
+                    TlsTester.captureTlsHandshakeClientHello(executor, sslSocketFactory);
             assertEquals(Collections.singletonList(CompressionMethod.NULL),
-                clientHello.compressionMethods);
-        },
-            getSSLSocketFactoriesToTest());
+                         clientHello.compressionMethods);
+        }, getSSLSocketFactoriesToTest());
     }
 
     private List<Pair<String, SSLSocketFactory>> getSSLSocketFactoriesToTest()
@@ -895,7 +1327,7 @@ public class SSLSocketTest {
             }
             sslContext.init(null, null, null);
             result.add(Pair.of("SSLContext(\"" + sslContext.getProtocol() + "\")",
-                    sslContext.getSocketFactory()));
+                               sslContext.getSocketFactory()));
         }
         return result;
     }
@@ -911,13 +1343,13 @@ public class SSLSocketTest {
         System.arraycopy(serverCipherSuites, 0, clientCipherSuites, 0, serverCipherSuites.length);
         clientCipherSuites[serverCipherSuites.length] = StandardNames.CIPHER_SUITE_FALLBACK;
         Future<Void> s = runAsync(() -> {
-            server.setEnabledProtocols(new String[]{"TLSv1.2"});
+            server.setEnabledProtocols(new String[] {"TLSv1.2"});
             server.setEnabledCipherSuites(serverCipherSuites);
             server.startHandshake();
             return null;
         });
         Future<Void> c = runAsync(() -> {
-            client.setEnabledProtocols(new String[]{"TLSv1.2"});
+            client.setEnabledProtocols(new String[] {"TLSv1.2"});
             client.setEnabledCipherSuites(clientCipherSuites);
             client.startHandshake();
             return null;
@@ -942,12 +1374,12 @@ public class SSLSocketTest {
         assertFalse(Arrays.asList(client.getEnabledCipherSuites())
                             .contains(StandardNames.CIPHER_SUITE_FALLBACK));
         Future<Void> s = runAsync(() -> {
-            server.setEnabledProtocols(new String[]{"TLSv1.2", "TLSv1.1"});
+            server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1"});
             server.startHandshake();
             return null;
         });
         Future<Void> c = runAsync(() -> {
-            client.setEnabledProtocols(new String[]{"TLSv1.1"});
+            client.setEnabledProtocols(new String[] {"TLSv1.1"});
             client.startHandshake();
             return null;
         });
@@ -960,8 +1392,8 @@ public class SSLSocketTest {
 
     private static void assertInappropriateFallbackIsCause(Throwable cause) {
         assertTrue(cause.getMessage(),
-                cause.getMessage().contains("inappropriate fallback")
-                        || cause.getMessage().contains("INAPPROPRIATE_FALLBACK"));
+                   cause.getMessage().contains("inappropriate fallback")
+                           || cause.getMessage().contains("INAPPROPRIATE_FALLBACK"));
     }
 
     @Test
@@ -982,17 +1414,17 @@ public class SSLSocketTest {
             server.setEnabledProtocols(new String[] {"TLSv1.2", "TLSv1.1"});
             server.setEnabledCipherSuites(serverCipherSuites);
             SSLHandshakeException expected =
-                assertThrows(SSLHandshakeException.class, server::startHandshake);
+                    assertThrows(SSLHandshakeException.class, server::startHandshake);
             Throwable cause = expected.getCause();
             assertEquals(SSLProtocolException.class, cause.getClass());
             assertInappropriateFallbackIsCause(cause);
             return null;
         });
         Future<Void> c = runAsync(() -> {
-            client.setEnabledProtocols(new String[]{"TLSv1.1"});
+            client.setEnabledProtocols(new String[] {"TLSv1.1"});
             client.setEnabledCipherSuites(clientCipherSuites);
             SSLHandshakeException expected =
-                assertThrows(SSLHandshakeException.class, client::startHandshake);
+                    assertThrows(SSLHandshakeException.class, client::startHandshake);
             Throwable cause = expected.getCause();
             assertEquals(SSLProtocolException.class, cause.getClass());
             assertInappropriateFallbackIsCause(cause);
@@ -1012,7 +1444,8 @@ public class SSLSocketTest {
         for (final String protocol : supportedProtocols) {
             SSLSocketFactory factory = new DelegatingSSLSocketFactory(
                     (SSLSocketFactory) SSLSocketFactory.getDefault()) {
-                @Override protected SSLSocket configureSocket(SSLSocket socket) {
+                @Override
+                protected SSLSocket configureSocket(SSLSocket socket) {
                     socket.setEnabledProtocols(new String[] {protocol});
                     String[] enabled = socket.getEnabledCipherSuites();
                     String[] cipherSuites = new String[socket.getEnabledCipherSuites().length + 1];
@@ -1024,9 +1457,11 @@ public class SSLSocketTest {
             };
             ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(executor, factory);
             if (protocol.equals("TLSv1.2") || protocol.equals("TLSv1.3")) {
-                assertFalse(clientHello.cipherSuites.contains(CipherSuite.valueOf("TLS_FALLBACK_SCSV")));
+                assertFalse(clientHello.cipherSuites.contains(
+                        CipherSuite.valueOf("TLS_FALLBACK_SCSV")));
             } else {
-                assertTrue(clientHello.cipherSuites.contains(CipherSuite.valueOf("TLS_FALLBACK_SCSV")));
+                assertTrue(clientHello.cipherSuites.contains(
+                        CipherSuite.valueOf("TLS_FALLBACK_SCSV")));
             }
         }
     }

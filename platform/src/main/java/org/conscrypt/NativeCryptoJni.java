@@ -25,6 +25,5 @@ class NativeCryptoJni {
         System.loadLibrary("javacrypto");
     }
 
-    private NativeCryptoJni() {
-    }
+    private NativeCryptoJni() {}
 }

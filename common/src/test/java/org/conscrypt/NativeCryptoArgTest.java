@@ -21,6 +21,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.junit.AfterClass;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -32,10 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.junit.AfterClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(JUnit4.class)
 public class NativeCryptoArgTest {
@@ -48,8 +50,18 @@ public class NativeCryptoArgTest {
      * so we can get past the first check and test the second one.
      */
     private static final long NOT_NULL = 4L;
-    private static final String CONSCRYPT_PACKAGE = NativeCryptoArgTest.class.getCanonicalName()
-            .substring(0, NativeCryptoArgTest.class.getCanonicalName().lastIndexOf('.') + 1);
+    private static final int EXPECTED_TEST_CASES = 6;
+    /* The tests check how many methods get invoked. By the time all tests are
+     * run, a minimum number of methods should have been tested. The choice of
+     * number is based on the historic value.
+     * TODO: Find a more definite number to use here.*/
+    private static final int MIN_EXPECTED_TESTED_METHODS = 190;
+    private static final String CONSCRYPT_PACKAGE =
+            NativeCryptoArgTest.class.getCanonicalName().substring(
+                    0, NativeCryptoArgTest.class.getCanonicalName().lastIndexOf('.') + 1);
+    /* Count how many test cases are run. Once all the expected cases are run,
+     * we can check that the minimum number of methods were tested. */
+    private static final AtomicInteger testCaseCount = new AtomicInteger(EXPECTED_TEST_CASES);
     private static final Set<String> testedMethods = new HashSet<>();
     private final Map<String, Class<?>> classCache = new HashMap<>();
     private final Map<String, Method> methodMap = buildMethodMap();
@@ -62,22 +74,19 @@ public class NativeCryptoArgTest {
 
     @Test
     public void ecMethods() throws Throwable {
-        String[] illegalArgMethods = new String[] {
-                "EC_GROUP_new_arbitrary"
-        };
-        String[] ioExMethods = new String[] {
-                "EC_KEY_parse_curve_name",
-                "EC_KEY_marshal_curve_name"
-        };
+        markTestRun();
+        String[] illegalArgMethods = new String[] {"EC_GROUP_new_arbitrary"};
+        String[] ioExMethods =
+                new String[] {"EC_KEY_parse_curve_name", "EC_KEY_marshal_curve_name"};
 
         // All of the EC_* methods apart from the exceptions below throw NPE if their
         // first argument is null.
         MethodFilter filter = MethodFilter.newBuilder("EC_ methods")
-                .hasPrefix("EC_")
-                .except(illegalArgMethods)
-                .except(ioExMethods)
-                .expectSize(16)
-                .build();
+                                      .hasPrefix("EC_")
+                                      .except(illegalArgMethods)
+                                      .except(ioExMethods)
+                                      .expectSize(16)
+                                      .build();
         testMethods(filter, NullPointerException.class);
 
         filter = MethodFilter.nameFilter("EC_ methods (IllegalArgument)", illegalArgMethods);
@@ -85,28 +94,32 @@ public class NativeCryptoArgTest {
 
         filter = MethodFilter.nameFilter("EC_ methods (IOException)", ioExMethods);
         testMethods(filter, IOException.class);
+        checkMethodsTested();
     }
 
     @Test
     public void macMethods() throws Throwable {
+        markTestRun();
         // All of the non-void HMAC and CMAC methods throw NPE when passed a null pointer
         MethodFilter filter = MethodFilter.newBuilder("HMAC methods")
-                .hasPrefix("HMAC_")
-                .takesArguments()
-                .expectSize(5)
-                .build();
+                                      .hasPrefix("HMAC_")
+                                      .takesArguments()
+                                      .expectSize(5)
+                                      .build();
         testMethods(filter, NullPointerException.class);
 
         filter = MethodFilter.newBuilder("CMAC methods")
-                .hasPrefix("CMAC_")
-                .takesArguments()
-                .expectSize(5)
-                .build();
+                         .hasPrefix("CMAC_")
+                         .takesArguments()
+                         .expectSize(5)
+                         .build();
         testMethods(filter, NullPointerException.class);
+        checkMethodsTested();
     }
 
     @Test
     public void sslMethods() throws Throwable {
+        markTestRun();
         // These methods don't throw on a null first arg as they can get called before the
         // connection is fully initialised. However if the first arg is non-NULL, any subsequent
         // null args should throw NPE.
@@ -120,22 +133,22 @@ public class NativeCryptoArgTest {
         // object followed by a {@code NativeSsl} holder object. However the second arg
         // is unused(!) so we don't need to test it.
         MethodFilter filter = MethodFilter.newBuilder("NativeSsl methods")
-                .hasArg(0, long.class)
-                .hasArg(1, conscryptClass("NativeSsl"))
-                .except(nonThrowingMethods)
-                .expectSize(60)
-                .build();
+                                      .hasArg(0, long.class)
+                                      .hasArg(1, conscryptClass("NativeSsl"))
+                                      .except(nonThrowingMethods)
+                                      .expectSize(60)
+                                      .build();
 
         testMethods(filter, NullPointerException.class);
 
         // Many of the SSL_* methods take a single long which points
         // to a native object.
         filter = MethodFilter.newBuilder("1-arg SSL methods")
-                .hasPrefix("SSL_")
-                .hasArgLength(1)
-                .hasArg(0, long.class)
-                .expectSize(10)
-                .build();
+                         .hasPrefix("SSL_")
+                         .hasArgLength(1)
+                         .hasArg(0, long.class)
+                         .expectSize(10)
+                         .build();
 
         testMethods(filter, NullPointerException.class);
 
@@ -146,34 +159,31 @@ public class NativeCryptoArgTest {
         expectNPE("SSL_shutdown", NOT_NULL, null, new FileDescriptor(), null);
         expectNPE("ENGINE_SSL_shutdown", NOT_NULL, null, null);
         expectVoid("SSL_set_session", NOT_NULL, null, NULL);
+        checkMethodsTested();
     }
 
     @Test
     public void evpMethods() throws Throwable {
-        String[] illegalArgMethods = new String[] {
-                "EVP_AEAD_CTX_open_buf",
-                "EVP_AEAD_CTX_seal_buf",
-                "EVP_HPKE_CTX_setup_base_mode_recipient",
-                "EVP_HPKE_CTX_setup_base_mode_sender",
-                "EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing",
-                "EVP_PKEY_new_RSA"
-        };
-        String[] nonThrowingMethods = new String[] {
-                "EVP_MD_CTX_destroy",
-                "EVP_PKEY_CTX_free",
-                "EVP_PKEY_free",
-                "EVP_CIPHER_CTX_free"
-        };
+        markTestRun();
+        String[] illegalArgMethods =
+                new String[] {"EVP_AEAD_CTX_open_buf",
+                              "EVP_AEAD_CTX_seal_buf",
+                              "EVP_HPKE_CTX_setup_base_mode_recipient",
+                              "EVP_HPKE_CTX_setup_base_mode_sender",
+                              "EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing",
+                              "EVP_PKEY_new_RSA"};
+        String[] nonThrowingMethods = new String[] {"EVP_MD_CTX_destroy", "EVP_PKEY_CTX_free",
+                                                    "EVP_PKEY_free", "EVP_CIPHER_CTX_free"};
 
         // All of the non-void EVP_ methods apart from the above should throw on a null
         // first argument.
         MethodFilter filter = MethodFilter.newBuilder("EVP methods")
-                .hasPrefix("EVP_")
-                .takesArguments()
-                .except(illegalArgMethods)
-                .except(nonThrowingMethods)
-                .expectSize(45)
-                .build();
+                                      .hasPrefix("EVP_")
+                                      .takesArguments()
+                                      .except(illegalArgMethods)
+                                      .except(nonThrowingMethods)
+                                      .expectSize(45)
+                                      .build();
 
         testMethods(filter, NullPointerException.class);
 
@@ -182,27 +192,29 @@ public class NativeCryptoArgTest {
 
         filter = MethodFilter.nameFilter("EVP methods (non-throwing)", nonThrowingMethods);
         testMethods(filter, null);
+        checkMethodsTested();
     }
 
     @Test
     public void x509Methods() throws Throwable {
+        markTestRun();
         // A number of X509 methods have a native pointer as arg 0 and an
         // OpenSSLX509Certificate or OpenSSLX509CRL as arg 1.
         MethodFilter filter = MethodFilter.newBuilder("X509 methods")
-                .hasArgLength(2)
-                .hasArg(0, long.class)
-                .hasArg(1, conscryptClass("OpenSSLX509Certificate"),
-                        conscryptClass("OpenSSLX509CRL"))
-                .expectSize(32)
-                .build();
+                                      .hasArgLength(2)
+                                      .hasArg(0, long.class)
+                                      .hasArg(1, conscryptClass("OpenSSLX509Certificate"),
+                                              conscryptClass("OpenSSLX509CRL"))
+                                      .expectSize(32)
+                                      .build();
         // TODO(prb): test null second argument
         testMethods(filter, NullPointerException.class);
 
         // The rest of the X509 methods are somewhat ad hoc.
         expectNPE("d2i_X509", (Object) null);
 
-        invokeAndExpect( conscryptThrowable("OpenSSLX509CertificateFactory$ParsingException"),
-                 "d2i_X509", new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0});
+        invokeAndExpect(conscryptThrowable("OpenSSLX509CertificateFactory$ParsingException"),
+                        "d2i_X509", new byte[] {0, 0, 0, 0, 0, 0, 0, 0, 0});
 
         expectNPE("d2i_X509_bio", NULL);
         expectNPE("PEM_read_bio_X509", NULL);
@@ -221,18 +233,21 @@ public class NativeCryptoArgTest {
         expectNPE("X509_print_ex", NULL, NULL, null, NULL, NULL);
         expectNPE("X509_print_ex", NOT_NULL, NULL, null, NULL, NULL);
         expectNPE("X509_print_ex", NULL, NOT_NULL, null, NULL, NULL);
+        checkMethodsTested();
     }
 
     @Test
     public void spake2Methods() throws Throwable {
+        markTestRun();
         expectNPE("SSL_CTX_set_spake_credential", null, new byte[0], new byte[0], new byte[0],
-                false, 1, NOT_NULL, null);
+                  false, 1, NOT_NULL, null);
         expectNPE("SSL_CTX_set_spake_credential", new byte[0], null, new byte[0], new byte[0],
-                false, 1, NOT_NULL, null);
+                  false, 1, NOT_NULL, null);
         expectNPE("SSL_CTX_set_spake_credential", new byte[0], new byte[0], null, new byte[0],
-                false, 1, NOT_NULL, null);
+                  false, 1, NOT_NULL, null);
         expectNPE("SSL_CTX_set_spake_credential", new byte[0], new byte[0], new byte[0], null,
-                false, 1, NOT_NULL, null);
+                  false, 1, NOT_NULL, null);
+        checkMethodsTested();
     }
 
     private void testMethods(MethodFilter filter, Class<? extends Throwable> exceptionClass)
@@ -274,6 +289,22 @@ public class NativeCryptoArgTest {
         return result;
     }
 
+    private static void markTestRun() {
+        int count = testCaseCount.get();
+        while (count > 0 && !testCaseCount.compareAndSet(count, count - 1)) {
+            count = testCaseCount.get();
+        }
+    }
+
+    private static void checkMethodsTested() {
+        if (testCaseCount.get() == 0) {
+            // Since we ran enough test cases, we should now have a minimum
+            // number of methods tested. Validate that these methods were indeed
+            // called.
+            assertTrue(testedMethods.size() >= MIN_EXPECTED_TESTED_METHODS);
+        }
+    }
+
     private void expectVoid(String methodName, Object... args) throws Throwable {
         invokeAndExpect(null, methodName, args);
     }
@@ -283,7 +314,7 @@ public class NativeCryptoArgTest {
     }
 
     private void invokeAndExpect(Class<? extends Throwable> expectedThrowable, String methodName,
-                                   Object... args) throws Throwable {
+                                 Object... args) throws Throwable {
         Method method = methodMap.get(methodName);
         assertNotNull(method);
         assertEquals(methodName, method.getName());
@@ -291,7 +322,7 @@ public class NativeCryptoArgTest {
     }
 
     private void invokeAndExpect(Class<? extends Throwable> expectedThrowable, Method method,
-                                   Object... args) throws Throwable {
+                                 Object... args) throws Throwable {
         try {
             method.invoke(null, args);
             if (expectedThrowable != null) {

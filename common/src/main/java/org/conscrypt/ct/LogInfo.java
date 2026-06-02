@@ -16,6 +16,8 @@
 
 package org.conscrypt.ct;
 
+import org.conscrypt.Internal;
+
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -24,7 +26,6 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Arrays;
 import java.util.Objects;
-import org.conscrypt.Internal;
 
 /**
  * Properties about a Certificate Transparency Log.
@@ -176,8 +177,8 @@ public class LogInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hash(
-                Arrays.hashCode(logId), description, url, state, stateTimestamp, operator);
+        return Objects.hash(Arrays.hashCode(logId), description, url, state, stateTimestamp,
+                            operator);
     }
 
     /**
@@ -186,8 +187,8 @@ public class LogInfo {
      *
      * @return the result of the verification
      */
-    public VerifiedSCT.Status verifySingleSCT(
-            SignedCertificateTimestamp sct, CertificateEntry entry) {
+    public VerifiedSCT.Status verifySingleSCT(SignedCertificateTimestamp sct,
+                                              CertificateEntry entry) {
         if (!Arrays.equals(sct.getLogID(), getID())) {
             return VerifiedSCT.Status.UNKNOWN_LOG;
         }

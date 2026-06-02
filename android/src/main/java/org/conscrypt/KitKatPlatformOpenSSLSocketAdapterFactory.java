@@ -25,7 +25,6 @@ import java.net.Socket;
  */
 @Internal
 public class KitKatPlatformOpenSSLSocketAdapterFactory extends BaseOpenSSLSocketAdapterFactory {
-
     public KitKatPlatformOpenSSLSocketAdapterFactory(OpenSSLSocketFactoryImpl delegate) {
         super(delegate);
     }

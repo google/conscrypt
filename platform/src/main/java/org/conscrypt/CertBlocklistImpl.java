@@ -62,7 +62,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
     }
 
     public CertBlocklistImpl(Set<BigInteger> serialBlocklist, Set<ByteArray> sha1PubkeyBlocklist,
-            Set<ByteArray> sha256PubkeyBlocklist) {
+                             Set<ByteArray> sha256PubkeyBlocklist) {
         this.cache = Collections.synchronizedMap(new LinkedHashMap<ByteArray, Boolean>() {
             @Override
             protected boolean removeEldestEntry(Map.Entry<ByteArray, Boolean> eldest) {
@@ -168,7 +168,8 @@ public final class CertBlocklistImpl implements CertBlocklist {
                 try {
                     bl.add(new BigInteger(value, 16));
                 } catch (NumberFormatException e) {
-                    logger.log(Level.WARNING, "Tried to blacklist invalid serial number " + value, e);
+                    logger.log(Level.WARNING, "Tried to blacklist invalid serial number " + value,
+                               e);
                 }
             }
         }
@@ -231,8 +232,8 @@ public final class CertBlocklistImpl implements CertBlocklist {
                 bl = new HashSet<ByteArray>(toByteArrays(SHA256_BUILTINS));
                 break;
             default:
-                throw new RuntimeException(
-                        "Unknown hashType: " + hashType + ". Expected SHA-1 or SHA-256");
+                throw new RuntimeException("Unknown hashType: " + hashType
+                                           + ". Expected SHA-1 or SHA-256");
         }
 
         MessageDigest md;
@@ -262,8 +263,8 @@ public final class CertBlocklistImpl implements CertBlocklist {
         return bl;
     }
 
-    private static boolean isPublicKeyBlockListed(
-            byte[] encodedPublicKey, Set<ByteArray> blocklist, String hashType) {
+    private static boolean isPublicKeyBlockListed(byte[] encodedPublicKey, Set<ByteArray> blocklist,
+                                                  String hashType) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance(hashType);
@@ -305,9 +306,10 @@ public final class CertBlocklistImpl implements CertBlocklist {
         return false;
     }
 
-    private static final byte[] HEX_TABLE = { (byte) '0', (byte) '1', (byte) '2', (byte) '3',
-        (byte) '4', (byte) '5', (byte) '6', (byte) '7', (byte) '8', (byte) '9', (byte) 'a',
-        (byte) 'b', (byte) 'c', (byte) 'd', (byte) 'e', (byte) 'f'};
+    private static final byte[] HEX_TABLE = {(byte) '0', (byte) '1', (byte) '2', (byte) '3',
+                                             (byte) '4', (byte) '5', (byte) '6', (byte) '7',
+                                             (byte) '8', (byte) '9', (byte) 'a', (byte) 'b',
+                                             (byte) 'c', (byte) 'd', (byte) 'e', (byte) 'f'};
 
     private static byte[] toHex(byte[] in) {
         byte[] out = new byte[in.length * 2];

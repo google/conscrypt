@@ -16,6 +16,10 @@
 
 package org.conscrypt;
 
+import org.conscrypt.ArrayUtils;
+import org.conscrypt.io.IoUtils;
+import org.conscrypt.metrics.OptionalMethod;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,10 +38,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.security.auth.x500.X500Principal;
-import org.conscrypt.ArrayUtils;
-import org.conscrypt.io.IoUtils;
-import org.conscrypt.metrics.OptionalMethod;
 
 /**
  * A source for trusted root certificate authority (CA) certificates
@@ -115,7 +117,7 @@ public class TrustedCertificateStore implements ConscryptCertStore {
             if ((sdkVersion == null) || ((int) sdkVersion < 34))
                 return false;
             if ((System.getProperty("system.certs.enabled") != null)
-                    && (System.getProperty("system.certs.enabled")).equals("true"))
+                && (System.getProperty("system.certs.enabled")).equals("true"))
                 return false;
             if (updatableDir.exists() && !(ArrayUtils.isEmpty(updatableDir.list())))
                 return true;
@@ -124,9 +126,8 @@ public class TrustedCertificateStore implements ConscryptCertStore {
 
         static Object getSdkVersion() {
             try {
-                OptionalMethod getSdkVersion =
-                        new OptionalMethod(Class.forName("dalvik.system.VMRuntime"),
-                                            "getSdkVersion");
+                OptionalMethod getSdkVersion = new OptionalMethod(
+                        Class.forName("dalvik.system.VMRuntime"), "getSdkVersion");
                 return getSdkVersion.invokeStatic();
             } catch (ClassNotFoundException e) {
                 return null;
@@ -154,7 +155,7 @@ public class TrustedCertificateStore implements ConscryptCertStore {
 
     public TrustedCertificateStore() {
         this(PreloadHolder.defaultCaCertsSystemDir, PreloadHolder.defaultCaCertsAddedDir,
-                PreloadHolder.defaultCaCertsDeletedDir);
+             PreloadHolder.defaultCaCertsDeletedDir);
     }
 
     public TrustedCertificateStore(File baseDir) {
@@ -172,15 +173,13 @@ public class TrustedCertificateStore implements ConscryptCertStore {
     }
 
     public Certificate getCertificate(String alias, boolean includeDeletedSystem) {
-
         File file = fileForAlias(alias);
         if (file == null || (isUser(alias) && isTombstone(file))) {
             return null;
         }
         X509Certificate cert = readCertificate(file);
-        if (cert == null || (isSystem(alias)
-                             && !includeDeletedSystem
-                             && isDeletedSystemCertificate(cert))) {
+        if (cert == null
+            || (isSystem(alias) && !includeDeletedSystem && isDeletedSystemCertificate(cert))) {
             // skip malformed certs as well as deleted system ones
             return null;
         }
@@ -384,17 +383,13 @@ public class TrustedCertificateStore implements ConscryptCertStore {
                 return ca.getPublicKey().equals(c.getPublicKey());
             }
         };
-        X509Certificate user = findCert(addedDir,
-                                        c.getSubjectX500Principal(),
-                                        selector,
-                                        X509Certificate.class);
+        X509Certificate user =
+                findCert(addedDir, c.getSubjectX500Principal(), selector, X509Certificate.class);
         if (user != null) {
             return user;
         }
-        X509Certificate system = findCert(systemDir,
-                                          c.getSubjectX500Principal(),
-                                          selector,
-                                          X509Certificate.class);
+        X509Certificate system =
+                findCert(systemDir, c.getSubjectX500Principal(), selector, X509Certificate.class);
         if (system != null && !isDeletedSystemCertificate(system)) {
             return system;
         }
@@ -513,8 +508,8 @@ public class TrustedCertificateStore implements ConscryptCertStore {
      */
     public List<X509Certificate> getCertificateChain(X509Certificate leaf)
             throws CertificateException {
-        final LinkedHashSet<OpenSSLX509Certificate> chain
-                = new LinkedHashSet<OpenSSLX509Certificate>();
+        final LinkedHashSet<OpenSSLX509Certificate> chain =
+                new LinkedHashSet<OpenSSLX509Certificate>();
         OpenSSLX509Certificate cert = convertToOpenSSLIfNeeded(leaf);
         chain.add(cert);
 
@@ -537,17 +532,15 @@ public class TrustedCertificateStore implements ConscryptCertStore {
         public boolean match(X509Certificate cert);
     }
 
-
     @SuppressWarnings("unchecked")
-    private Set<X509Certificate> findCertSet(
-            File dir, X500Principal subject, CertSelector selector) {
+    private Set<X509Certificate> findCertSet(File dir, X500Principal subject,
+                                             CertSelector selector) {
         return (Set<X509Certificate>) findCert(dir, subject, selector, Set.class);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T findCert(
-            File dir, X500Principal subject, CertSelector selector, Class<T> desiredReturnType) {
-
+    private <T> T findCert(File dir, X500Principal subject, CertSelector selector,
+                           Class<T> desiredReturnType) {
         Set<X509Certificate> certs = null;
         String hash = hash(subject);
         for (int index = 0; true; index++) {

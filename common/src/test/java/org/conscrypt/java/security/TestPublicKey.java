@@ -18,30 +18,30 @@ package org.conscrypt.java.security;
 import java.security.PublicKey;
 
 class TestPublicKey implements PublicKey {
-  private PublicKey key;
-  private String format;
+    private PublicKey key;
+    private String format;
 
-  TestPublicKey(PublicKey key) {
-    this(key, key.getFormat());
-  }
+    TestPublicKey(PublicKey key) {
+        this(key, key.getFormat());
+    }
 
-  TestPublicKey(PublicKey key, String format) {
-    this.key = key;
-    this.format = format;
-  }
+    TestPublicKey(PublicKey key, String format) {
+        this.key = key;
+        this.format = format;
+    }
 
-  @Override
-  public String getAlgorithm() {
-    return key.getAlgorithm();
-  }
+    @Override
+    public String getAlgorithm() {
+        return key.getAlgorithm();
+    }
 
-  @Override
-  public byte[] getEncoded() {
-    return key.getEncoded();
-  }
+    @Override
+    public byte[] getEncoded() {
+        return key.getEncoded();
+    }
 
-  @Override
-  public String getFormat() {
-    return format;
-  }
+    @Override
+    public String getFormat() {
+        return format;
+    }
 }

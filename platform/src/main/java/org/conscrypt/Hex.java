@@ -25,8 +25,8 @@ package org.conscrypt;
 public final class Hex {
     private Hex() {}
 
-    private final static char[] DIGITS = {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    private final static char[] DIGITS = {'0', '1', '2', '3', '4', '5', '6', '7',
+                                          '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     public static String bytesToHexString(byte[] bytes) {
         char[] buf = new char[bytes.length * 2];
@@ -39,7 +39,7 @@ public final class Hex {
     }
 
     public static String intToHexString(int i, int minWidth) {
-        int bufLen = 8;  // Max number of hex digits in an int
+        int bufLen = 8; // Max number of hex digits in an int
         char[] buf = new char[bufLen];
         int cursor = bufLen;
 

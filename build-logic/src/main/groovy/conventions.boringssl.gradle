@@ -1,0 +1,19 @@
+plugins {
+    id 'org.ajoberstar.grgit'
+}
+
+def boringHome = (project.findProperty('boringsslHome') ?: System.getenv('BORINGSSL_HOME'))
+if (!boringHome) {
+    throw new GradleException("boringsslHome not set. Provide -PboringsslHome or \$BORINGSSL_HOME.")
+}
+
+def boringInclude = file("${boringHome}/include").absolutePath
+if (!file(boringInclude).exists()) {
+    throw new GradleException("BoringSSL include dir not found: ${boringInclude}")
+}
+
+ext {
+    boringsslHome       = boringHome
+    boringsslIncludeDir = boringInclude
+    boringSslVersion    = org.ajoberstar.grgit.Grgit.open(dir: boringHome).head().id
+}

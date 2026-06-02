@@ -15,10 +15,10 @@
  */
 package org.conscrypt.metrics;
 
+import org.conscrypt.Internal;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import org.conscrypt.Internal;
 
 /**
  * Helper class to handle reflexive loading and invocation of methods which may be absent.
@@ -44,8 +44,8 @@ public final class OptionalMethod {
         this.cachedMethod = initializeMethod(clazz, methodName, methodParams);
     }
 
-    private static Method initializeMethod(
-            Class<?> clazz, String methodName, Class<?>... methodParams) {
+    private static Method initializeMethod(Class<?> clazz, String methodName,
+                                           Class<?>... methodParams) {
         try {
             for (Class<?> paramClass : methodParams) {
                 if (paramClass == null) {

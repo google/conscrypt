@@ -1,4 +1,9 @@
 plugins {
+    id 'conventions.common'
+    id 'conventions.versionprops'
+    id 'conventions.boringssl'
+    id 'conventions.jvm'
+    id 'conventions.cpp'
     alias libs.plugins.bnd
     alias libs.plugins.shadow
 }
@@ -21,6 +26,11 @@ description = 'Conscrypt: OpenJdk'
 enum NativeBuildInfo {
     WINDOWS_X86_64("windows", "x86_64"),
     LINUX_X86_64("linux", "x86_64"),
+    LINUX_AARCH64("linux", "aarch_64") {
+        String libDir() {
+            "build.arm"
+        }
+    },
     MAC_X86_64("osx", "x86_64") {
         String libDir() {
             "build.x86"
@@ -126,6 +136,10 @@ ext {
     preferredSourceSet = buildToTest.mavenClassifier()
     preferredNativeFileDir = buildToTest.nativeResourcesDir()
 }
+
+// Since we're not taking a direct dependency on the constants module, we need to add an
+// explicit task dependency to make sure the code is generated.
+evaluationDependsOn(':conscrypt-constants')
 
 sourceSets {
     main {
@@ -520,7 +534,11 @@ model {
                 def stripTask = binary.tasks.taskName("strip")
                 project.tasks.register(stripTask as String, Exec) {
                     dependsOn binary.tasks.link
-                    executable "strip"
+                    if (nativeBuild == NativeBuildInfo.LINUX_AARCH64) {
+                        executable "aarch64-linux-gnu-strip"
+                    } else {
+                        executable "strip"
+                    }
                     args binary.tasks.link.linkedFile.asFile.get()
                 }
                 copyTask.configure {

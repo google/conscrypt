@@ -21,6 +21,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.junit.runners.JUnit4;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
@@ -138,6 +140,39 @@ public class EdDsaTest {
     }
 
     @Test
+    public void init_resetsState() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        byte[] message = decodeHex("00112233");
+
+        Signature signature = Signature.getInstance("Ed25519", conscryptProvider);
+
+        // Call initSign and update, so that the buffer is not empty.
+        signature.initSign(keyPair.getPrivate());
+        signature.update(decodeHex("aaaa"));
+
+        // This call to initSign should reset the state.
+        signature.initSign(keyPair.getPrivate());
+        signature.update(message);
+
+        // This should only sign message.
+        byte[] sig = signature.sign();
+
+        assertEquals(64, sig.length);
+
+        // Call initVerify and update, so that the buffer is not empty.
+        signature.initVerify(keyPair.getPublic());
+        signature.update(decodeHex("bbbb"));
+
+        // This call to initVerify should reset the state.
+        signature.initVerify(keyPair.getPublic());
+        signature.update(message);
+
+        // This should return true, because sig should be a valid signature for message.
+        assertTrue(signature.verify(sig));
+    }
+
+    @Test
     public void generateKeyPairWithWrongKeySize_throws() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519", conscryptProvider);
         assertThrows(IllegalArgumentException.class, () -> keyGen.initialize(256));
@@ -175,7 +210,7 @@ public class EdDsaTest {
         byte[] message = decodeHex("");
         byte[] expectedSig =
                 decodeHex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e06522490155"
-                        + "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b");
+                          + "5fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b");
 
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
         PrivateKey privateKey =
@@ -201,7 +236,7 @@ public class EdDsaTest {
                 decodeHex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
         PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(rawPrivateKey));
-        assertEquals("EdDSA", privateKey.getAlgorithm());
+        assertEquals("1.3.101.112", privateKey.getAlgorithm());
 
         // RawKeySpec returns the raw private key.
         RawKeySpec rawPrivateKeySpec = keyFactory.getKeySpec(privateKey, RawKeySpec.class);
@@ -213,10 +248,10 @@ public class EdDsaTest {
         byte[] encodedPrivateKey = privateKey.getEncoded();
         assertEquals(48, encodedPrivateKey.length);
         assertArrayEquals(expectedPkcs8Prefix,
-                Arrays.copyOfRange(encodedPrivateKey, 0, expectedPkcs8Prefix.length));
+                          Arrays.copyOfRange(encodedPrivateKey, 0, expectedPkcs8Prefix.length));
         assertArrayEquals(rawPrivateKey,
-                Arrays.copyOfRange(
-                        encodedPrivateKey, expectedPkcs8Prefix.length, encodedPrivateKey.length));
+                          Arrays.copyOfRange(encodedPrivateKey, expectedPkcs8Prefix.length,
+                                             encodedPrivateKey.length));
 
         // PKCS8EncodedKeySpec returns the same encoding as getEncoded().
         PKCS8EncodedKeySpec privateKeySpec =
@@ -225,7 +260,7 @@ public class EdDsaTest {
         assertArrayEquals(encodedPrivateKey, privateKeySpec.getEncoded());
 
         assertThrows(InvalidKeySpecException.class,
-                () -> keyFactory.getKeySpec(privateKey, X509EncodedKeySpec.class));
+                     () -> keyFactory.getKeySpec(privateKey, X509EncodedKeySpec.class));
     }
 
     @Test
@@ -234,7 +269,7 @@ public class EdDsaTest {
                 decodeHex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
         PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(rawPublicKey));
-        assertEquals("EdDSA", publicKey.getAlgorithm());
+        assertEquals("1.3.101.112", publicKey.getAlgorithm());
 
         // RawKeySpec returns the raw public key.
         RawKeySpec rawPublicKeySpec = keyFactory.getKeySpec(publicKey, RawKeySpec.class);
@@ -246,10 +281,10 @@ public class EdDsaTest {
         byte[] encodedPublicKey = publicKey.getEncoded();
         assertEquals(44, encodedPublicKey.length);
         assertArrayEquals(expectedX509Prefix,
-                Arrays.copyOfRange(encodedPublicKey, 0, expectedX509Prefix.length));
+                          Arrays.copyOfRange(encodedPublicKey, 0, expectedX509Prefix.length));
         assertArrayEquals(rawPublicKey,
-                Arrays.copyOfRange(
-                        encodedPublicKey, expectedX509Prefix.length, encodedPublicKey.length));
+                          Arrays.copyOfRange(encodedPublicKey, expectedX509Prefix.length,
+                                             encodedPublicKey.length));
 
         // X509EncodedKeySpec returns the same encoding as getEncoded().
         X509EncodedKeySpec publicKeySpec =
@@ -258,7 +293,21 @@ public class EdDsaTest {
         assertArrayEquals(encodedPublicKey, publicKeySpec.getEncoded());
 
         assertThrows(InvalidKeySpecException.class,
-                () -> keyFactory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
+                     () -> keyFactory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
+    }
+
+    @Test
+    public void generateKey_invalidEncoding_throwsInvalidKeySpecException() throws Exception {
+        byte[] invalidEncoding = decodeHex("012345");
+        KeyFactory keyFactory = KeyFactory.getInstance("Ed25519", conscryptProvider);
+        assertThrows(InvalidKeySpecException.class,
+                     () -> keyFactory.generatePrivate(new PKCS8EncodedKeySpec(invalidEncoding)));
+        assertThrows(InvalidKeySpecException.class,
+                     () -> keyFactory.generatePublic(new X509EncodedKeySpec(invalidEncoding)));
+        assertThrows(InvalidKeySpecException.class,
+                     () -> keyFactory.generatePrivate(new RawKeySpec(invalidEncoding)));
+        assertThrows(InvalidKeySpecException.class,
+                     () -> keyFactory.generatePublic(new RawKeySpec(invalidEncoding)));
     }
 
     @Test
@@ -311,7 +360,7 @@ public class EdDsaTest {
     }
 
     @Test
-    public void serializePrivateKey_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePrivateKey_withTestVectors_works() throws Exception {
         byte[] pkcs8EncodedPrivateKey = decodeHex(
                 // PKCS#8 header
                 "302e020100300506032b657004220420"
@@ -328,18 +377,48 @@ public class EdDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 privateKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720024" + classNameHex
+        String serializationWithoutWriteMethod = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + classNameHex
                 + "d479f95a133abadc" // serialVersionUID
                 + "0200015b000f"
                 + "707269766174654b65794279746573" // hex("privateKeyBytes")
                 + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
                 + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"; // private
                                                                                         // key
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(privateKey.getClass().getName().length()) + classNameHex
+                + "d479f95a133abadc" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b000f"
+                + "707269766174654b65794279746573" // hex("privateKeyBytes")
+                + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
+                + "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60" // private
+                                                                                       // key
+                + "78"; // TC_ENDBLOCKDATA
+
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PrivateKey inflatedPrivateKey = (PrivateKey) ois.readObject();
+            assertEquals(inflatedPrivateKey, privateKey);
+        }
     }
 
     @Test
-    public void serializePublicKey_isEqualToTestVector() throws Exception {
+    public void serializeAndDeserializePublicKey_withTestVectors_works() throws Exception {
         byte[] x509EncodedPublicKey = decodeHex(
                 // X.509 header
                 "302a300506032b6570032100"
@@ -357,14 +436,43 @@ public class EdDsaTest {
 
         String classNameHex = TestUtils.encodeHex(
                 publicKey.getClass().getName().getBytes(StandardCharsets.UTF_8));
-        String expectedHexEncoding = "aced000573720023" + classNameHex
+        String serializationWithoutWriteMethod = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + classNameHex
                 + "064c7113d078e42d" // serialVersionUID
                 + "0200015b000e"
                 + "7075626c69634b65794279746573" // hex("publicKeyBytes")
                 + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
                 + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"; // public
                                                                                         // key
-        assertEquals(expectedHexEncoding, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Expected serialization when the key class implements a writeObject method.
+        String serializationWithWriteMethod = "aced0005737200"
+                + Integer.toHexString(publicKey.getClass().getName().length()) + classNameHex
+                + "064c7113d078e42d" // serialVersionUID
+                + "03" // classDescFlags = SC_WRITE_METHOD | SC_SERIALIZABLE
+                + "00015b000e"
+                + "7075626c69634b65794279746573" // hex("publicKeyBytes")
+                + "7400025b427870757200025b42acf317f8060854e0020000787000000020"
+                + "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a" // public key
+                + "78"; // TC_ENDBLOCKDATA
+
+        assertEquals(serializationWithWriteMethod, TestUtils.encodeHex(baos.toByteArray()));
+
+        // Verify that deserialization of both formats work.
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithoutWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
+        {
+            ByteArrayInputStream bais =
+                    new ByteArrayInputStream(TestUtils.decodeHex(serializationWithWriteMethod));
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            PublicKey inflatedPublicKey = (PublicKey) ois.readObject();
+            assertEquals(inflatedPublicKey, publicKey);
+        }
     }
 
     @Test
@@ -386,7 +494,12 @@ public class EdDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPrivateKeySerialized));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+        try {
+            ois.readObject();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException | EOFException e) {
+            // Expected
+        }
     }
 
     @Test
@@ -408,6 +521,11 @@ public class EdDsaTest {
                 new ByteArrayInputStream(TestUtils.decodeHex(invalidPublicKeySerialized));
         ObjectInputStream ois = new ObjectInputStream(bais);
 
-        assertThrows(IllegalArgumentException.class, () -> ois.readObject());
+        try {
+            ois.readObject();
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException | EOFException e) {
+            // Expected
+        }
     }
 }

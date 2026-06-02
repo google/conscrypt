@@ -22,8 +22,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.conscrypt.TestUtils;
+import org.conscrypt.TestUtils.BufferType;
+import org.conscrypt.java.security.StandardNames;
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -35,6 +44,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
@@ -49,13 +59,6 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.TestUtils;
-import org.conscrypt.TestUtils.BufferType;
-import org.conscrypt.java.security.StandardNames;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SSLEngineTest {
@@ -109,7 +112,7 @@ public class SSLEngineTest {
         input.flip();
         ByteBuffer output = ByteBuffer.allocate(1024);
         assertEquals(SSLEngineResult.Status.BUFFER_UNDERFLOW,
-                engines.client.unwrap(input, output).getStatus());
+                     engines.client.unwrap(input, output).getStatus());
     }
 
     @Test
@@ -133,13 +136,14 @@ public class SSLEngineTest {
         assertEquals(Status.BUFFER_OVERFLOW, pair.server.unwrap(wrapped, output).getStatus());
     }
 
-    private void test_SSLEngine_getSupportedCipherSuites_connect(
-            TestKeyStore testKeyStore, boolean secureRenegotiation) throws Exception {
+    private void test_SSLEngine_getSupportedCipherSuites_connect(TestKeyStore testKeyStore,
+                                                                 boolean secureRenegotiation)
+            throws Exception {
         KeyManager pskKeyManager =
                 PSKKeyManagerProxy.getConscryptPSKKeyManager(new PSKKeyManagerProxy() {
                     @Override
-                    protected SecretKey getKey(
-                            String identityHint, String identity, SSLEngine engine) {
+                    protected SecretKey getKey(String identityHint, String identity,
+                                               SSLEngine engine) {
                         return new SecretKeySpec("Just an arbitrary key".getBytes(UTF_8), "RAW");
                     }
                 });
@@ -203,7 +207,7 @@ public class SSLEngineTest {
             try {
                 // Skip cipher suites that are obsoleted.
                 if (StandardNames.IS_RI && "TLSv1.2".equals(c.clientContext.getProtocol())
-                        && StandardNames.CIPHER_SUITES_OBSOLETE_TLS12.contains(cipherSuite)) {
+                    && StandardNames.CIPHER_SUITES_OBSOLETE_TLS12.contains(cipherSuite)) {
                     continue;
                 }
                 /*
@@ -211,7 +215,7 @@ public class SSLEngineTest {
                  * conjunction with other cipher suites.
                  */
                 if (cipherSuite.equals(StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION)
-                        || cipherSuite.equals(StandardNames.CIPHER_SUITE_FALLBACK)) {
+                    || cipherSuite.equals(StandardNames.CIPHER_SUITE_FALLBACK)) {
                     continue;
                 }
                 /*
@@ -222,10 +226,11 @@ public class SSLEngineTest {
                     continue;
                 }
 
-                final String[] cipherSuiteArray = (secureRenegotiation
-                                ? new String[] {cipherSuite,
-                                          StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION}
-                                : new String[] {cipherSuite});
+                final String[] cipherSuiteArray =
+                        (secureRenegotiation
+                                 ? new String[] {cipherSuite,
+                                                 StandardNames.CIPHER_SUITE_SECURE_RENEGOTIATION}
+                                 : new String[] {cipherSuite});
 
                 // Check that handshake succeeds.
                 TestSSLEnginePair pair = null;
@@ -239,13 +244,14 @@ public class SSLEngineTest {
                     });
                     assertConnected(pair);
 
-                    boolean needsRecordSplit = "TLS".equalsIgnoreCase(c.clientContext.getProtocol())
+                    boolean needsRecordSplit =
+                            "TLS".equalsIgnoreCase(c.clientContext.getProtocol())
                             && cipherSuite.contains("_CBC_");
 
-                    assertSendsCorrectly("This is the client. Hello!".getBytes(UTF_8), pair.client,
-                            pair.server, needsRecordSplit);
+                    assertSendsCorrectly("This is the client. Hello!".getBytes(UTF_8),
+                                         pair.client, pair.server, needsRecordSplit);
                     assertSendsCorrectly("This is the server. Hi!".getBytes(UTF_8), pair.server,
-                            pair.client, needsRecordSplit);
+                                         pair.client, needsRecordSplit);
                 } finally {
                     if (pair != null) {
                         pair.close();
@@ -260,7 +266,7 @@ public class SSLEngineTest {
                 if (cipherSuite.contains("_anon_")) {
                     serverAuthenticatedUsingPublicKey = false;
                 } else if (cipherSuite.startsWith("TLS_PSK_")
-                        || cipherSuite.startsWith("TLS_ECDHE_PSK_")) {
+                           || cipherSuite.startsWith("TLS_ECDHE_PSK_")) {
                     serverAuthenticatedUsingPublicKey = false;
                 }
                 if (serverAuthenticatedUsingPublicKey) {
@@ -295,12 +301,13 @@ public class SSLEngineTest {
 
         if (error.length() > 0) {
             throw new Exception("One or more problems in "
-                    + "test_SSLEngine_getSupportedCipherSuites_connect:\n" + error);
+                                + "test_SSLEngine_getSupportedCipherSuites_connect:\n" + error);
         }
     }
 
     private static void assertSendsCorrectly(final byte[] sourceBytes, SSLEngine source,
-            SSLEngine dest, boolean needsRecordSplit) throws SSLException {
+                                             SSLEngine dest, boolean needsRecordSplit)
+            throws SSLException {
         ByteBuffer sourceOut = ByteBuffer.wrap(sourceBytes);
         SSLSession sourceSession = source.getSession();
         ByteBuffer sourceToDest = ByteBuffer.allocate(sourceSession.getPacketBufferSize());
@@ -310,7 +317,7 @@ public class SSLEngineTest {
         String sourceCipherSuite = source.getSession().getCipherSuite();
         assertEquals(sourceCipherSuite, sourceBytes.length, sourceOutRes.bytesConsumed());
         assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
-                sourceOutRes.getHandshakeStatus());
+                     sourceOutRes.getHandshakeStatus());
 
         SSLSession destSession = dest.getSession();
         ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
@@ -319,7 +326,7 @@ public class SSLEngineTest {
         while (destIn.position() != sourceOut.limit()) {
             SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
             assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
-                    destRes.getHandshakeStatus());
+                         destRes.getHandshakeStatus());
             if (needsRecordSplit && numUnwrapCalls == 0) {
                 assertEquals(sourceCipherSuite, 1, destRes.bytesProduced());
             }
@@ -340,7 +347,7 @@ public class SSLEngineTest {
     }
 
     private static void assertSendsCorrectlyWhenSplit(final byte[] sourceBytes, SSLEngine source,
-            SSLEngine dest) throws SSLException {
+                                                      SSLEngine dest) throws SSLException {
         // Split the input into three to test the version that accepts ByteBuffer[].  Three
         // is chosen somewhat arbitrarily as a number larger than the minimum of 2 but small
         // enough that it's not unwieldy.
@@ -348,8 +355,8 @@ public class SSLEngineTest {
         int sourceLen = sourceBytes.length;
         sourceBufs[0] = ByteBuffer.wrap(sourceBytes, 0, sourceLen / 3);
         sourceBufs[1] = ByteBuffer.wrap(sourceBytes, sourceLen / 3, sourceLen / 3);
-        sourceBufs[2] = ByteBuffer.wrap(
-            sourceBytes, 2 * (sourceLen / 3), sourceLen - 2 * (sourceLen / 3));
+        sourceBufs[2] =
+                ByteBuffer.wrap(sourceBytes, 2 * (sourceLen / 3), sourceLen - 2 * (sourceLen / 3));
         SSLSession sourceSession = source.getSession();
         ByteBuffer sourceToDest = ByteBuffer.allocate(sourceSession.getPacketBufferSize());
         SSLEngineResult sourceOutRes = source.wrap(sourceBufs, sourceToDest);
@@ -357,13 +364,13 @@ public class SSLEngineTest {
         String sourceCipherSuite = source.getSession().getCipherSuite();
         assertEquals(sourceCipherSuite, sourceBytes.length, sourceOutRes.bytesConsumed());
         assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
-                sourceOutRes.getHandshakeStatus());
+                     sourceOutRes.getHandshakeStatus());
         SSLSession destSession = dest.getSession();
         ByteBuffer destIn = ByteBuffer.allocate(destSession.getApplicationBufferSize());
         while (destIn.position() != sourceBytes.length) {
             SSLEngineResult destRes = dest.unwrap(sourceToDest, destIn);
             assertEquals(sourceCipherSuite, HandshakeStatus.NOT_HANDSHAKING,
-                    destRes.getHandshakeStatus());
+                         destRes.getHandshakeStatus());
         }
         destIn.flip();
         byte[] actual = new byte[destIn.remaining()];
@@ -420,9 +427,8 @@ public class SSLEngineTest {
         e.setEnabledCipherSuites(e.getSupportedCipherSuites());
 
         // Check that setEnabledCipherSuites affects getEnabledCipherSuites
-        String[] cipherSuites = new String[] {
-                TestUtils.pickArbitraryNonTls13Suite(e.getSupportedCipherSuites())
-        };
+        String[] cipherSuites =
+                new String[] {TestUtils.pickArbitraryNonTls13Suite(e.getSupportedCipherSuites())};
         e.setEnabledCipherSuites(cipherSuites);
         assertEquals(Arrays.asList(cipherSuites), Arrays.asList(e.getEnabledCipherSuites()));
     }
@@ -434,22 +440,21 @@ public class SSLEngineTest {
         SSLEngine e = context.createSSLEngine();
         // The TLS 1.3 cipher suites should be enabled by default
         assertTrue(new HashSet<String>(Arrays.asList(e.getEnabledCipherSuites()))
-                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                           .containsAll(StandardNames.CIPHER_SUITES_TLS13));
         // Disabling them should be ignored
         e.setEnabledCipherSuites(new String[0]);
         assertTrue(new HashSet<String>(Arrays.asList(e.getEnabledCipherSuites()))
-                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                           .containsAll(StandardNames.CIPHER_SUITES_TLS13));
 
-        e.setEnabledCipherSuites(new String[] {
-                TestUtils.pickArbitraryNonTls13Suite(e.getSupportedCipherSuites())
-        });
+        e.setEnabledCipherSuites(
+                new String[] {TestUtils.pickArbitraryNonTls13Suite(e.getSupportedCipherSuites())});
         assertTrue(new HashSet<String>(Arrays.asList(e.getEnabledCipherSuites()))
-                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                           .containsAll(StandardNames.CIPHER_SUITES_TLS13));
 
         // Disabling TLS 1.3 should disable the 1.3 cipher suites
-        e.setEnabledProtocols(new String[] { "TLSv1.2" });
+        e.setEnabledProtocols(new String[] {"TLSv1.2"});
         assertFalse(new HashSet<String>(Arrays.asList(e.getEnabledCipherSuites()))
-                .containsAll(StandardNames.CIPHER_SUITES_TLS13));
+                            .containsAll(StandardNames.CIPHER_SUITES_TLS13));
     }
 
     @Test
@@ -519,7 +524,7 @@ public class SSLEngineTest {
                 String[] protocols = new String[] {protocol};
                 e.setEnabledProtocols(protocols);
                 assertEquals(Arrays.deepToString(protocols),
-                        Arrays.deepToString(e.getEnabledProtocols()));
+                             Arrays.deepToString(e.getEnabledProtocols()));
             }
         }
 
@@ -556,69 +561,78 @@ public class SSLEngineTest {
         final SSLEngine referenceEngine = referenceContext.clientContext.createSSLEngine();
 
         final AtomicInteger checkServerTrustedWasCalled = new AtomicInteger(0);
-        TestSSLContext c = TestSSLContext.newBuilder()
-            .clientTrustManager(new X509ExtendedTrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+        TestSSLContext c =
+                TestSSLContext.newBuilder()
+                        .clientTrustManager(new X509ExtendedTrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    try {
-                        SSLSession session = sslEngine.getHandshakeSession();
-                        assertNotNull(session);
-                        // By the point of the handshake where we're validating certificates,
-                        // the hostname is known and the cipher suite should be agreed
-                        assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                try {
+                                    SSLSession session = sslEngine.getHandshakeSession();
+                                    assertNotNull(session);
+                                    // By the point of the handshake where we're validating
+                                    // certificates, the hostname is known and the cipher suite
+                                    // should be agreed
+                                    assertEquals(referenceContext.host.getHostName(),
+                                                 session.getPeerHost());
 
-                        // The negotiated cipher suite should be one of the enabled ones, but
-                        // BoringSSL may have reordered them based on things like hardware support,
-                        // so we don't know which one may have been negotiated.
-                        String sessionSuite = session.getCipherSuite();
-                        List<String> enabledSuites =
-                            Arrays.asList(referenceEngine.getEnabledCipherSuites());
-                        String message = "Handshake session has invalid cipher suite: "
-                                + (sessionSuite == null ? "(null)" : sessionSuite);
-                        assertTrue(message, enabledSuites.contains(sessionSuite));
+                                    // The negotiated cipher suite should be one of the enabled
+                                    // ones, but BoringSSL may have reordered them based on things
+                                    // like hardware support, so we don't know which one may have
+                                    // been negotiated.
+                                    String sessionSuite = session.getCipherSuite();
+                                    List<String> enabledSuites =
+                                            Arrays.asList(referenceEngine.getEnabledCipherSuites());
+                                    String message = "Handshake session has invalid cipher suite: "
+                                            + (sessionSuite == null ? "(null)" : sessionSuite);
+                                    assertTrue(message, enabledSuites.contains(sessionSuite));
 
-                        checkServerTrustedWasCalled.incrementAndGet();
-                    } catch (Exception e) {
-                        throw new CertificateException("Something broke", e);
-                    }
-                }
+                                    checkServerTrustedWasCalled.incrementAndGet();
+                                } catch (Exception e) {
+                                    throw new CertificateException("Something broke", e);
+                                }
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-            }).build();
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return new X509Certificate[0];
+                            }
+                        })
+                        .build();
         TestSSLEnginePair pair = TestSSLEnginePair.create(c);
         pair.close();
         assertEquals(1, checkServerTrustedWasCalled.get());
@@ -633,77 +647,88 @@ public class SSLEngineTest {
         final SSLEngine referenceEngine = referenceContext.clientContext.createSSLEngine();
 
         final AtomicInteger checkClientTrustedWasCalled = new AtomicInteger(0);
-        TestSSLContext c = TestSSLContext.newBuilder()
-            .client(TestKeyStore.getClientCertificate())
-            .serverTrustManager(new X509ExtendedTrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+        TestSSLContext c =
+                TestSSLContext.newBuilder()
+                        .client(TestKeyStore.getClientCertificate())
+                        .serverTrustManager(new X509ExtendedTrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    Socket socket) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, Socket socket)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    try {
-                        SSLSession session = sslEngine.getHandshakeSession();
-                        assertNotNull(session);
-                        // By the point of the handshake where we're validating client certificates,
-                        // the cipher suite should be agreed and the server's own certificates
-                        // should have been delivered
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                try {
+                                    SSLSession session = sslEngine.getHandshakeSession();
+                                    assertNotNull(session);
+                                    // By the point of the handshake where we're validating client
+                                    // certificates, the cipher suite should be agreed and the
+                                    // server's own certificates should have been delivered
 
-                        // The negotiated cipher suite should be one of the enabled ones, but
-                        // BoringSSL may have reordered them based on things like hardware support,
-                        // so we don't know which one may have been negotiated.
-                        String sessionSuite = session.getCipherSuite();
-                        List<String> enabledSuites =
-                                Arrays.asList(referenceEngine.getEnabledCipherSuites());
-                        String message = "Handshake session has invalid cipher suite: "
-                                + (sessionSuite == null ? "(null)" : sessionSuite);
-                        assertTrue(message, enabledSuites.contains(sessionSuite));
+                                    // The negotiated cipher suite should be one of the enabled
+                                    // ones, but BoringSSL may have reordered them based on things
+                                    // like hardware support, so we don't know which one may have
+                                    // been negotiated.
+                                    String sessionSuite = session.getCipherSuite();
+                                    List<String> enabledSuites =
+                                            Arrays.asList(referenceEngine.getEnabledCipherSuites());
+                                    String message = "Handshake session has invalid cipher suite: "
+                                            + (sessionSuite == null ? "(null)" : sessionSuite);
+                                    assertTrue(message, enabledSuites.contains(sessionSuite));
 
-                        assertNotNull(session.getLocalCertificates());
-                        assertEquals("CN=localhost",
-                            ((X509Certificate) session.getLocalCertificates()[0])
-                                .getSubjectDN().getName());
-                        assertEquals("CN=Test Intermediate Certificate Authority",
-                            ((X509Certificate) session.getLocalCertificates()[0])
-                                .getIssuerDN().getName());
-                        checkClientTrustedWasCalled.incrementAndGet();
-                    } catch (Exception e) {
-                        throw new CertificateException("Something broke", e);
-                    }
-                }
+                                    assertNotNull(session.getLocalCertificates());
+                                    assertEquals(
+                                            "CN=localhost",
+                                            ((X509Certificate) session.getLocalCertificates()[0])
+                                                    .getSubjectDN()
+                                                    .getName());
+                                    assertEquals(
+                                            "CN=Test Intermediate Certificate Authority",
+                                            ((X509Certificate) session.getLocalCertificates()[0])
+                                                    .getIssuerDN()
+                                                    .getName());
+                                    checkClientTrustedWasCalled.incrementAndGet();
+                                } catch (Exception e) {
+                                    throw new CertificateException("Something broke", e);
+                                }
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                    SSLEngine sslEngine) throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s, SSLEngine sslEngine)
+                                    throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                    throws CertificateException {
-                    throw new CertificateException("Shouldn't be called");
-                }
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates,
+                                                           String s) throws CertificateException {
+                                throw new CertificateException("Shouldn't be called");
+                            }
 
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return referenceContext.serverTrustManager.getAcceptedIssuers();
-                }
-            }).build();
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return referenceContext.serverTrustManager.getAcceptedIssuers();
+                            }
+                        })
+                        .build();
         TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
             @Override
             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
@@ -786,11 +811,13 @@ public class SSLEngineTest {
     }
 
     private TestSSLEnginePair test_SSLEngine_setUseClientMode(final boolean clientClientMode,
-            final boolean serverClientMode, final boolean[] finished) throws Exception {
+                                                              final boolean serverClientMode,
+                                                              final boolean[] finished)
+            throws Exception {
         TestSSLContext c;
         if (!clientClientMode && serverClientMode) {
             c = TestSSLContext.create(/* client= */ TestKeyStore.getServer(),
-                    /* server= */ TestKeyStore.getClient());
+                                      /* server= */ TestKeyStore.getClient());
         } else {
             c = TestSSLContext.create();
         }
@@ -887,8 +914,8 @@ public class SSLEngineTest {
         {
             SSLParameters p = new SSLParameters();
             e.setSSLParameters(p);
-            assertEquals(
-                    Arrays.asList(defaultCipherSuites), Arrays.asList(e.getEnabledCipherSuites()));
+            assertEquals(Arrays.asList(defaultCipherSuites),
+                         Arrays.asList(e.getEnabledCipherSuites()));
             assertEquals(Arrays.asList(defaultProtocols), Arrays.asList(e.getEnabledProtocols()));
         }
 
@@ -896,7 +923,7 @@ public class SSLEngineTest {
             SSLParameters p = new SSLParameters(supportedCipherSuites, supportedProtocols);
             e.setSSLParameters(p);
             assertEquals(Arrays.asList(supportedCipherSuites),
-                    Arrays.asList(e.getEnabledCipherSuites()));
+                         Arrays.asList(e.getEnabledCipherSuites()));
             assertEquals(Arrays.asList(supportedProtocols), Arrays.asList(e.getEnabledProtocols()));
         }
         {
@@ -926,126 +953,113 @@ public class SSLEngineTest {
         c.close();
     }
 
+    /*
+     * The preconditions for the wrap() methods of SSLEngine have a relatively
+     * complex mapping from precondition to the exception thrown on failure.  This method
+     * checks that all the failure cases throw the correct exception and that
+     * corner cases which should not throw are also are handled correctly.
+     */
     @Test
     public void wrapPreconditions() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(10);
-        ByteBuffer[] buffers = new ByteBuffer[] { buffer, buffer, buffer };
-        ByteBuffer[] badBuffers = new ByteBuffer[] { buffer, buffer, null, buffer };
+        int bufferSize = 128;
+        int arrayLength = 5;
+        ByteBuffer destBuffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer readOnlyDestBuffer = destBuffer.asReadOnlyBuffer();
+        ByteBuffer[] buffers = BufferType.HEAP.newRandomBufferArray(arrayLength, bufferSize);
+        for (int i = 0; i < arrayLength; i++) {
+            buffers[i] = buffers[i].asReadOnlyBuffer();
+        }
+        ByteBuffer[] buffersWithNullEntry = Arrays.copyOf(buffers, buffers.length);
+        int nullBufferIndex = 2;
+        buffersWithNullEntry[nullBufferIndex] = null;
 
+        // Failure cases
         // Client/server mode not set => IllegalStateException
-        try {
-            newUnconnectedEngine().wrap(buffer, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
-
-        try {
-            newUnconnectedEngine().wrap(buffers, 0, 1, buffer);
-            fail();
-        } catch (IllegalStateException e) {
-            // Expected
-        }
+        assertThrows(IllegalStateException.class,
+                     () -> newUnconnectedEngine().wrap(buffers[0], destBuffer));
+        assertThrows(IllegalStateException.class,
+                     () -> newUnconnectedEngine().wrap(buffers, destBuffer));
+        assertThrows(IllegalStateException.class,
+                     () -> newUnconnectedEngine().wrap(buffers, 0, 1, destBuffer));
 
         // Read-only destination => ReadOnlyBufferException
-        try {
-            newConnectedEngine().wrap(buffer, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, buffer.asReadOnlyBuffer());
-            fail();
-        } catch (ReadOnlyBufferException e) {
-            // Expected
-        }
+        assertThrows(ReadOnlyBufferException.class,
+                     () -> newConnectedEngine().wrap(buffers[0], readOnlyDestBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                     () -> newConnectedEngine().wrap(buffers, readOnlyDestBuffer));
+        assertThrows(ReadOnlyBufferException.class,
+                     () -> newConnectedEngine().wrap(buffers, 0, arrayLength, readOnlyDestBuffer));
 
         // Null destination => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(buffer, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers,  null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(buffers, 0, 1, null);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap(buffers[0], null));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap(buffers, null));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap(buffers, 0, arrayLength, null));
 
         // Null source => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap((ByteBuffer) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap((ByteBuffer[]) null, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(null, 0, 1, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap((ByteBuffer) null, destBuffer));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap((ByteBuffer[]) null, destBuffer));
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap(null, 0, 1, destBuffer));
 
         // Null entries in buffer array => IllegalArgumentException
-        try {
-            newConnectedEngine().wrap(badBuffers, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
-
-        try {
-            newConnectedEngine().wrap(badBuffers, 0, badBuffers.length, buffer);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // Expected
-        }
+        assertThrows(IllegalArgumentException.class,
+                     () -> newConnectedEngine().wrap(buffersWithNullEntry, destBuffer));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> newConnectedEngine().wrap(buffersWithNullEntry, 0, arrayLength, destBuffer));
 
         // Bad offset or length => IndexOutOfBoundsException
-        try {
-            newConnectedEngine().wrap(buffers, 0, 7, buffer);
-            fail();
-        } catch (IndexOutOfBoundsException e) {
-            // Expected
+        assertThrows(IndexOutOfBoundsException.class,
+                     () -> newConnectedEngine().wrap(buffers, 0, arrayLength + 1, destBuffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                     () -> newConnectedEngine().wrap(buffers, arrayLength, 1, destBuffer));
+        assertThrows(IndexOutOfBoundsException.class,
+                     () -> newConnectedEngine().wrap(buffers, arrayLength - 1, 2, destBuffer));
+
+        // Corner cases which should not throw
+        // Null entries should not throw if they are outside the selected offset and length
+        assertWrapSucceeds(buffersWithNullEntry, 0, nullBufferIndex);
+        assertWrapSucceeds(buffersWithNullEntry, nullBufferIndex + 1, 1);
+
+        // Zero length arrays of input buffers should not throw
+        assertWrapSucceeds(buffers, 0, 0);
+        assertWrapSucceeds(buffers, arrayLength, 0);
+    }
+
+    // Asserts that a wrap call with the given arguments succeeds and wraps the expected
+    // amount of data.
+    private void assertWrapSucceeds(ByteBuffer[] buffers, int offset, int length) throws Exception {
+        try (TestSSLEnginePair pair = TestSSLEnginePair.create()) {
+            assertConnected(pair);
+
+            // Reset the selected buffers to their initial (unread) state and calculate the
+            // total amount of data that will be wrapped.
+            int dataSize = 0;
+            for (int i = offset; i < offset + length; i++) {
+                buffers[i].position(0);
+                dataSize += buffers[i].remaining();
+            }
+
+            // Ensure the data will fit into one TLS record so that only a single wrap is needed.
+            assertTrue(dataSize <= pair.client.getSession().getApplicationBufferSize());
+            ByteBuffer ciphertext =
+                    ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+
+            // Wrap the data and ensure the expected amount of data was consumed.
+            SSLEngineResult result = pair.client.wrap(buffers, offset, length, ciphertext);
+            assertEquals(Status.OK, result.getStatus());
+            assertEquals(dataSize, result.bytesConsumed());
+            // This method is only used for checking wrap preconditions so no need to unwrap.
         }
     }
 
     @Test
-    public void bufferArrayOffsets() throws Exception{
+    public void bufferArrayOffsets() throws Exception {
         TestSSLEnginePair pair = TestSSLEnginePair.create();
         ByteBuffer tlsBuffer = ByteBuffer.allocate(600);
         int bufferSize = 100;

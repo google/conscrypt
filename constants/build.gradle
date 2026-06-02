@@ -1,3 +1,11 @@
+plugins {
+    id 'conventions.common'
+    id 'conventions.boringssl'
+    id 'conventions.cpp'
+    // TODO(prb) generate the Java to a central location so we don't need JVM conventions
+    id 'conventions.jvm'
+}
+
 description = 'Conscrypt: Constants'
 
 ext {

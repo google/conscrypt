@@ -22,15 +22,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactorySpi;
 
 @Internal
 public class ScryptSecretKeyFactory extends SecretKeyFactorySpi {
-
     @Override
     protected SecretKey engineGenerateSecret(KeySpec inKeySpec) throws InvalidKeySpecException {
-
         char[] password;
         byte[] salt;
         int n, r, p, keyOutputBits;
@@ -62,10 +61,9 @@ public class ScryptSecretKeyFactory extends SecretKeyFactorySpi {
             throw new InvalidKeySpecException("Cannot produce fractional-byte outputs");
         }
 
-        return new ScryptKey(
-                NativeCrypto.Scrypt_generate_key(
-                        new String(password).getBytes(StandardCharsets.UTF_8),
-                        salt, n, r, p, keyOutputBits / 8));
+        return new ScryptKey(NativeCrypto.Scrypt_generate_key(
+                new String(password).getBytes(StandardCharsets.UTF_8), salt, n, r, p,
+                keyOutputBits / 8));
     }
 
     private Object getValue(KeySpec spec, String methodName)
@@ -75,8 +73,8 @@ public class ScryptSecretKeyFactory extends SecretKeyFactorySpi {
     }
 
     @Override
-    protected KeySpec engineGetKeySpec(
-            SecretKey secretKey, @SuppressWarnings("rawtypes") Class aClass)
+    protected KeySpec engineGetKeySpec(SecretKey secretKey,
+                                       @SuppressWarnings("rawtypes") Class aClass)
             throws InvalidKeySpecException {
         if (secretKey == null) {
             throw new InvalidKeySpecException("Null KeySpec");

@@ -1,9 +1,9 @@
 Conscrypt's Capabilities
 ========================================
 
-Conscrypt is relatively selective in choosing the set of primitives to provide, focusing
-on the most important and widely-used algorithms.  Following is a list of JCA algorithm names
-and other identifiers that are supported by Conscrypt.
+Conscrypt is relatively selective in choosing the set of primitives to provide,
+focusing on the most important and widely-used algorithms. Following is a list
+of JCA algorithm names and other identifiers that are supported by Conscrypt.
 
 ## TLS
 
@@ -15,7 +15,7 @@ and other identifiers that are supported by Conscrypt.
 * `TLSv1.2`
 * `TLSv1.3`
 
-Conscrypt supports TLS v1.0-1.3.  For backwards compatibility it will accept
+Conscrypt supports TLS v1.0-1.3. For backwards compatibility it will accept
 `SSLv3` in calls to methods like
 [`setEnabledProtocols()`](https://docs.oracle.com/javase/9/docs/api/javax/net/ssl/SSLSocket.html#setEnabledProtocols-java.lang.String:A-)
 but will ignore it.
@@ -40,6 +40,7 @@ v1.0-1.3 are all enabled; the others return a context with TLS v1.0-1.2 enabled.
 ### Cipher Suites
 
 #### Enabled
+
 * TLS 1.0-1.2
   * `TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA`
   * `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256`
@@ -61,13 +62,14 @@ v1.0-1.3 are all enabled; the others return a context with TLS v1.0-1.2 enabled.
   * `TLS_CHACHA20_POLY1305_SHA256`
 
 The above cipher suites are enabled by default when the associated version of
-the protocol is enabled.  The TLS 1.3 cipher suites cannot be customized; they
+the protocol is enabled. The TLS 1.3 cipher suites cannot be customized; they
 are always enabled when TLS 1.3 is enabled, and any attempt to disable them via
 a call to
 [`setEnabledCipherSuites()`](https://docs.oracle.com/javase/9/docs/api/javax/net/ssl/SSLSocket.html#setEnabledCipherSuites-java.lang.String:A-)
 is ignored.
 
 #### Supported But Not Enabled
+
 * TLS 1.0-1.2
   * `SSL_RSA_WITH_3DES_EDE_CBC_SHA`
   * `TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA`
@@ -76,9 +78,24 @@ is ignored.
   * `TLS_PSK_WITH_AES_128_CBC_SHA`
   * `TLS_PSK_WITH_AES_256_CBC_SHA`
 
-The above cipher suites are supported, but not enabled by default.  TLS 1.3
+The above cipher suites are supported, but not enabled by default. TLS 1.3
 cipher suites cannot be customized, so there are no cipher suites that are
 supported but not enabled.
+
+### Supported Named Groups
+
+These can be set with `SSLParameters::setNamedGroups` or by setting the system
+property `jdk.tls.namedGroups`.
+
+* `X25519`
+* `P-256` (`secp256r1`)
+* `P-384` (`secp384r1`)
+* `P-521` (`secp521r1`)
+* `X25519MLKEM768`
+* `X25519Kyber768Draft00`
+* `MLKEM1024`
+
+`X25519`, `P-256` and `P-384` are enabled by default.
 
 ## Cryptography
 
@@ -137,13 +154,15 @@ Triple DES with either two or three intermediate keys.
 * `RSA/ECB/OAEPWithSHA-512AndMGF1Padding`
 * `RSA/ECB/PKCS1Padding`
 
-Conscrypt's OAEP ciphers (eg, `RSA/ECB/OAEPWithSHA-256AndMGF1Padding`) use the named digest for
-both the main digest and the MGF1 digest.  This differs from the behavior of some other
-providers, including the ones bundled with OpenJDK, which always use SHA-1 for the MGF1 digest.
-For maximum compatibility, you should use `RSA/ECB/OAEPPadding` and initialize it with an
+Conscrypt's OAEP ciphers (eg, `RSA/ECB/OAEPWithSHA-256AndMGF1Padding`) use the
+named digest for both the main digest and the MGF1 digest. This differs from
+the behavior of some other providers, including the ones bundled with OpenJDK,
+which always use SHA-1 for the MGF1 digest. For maximum compatibility, you
+should use `RSA/ECB/OAEPPadding` and initialize it with an
 [`OAEPParameterSpec`](https://docs.oracle.com/javase/9/docs/api/javax/crypto/spec/OAEPParameterSpec.html).
 
 ### AlgorithmParameters
+
 * `AES`
 * `ChaCha20`
 * `DESEDE`
@@ -155,16 +174,33 @@ For maximum compatibility, you should use `RSA/ECB/OAEPPadding` and initialize i
 Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 
 ### CertificateFactory
+
 * `X509`
 
 ### KeyAgreement
+
 * `ECDH`
 
 ### KeyFactory
+
 * `EC`
 * `RSA`
+* `XDH`
+* `X25519`
+* `EdDSA`
+* `Ed25519`
+* `ML-DSA`
+* `ML-DSA-44`
+* `ML-DSA-65`
+* `ML-DSA-87`
+* `SLH-DSA-SHA2-128S`
+* `ML-KEM`
+* `ML-KEM-768`
+* `ML-KEM-1024`
+* `XWING`
 
 ### KeyGenerator
+
 * `AES`
 * `ARC4`
 * `ChaCha20`
@@ -177,10 +213,25 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `HmacSHA512`
 
 ### KeyPairGenerator
+
 * `EC`
 * `RSA`
+* `XDH`
+* `X25519`
+* `EdDSA`
+* `Ed25519`
+* `ML-DSA`
+* `ML-DSA-44`
+* `ML-DSA-65`
+* `ML-DSA-87`
+* `SLH-DSA-SHA2-128S`
+* `ML-KEM`
+* `ML-KEM-768`
+* `ML-KEM-1024`
+* `XWING`
 
 ### Mac
+
 * `HmacMD5`
 * `HmacSHA1`
 * `HmacSHA224`
@@ -189,6 +240,7 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `HmacSHA512`
 
 ### MessageDigest
+
 * `MD5`
 * `SHA-1`
 * `SHA-224`
@@ -197,12 +249,15 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `SHA-512`
 
 ### SecretKeyFactory
+
 * `DESEDE`
 
 ### SecureRandom
+
 * `SHA1PRNG`
 
 ### Signature
+
 * `MD5withRSA`
 * `NONEwithECDSA`
 * `NONEwithRSA`
@@ -221,15 +276,19 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `SHA512withRSA`
 * `SHA512withECDSA`
 * `SHA512withRSA/PSS`
+* `EdDSA`
+* `Ed25519`
+* `ML-DSA`
+* `ML-DSA-44`
+* `ML-DSA-65`
+* `ML-DSA-87`
+* `SLH-DSA-SHA2-128S`
 
-### Elliptic Curves
+### ECDSA Elliptic Curves
 
-Conscrypt supports the following curves in EC crypto operations (such as ECDSA signatures) and TLS:
+Conscrypt supports the following curves in ECDSA signatures:
 
-| Curve | EC Crypto |  TLS  |
-| ----- | :-------: | :---: |
-| secp224r1 | X |   |
-| prime256v1<br/>(aka secp256r1) | X | X |
-| secp384r1 | X | X |
-| secp521r1 | X |   |
-| x25519 |   | X |
+* `secp224r1`
+* `secp256r1` (`prime256v1`)
+* `secp384r1`
+* `secp521r1`

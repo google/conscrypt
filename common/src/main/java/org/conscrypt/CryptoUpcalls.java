@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
@@ -69,7 +70,7 @@ final class CryptoUpcalls {
     }
 
     private static byte[] signDigestWithPrivateKey(PrivateKey javaKey, byte[] message,
-            String algorithm) {
+                                                   String algorithm) {
         Signature signature;
 
         // Since this is a delegated key, we cannot handle providing a signature using this key.
@@ -126,15 +127,15 @@ final class CryptoUpcalls {
             return signature.sign();
         } catch (Exception e) {
             logger.log(Level.WARNING,
-                    "Exception while signing message with " + javaKey.getAlgorithm()
-                            + " private key:",
-                    e);
+                       "Exception while signing message with " + javaKey.getAlgorithm()
+                               + " private key:",
+                       e);
             return null;
         }
     }
 
     static byte[] rsaSignDigestWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
-            byte[] message) {
+                                              byte[] message) {
         // An RSA cipher + ENCRYPT_MODE produces a standard RSA signature
         return rsaOpWithPrivateKey(javaKey, openSSLPadding, Cipher.ENCRYPT_MODE, message);
     }
@@ -144,7 +145,7 @@ final class CryptoUpcalls {
     }
 
     private static byte[] rsaOpWithPrivateKey(PrivateKey javaKey, int openSSLPadding,
-            int cipherMode, byte[] input) {
+                                              int cipherMode, byte[] input) {
         String keyAlgorithm = javaKey.getAlgorithm();
         if (!"RSA".equals(keyAlgorithm)) {
             logger.warning("Unexpected key type: " + keyAlgorithm);
@@ -200,7 +201,8 @@ final class CryptoUpcalls {
                     c = Cipher.getInstance(transformation, p);
                     c.init(cipherMode, javaKey);
                     break;
-                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
+                } catch (NoSuchAlgorithmException | NoSuchPaddingException
+                         | InvalidKeyException e) {
                     c = null;
                 }
             }
@@ -214,9 +216,9 @@ final class CryptoUpcalls {
             return c.doFinal(input);
         } catch (Exception e) {
             logger.log(Level.WARNING,
-                    "Exception while decrypting message with " + javaKey.getAlgorithm()
-                            + " private key using " + transformation + ":",
-                    e);
+                       "Exception while decrypting message with " + javaKey.getAlgorithm()
+                               + " private key using " + transformation + ":",
+                       e);
             return null;
         }
     }

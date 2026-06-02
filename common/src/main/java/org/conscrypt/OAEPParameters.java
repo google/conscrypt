@@ -23,6 +23,7 @@ import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 
@@ -32,7 +33,6 @@ import javax.crypto.spec.PSource;
  */
 @Internal
 public class OAEPParameters extends AlgorithmParametersSpi {
-
     private static final Map<String, String> OID_TO_NAME = new HashMap<String, String>();
     private static final Map<String, String> NAME_TO_OID = new HashMap<String, String>();
     static {
@@ -94,11 +94,11 @@ public class OAEPParameters extends AlgorithmParametersSpi {
             }
 
             if (!NativeCrypto.asn1_read_is_empty(seqRef)
-                    || !NativeCrypto.asn1_read_is_empty(readRef)) {
+                || !NativeCrypto.asn1_read_is_empty(readRef)) {
                 throw new IOException("Error reading ASN.1 encoding");
             }
-            this.spec = new OAEPParameterSpec(hash, "MGF1", new MGF1ParameterSpec(mgfHash),
-                    pSpecified);
+            this.spec =
+                    new OAEPParameterSpec(hash, "MGF1", new MGF1ParameterSpec(mgfHash), pSpecified);
         } finally {
             NativeCrypto.asn1_read_free(seqRef);
             NativeCrypto.asn1_read_free(readRef);
@@ -161,8 +161,7 @@ public class OAEPParameters extends AlgorithmParametersSpi {
             if (!NativeCrypto.asn1_read_is_empty(hashSeqRef)) {
                 NativeCrypto.asn1_read_null(hashSeqRef);
             }
-            if (!NativeCrypto.asn1_read_is_empty(hashSeqRef)
-                    || !OID_TO_NAME.containsKey(hashOid)) {
+            if (!NativeCrypto.asn1_read_is_empty(hashSeqRef) || !OID_TO_NAME.containsKey(hashOid)) {
                 throw new IOException("Error reading ASN.1 encoding");
             }
             return OID_TO_NAME.get(hashOid);
@@ -190,7 +189,7 @@ public class OAEPParameters extends AlgorithmParametersSpi {
             cbbRef = NativeCrypto.asn1_write_init();
             seqRef = NativeCrypto.asn1_write_sequence(cbbRef);
             writeHashAndMgfHash(seqRef, spec.getDigestAlgorithm(),
-                    (MGF1ParameterSpec) spec.getMGFParameters());
+                                (MGF1ParameterSpec) spec.getMGFParameters());
             PSource.PSpecified pSource = (PSource.PSpecified) spec.getPSource();
             // Implementations are prohibited from writing the default value for any of the fields
             if (pSource.getValue().length != 0) {
@@ -225,15 +224,15 @@ public class OAEPParameters extends AlgorithmParametersSpi {
     }
 
     // Shared with PSSParameters, since they share some of their encoded form
-    static void writeHashAndMgfHash(long seqRef, String hash, MGF1ParameterSpec mgfSpec) throws IOException {
+    static void writeHashAndMgfHash(long seqRef, String hash, MGF1ParameterSpec mgfSpec)
+            throws IOException {
         // Implementations are prohibited from writing the default value for any of the fields
         if (!hash.equals("SHA-1")) {
             long hashRef = 0;
             long hashParamsRef = 0;
             try {
                 hashRef = NativeCrypto.asn1_write_tag(seqRef, 0);
-                hashParamsRef = writeAlgorithmIdentifier(
-                        hashRef, NAME_TO_OID.get(hash));
+                hashParamsRef = writeAlgorithmIdentifier(hashRef, NAME_TO_OID.get(hash));
                 NativeCrypto.asn1_write_null(hashParamsRef);
             } finally {
                 NativeCrypto.asn1_write_flush(seqRef);

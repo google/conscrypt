@@ -19,13 +19,14 @@ package org.conscrypt.javax.net.ssl;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.X509KeyManager;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.X509KeyManager;
 
 @RunWith(JUnit4.class)
 public class X509KeyManagerTest {
@@ -52,7 +53,8 @@ public class X509KeyManagerTest {
     }
 
     private void test_ChooseClientAlias_KeyType(String clientKeyType, String caKeyType,
-            String selectedKeyType, boolean succeeds) throws Exception {
+                                                String selectedKeyType, boolean succeeds)
+            throws Exception {
         TestKeyStore ca = new TestKeyStore.Builder().keyAlgorithms(caKeyType).build();
         TestKeyStore client = new TestKeyStore.Builder()
                                       .keyAlgorithms(clientKeyType)

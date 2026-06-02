@@ -21,10 +21,10 @@ import static org.junit.Assert.assertNotNull;
 import java.security.AlgorithmParameters;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+
 import javax.crypto.KeyAgreement;
 
 public class AlgorithmParameterKeyAgreementHelper extends TestHelper<AlgorithmParameters> {
-
     private final String algorithmName;
 
     public AlgorithmParameterKeyAgreementHelper(String algorithmName) {

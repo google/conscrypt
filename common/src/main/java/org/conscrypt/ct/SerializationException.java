@@ -22,8 +22,7 @@ import org.conscrypt.Internal;
 public class SerializationException extends Exception {
     private static final long serialVersionUID = -5317873136664833411L;
 
-    public SerializationException() {
-    }
+    public SerializationException() {}
 
     public SerializationException(String message) {
         super(message);
@@ -37,4 +36,3 @@ public class SerializationException extends Exception {
         super(cause);
     }
 }
-

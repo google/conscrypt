@@ -25,13 +25,13 @@ namespace conscrypt {
  * Provides registration support for all native methods exported by Conscrypt.
  */
 class NativeCrypto {
- public:
+public:
     /**
      * Register all native JNI methods exported by Conscrypt.
      */
     static void registerNativeMethods(JNIEnv* env);
 
- private:
+private:
     NativeCrypto() {}
     ~NativeCrypto() {}
 };

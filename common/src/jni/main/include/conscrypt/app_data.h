@@ -22,8 +22,8 @@
 #include <conscrypt/jniutil.h>
 #include <conscrypt/netutil.h>
 #include <conscrypt/trace.h>
-
 #include <jni.h>
+
 #include <atomic>
 #include <memory>
 #include <mutex>  // NOLINT(build/c++11)
@@ -87,13 +87,14 @@ namespace conscrypt {
  *
  * (5) the JNIEnv so we can invoke the Java callback
  *
- * (6) a NativeCrypto.SSLHandshakeCallbacks instance for callbacks from native to Java
+ * (6) a NativeCrypto.SSLHandshakeCallbacks instance for callbacks from native
+ * to Java
  *
  * (7) a java.io.FileDescriptor wrapper to check for socket close
  *
- * We store the ALPN protocols list so we can either send it (from the server) or
- * select a protocol (on the client). We eagerly acquire a pointer to the array
- * data so the callback doesn't need to acquire resources that it cannot
+ * We store the ALPN protocols list so we can either send it (from the server)
+ * or select a protocol (on the client). We eagerly acquire a pointer to the
+ * array data so the callback doesn't need to acquire resources that it cannot
  * release.
  *
  * Because renegotiation can be requested by the peer at any time,
@@ -104,7 +105,7 @@ namespace conscrypt {
  * SSL_do_handshake, SSL_read, SSL_write, and SSL_shutdown.
  */
 class AppData {
- public:
+public:
     std::atomic<bool> aliveAndKicking;
     int waitingThreads;
 #ifdef _WIN32
@@ -175,15 +176,17 @@ class AppData {
         clearApplicationProtocols();
         if (applicationProtocolsJava != nullptr) {
             jbyte* applicationProtocols =
-                e->GetByteArrayElements(applicationProtocolsJava, nullptr);
+                    e->GetByteArrayElements(applicationProtocolsJava, nullptr);
             if (applicationProtocols == nullptr) {
                 clearCallbackState();
-                JNI_TRACE("appData=%p setApplicationCallbackState => applicationProtocols == null",
-                          this);
+                JNI_TRACE(
+                        "appData=%p setApplicationCallbackState => applicationProtocols == "
+                        "null",
+                        this);
                 return false;
             }
             applicationProtocolsLength =
-                static_cast<size_t>(e->GetArrayLength(applicationProtocolsJava));
+                    static_cast<size_t>(e->GetArrayLength(applicationProtocolsJava));
             applicationProtocolsData = new char[applicationProtocolsLength];
             memcpy(applicationProtocolsData, applicationProtocols, applicationProtocolsLength);
             e->ReleaseByteArrayElements(applicationProtocolsJava, applicationProtocols, JNI_ABORT);
@@ -219,7 +222,7 @@ class AppData {
         env = nullptr;
     }
 
- private:
+private:
     AppData()
         : aliveAndKicking(true),
           waitingThreads(0),

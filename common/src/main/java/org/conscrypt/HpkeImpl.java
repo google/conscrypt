@@ -20,6 +20,9 @@ import static org.conscrypt.HpkeSuite.AEAD_AES_256_GCM;
 import static org.conscrypt.HpkeSuite.AEAD_CHACHA20POLY1305;
 import static org.conscrypt.HpkeSuite.KDF_HKDF_SHA256;
 import static org.conscrypt.HpkeSuite.KEM_DHKEM_X25519_HKDF_SHA256;
+import static org.conscrypt.HpkeSuite.KEM_MLKEM_1024;
+import static org.conscrypt.HpkeSuite.KEM_MLKEM_768;
+import static org.conscrypt.HpkeSuite.KEM_XWING;
 
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
@@ -35,162 +38,301 @@ import javax.crypto.BadPaddingException;
  * of the subclasses of {@link HpkeContext}.
  */
 @Internal
-public class HpkeImpl implements HpkeSpi {
-  private final HpkeSuite hpkeSuite;
+public abstract class HpkeImpl implements HpkeSpi {
+    private final HpkeSuite hpkeSuite;
 
-  private NativeRef.EVP_HPKE_CTX ctx;
-  private byte[] encapsulated = null;
+    private NativeRef.EVP_HPKE_CTX ctx;
+    private byte[] encapsulated = null;
 
-  public HpkeImpl(HpkeSuite hpkeSuite) {
-    this.hpkeSuite = hpkeSuite;
-  }
-
-  @Override
-  public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
-          byte[] psk, byte[] psk_id) throws InvalidKeyException {
-    checkNotInitialised();
-    checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
-    if (recipientKey == null) {
-      throw new InvalidKeyException("null recipient key");
-    } else if (!(recipientKey instanceof OpenSSLX25519PublicKey)) {
-      throw new InvalidKeyException("Unsupported recipient key class: " + recipientKey.getClass());
-    }
-    final byte[] recipientKeyBytes = ((OpenSSLX25519PublicKey) recipientKey).getU();
-
-    final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender(
-            hpkeSuite, recipientKeyBytes, info);
-    ctx = (NativeRef.EVP_HPKE_CTX) result[0];
-    encapsulated = (byte[]) result[1];
-  }
-
-  @Override
-  public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
-          PrivateKey senderKey, byte[] psk, byte[] psk_id, byte[] sKe) throws InvalidKeyException {
-    checkNotInitialised();
-    Objects.requireNonNull(sKe);
-    checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
-    if (recipientKey == null) {
-      throw new InvalidKeyException("null recipient key");
-    } else if (!(recipientKey instanceof OpenSSLX25519PublicKey)) {
-      throw new InvalidKeyException("Unsupported recipient key class: " + recipientKey.getClass());
-    }
-    final byte[] recipientKeyBytes = ((OpenSSLX25519PublicKey) recipientKey).getU();
-
-    final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
-            hpkeSuite, recipientKeyBytes, info, sKe);
-    ctx = (NativeRef.EVP_HPKE_CTX) result[0];
-    encapsulated = (byte[]) result[1];
-  }
-
-  @Override
-  public void engineInitRecipient(byte[] encapsulated, PrivateKey recipientKey,
-          byte[] info, PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
-    checkNotInitialised();
-    checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
-    Preconditions.checkNotNull(encapsulated, "null encapsulated data");
-    if (encapsulated.length != hpkeSuite.getKem().getEncapsulatedLength()) {
-      throw new InvalidKeyException("Invalid encapsulated length: " + encapsulated.length);
+    public HpkeImpl(HpkeSuite hpkeSuite) {
+        this.hpkeSuite = hpkeSuite;
     }
 
-    if (recipientKey == null) {
-      throw new InvalidKeyException("null recipient key");
-    } else if (!(recipientKey instanceof OpenSSLX25519PrivateKey)) {
-      throw new InvalidKeyException("Unsupported recipient key class: " + recipientKey.getClass());
+    abstract byte[] getRecipientPublicKeyBytes(PublicKey recipientKey) throws InvalidKeyException;
+
+    @Override
+    public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
+                                 byte[] psk, byte[] psk_id) throws InvalidKeyException {
+        checkNotInitialised();
+        checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
+        if (recipientKey == null) {
+            throw new InvalidKeyException("null recipient key");
+        }
+        final byte[] recipientKeyBytes = getRecipientPublicKeyBytes(recipientKey);
+        final Object[] result = NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender(
+                hpkeSuite, recipientKeyBytes, info);
+        ctx = (NativeRef.EVP_HPKE_CTX) result[0];
+        encapsulated = (byte[]) result[1];
     }
-    final byte[] recipientKeyBytes = ((OpenSSLX25519PrivateKey) recipientKey).getU();
 
-    ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_base_mode_recipient(
-            hpkeSuite, recipientKeyBytes, encapsulated, info);
-  }
-
-  private void checkArgumentsForBaseModeOnly(Key senderKey, byte[] psk, byte[] psk_id) {
-    if (senderKey != null) {
-      throw new UnsupportedOperationException("Asymmetric authentication not supported");
+    @Override
+    public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
+                                           PrivateKey senderKey, byte[] psk, byte[] psk_id,
+                                           byte[] sKe) throws InvalidKeyException {
+        checkNotInitialised();
+        Objects.requireNonNull(sKe);
+        checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
+        if (recipientKey == null) {
+            throw new InvalidKeyException("null recipient key");
+        }
+        final byte[] recipientKeyBytes = getRecipientPublicKeyBytes(recipientKey);
+        final Object[] result =
+                NativeCrypto.EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+                        hpkeSuite, recipientKeyBytes, info, sKe);
+        ctx = (NativeRef.EVP_HPKE_CTX) result[0];
+        encapsulated = (byte[]) result[1];
     }
-    // PSK args can only be null if the application passed them in.
-    Objects.requireNonNull(psk);
-    Objects.requireNonNull(psk_id);
-    if (psk.length > 0 || psk_id.length > 0) {
-      throw new UnsupportedOperationException("PSK authentication not supported");
+
+    abstract byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException;
+
+    @Override
+    public void engineInitRecipient(byte[] encapsulated, PrivateKey recipientKey, byte[] info,
+                                    PublicKey senderKey, byte[] psk, byte[] psk_id)
+            throws InvalidKeyException {
+        checkNotInitialised();
+        checkArgumentsForBaseModeOnly(senderKey, psk, psk_id);
+        Preconditions.checkNotNull(encapsulated, "null encapsulated data");
+        if (encapsulated.length != hpkeSuite.getKem().getEncapsulatedLength()) {
+            throw new InvalidKeyException("Invalid encapsulated length: " + encapsulated.length);
+        }
+
+        if (recipientKey == null) {
+            throw new InvalidKeyException("null recipient key");
+        }
+        final byte[] recipientKeyBytes = getPrivateRecipientKeyBytes(recipientKey);
+        ctx = (NativeRef.EVP_HPKE_CTX) NativeCrypto.EVP_HPKE_CTX_setup_base_mode_recipient(
+                hpkeSuite, recipientKeyBytes, encapsulated, info);
     }
-  }
 
-  @Override
-  public byte[] engineSeal(byte[] plaintext, byte[] aad) {
-    checkIsSender();
-    Preconditions.checkNotNull(plaintext, "null plaintext");
-    return NativeCrypto.EVP_HPKE_CTX_seal(ctx, plaintext, aad);
-  }
-
-  @Override
-  public byte[] engineExport(int length, byte[] exporterContext) {
-    checkInitialised();
-    long maxLength = hpkeSuite.getKdf().maxExportLength();
-    if (length < 0 || length > maxLength) {
-      throw new IllegalArgumentException("Export length must be between 0 and "
-              + maxLength + ", but was " + length);
+    private void checkArgumentsForBaseModeOnly(Key senderKey, byte[] psk, byte[] psk_id) {
+        if (senderKey != null) {
+            throw new UnsupportedOperationException("Asymmetric authentication not supported");
+        }
+        // PSK args can only be null if the application passed them in.
+        Objects.requireNonNull(psk);
+        Objects.requireNonNull(psk_id);
+        if (psk.length > 0 || psk_id.length > 0) {
+            throw new UnsupportedOperationException("PSK authentication not supported");
+        }
     }
-    return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
-  }
 
-  @Override
-  public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException {
-    checkIsRecipient();
-    Preconditions.checkNotNull(ciphertext, "null ciphertext");
-    try {
-      return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
-    } catch (BadPaddingException e) {
-      throw new HpkeDecryptException(e.getMessage());
+    @Override
+    public byte[] engineSeal(byte[] plaintext, byte[] aad) {
+        checkIsSender();
+        Preconditions.checkNotNull(plaintext, "null plaintext");
+        return NativeCrypto.EVP_HPKE_CTX_seal(ctx, plaintext, aad);
     }
-  }
 
-  private void checkInitialised() {
-    if (ctx == null) {
-      throw new IllegalStateException("Not initialised");
+    @Override
+    public byte[] engineExport(int length, byte[] exporterContext) {
+        checkInitialised();
+        long maxLength = hpkeSuite.getKdf().maxExportLength();
+        if (length < 0 || length > maxLength) {
+            throw new IllegalArgumentException("Export length must be between 0 and " + maxLength
+                                               + ", but was " + length);
+        }
+        return NativeCrypto.EVP_HPKE_CTX_export(ctx, exporterContext, length);
     }
-  }
 
-  private void checkNotInitialised() {
-    if (ctx != null) {
-      throw new IllegalStateException("Already initialised");
+    @Override
+    public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException {
+        checkIsRecipient();
+        Preconditions.checkNotNull(ciphertext, "null ciphertext");
+        try {
+            return NativeCrypto.EVP_HPKE_CTX_open(ctx, ciphertext, aad);
+        } catch (BadPaddingException e) {
+            throw new HpkeDecryptException(e.getMessage());
+        }
     }
-  }
 
-  private void checkIsSender() {
-    checkInitialised();
-    if (encapsulated == null) {
-      throw new IllegalStateException("Internal error");
+    private void checkInitialised() {
+        if (ctx == null) {
+            throw new IllegalStateException("Not initialised");
+        }
     }
-  }
 
-  private void checkIsRecipient() {
-    checkInitialised();
-    if (encapsulated != null) {
-      throw new IllegalStateException("Internal error");
+    private void checkNotInitialised() {
+        if (ctx != null) {
+            throw new IllegalStateException("Already initialised");
+        }
     }
-  }
 
-  @Override
-  public byte[] getEncapsulated() {
-    checkIsSender();
-    return encapsulated;
-  }
-
-  public static class X25519_AES_128 extends HpkeImpl {
-    public X25519_AES_128() {
-      super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+    private void checkIsSender() {
+        checkInitialised();
+        if (encapsulated == null) {
+            throw new IllegalStateException("Internal error");
+        }
     }
-  }
 
-  public static class X25519_AES_256 extends HpkeImpl {
-    public X25519_AES_256() {
-      super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+    private void checkIsRecipient() {
+        checkInitialised();
+        if (encapsulated != null) {
+            throw new IllegalStateException("Internal error");
+        }
     }
-  }
 
-  public static class X25519_CHACHA20 extends HpkeImpl {
-    public X25519_CHACHA20() {
-      super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+    @Override
+    public byte[] getEncapsulated() {
+        checkIsSender();
+        return encapsulated;
     }
-  }
+
+    private static class HpkeX25519Impl extends HpkeImpl {
+        private HpkeX25519Impl(HpkeSuite hpkeSuite) {
+            super(hpkeSuite);
+        }
+
+        @Override
+        byte[] getRecipientPublicKeyBytes(PublicKey recipientKey) throws InvalidKeyException {
+            if (!(recipientKey instanceof OpenSSLX25519PublicKey)) {
+                throw new InvalidKeyException("Unsupported recipient key class: "
+                                              + recipientKey.getClass());
+            }
+            return ((OpenSSLX25519PublicKey) recipientKey).getU();
+        }
+
+        @Override
+        byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
+            if (!(recipientKey instanceof OpenSSLX25519PrivateKey)) {
+                throw new InvalidKeyException("Unsupported recipient private key class: "
+                                              + recipientKey.getClass());
+            }
+            return ((OpenSSLX25519PrivateKey) recipientKey).getU();
+        }
+    }
+
+    /** Implementation of X25519/HKDF_SHA256/AES_128_GCM. */
+    public static class X25519_AES_128 extends HpkeX25519Impl {
+        public X25519_AES_128() {
+            super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+        }
+    }
+
+    /** Implementation of X25519/HKDF_SHA256/AES_256_GCM. */
+    public static class X25519_AES_256 extends HpkeX25519Impl {
+        public X25519_AES_256() {
+            super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+        }
+    }
+
+    /** Implementation of X25519/HKDF_SHA256/CHACHA20_POLY1305. */
+    public static class X25519_CHACHA20 extends HpkeX25519Impl {
+        public X25519_CHACHA20() {
+            super(new HpkeSuite(KEM_DHKEM_X25519_HKDF_SHA256, KDF_HKDF_SHA256,
+                                AEAD_CHACHA20POLY1305));
+        }
+    }
+
+    private static final OpenSslXwingKeyFactory xwingKeyFactory = new OpenSslXwingKeyFactory();
+
+    private static class HpkeXwingImpl extends HpkeImpl {
+        HpkeXwingImpl(HpkeSuite hpkeSuite) {
+            super(hpkeSuite);
+        }
+
+        @Override
+        byte[] getRecipientPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
+            Key translatedKey = xwingKeyFactory.engineTranslateKey(publicKey);
+            if (!(translatedKey instanceof OpenSslXwingPublicKey)) {
+                throw new IllegalStateException("Unexpected public key class");
+            }
+            return ((OpenSslXwingPublicKey) translatedKey).getRaw();
+        }
+
+        @Override
+        byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
+            Key translatedKey = xwingKeyFactory.engineTranslateKey(recipientKey);
+            if (!(translatedKey instanceof OpenSslXwingPrivateKey)) {
+                throw new IllegalStateException("Unexpected private key class");
+            }
+            return ((OpenSslXwingPrivateKey) translatedKey).getRaw();
+        }
+    }
+
+    /** Implementation of XWING/HKDF_SHA256/AES_128_GCM. */
+    public static class XwingHkdfSha256Aes128Gcm extends HpkeXwingImpl {
+        public XwingHkdfSha256Aes128Gcm() {
+            super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+        }
+    }
+
+    /** Implementation of XWING/HKDF_SHA256/AES_256_GCM. */
+    public static class XwingHkdfSha256Aes256Gcm extends HpkeXwingImpl {
+        public XwingHkdfSha256Aes256Gcm() {
+            super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+        }
+    }
+
+    /** Implementation of XWING/HKDF_SHA256/CHACHA20_POLY1305. */
+    public static class XwingHkdfSha256ChaCha20Poly1305 extends HpkeXwingImpl {
+        public XwingHkdfSha256ChaCha20Poly1305() {
+            super(new HpkeSuite(KEM_XWING, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+        }
+    }
+
+    private static class HpkeMlKemImpl extends HpkeImpl {
+        HpkeMlKemImpl(HpkeSuite hpkeSuite) {
+            super(hpkeSuite);
+        }
+
+        @Override
+        byte[] getRecipientPublicKeyBytes(PublicKey publicKey) throws InvalidKeyException {
+            if (!(publicKey instanceof OpenSslMlKemPublicKey)) {
+                throw new InvalidKeyException("Unsupported recipient key class: "
+                                              + publicKey.getClass());
+            }
+            return ((OpenSslMlKemPublicKey) publicKey).getRaw();
+        }
+
+        @Override
+        byte[] getPrivateRecipientKeyBytes(PrivateKey recipientKey) throws InvalidKeyException {
+            if (!(recipientKey instanceof OpenSslMlKemPrivateKey)) {
+                throw new InvalidKeyException("Unsupported recipient private key class: "
+                                              + recipientKey.getClass());
+            }
+            return ((OpenSslMlKemPrivateKey) recipientKey).getSeed();
+        }
+    }
+
+    /** Implementation of MLKEM_768/HKDF_SHA256/AES_128_GCM. */
+    public static class MlKem768HkdfSha256Aes128Gcm extends HpkeMlKemImpl {
+        public MlKem768HkdfSha256Aes128Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_768, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_768/HKDF_SHA256/AES_256_GCM. */
+    public static class MlKem768HkdfSha256Aes256Gcm extends HpkeMlKemImpl {
+        public MlKem768HkdfSha256Aes256Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_768, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_768/HKDF_SHA256/CHACHA20_POLY1305. */
+    public static class MlKem768HkdfSha256ChaCha20Poly1305 extends HpkeMlKemImpl {
+        public MlKem768HkdfSha256ChaCha20Poly1305() {
+            super(new HpkeSuite(KEM_MLKEM_768, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+        }
+    }
+
+    /** Implementation of MLKEM_1024/HKDF_SHA256/AES_128_GCM. */
+    public static class MlKem1024HkdfSha256Aes128Gcm extends HpkeMlKemImpl {
+        public MlKem1024HkdfSha256Aes128Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_1024, KDF_HKDF_SHA256, AEAD_AES_128_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_1024/HKDF_SHA256/AES_256_GCM. */
+    public static class MlKem1024HkdfSha256Aes256Gcm extends HpkeMlKemImpl {
+        public MlKem1024HkdfSha256Aes256Gcm() {
+            super(new HpkeSuite(KEM_MLKEM_1024, KDF_HKDF_SHA256, AEAD_AES_256_GCM));
+        }
+    }
+
+    /** Implementation of MLKEM_1024/HKDF_SHA256/CHACHA20_POLY1305. */
+    public static class MlKem1024HkdfSha256ChaCha20Poly1305 extends HpkeMlKemImpl {
+        public MlKem1024HkdfSha256ChaCha20Poly1305() {
+            super(new HpkeSuite(KEM_MLKEM_1024, KDF_HKDF_SHA256, AEAD_CHACHA20POLY1305));
+        }
+    }
 }

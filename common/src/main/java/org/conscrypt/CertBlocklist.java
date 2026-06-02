@@ -23,7 +23,6 @@ import java.security.PublicKey;
  * A set of certificates that are blacklisted from trust.
  */
 public interface CertBlocklist {
-
     /**
      * Returns whether the given public key is in the blacklist.
      */

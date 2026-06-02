@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+
 import javax.net.ssl.SSLSocketFactory;
 
 @Internal
 public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {
-
     private final OpenSSLSocketFactoryImpl delegate;
 
     protected BaseOpenSSLSocketAdapterFactory(OpenSSLSocketFactoryImpl delegate) {
@@ -47,8 +47,7 @@ public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(String hostname, int port)
-            throws IOException, UnknownHostException {
+    public Socket createSocket(String hostname, int port) throws IOException, UnknownHostException {
         return wrap((OpenSSLSocketImpl) delegate.createSocket(hostname, port));
     }
 
@@ -64,11 +63,8 @@ public abstract class BaseOpenSSLSocketAdapterFactory extends SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(InetAddress address,
-                               int port,
-                               InetAddress localAddress,
-                               int localPort)
-            throws IOException {
+    public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
+                               int localPort) throws IOException {
         return wrap(
                 (OpenSSLSocketImpl) delegate.createSocket(address, port, localAddress, localPort));
     }

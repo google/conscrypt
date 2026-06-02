@@ -24,6 +24,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.conscrypt.Conscrypt;
+import org.conscrypt.TestUtils;
+import org.conscrypt.java.security.StandardNames;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
@@ -56,25 +68,14 @@ import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
+
 import javax.security.auth.x500.X500Principal;
-import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.TestUtils;
-import org.conscrypt.java.security.StandardNames;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class CertificateFactoryTest {
-
-    private static final String VALID_CERTIFICATE_PEM =
-            "-----BEGIN CERTIFICATE-----\n"
+    private static final String VALID_CERTIFICATE_PEM = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBM\n"
             + "MQswCQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkg\n"
             + "THRkLjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0x\n"
@@ -94,8 +95,7 @@ public class CertificateFactoryTest {
             + "z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHXw==\n"
             + "-----END CERTIFICATE-----\n";
 
-    private static final String VALID_CERTIFICATE_PEM_CRLF =
-            "-----BEGIN CERTIFICATE-----\r\n"
+    private static final String VALID_CERTIFICATE_PEM_CRLF = "-----BEGIN CERTIFICATE-----\r\n"
             + "MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBM\r\n"
             + "MQswCQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkg\r\n"
             + "THRkLjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0x\r\n"
@@ -115,34 +115,33 @@ public class CertificateFactoryTest {
             + "z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHXw==\r\n"
             + "-----END CERTIFICATE-----\r\n";
 
-    private static final byte[] VALID_CERTIFICATE_PEM_HEADER = "-----BEGIN CERTIFICATE-----\n"
-            .getBytes(Charset.defaultCharset());
+    private static final byte[] VALID_CERTIFICATE_PEM_HEADER =
+            "-----BEGIN CERTIFICATE-----\n".getBytes(Charset.defaultCharset());
 
     private static final byte[] VALID_CERTIFICATE_PEM_DATA =
-             ("MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBM"
-            + "MQswCQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkg"
-            + "THRkLjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0x"
-            + "MTEyMTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlh"
-            + "MRYwFAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApHb29nbGUgSW5jMRcw"
-            + "FQYDVQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC"
-            + "gYEA6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jN"
-            + "gtXj9xVoRaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L"
-            + "05vuuWciKh0R73mkszeK9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAM"
-            + "BgNVHRMBAf8EAjAAMDYGA1UdHwQvMC0wK6ApoCeGJWh0dHA6Ly9jcmwudGhhd3Rl"
-            + "LmNvbS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYIKwYBBQUHAwEGCCsGAQUF"
-            + "BwMCBglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzABhhZodHRw"
-            + "Oi8vb2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0"
-            + "ZS5jb20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUF"
-            + "AAOBgQCfQ89bxFApsb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5"
-            + "u2ONgJd8IyAPkU0Wueru9G2Jysa9zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6"
-            + "z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHXw==")
-                     .getBytes(Charset.defaultCharset());
+            ("MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBM"
+             + "MQswCQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkg"
+             + "THRkLjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0x"
+             + "MTEyMTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlh"
+             + "MRYwFAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApHb29nbGUgSW5jMRcw"
+             + "FQYDVQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC"
+             + "gYEA6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jN"
+             + "gtXj9xVoRaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L"
+             + "05vuuWciKh0R73mkszeK9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAM"
+             + "BgNVHRMBAf8EAjAAMDYGA1UdHwQvMC0wK6ApoCeGJWh0dHA6Ly9jcmwudGhhd3Rl"
+             + "LmNvbS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYIKwYBBQUHAwEGCCsGAQUF"
+             + "BwMCBglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzABhhZodHRw"
+             + "Oi8vb2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0"
+             + "ZS5jb20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUF"
+             + "AAOBgQCfQ89bxFApsb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5"
+             + "u2ONgJd8IyAPkU0Wueru9G2Jysa9zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6"
+             + "z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHXw==")
+                    .getBytes(Charset.defaultCharset());
 
-    private static final byte[] VALID_CERTIFICATE_PEM_FOOTER = "\n-----END CERTIFICATE-----\n"
-            .getBytes(Charset.defaultCharset());
+    private static final byte[] VALID_CERTIFICATE_PEM_FOOTER =
+            "\n-----END CERTIFICATE-----\n".getBytes(Charset.defaultCharset());
 
-    private static final String INVALID_CERTIFICATE_PEM =
-            "-----BEGIN CERTIFICATE-----\n"
+    private static final String INVALID_CERTIFICATE_PEM = "-----BEGIN CERTIFICATE-----\n"
             + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
             + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
             + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
@@ -180,21 +179,21 @@ public class CertificateFactoryTest {
             + "-----END CERTIFICATE-----";
 
     private static final String VALID_CERTIFICATE_DER_BASE64 =
-        "MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBMMQswCQYDVQQG"
-        + "EwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkgTHRkLjEWMBQGA1UEAxMNVGhh"
-        + "d3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0xMTEyMTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVT"
-        + "MRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApH"
-        + "b29nbGUgSW5jMRcwFQYDVQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAw"
-        + "gYkCgYEA6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jNgtXj9xVo"
-        + "RaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L05vuuWciKh0R73mkszeK"
-        + "9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAMBgNVHRMBAf8EAjAAMDYGA1UdHwQvMC0w"
-        + "K6ApoCeGJWh0dHA6Ly9jcmwudGhhd3RlLmNvbS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYI"
-        + "KwYBBQUHAwEGCCsGAQUFBwMCBglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzAB"
-        + "hhZodHRwOi8vb2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0ZS5j"
-        + "b20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUFAAOBgQCfQ89bxFAp"
-        + "sb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5u2ONgJd8IyAPkU0Wueru9G2Jysa9"
-        + "zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqA"
-        + "ibAxWEEHXw==";
+            "MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBMMQswCQYDVQQG"
+            + "EwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkgTHRkLjEWMBQGA1UEAxMNVGhh"
+            + "d3RlIFNHQyBDQTAeFw0wOTEyMTgwMDAwMDBaFw0xMTEyMTgyMzU5NTlaMGgxCzAJBgNVBAYTAlVT"
+            + "MRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHFA1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKFApH"
+            + "b29nbGUgSW5jMRcwFQYDVQQDFA53d3cuZ29vZ2xlLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAw"
+            + "gYkCgYEA6PmGD5D6htffvXImttdEAoN4c9kCKO+IRTn7EOh8rqk41XXGOOsKFQebg+jNgtXj9xVo"
+            + "RaELGYW84u+E593y17iYwqG7tcFR39SDAqc9BkJb4SLD3muFXxzW2k6L05vuuWciKh0R73mkszeK"
+            + "9P4Y/bz5RiNQl/Os/CRGK1w7t0UCAwEAAaOB5zCB5DAMBgNVHRMBAf8EAjAAMDYGA1UdHwQvMC0w"
+            + "K6ApoCeGJWh0dHA6Ly9jcmwudGhhd3RlLmNvbS9UaGF3dGVTR0NDQS5jcmwwKAYDVR0lBCEwHwYI"
+            + "KwYBBQUHAwEGCCsGAQUFBwMCBglghkgBhvhCBAEwcgYIKwYBBQUHAQEEZjBkMCIGCCsGAQUFBzAB"
+            + "hhZodHRwOi8vb2NzcC50aGF3dGUuY29tMD4GCCsGAQUFBzAChjJodHRwOi8vd3d3LnRoYXd0ZS5j"
+            + "b20vcmVwb3NpdG9yeS9UaGF3dGVfU0dDX0NBLmNydDANBgkqhkiG9w0BAQUFAAOBgQCfQ89bxFAp"
+            + "sb/isJr/aiEdLRLDLE5a+RLizrmCUi3nHX4adpaQedEkUjh5u2ONgJd8IyAPkU0Wueru9G2Jysa9"
+            + "zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nRUP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqA"
+            + "ibAxWEEHXw==";
 
     // Generated with openssl crl2pkcs7 -nocrl -certfile cert.pem
     private static final String VALID_CERTIFICATE_PKCS7_PEM = "-----BEGIN PKCS7-----\n"
@@ -238,8 +237,7 @@ public class CertificateFactoryTest {
             + "gJd8IyAPkU0Wueru9G2Jysa9zCRo1kNbzipYvzwY4OA8Ys+WAi0oR1A04Se6z5nR"
             + "UP8pJcA2NhUzUnC+MY+f6H/nEQyNv4SgQhqAibAxWEEHX6EAMQA=";
 
-    private static final String VALID_CRL_PEM =
-        "-----BEGIN X509 CRL-----\n"
+    private static final String VALID_CRL_PEM = "-----BEGIN X509 CRL-----\n"
             + "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE\n"
             + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ\n"
             + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi\n"
@@ -250,8 +248,7 @@ public class CertificateFactoryTest {
             + "nDN0LLg=\n"
             + "-----END X509 CRL-----\n";
 
-    private static final String VALID_CRL_PEM_CRLF =
-        "-----BEGIN X509 CRL-----\r\n"
+    private static final String VALID_CRL_PEM_CRLF = "-----BEGIN X509 CRL-----\r\n"
             + "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE\r\n"
             + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ\r\n"
             + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi\r\n"
@@ -263,7 +260,7 @@ public class CertificateFactoryTest {
             + "-----END X509 CRL-----\r\n";
 
     private static final String VALID_CRL_DER_BASE64 =
-        "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE"
+            "MIIBUTCBuwIBATANBgkqhkiG9w0BAQsFADBVMQswCQYDVQQGEwJHQjEkMCIGA1UE"
             + "ChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVXYWxlczEQ"
             + "MA4GA1UEBxMHRXJ3IFdlbhcNMTkwODA3MTAyNzEwWhcNMTkwOTA2MTAyNzEwWjAi"
             + "MCACAQcXDTE5MDgwNzEwMjY1NFowDDAKBgNVHRUEAwoBAaAOMAwwCgYDVR0UBAMC"
@@ -296,8 +293,7 @@ public class CertificateFactoryTest {
             + "IdYDDxY31dInicbF1GJpwb/m8QjHTQgJQYJ4ZyepaxKcW1qAO2+vLZzgwx7FtI+c"
             + "M3QsuDEA";
 
-    private static final String INVALID_CRL_PEM =
-        "-----BEGIN X509 CRL-----\n"
+    private static final String INVALID_CRL_PEM = "-----BEGIN X509 CRL-----\n"
             + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
             + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
             + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
@@ -346,21 +342,21 @@ public class CertificateFactoryTest {
     @Test
     public void test_generateCertificate() throws Exception {
         ServiceTester.test("CertificateFactory")
-            .withAlgorithm("X509")
-            .run(new ServiceTester.Test() {
-                @Override
-                public void test(Provider p, String algorithm) throws Exception {
-                    CertificateFactory cf = CertificateFactory.getInstance("X509", p);
-                    test_generateCertificate(cf);
-                    test_generateCertificate_InputStream_Offset_Correct(cf);
-                    test_generateCertificate_InputStream_Empty(cf);
-                    test_generateCertificate_InputStream_InvalidStart_Failure(cf);
-                    test_generateCertificate_AnyLineLength_Success(cf);
-                    test_generateCertificate_PartialInput(cf);
+                .withAlgorithm("X509")
+                .run(new ServiceTester.Test() {
+                    @Override
+                    public void test(Provider p, String algorithm) throws Exception {
+                        CertificateFactory cf = CertificateFactory.getInstance("X509", p);
+                        test_generateCertificate(cf);
+                        test_generateCertificate_InputStream_Offset_Correct(cf);
+                        test_generateCertificate_InputStream_Empty(cf);
+                        test_generateCertificate_InputStream_InvalidStart_Failure(cf);
+                        test_generateCertificate_AnyLineLength_Success(cf);
+                        test_generateCertificate_PartialInput(cf);
 
-                    test_generateCrl(cf);
-                }
-            });
+                        test_generateCrl(cf);
+                    }
+                });
     }
 
     private void test_generateCertificate(CertificateFactory cf) throws Exception {
@@ -397,21 +393,24 @@ public class CertificateFactoryTest {
 
         {
             byte[] valid = VALID_CERTIFICATE_PKCS7_PEM.getBytes(Charset.defaultCharset());
-            Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
+            Collection<? extends Certificate> cs =
+                    cf.generateCertificates(new ByteArrayInputStream(valid));
             assertEquals(1, cs.size());
             assertEquals(cs.iterator().next(), cert);
         }
 
         {
             byte[] valid = TestUtils.decodeBase64(VALID_CERTIFICATE_PKCS7_DER_BASE64);
-            Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
+            Collection<? extends Certificate> cs =
+                    cf.generateCertificates(new ByteArrayInputStream(valid));
             assertEquals(1, cs.size());
             assertEquals(cs.iterator().next(), cert);
         }
 
         {
             byte[] valid = TestUtils.decodeBase64(SMALL_PKCS7_DER_BASE64);
-            Collection<? extends Certificate> cs = cf.generateCertificates(new ByteArrayInputStream(valid));
+            Collection<? extends Certificate> cs =
+                    cf.generateCertificates(new ByteArrayInputStream(valid));
             assertEquals(1, cs.size());
             assertNotNull(cs.iterator().next());
         }
@@ -433,14 +432,13 @@ public class CertificateFactoryTest {
         }
 
         try {
-            Certificate c = cf.generateCertificate(new ByteArrayInputStream(new byte[] { 0x00 }));
+            Certificate c = cf.generateCertificate(new ByteArrayInputStream(new byte[] {0x00}));
             // Bouncy Castle returns null on short inputs rather than throwing an exception,
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CertificateException maybeExpected) {
             assertNotEquals("BC", cf.getProvider().getName());
         }
-
     }
 
     /*
@@ -483,7 +481,6 @@ public class CertificateFactoryTest {
                 lineLength++;
             }
         }
-
     }
 
     private void test_generateCertificate_InputStream_Empty(CertificateFactory cf) {
@@ -522,8 +519,8 @@ public class CertificateFactoryTest {
         byte[] doubleCertificateData = new byte[valid.length * 2];
         System.arraycopy(valid, 0, doubleCertificateData, 0, valid.length);
         System.arraycopy(valid, 0, doubleCertificateData, valid.length, valid.length);
-        MeasuredInputStream certStream = new MeasuredInputStream(new ByteArrayInputStream(
-                doubleCertificateData));
+        MeasuredInputStream certStream =
+                new MeasuredInputStream(new ByteArrayInputStream(doubleCertificateData));
         Certificate certificate = cf.generateCertificate(certStream);
         assertNotNull(certificate);
         assertEquals(valid.length, certStream.getCount());
@@ -632,7 +629,8 @@ public class CertificateFactoryTest {
     // returns partial inputs on basically every request.
     private void test_generateCertificate_PartialInput(CertificateFactory cf) throws Exception {
         byte[] valid = VALID_CERTIFICATE_PEM.getBytes(Charset.defaultCharset());
-        Certificate c = cf.generateCertificate(new SlowInputStream(new ByteArrayInputStream(valid)));
+        Certificate c =
+                cf.generateCertificate(new SlowInputStream(new ByteArrayInputStream(valid)));
         assertNotNull(c);
 
         valid = TestUtils.decodeBase64(VALID_CERTIFICATE_DER_BASE64);
@@ -703,7 +701,7 @@ public class CertificateFactoryTest {
     }
 
     private void testCertPathEncoding(CertificateFactory cf, List<X509Certificate> expectedCerts,
-            String encoding) throws Exception {
+                                      String encoding) throws Exception {
         final String providerName = cf.getProvider().getName() + "[" + encoding + "]";
 
         final CertPath pathFromList = cf.generateCertPath(expectedCerts);
@@ -716,14 +714,14 @@ public class CertificateFactoryTest {
 
             // check idempotence
             assertEquals(providerName, Arrays.toString(pathFromList.getEncoded()),
-                    Arrays.toString(encodedCopy));
+                         Arrays.toString(encodedCopy));
         } else {
             encodedCopy = pathFromList.getEncoded(encoding);
             assertNotNull(providerName, encodedCopy);
 
             // check idempotence
             assertEquals(providerName, Arrays.toString(pathFromList.getEncoded(encoding)),
-                    Arrays.toString(encodedCopy));
+                         Arrays.toString(encodedCopy));
         }
 
         // Try to modify byte array.
@@ -737,14 +735,14 @@ public class CertificateFactoryTest {
 
             // check idempotence
             assertEquals(providerName, Arrays.toString(pathFromList.getEncoded()),
-                    Arrays.toString(encoded));
+                         Arrays.toString(encoded));
         } else {
             encoded = pathFromList.getEncoded(encoding);
             assertNotNull(providerName, encodedCopy);
 
             // check idempotence
             assertEquals(providerName, Arrays.toString(pathFromList.getEncoded(encoding)),
-                    Arrays.toString(encoded));
+                         Arrays.toString(encoded));
         }
         assertNotEquals(providerName, Arrays.toString(encoded), Arrays.toString(encodedCopy));
 
@@ -841,16 +839,17 @@ public class CertificateFactoryTest {
         certGen.setSignatureAlgorithm("SHA1withRSA");
 
         if (issuer != null) {
-            certGen.addExtension(Extension.authorityKeyIdentifier, false,
+            certGen.addExtension(
+                    Extension.authorityKeyIdentifier, false,
                     new org.bouncycastle.x509.extension.AuthorityKeyIdentifierStructure(
                             issuer.certificate));
         } else {
             certGen.addExtension(Extension.authorityKeyIdentifier, false,
-                    new AuthorityKeyIdentifier(generatePublicKeyDigest(pubKey)));
+                                 new AuthorityKeyIdentifier(generatePublicKeyDigest(pubKey)));
         }
 
         certGen.addExtension(Extension.subjectKeyIdentifier, false,
-                new SubjectKeyIdentifier(generatePublicKeyDigest(pubKey)));
+                             new SubjectKeyIdentifier(generatePublicKeyDigest(pubKey)));
         certGen.addExtension(Extension.basicConstraints, true, basicConstraints);
 
         X509Certificate cert = certGen.generate(caKey);
@@ -927,13 +926,12 @@ public class CertificateFactoryTest {
         }
 
         try {
-            c = cf.generateCRL(new ByteArrayInputStream(new byte[] { 0x00 }));
+            c = cf.generateCRL(new ByteArrayInputStream(new byte[] {0x00}));
             // Bouncy Castle returns null on short inputs rather than throwing an exception,
             // which technically doesn't satisfy the method contract, but we'll accept it
             assertTrue((c == null) && cf.getProvider().getName().equals("BC"));
         } catch (CRLException maybeExpected) {
             assertNotEquals("BC", cf.getProvider().getName());
         }
-
     }
 }
