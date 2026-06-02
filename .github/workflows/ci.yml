@@ -55,13 +55,14 @@ jobs:
       fail-fast: false
       matrix:
         platform: [ubuntu-22.04, macos-latest, windows-latest]
+        # We use commandlinetools v20.
         include:
           - platform: ubuntu-22.04
-            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
           - platform: macos-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-14742923_latest.zip
           - platform: windows-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-win-14742923_latest.zip
 
     runs-on: ${{ matrix.platform }}
 
