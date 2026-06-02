@@ -67,11 +67,11 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Set up JDK 11 for toolchains
+      - name: Set up JDK 17 for toolchains
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: 11
+          java-version: 17
 
       - name: Set runner-specific environment variables
         shell: bash
@@ -96,7 +96,7 @@ jobs:
           sudo apt-get -qq install -y --no-install-recommends \
             g++-aarch64-linux-gnu \
             ninja-build \
-            openjdk-11-jre-headless
+            openjdk-17-jre-headless
 
       - name: Setup macOS environment
         if: runner.os == 'macOS'
@@ -250,7 +250,7 @@ jobs:
           sudo apt-get -qq install -y --no-install-recommends \
             g++-aarch64-linux-gnu \
             ninja-build \
-            openjdk-11-jre-headless
+            openjdk-17-jre-headless
 
       - name: Set runner-specific environment variables
         shell: bash
