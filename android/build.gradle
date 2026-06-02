@@ -14,7 +14,7 @@ ext {
     androidVersionName = "$version"
     androidMinSdkVersion = 19
     androidTargetSdkVersion = 26
-    androidNdkVersion = '25.2.9519653'
+    androidNdkVersion = '28.2.13676358'
     androidCmakeVersion = '3.22.1'
 }
 
