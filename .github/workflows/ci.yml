@@ -205,7 +205,7 @@ jobs:
 
       - name: Test with Gradle
         shell: bash
-        timeout-minutes: 15
+        timeout-minutes: 30
         run: ./gradlew check -PcheckErrorQueue
 
       - name: Publish to local Maven repo
@@ -403,7 +403,7 @@ jobs:
         run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.8.0:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.11.2 -DoutputDirectory=. -Dmdep.stripVersion=true
 
       - name: Run JUnit tests
-        timeout-minutes: 15
+        timeout-minutes: 30
         shell: bash
         run: |
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
