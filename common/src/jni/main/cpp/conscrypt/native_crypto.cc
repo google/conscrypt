@@ -4399,7 +4399,7 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jobject ctxRef, j
     if (outBytes.get() == nullptr) {
         return 0;
     }
-    if (ARRAY_OFFSET_LENGTH_INVALID(outBytes, outOffset, inLength)) {
+    if (ARRAY_OFFSET_INVALID(outBytes, outOffset)) {
         conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
                                            "outBytes");
         return 0;
@@ -4415,16 +4415,18 @@ static jint NativeCrypto_EVP_CipherUpdate(JNIEnv* env, jclass, jobject ctxRef, j
     unsigned char* out = reinterpret_cast<unsigned char*>(outBytes.get());
     const unsigned char* in = reinterpret_cast<const unsigned char*>(inBytes.get());
 
-    int outl;
-    if (!EVP_CipherUpdate(ctx, out + outOffset, &outl, in + inOffset, inLength)) {
-        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_CipherUpdate");
+    size_t outl;
+    if (!EVP_CipherUpdate_ex(ctx, out + outOffset, &outl, outBytes.size() - outOffset,
+                             in + inOffset, inLength)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_CipherUpdate_ex");
         JNI_TRACE("ctx=%p EVP_CipherUpdate => threw error", ctx);
         return 0;
     }
 
-    JNI_TRACE("EVP_CipherUpdate(%p, %p, %d, %p, %d) => %d", ctx, outArray, outOffset, inArray,
+    JNI_TRACE("EVP_CipherUpdate(%p, %p, %d, %p, %d) => %zu", ctx, outArray, outOffset, inArray,
               inOffset, outl);
-    return outl;
+    // outl will fit in jint because EVP_CipherUpdate_ex will not output outBytes.size() bytes.
+    return static_cast<jint>(outl);
 }
 
 static jint NativeCrypto_EVP_CipherFinal_ex(JNIEnv* env, jclass, jobject ctxRef,
@@ -4442,19 +4444,25 @@ static jint NativeCrypto_EVP_CipherFinal_ex(JNIEnv* env, jclass, jobject ctxRef,
     if (outBytes.get() == nullptr) {
         return 0;
     }
+    if (ARRAY_OFFSET_INVALID(outBytes, outOffset)) {
+        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
+                                           "outBytes");
+        return 0;
+    }
 
     unsigned char* out = reinterpret_cast<unsigned char*>(outBytes.get());
 
-    int outl;
-    if (!EVP_CipherFinal_ex(ctx, out + outOffset, &outl)) {
+    size_t outl;
+    if (!EVP_CipherFinal_ex2(ctx, out + outOffset, &outl, outBytes.size() - outOffset)) {
         conscrypt::jniutil::throwExceptionFromBoringSSLError(
-                env, "EVP_CipherFinal_ex", conscrypt::jniutil::throwBadPaddingException);
+                env, "EVP_CipherFinal_ex2", conscrypt::jniutil::throwBadPaddingException);
         JNI_TRACE("ctx=%p EVP_CipherFinal_ex => threw error", ctx);
         return 0;
     }
 
-    JNI_TRACE("EVP_CipherFinal(%p, %p, %d) => %d", ctx, outArray, outOffset, outl);
-    return outl;
+    JNI_TRACE("EVP_CipherFinal(%p, %p, %d) => %zu", ctx, outArray, outOffset, outl);
+    // outl will fit in jint because EVP_CipherUpdate_ex will not output outBytes.size() bytes.
+    return static_cast<jint>(outl);
 }
 
 static jint NativeCrypto_EVP_CIPHER_iv_length(JNIEnv* env, jclass, jlong evpCipherRef) {

@@ -77,9 +77,15 @@ class KeyManagerImpl extends X509ExtendedKeyManager {
                         // doesn't, fall back to reading the two values separately.
                         PrivateKey key = (PrivateKey) keyStore.getKey(alias, pwd);
                         Certificate[] certs = keyStore.getCertificateChain(alias);
-                        entry = new PrivateKeyEntry(key, certs);
+                        if (key != null && certs != null && certs.length > 0) {
+                            entry = new PrivateKeyEntry(key, certs);
+                        } else {
+                            entry = null;
+                        }
                     }
-                    hash.put(alias, entry);
+                    if (entry != null) {
+                        hash.put(alias, entry);
+                    }
                 }
             } catch (KeyStoreException | UnrecoverableEntryException
                      | NoSuchAlgorithmException ignored) {
