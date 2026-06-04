@@ -1,6 +1,6 @@
 [versions]
 bnd = "6.4.0"
-bouncycastle = "1.78"
+bouncycastle = "1.84"
 caliper = "1.0-beta-2"
 errorprone = "2.31.0"
 jacoco = "0.8.12"
