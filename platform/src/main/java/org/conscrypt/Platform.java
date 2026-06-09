@@ -164,6 +164,20 @@ final public class Platform {
         }
     }
 
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
+        impl.setUseCipherSuitesOrder(params.getUseCipherSuitesOrder());
+
+        try {
+            Method getNamedGroupsMethod = params.getClass().getMethod("getNamedGroups");
+            impl.setNamedGroups((String[]) getNamedGroupsMethod.invoke(params));
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
+
+        impl.setApplicationProtocols(params.getApplicationProtocols());
+    }
+
     static void setSSLParameters(SSLParameters params, SSLParametersImpl impl,
                                  AbstractConscryptSocket socket) {
         impl.setEndpointIdentificationAlgorithm(params.getEndpointIdentificationAlgorithm());
@@ -186,6 +200,21 @@ final public class Platform {
             }
         }
         impl.setApplicationProtocols(params.getApplicationProtocols());
+    }
+
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+        params.setEndpointIdentificationAlgorithm(impl.getEndpointIdentificationAlgorithm());
+        params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
+
+        try {
+            Method setNamedGroupsMethod =
+                    params.getClass().getMethod("setNamedGroups", String[].class);
+            setNamedGroupsMethod.invoke(params, (Object) impl.getNamedGroups());
+        } catch (NoSuchMethodException | IllegalArgumentException e) {
+            // Do nothing.
+        }
+
+        params.setApplicationProtocols(impl.getApplicationProtocols());
     }
 
     static void getSSLParameters(SSLParameters params, SSLParametersImpl impl,
