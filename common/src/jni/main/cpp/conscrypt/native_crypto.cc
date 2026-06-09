@@ -12363,10 +12363,13 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     if (ssl == nullptr) {
         return JNI_FALSE;
     }
+    if (configJavaBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ech config");
+        return JNI_FALSE;
+    }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
     if (configBytes.get() == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ech config");
-        ERR_clear_error();
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate config bytes");
         JNI_TRACE("NativeCrypto_SSL_set1_ech_config_list => could not read config bytes");
         return JNI_FALSE;
     }
@@ -12487,14 +12490,24 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
                                                        jbyteArray configJavaBytes) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+    if (ssl_ctx == nullptr) {
+        return JNI_FALSE;
+    }
     JNI_TRACE(
             "NativeCrypto_SSL_CTX_ech_enable_server(keyJavaBytes=%p, "
             "configJavaBytes=%p)",
             keyJavaBytes, configJavaBytes);
+    if (keyJavaBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, key bytes");
+        return JNI_FALSE;
+    }
+    if (configJavaBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, config bytes");
+        return JNI_FALSE;
+    }
     ScopedByteArrayRO keyBytes(env, keyJavaBytes);
     if (keyBytes.get() == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, key bytes");
-        ERR_clear_error();
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate key bytes");
         JNI_TRACE(
                 "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
                 "could not read key bytes");
@@ -12502,8 +12515,7 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
     if (configBytes.get() == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, config bytes");
-        ERR_clear_error();
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate config bytes");
         JNI_TRACE(
                 "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
                 "could not read config bytes");
