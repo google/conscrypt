@@ -914,7 +914,7 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jb
                                       dmp1BN.get(), dmq1BN.get(), iqmpBN.get()));
     }
     if (rsa == nullptr) {
-        conscrypt::jniutil::throwRuntimeException(env, "Creating RSA key failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_new_RSA");
         return 0;
     }
 #else

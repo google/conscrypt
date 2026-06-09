@@ -97,6 +97,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
+import javax.crypto.BadPaddingException;
 
 @RunWith(JUnit4.class)
 public class NativeCryptoTest {
@@ -240,6 +241,42 @@ public class NativeCryptoTest {
 
     public static void assertEqualByteArrays(byte[][] expected, byte[][] actual) {
         assertEquals(Arrays.deepToString(expected), Arrays.deepToString(actual));
+    }
+
+    @Test
+    public void EVP_PKEY_new_RSA_invalidParameters_throwsBoringSSLErrorAndClearsQueue() throws Exception {
+        RSAPrivateCrtKey privKey = TEST_RSA_KEY;
+
+        RuntimeException ex = assertThrows(
+        RuntimeException.class,
+        () ->
+            new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_new_RSA(
+                    // we mixed the order of the arguments to make an invalid key.
+                    privKey.getPrivateExponent().toByteArray(),
+                    privKey.getPublicExponent().toByteArray(),
+                    privKey.getModulus().toByteArray(),
+                    privKey.getPrimeP().toByteArray(),
+                    privKey.getPrimeQ().toByteArray(),
+                    privKey.getPrimeExponentP().toByteArray(),
+                    privKey.getPrimeExponentQ().toByteArray(),
+                    privKey.getCrtCoefficient().toByteArray())));
+        // check that the exception message contains the error message from BoringSSL.
+        assertTrue(ex.getMessage().contains("OPENSSL_internal:"));
+
+        // check that the error was cleared from the queue. We do this by trying to
+        // open an invalid AEAD ciphertext, which should throw a BadPaddingException.
+        // If the error was not cleared, this throws a RuntimeException instead.
+        byte[] encodedKey = new byte[32];
+        byte[] iv = new byte[12];
+        byte[] in = new byte[100];
+        byte[] aad = new byte[100];
+        byte[] output = new byte[100];
+        long evpAead = NativeCrypto.EVP_aead_chacha20_poly1305();
+        assertThrows(
+                BadPaddingException.class,
+                () -> NativeCrypto.EVP_AEAD_CTX_open(
+                    evpAead, encodedKey, 16, output, 0, iv, in, 0, in.length, aad));
     }
 
     @Test
