@@ -195,7 +195,7 @@ jobs:
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'build-tools;30.0.3'
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'platforms;android-26'
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'extras;android;m2repository'
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'ndk;28.2.13676358'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'ndk;27.3.13750724'
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'cmake;3.22.1'
 
       - name: Build with Gradle
