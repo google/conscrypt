@@ -14,7 +14,7 @@ ext {
     androidVersionName = "$version"
     androidMinSdkVersion = 19
     androidTargetSdkVersion = 26
-    androidNdkVersion = '28.2.13676358'
+    androidNdkVersion = '27.3.13750724'
     androidCmakeVersion = '3.22.1'
 }
 
@@ -40,6 +40,8 @@ android {
         versionName androidVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArgument "class", "org.conscrypt.ConscryptAndroidSuite"
+        multiDexEnabled true
 
         consumerProguardFiles 'proguard-rules.pro'
 
@@ -49,7 +51,7 @@ android {
                         '-DANDROID_STL=c++_static',
                         "-DBORINGSSL_HOME=$boringsslHome",
                         "-DCMAKE_CXX_STANDARD=17",
-                        '-DCMAKE_SHARED_LINKER_FLAGS=-z max-page-size=16384'
+                        '-DCMAKE_SHARED_LINKER_FLAGS=-z max-page-size=16384 -z common-page-size=16384'
                 cFlags '-fvisibility=hidden',
                         '-DBORINGSSL_SHARED_LIBRARY',
                         '-DBORINGSSL_IMPLEMENTATION',
@@ -82,6 +84,20 @@ android {
             srcDirs += "build/generated/resources"
         }
     }
+    sourceSets.androidTest {
+        java {
+            srcDirs = [
+                    "${rootDir}/common/src/test/java",
+                    "${rootDir}/openjdk/src/test/java",
+            ]
+        }
+        resources {
+            srcDirs = [
+                    "${rootDir}/common/src/test/resources",
+                    "${rootDir}/openjdk/src/test/resources",
+            ]
+        }
+    }
     externalNativeBuild {
         cmake {
             path 'CMakeLists.txt'
@@ -109,6 +125,10 @@ preBuild {
 
 dependencies {
     publicApiDocs project(':conscrypt-api-doclet')
+    androidTestImplementation project(':conscrypt-testing')
+    androidTestImplementation libs.bouncycastle.apis
+    androidTestImplementation libs.bouncycastle.provider
+    androidTestImplementation libs.mockito.android
     androidTestImplementation('androidx.test.espresso:espresso-core:3.1.1', {
         exclude module: 'support-annotations'
         exclude module: 'support-v4'
