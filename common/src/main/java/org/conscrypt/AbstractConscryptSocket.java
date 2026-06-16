@@ -513,6 +513,8 @@ abstract class AbstractConscryptSocket extends SSLSocket {
         return builder.toString();
     }
 
+    public abstract void setNamedGroups(String[] namedGroups);
+
     abstract String getCurveNameForTesting();
 
     /**

@@ -146,5 +146,7 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
                 SSLUtils.decodeProtocols(protocols == null ? EmptyArray.BYTE : protocols));
     }
 
+    @Override public abstract void setNamedGroups(String[] namedGroups);
+
     @Override public abstract String getCurveNameForTesting();
 }

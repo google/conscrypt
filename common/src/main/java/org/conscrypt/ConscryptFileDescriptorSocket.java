@@ -763,6 +763,11 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
+    public final void setNamedGroups(String[] namedGroups) {
+        sslParameters.setNamedGroups(namedGroups);
+    }
+
+    @Override
     public final String getCurveNameForTesting() {
         return ssl.getCurveNameForTesting();
     }

@@ -442,6 +442,11 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     @Override
+    public final void setNamedGroups(String[] namedGroups) {
+        engine.setNamedGroups(namedGroups);
+    }
+
+    @Override
     public final String getCurveNameForTesting() {
         return engine.getCurveNameForTesting();
     }
