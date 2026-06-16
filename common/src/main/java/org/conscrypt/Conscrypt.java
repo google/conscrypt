@@ -362,6 +362,16 @@ public final class Conscrypt {
     }
 
     /**
+     * Sets the prioritized array of key exchange named groups names that can be used over the
+     * TLS socket.
+     *
+     * <p>See {@link SSLParameters#setNamedGroups(String[])} for more details.
+     */
+    public static void setNamedGroups(SSLSocket socket, String[] namedGroups) {
+        toConscrypt(socket).setNamedGroups(namedGroups);
+    }
+
+    /**
      * This method enables Server Name Indication (SNI) and overrides the hostname supplied
      * during socket creation.  If the hostname is not a valid SNI hostname, the SNI extension
      * will be omitted from the handshake.

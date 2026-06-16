@@ -82,6 +82,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
+import org.conscrypt.Conscrypt;
 
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
@@ -1209,6 +1210,34 @@ public class SSLSocketTest {
             assertEquals("X25519", getCurveName(client));
             assertEquals("X25519", getCurveName(server));
         }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void socket_setNamedGroups_works() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        Conscrypt.setNamedGroups(client, new String[] {"P-384"});
+
+        // For the server, we don't set the named groups. P-384 should be
+        // enabled by default.
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // This must works even if sslParametersSupportsNamedGroups is false.
+        assertEquals("P-384", getCurveName(client));
+        assertEquals("P-384", getCurveName(server));
         client.close();
         server.close();
         context.close();
