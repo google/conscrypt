@@ -16,7 +16,6 @@
 
 package org.conscrypt.javax.net.ssl;
 
-import static org.conscrypt.TestUtils.isTlsV1Supported;
 import static org.conscrypt.TestUtils.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -71,6 +70,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.TrustManagerFactorySpi;
 import javax.net.ssl.X509KeyManager;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class SSLContextTest {
@@ -319,7 +319,7 @@ public class SSLContextTest {
     public void test_SSLContext_getProvider() throws Exception {
         Provider provider = SSLContext.getDefault().getProvider();
         assertNotNull(provider);
-        assertEquals(StandardNames.JSSE_PROVIDER_NAME, provider.getName());
+        assertEquals("OpenSSLProvider", provider.getClass().getSimpleName());
     }
 
     @Test
@@ -672,7 +672,7 @@ public class SSLContextTest {
         // Find the default provider for TLS and verify that it does NOT support SSLv3.
         Provider defaultTlsProvider = null;
         for (String protocol : new String[] {"SSLContext.TLSv1.2", "SSLContext.TLSv1"}) {
-            for (Provider p : Security.getProviders()) {
+            for (Provider p : ServiceTester.getProviders()) {
                 if (p.get(protocol) != null) {
                     defaultTlsProvider = p;
                     break;

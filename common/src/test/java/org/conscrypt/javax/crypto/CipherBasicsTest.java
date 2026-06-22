@@ -34,7 +34,6 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
-import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,6 +44,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import tests.util.ServiceTester;
 
 /**
  * Test for basic compliance for ciphers.  This test uses reference vectors produced by
@@ -201,7 +201,7 @@ public final class CipherBasicsTest {
 
     @Test
     public void testBasicEncryption() throws Exception {
-        for (Provider p : Security.getProviders()) {
+        for (Provider p : ServiceTester.getProviders()) {
             for (Map.Entry<String, String> entry : BASIC_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
 
@@ -362,7 +362,7 @@ public final class CipherBasicsTest {
     @Test
     public void testAeadEncryption() throws Exception {
         TestUtils.assumeAEADAvailable();
-        for (Provider p : Security.getProviders()) {
+        for (Provider p : ServiceTester.getProviders()) {
             for (Map.Entry<String, String> entry : AEAD_CIPHER_TO_TEST_DATA.entrySet()) {
                 String transformation = entry.getKey();
 

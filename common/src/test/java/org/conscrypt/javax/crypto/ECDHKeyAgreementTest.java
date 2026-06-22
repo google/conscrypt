@@ -44,7 +44,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.interfaces.ECKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -59,6 +58,7 @@ import java.util.List;
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
+import tests.util.ServiceTester;
 
 /**
  * Tests for all registered Elliptic Curve Diffie-Hellman {@link KeyAgreement} providers.
@@ -459,7 +459,7 @@ public class ECDHKeyAgreementTest {
     }
 
     private static Provider[] getKeyAgreementProviders() {
-        Provider[] providers = Security.getProviders("KeyAgreement.ECDH");
+        Provider[] providers = ServiceTester.getProviders("KeyAgreement.ECDH");
         if (providers == null) {
             return new Provider[0];
         }
@@ -469,7 +469,7 @@ public class ECDHKeyAgreementTest {
     }
 
     private static Provider[] getKeyFactoryProviders() {
-        Provider[] providers = Security.getProviders("KeyFactory.EC");
+        Provider[] providers = ServiceTester.getProviders("KeyFactory.EC");
         if (providers == null) {
             return new Provider[0];
         }

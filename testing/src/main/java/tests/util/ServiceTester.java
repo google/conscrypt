@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -41,6 +42,58 @@ public final class ServiceTester {
          * if the test fails or do nothing if it passes.
          */
         void test(Provider p, String algorithm) throws Exception;
+    }
+
+    private static Provider[] providersToTest = null;
+
+  /**
+   * Sets the list of providers to be returned by {@link #getProviders()}, {@link
+   * #getProviders(String)}, and {@link #getProviders(Map)}.
+   */
+  public static void setProviders(Provider[] providers) {
+        if (providers.length == 0) {
+            throw new IllegalArgumentException("providers must not be empty");
+        }
+        providersToTest = providers.clone();
+    }
+
+  /**
+   * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
+   * {@link Security.getProviders()}. Otherwise, returns the list of providers set by {@link
+   * #setProviders(Provider[])}.
+   */
+  public static Provider[] getProviders() {
+        if (providersToTest != null) {
+            return providersToTest.clone();
+        } else {
+            return Security.getProviders();
+        }
+    }
+
+  /**
+   * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
+   * {@link Security.getProviders(filter)}. Otherwise, returns the list of providers set by {@link
+   * #setProviders(Provider[])}.
+   */
+  public static Provider[] getProviders(String filter) {
+        if (providersToTest != null) {
+            return providersToTest.clone();
+        } else {
+            return Security.getProviders(filter);
+        }
+    }
+
+  /**
+   * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
+   * {@link Security.getProviders(filter)} that support the given service and algorithm. Otherwise,
+   * returns the list of providers set by {@link #setProviders(Provider[])}.
+   */
+  public static Provider[] getProviders(Map<String, String> filter) {
+        if (providersToTest != null) {
+            return providersToTest.clone();
+        } else {
+            return Security.getProviders(filter);
+        }
     }
 
     private static final String SEPARATOR = "||";
@@ -146,6 +199,11 @@ public final class ServiceTester {
      * an exception with the details of the failure(s).
      */
     public void run(Test test) {
+        if (providersToTest != null) {
+            for (Provider p : providersToTest) {
+                providers.add(p);
+            }
+        }
         if (providers.isEmpty()) {
             providers.addAll(Arrays.asList(Security.getProviders()));
         }

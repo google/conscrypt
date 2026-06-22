@@ -94,6 +94,8 @@ public class SSLSocketTest {
     private final ExecutorService executor =
             Executors.newCachedThreadPool(t -> new Thread(threadGroup, t));
 
+    private static final TestSSLContext testSslContext = TestSSLContext.create();
+
     String getCurveName(SSLSocket socket) {
         return ((OpenSSLSocketImpl) socket).getCurveNameForTesting();
     }
@@ -146,12 +148,12 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_defaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLSocketDefaultConfiguration(
-                (SSLSocket) SSLSocketFactory.getDefault().createSocket());
+                (SSLSocket) testSslContext.clientContext.getSocketFactory().createSocket());
     }
 
     @Test
     public void test_SSLSocket_getSupportedCipherSuites_returnsCopies() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             assertNotSame(ssl.getSupportedCipherSuites(), ssl.getSupportedCipherSuites());
         }
@@ -303,7 +305,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getEnabledCipherSuites_returnsCopies() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             assertNotSame(ssl.getEnabledCipherSuites(), ssl.getEnabledCipherSuites());
         }
@@ -311,7 +313,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_setEnabledCipherSuites_storesCopy() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             String[] array = new String[] {ssl.getEnabledCipherSuites()[0]};
             String originalFirstElement = array[0];
@@ -370,7 +372,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getSupportedProtocols_returnsCopies() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             assertNotSame(ssl.getSupportedProtocols(), ssl.getSupportedProtocols());
         }
@@ -378,7 +380,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getEnabledProtocols_returnsCopies() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             assertNotSame(ssl.getEnabledProtocols(), ssl.getEnabledProtocols());
         }
@@ -386,7 +388,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_setEnabledProtocols_storesCopy() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             String[] array = new String[] {ssl.getEnabledProtocols()[0]};
             String originalFirstElement = array[0];
@@ -398,7 +400,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_setEnabledProtocols() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             assertThrows(IllegalArgumentException.class, () -> ssl.setEnabledProtocols(null));
             assertThrows(IllegalArgumentException.class,
@@ -488,7 +490,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getSession() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLSession session = ssl.getSession();
             assertNotNull(session);
@@ -498,7 +500,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getHandshakeSession_unconnected() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket socket = (SSLSocket) sf.createSocket()) {
             SSLSession session = socket.getHandshakeSession();
             assertNull(session);
@@ -747,7 +749,7 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_getSSLParameters() throws Exception {
         TestUtils.assumeSetEndpointIdentificationAlgorithmAvailable();
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters p = ssl.getSSLParameters();
             assertNotNull(p);
@@ -771,7 +773,7 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_setSSLParameters() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             String[] defaultCipherSuites = ssl.getEnabledCipherSuites();
             String[] defaultProtocols = ssl.getEnabledProtocols();
@@ -819,7 +821,7 @@ public class SSLSocketTest {
 
     @Test
     public void setAndGetSSLParameters_alwaysSupportsDefaultCipherSuites() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters inputParameters = new SSLParameters(
                     new String[] {"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"},
@@ -839,7 +841,7 @@ public class SSLSocketTest {
     @Test
     public void setSSLParameters_invalidCipherSuite_throwsIllegalArgumentException()
             throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters parameters =
                     new SSLParameters(new String[] {"invalid"}, new String[] {"TLSv1.3"});
@@ -858,7 +860,7 @@ public class SSLSocketTest {
 
     @Test
     public void setAndGetSSLParameters_withSetNamedGroups_worksIfSupported() throws Exception {
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         try (SSLSocket ssl = (SSLSocket) sf.createSocket()) {
             SSLParameters parameters = new SSLParameters(new String[] {"TLS_AES_128_GCM_SHA256"},
                                                          new String[] {"TLSv1.3"});
@@ -881,7 +883,7 @@ public class SSLSocketTest {
         try (ServerSocket listening = new ServerSocket(0)) {
             Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
             assertEquals(0, underlying.getSoTimeout());
-            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
             Socket wrapping = sf.createSocket(underlying, null, -1, false);
             assertEquals(0, wrapping.getSoTimeout());
             // setting wrapper sets underlying and ...
@@ -905,7 +907,7 @@ public class SSLSocketTest {
         // setSoTimeout applies to read, not connect, so connect first
         Socket underlying = new Socket(listening.getInetAddress(), listening.getLocalPort());
         Socket server = listening.accept();
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = testSslContext.clientContext.getSocketFactory();
         Socket clientWrapping = sf.createSocket(underlying, null, -1, false);
         underlying.setSoTimeout(1);
         assertThrows(SocketTimeoutException.class, () -> clientWrapping.getInputStream().read());
@@ -1348,7 +1350,7 @@ public class SSLSocketTest {
     private List<Pair<String, SSLSocketFactory>> getSSLSocketFactoriesToTest()
             throws NoSuchAlgorithmException, KeyManagementException {
         List<Pair<String, SSLSocketFactory>> result = new ArrayList<>();
-        result.add(Pair.of("default", (SSLSocketFactory) SSLSocketFactory.getDefault()));
+        result.add(Pair.of("default", testSslContext.clientContext.getSocketFactory()));
         for (String sslContextProtocol : StandardNames.SSL_CONTEXT_PROTOCOLS_WITH_DEFAULT_CONFIG) {
             SSLContext sslContext = SSLContext.getInstance(sslContextProtocol);
             if (StandardNames.SSL_CONTEXT_PROTOCOLS_DEFAULT.equals(sslContextProtocol)) {
@@ -1472,7 +1474,7 @@ public class SSLSocketTest {
                 SSLContext.getDefault().getDefaultSSLParameters().getProtocols();
         for (final String protocol : supportedProtocols) {
             SSLSocketFactory factory = new DelegatingSSLSocketFactory(
-                    (SSLSocketFactory) SSLSocketFactory.getDefault()) {
+                    testSslContext.clientContext.getSocketFactory()) {
                 @Override
                 protected SSLSocket configureSocket(SSLSocket socket) {
                     socket.setEnabledProtocols(new String[] {protocol});

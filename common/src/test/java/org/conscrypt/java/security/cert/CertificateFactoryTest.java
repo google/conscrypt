@@ -17,7 +17,6 @@
 package org.conscrypt.java.security.cert;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -52,7 +51,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.cert.CRL;
 import java.security.cert.CRLException;
 import java.security.cert.CertPath;
@@ -654,7 +652,7 @@ public class CertificateFactoryTest {
         List<X509Certificate> duplicatedCerts = new ArrayList<>(certs);
         duplicatedCerts.add(cert2.certificate);
 
-        Provider[] providers = Security.getProviders("CertificateFactory.X509");
+        Provider[] providers = ServiceTester.getProviders("CertificateFactory.X509");
         for (Provider p : providers) {
             final CertificateFactory cf = CertificateFactory.getInstance("X.509", p);
 
