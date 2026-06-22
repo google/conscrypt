@@ -10,11 +10,11 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.KeyAgreement;
+import tests.util.ServiceTester;
 
 /**
  * Tests for all registered X25519 and X448 {@link KeyAgreement} providers.
@@ -95,7 +95,7 @@ public class XDHKeyAgreementTest {
     @Test
     public void test_XDHKeyAgreement() throws Exception {
         final String keyAgreementAlgorithm = String.format("KeyAgreement.%s", getAlgorithm());
-        for (Provider p : Security.getProviders(keyAgreementAlgorithm)) {
+        for (Provider p : ServiceTester.getProviders(keyAgreementAlgorithm)) {
             // Skip testing Android Keystore as it's covered by CTS tests.
             if ("AndroidKeyStore".equals(p.getName())) {
                 continue;

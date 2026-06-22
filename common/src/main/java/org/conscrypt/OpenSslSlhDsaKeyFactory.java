@@ -26,22 +26,78 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 /** An implementation of a {@link KeyFactorySpi} for SLH-DSL keys based on BoringSSL. */
 @Internal
 public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
+    // X.509 format preamble for SLH-DSA-SHA2-128S.
+    static final byte[] x509Preamble = new byte[] {
+            (byte) 0x30, (byte) 0x30, (byte) 0x30, (byte) 0x0b, (byte) 0x06, (byte) 0x09,
+            (byte) 0x60, (byte) 0x86, (byte) 0x48, (byte) 0x01, (byte) 0x65, (byte) 0x03,
+            (byte) 0x04, (byte) 0x03, (byte) 0x14, (byte) 0x03, (byte) 0x21, (byte) 0x00};
+
+    // PKCS#8 format preamble for SLH-DSA-SHA2-128S.
+    static final byte[] pkcs8Preamble =
+            new byte[] {(byte) 0x30, (byte) 0x52, (byte) 0x02, (byte) 0x01, (byte) 0x00,
+                        (byte) 0x30, (byte) 0x0b, (byte) 0x06, (byte) 0x09, (byte) 0x60,
+                        (byte) 0x86, (byte) 0x48, (byte) 0x01, (byte) 0x65, (byte) 0x03,
+                        (byte) 0x04, (byte) 0x03, (byte) 0x14, (byte) 0x04, (byte) 0x40};
+
     public OpenSslSlhDsaKeyFactory() {}
+
+    private OpenSslSlhDsaPublicKey makePublicKeyFromRaw(byte[] raw) throws InvalidKeySpecException {
+        if (raw.length != OpenSslSlhDsaPublicKey.PUBLIC_KEY_SIZE_BYTES) {
+            throw new InvalidKeySpecException("Invalid raw public key length: " + raw.length
+                                              + " != "
+                                              + OpenSslSlhDsaPublicKey.PUBLIC_KEY_SIZE_BYTES);
+        }
+        try {
+            return new OpenSslSlhDsaPublicKey(raw);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw public key", e);
+        }
+    }
 
     @Override
     protected PublicKey engineGeneratePublic(KeySpec keySpec) throws InvalidKeySpecException {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslSlhDsaPublicKey((EncodedKeySpec) keySpec);
+        if (!(keySpec instanceof EncodedKeySpec)) {
+            throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                              + keySpec.getClass().getName());
         }
-        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
-                                          + keySpec.getClass().getName());
+        EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
+        if ("raw".equalsIgnoreCase(encodedKeySpec.getFormat())) {
+            byte[] raw = encodedKeySpec.getEncoded();
+            return makePublicKeyFromRaw(raw);
+        }
+        if (!encodedKeySpec.getFormat().equals("X.509")) {
+            throw new InvalidKeySpecException("Encoding must be in X.509 format");
+        }
+        byte[] encoded = encodedKeySpec.getEncoded();
+        if (ArrayUtils.startsWith(encoded, x509Preamble)) {
+            byte[] raw = Arrays.copyOfRange(encoded, x509Preamble.length, encoded.length);
+            return makePublicKeyFromRaw(raw);
+        } else {
+            throw new InvalidKeySpecException(
+                    "Only X.509 format for SLH-DSA-SHA2-128S is supported");
+        }
+    }
+
+    private OpenSslSlhDsaPrivateKey makePrivateKeyFromRaw(byte[] raw)
+            throws InvalidKeySpecException {
+        if (raw.length != OpenSslSlhDsaPrivateKey.PRIVATE_KEY_SIZE_BYTES) {
+            throw new InvalidKeySpecException("Invalid raw private key length: " + raw.length
+                                              + " != "
+                                              + OpenSslSlhDsaPrivateKey.PRIVATE_KEY_SIZE_BYTES);
+        }
+        try {
+            return new OpenSslSlhDsaPrivateKey(raw);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidKeySpecException("Invalid raw private key", e);
+        }
     }
 
     @Override
@@ -49,11 +105,26 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
-        if (keySpec instanceof EncodedKeySpec) {
-            return new OpenSslSlhDsaPrivateKey((EncodedKeySpec) keySpec);
+        if (!(keySpec instanceof EncodedKeySpec)) {
+            throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                              + keySpec.getClass().getName());
         }
-        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
-                                          + keySpec.getClass().getName());
+        EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
+        if ("raw".equalsIgnoreCase(encodedKeySpec.getFormat())) {
+            byte[] raw = encodedKeySpec.getEncoded();
+            return makePrivateKeyFromRaw(raw);
+        }
+        if (!encodedKeySpec.getFormat().equals("PKCS#8")) {
+            throw new InvalidKeySpecException("Encoding must be in PKCS#8 format");
+        }
+        byte[] encoded = encodedKeySpec.getEncoded();
+        if (ArrayUtils.startsWith(encoded, pkcs8Preamble)) {
+            byte[] raw = Arrays.copyOfRange(encoded, pkcs8Preamble.length, encoded.length);
+            return makePrivateKeyFromRaw(raw);
+        } else {
+            throw new InvalidKeySpecException(
+                    "Only PKCS#8 format for SLH-DSA-SHA2-128S is supported");
+        }
     }
 
     @Override
@@ -68,16 +139,18 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if (key instanceof OpenSslSlhDsaPublicKey) {
             OpenSslSlhDsaPublicKey conscryptKey = (OpenSslSlhDsaPublicKey) key;
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException(
-                        "X509EncodedKeySpec is currently not supported");
+                @SuppressWarnings("unchecked")
+                T result = (T) new X509EncodedKeySpec(key.getEncoded());
+                return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         } else if (key instanceof OpenSslSlhDsaPrivateKey) {
             OpenSslSlhDsaPrivateKey conscryptKey = (OpenSslSlhDsaPrivateKey) key;
             if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException(
-                        "PKCS8EncodedKeySpec is currently not supported");
+                @SuppressWarnings("unchecked")
+                T result = (T) new PKCS8EncodedKeySpec(key.getEncoded());
+                return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
@@ -95,7 +168,22 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
         if ((key instanceof OpenSslSlhDsaPublicKey) || (key instanceof OpenSslSlhDsaPrivateKey)) {
             return key;
         }
-        throw new InvalidKeyException(
-                "Key must be OpenSslSlhDsaPublicKey or OpenSslSlhDsaPrivateKey");
+        if ((key instanceof PrivateKey) && key.getFormat().equals("PKCS#8")) {
+            byte[] encoded = key.getEncoded();
+            try {
+                return engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else if ((key instanceof PublicKey) && key.getFormat().equals("X.509")) {
+            byte[] encoded = key.getEncoded();
+            try {
+                return engineGeneratePublic(new X509EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else {
+            throw new InvalidKeyException("Unable to translate key into SLH-DSA key");
+        }
     }
 }

@@ -16,6 +16,9 @@
 
 package org.conscrypt;
 
+import static org.conscrypt.TestUtils.decodeBase64;
+import static org.conscrypt.TestUtils.decodeHex;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -175,18 +178,133 @@ public class SlhDsaTest {
                      () -> keyFactory.generatePublic(new RawKeySpec(new byte[33])));
     }
 
+    /** Helper class to test KeyFactory.translateKey. */
+    private static class TestPublicKey implements PublicKey {
+        TestPublicKey(byte[] x509Encoded) {
+            this.x509Encoded = x509Encoded;
+        }
+
+        private final byte[] x509Encoded;
+
+        @Override
+        public String getAlgorithm() {
+            return "SLH-DSA-SHA2-128S";
+        }
+
+        @Override
+        public String getFormat() {
+            return "X.509";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return x509Encoded;
+        }
+    }
+
+    /** Helper class to test KeyFactory.translateKey. */
+    private static class TestPrivateKey implements PrivateKey {
+        TestPrivateKey(byte[] pkcs8Encoded) {
+            this.pkcs8Encoded = pkcs8Encoded;
+        }
+
+        private final byte[] pkcs8Encoded;
+
+        @Override
+        public String getAlgorithm() {
+            return "SLH-DSA-SHA2-128S";
+        }
+
+        @Override
+        public String getFormat() {
+            return "PKCS#8";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return pkcs8Encoded;
+        }
+    }
+
     @Test
-    public void x509AndPkcs8_areNotSupported() throws Exception {
+    public void x509AndPkcs8_works() throws Exception {
         KeyPairGenerator keyGen =
                 KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
         KeyPair keyPair = keyGen.generateKeyPair();
 
+        assertEquals("PKCS#8", keyPair.getPrivate().getFormat());
+        // 64 bytes for the raw key + 20 bytes for the preamble.
+        assertEquals(84, keyPair.getPrivate().getEncoded().length);
+
+        assertEquals("X.509", keyPair.getPublic().getFormat());
+        // 32 bytes for the raw key + 18 bytes for the preamble.
+        assertEquals(50, keyPair.getPublic().getEncoded().length);
+
         KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
 
-        assertThrows(UnsupportedOperationException.class,
-                     () -> keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class));
-        assertThrows(UnsupportedOperationException.class,
-                     () -> keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class));
+        PKCS8EncodedKeySpec privateKeySpec =
+                keyFactory.getKeySpec(keyPair.getPrivate(), PKCS8EncodedKeySpec.class);
+        assertEquals("PKCS#8", privateKeySpec.getFormat());
+        assertArrayEquals(keyPair.getPrivate().getEncoded(), privateKeySpec.getEncoded());
+
+        X509EncodedKeySpec publicKeySpec =
+                keyFactory.getKeySpec(keyPair.getPublic(), X509EncodedKeySpec.class);
+        assertEquals("X.509", publicKeySpec.getFormat());
+        assertArrayEquals(keyPair.getPublic().getEncoded(), publicKeySpec.getEncoded());
+
+        PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        assertEquals(keyPair.getPrivate(), privateKey);
+        assertEquals(keyPair.getPublic(), publicKey);
+
+        assertEquals(keyPair.getPrivate(), keyFactory.translateKey(keyPair.getPrivate()));
+        assertEquals(
+                keyPair.getPrivate(),
+                keyFactory.translateKey(new TestPrivateKey(keyPair.getPrivate().getEncoded())));
+        assertEquals(keyPair.getPublic(), keyFactory.translateKey(keyPair.getPublic()));
+        assertEquals(keyPair.getPublic(),
+                     keyFactory.translateKey(new TestPublicKey(keyPair.getPublic().getEncoded())));
+    }
+
+    @Test
+    public void testVectorsFromRfc9909_works() throws Exception {
+        // Taken from RFC 9909, Section C.1 and C.2.
+        String pkcs8EncodedPrivateKeyBase64 =
+                "MFICAQAwCwYJYIZIAWUDBAMUBECiJjvKRYYINlIxYASVI9YhZ3+tkNUetgZ6Mn4N"
+                + "HmSlASuBCex3fKpOHwJMz8+Ul9mRgFCSgPQlavKwevgCibSU";
+        byte[] pkcs8EncodedPrivateKey = decodeBase64(pkcs8EncodedPrivateKeyBase64);
+
+        String x509EncodedPublicKeyBase64 =
+                "MDAwCwYJYIZIAWUDBAMUAyEAK4EJ7Hd8qk4fAkzPz5SX2ZGAUJKA9CVq8rB6+AKJ"
+                + "tJQ=";
+        byte[] x509EncodedPublicKey = decodeBase64(x509EncodedPublicKeyBase64);
+
+        byte[] rawPublicKey = decodeHex("2B8109EC777CAA4E1F024CCFCF9497D9"
+                                        + "9180509280F4256AF2B07AF80289B494");
+
+        byte[] rawPrivateKey = decodeHex("A2263BCA45860836523160049523D621"
+                                         + "677FAD90D51EB6067A327E0D1E64A501"
+                                         + "2B8109EC777CAA4E1F024CCFCF9497D9"
+                                         + "9180509280F4256AF2B07AF80289B494");
+
+        KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+
+        PrivateKey privateKey =
+                keyFactory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedPrivateKey));
+        PublicKey publicKey =
+                keyFactory.generatePublic(new X509EncodedKeySpec(x509EncodedPublicKey));
+
+        assertEquals("PKCS#8", privateKey.getFormat());
+        assertArrayEquals(pkcs8EncodedPrivateKey, privateKey.getEncoded());
+        assertEquals("X.509", publicKey.getFormat());
+        assertArrayEquals(x509EncodedPublicKey, publicKey.getEncoded());
+
+        EncodedKeySpec rawPrivateKeySpec = keyFactory.getKeySpec(privateKey, RawKeySpec.class);
+        assertArrayEquals(rawPrivateKey, rawPrivateKeySpec.getEncoded());
+
+        EncodedKeySpec rawPublicKeySpec = keyFactory.getKeySpec(publicKey, RawKeySpec.class);
+        assertArrayEquals(rawPublicKey, rawPublicKeySpec.getEncoded());
     }
 
     @Test

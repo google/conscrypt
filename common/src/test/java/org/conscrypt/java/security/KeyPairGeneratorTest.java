@@ -38,7 +38,6 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
@@ -327,7 +326,7 @@ public class KeyPairGeneratorTest {
         byte[] encoded = k.getEncoded();
 
         String keyAlgo = k.getAlgorithm();
-        for (Provider p : Security.getProviders()) {
+        for (Provider p : ServiceTester.getProviders()) {
             Set<Provider.Service> services = p.getServices();
             for (Provider.Service service : services) {
                 if (!"KeyFactory".equals(service.getType())) {

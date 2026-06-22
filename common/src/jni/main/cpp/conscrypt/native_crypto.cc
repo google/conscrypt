@@ -428,10 +428,7 @@ static jobjectArray CryptoBuffersToObjectArray(JNIEnv* env,
  * Converts ASN.1 BIT STRING to a jbooleanArray.
  */
 jbooleanArray ASN1BitStringToBooleanArray(JNIEnv* env, const ASN1_BIT_STRING* bitStr) {
-    int size = ASN1_STRING_length(bitStr) * 8;
-    if (bitStr->flags & ASN1_STRING_FLAG_BITS_LEFT) {
-        size -= bitStr->flags & 0x07;
-    }
+    int size = ASN1_STRING_length(bitStr) * 8 - ASN1_BIT_STRING_unused_bits(bitStr);
 
     ScopedLocalRef<jbooleanArray> bitsRef(env, env->NewBooleanArray(size));
     if (bitsRef.get() == nullptr) {
@@ -846,7 +843,6 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jb
         return 0;
     }
 
-#if BORINGSSL_API_VERSION >= 20
     bssl::UniquePtr<BIGNUM> nBN, eBN, dBN, pBN, qBN, dmp1BN, dmq1BN, iqmpBN;
     nBN = arrayToBignum(env, n);
     if (!nBN) {
@@ -917,70 +913,6 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jb
         conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_new_RSA");
         return 0;
     }
-#else
-    bssl::UniquePtr<RSA> rsa(RSA_new());
-    if (rsa.get() == nullptr) {
-        conscrypt::jniutil::throwRuntimeException(env, "RSA_new failed");
-        return 0;
-    }
-
-    if (!arrayToBignum(env, n, &rsa->n)) {
-        return 0;
-    }
-
-    if (e != nullptr && !arrayToBignum(env, e, &rsa->e)) {
-        return 0;
-    }
-
-    if (d != nullptr && !arrayToBignum(env, d, &rsa->d)) {
-        return 0;
-    }
-
-    if (p != nullptr && !arrayToBignum(env, p, &rsa->p)) {
-        return 0;
-    }
-
-    if (q != nullptr && !arrayToBignum(env, q, &rsa->q)) {
-        return 0;
-    }
-
-    if (dmp1 != nullptr && !arrayToBignum(env, dmp1, &rsa->dmp1)) {
-        return 0;
-    }
-
-    if (dmq1 != nullptr && !arrayToBignum(env, dmq1, &rsa->dmq1)) {
-        return 0;
-    }
-
-    if (iqmp != nullptr && !arrayToBignum(env, iqmp, &rsa->iqmp)) {
-        return 0;
-    }
-
-    if (conscrypt::trace::kWithJniTrace) {
-        if (p != nullptr && q != nullptr) {
-            int check = RSA_check_key(rsa.get());
-            JNI_TRACE("EVP_PKEY_new_RSA(...) RSA_check_key returns %d", check);
-        }
-    }
-
-    if (rsa->n == nullptr || (rsa->e == nullptr && rsa->d == nullptr)) {
-        conscrypt::jniutil::throwRuntimeException(env, "Unable to convert BigInteger to BIGNUM");
-        return 0;
-    }
-
-    /*
-     * If the private exponent is available, there is the potential to do signing
-     * operations. However, we can only do blinding if the public exponent is also
-     * available. Disable blinding if the public exponent isn't available.
-     *
-     * TODO[kroot]: We should try to recover the public exponent by trying
-     *              some common ones such 3, 17, or 65537.
-     */
-    if (rsa->d != nullptr && rsa->e == nullptr) {
-        JNI_TRACE("EVP_PKEY_new_RSA(...) disabling RSA blinding => %p", rsa.get());
-        rsa->flags |= RSA_FLAG_NO_BLINDING;
-    }
-#endif
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
@@ -1690,7 +1622,6 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
     ensure_engine_globals();
 
-#if BORINGSSL_API_VERSION >= 20
     // The PSS padding code needs access to the actual n, so set it even though we
     // don't set any other parts of the key
     bssl::UniquePtr<BIGNUM> n = arrayToBignum(env, modulusBytes);
@@ -1705,19 +1636,6 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate RSA key");
         return 0;
     }
-#else
-    bssl::UniquePtr<RSA> rsa(RSA_new_method(g_engine));
-    if (rsa == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate RSA key");
-        return 0;
-    }
-
-    // The PSS padding code needs access to the actual n, so set it even though we
-    // don't set any other parts of the key
-    if (!arrayToBignum(env, modulusBytes, &rsa->n)) {
-        return 0;
-    }
-#endif
 
     auto ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
@@ -5788,12 +5706,9 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
             /* Write in RFC 2253 format */
             return X509_NAME_to_jstring(env, gen->d.directoryName, XN_FLAG_RFC2253);
         case GEN_IPADD: {
-#ifdef _WIN32
-            void* ip = reinterpret_cast<void*>(gen->d.ip->data);
-#else
-            const void* ip = reinterpret_cast<const void*>(gen->d.ip->data);
-#endif
-            if (gen->d.ip->length == 4) {
+            const uint8_t* ip = ASN1_STRING_get0_data(gen->d.ip);
+            int ip_len = ASN1_STRING_length(gen->d.ip);
+            if (ip_len == 4) {
                 // IPv4
                 std::unique_ptr<char[]> buffer(new char[INET_ADDRSTRLEN]);
                 if (inet_ntop(AF_INET, ip, buffer.get(), INET_ADDRSTRLEN) != nullptr) {
@@ -5803,7 +5718,7 @@ static jobject GENERAL_NAME_to_jobject(JNIEnv* env, GENERAL_NAME* gen) {
                     JNI_TRACE("GENERAL_NAME_to_jobject(%p) => IPv4 failed %s", gen,
                               strerror(errno));
                 }
-            } else if (gen->d.ip->length == 16) {
+            } else if (ip_len == 16) {
                 // IPv6
                 std::unique_ptr<char[]> buffer(new char[INET6_ADDRSTRLEN]);
                 if (inet_ntop(AF_INET6, ip, buffer.get(), INET6_ADDRSTRLEN) != nullptr) {

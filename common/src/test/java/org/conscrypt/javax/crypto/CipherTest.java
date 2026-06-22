@@ -55,7 +55,6 @@ import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.spec.AlgorithmParameterSpec;
-import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -84,6 +83,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
+import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public final class CipherTest {
@@ -1032,7 +1032,7 @@ public final class CipherTest {
         Set<String> seenBaseCipherNames = new HashSet<>();
         Set<String> seenCiphersWithModeAndPadding = new HashSet<>();
 
-        Provider[] providers = Security.getProviders();
+        Provider[] providers = ServiceTester.getProviders();
         for (Provider provider : providers) {
             Set<Provider.Service> services = provider.getServices();
             for (Provider.Service service : services) {
@@ -3822,14 +3822,14 @@ public final class CipherTest {
         for (CipherTestParam testVector : testVectors) {
             ArrayList<Provider> providers = new ArrayList<>();
 
-            Provider[] providerArray = Security.getProviders("Cipher." + testVector.transformation);
+            Provider[] providerArray = ServiceTester.getProviders("Cipher." + testVector.transformation);
             if (providerArray != null) {
                 Collections.addAll(providers, providerArray);
             }
 
             if (testVector.transformation.indexOf('/') > 0) {
                 Provider[] baseTransformProviderArray =
-                        Security.getProviders("Cipher."
+                        ServiceTester.getProviders("Cipher."
                                               + testVector.transformation.substring(
                                                       0, testVector.transformation.indexOf('/')));
                 if (baseTransformProviderArray != null) {
@@ -4588,7 +4588,8 @@ public final class CipherTest {
         /* Find all providers that provide ARC4. We must have at least one! */
         Map<String, String> filter = new HashMap<>();
         filter.put("Cipher.ARC4", "");
-        Provider[] providers = Security.getProviders(filter);
+        //?
+        Provider[] providers = ServiceTester.getProviders(filter);
         assertTrue("There must be security providers of Cipher.ARC4", providers.length > 0);
 
         /* Keep track of this for later error messages */
@@ -4632,7 +4633,7 @@ public final class CipherTest {
 
     @Test
     public void testAES_keyConstrained() throws Exception {
-        Provider[] providers = Security.getProviders();
+        Provider[] providers = ServiceTester.getProviders();
         for (Provider p : providers) {
             if (isBuggyProvider(p.getName())) {
                 continue;

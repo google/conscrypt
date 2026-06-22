@@ -15,9 +15,11 @@
  */
 package org.conscrypt.javax.net.ssl;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
 /**
  * TestSSLSessions is a convenience class for other tests that want
  * precreated SSLSessions for testing. It contains a connected
@@ -63,7 +65,7 @@ public final class TestSSLSessions {
 
     public static TestSSLSessions create(TestSSLContext context) {
         try {
-            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            SSLSocketFactory sf = SSLContext.getDefault().getSocketFactory();
             SSLSocket ssl = (SSLSocket) sf.createSocket();
             SSLSession invalid = ssl.getSession();
             TestSSLSocketPair s = TestSSLSocketPair.create(context).connect();
