@@ -230,6 +230,62 @@ jobs:
           path: openjdk/build/libs/conscrypt-openjdk-*-tests.jar
           if-no-files-found: error
 
+android-test:
+    needs: boringssl_clone
+    runs-on: macos-15-intel
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [26, 30, 34]
+        include:
+          - api-level: 26
+            arch: x86_64
+            target: google_apis
+          - api-level: 30
+            arch: x86_64
+            target: google_apis
+          - api-level: 34
+            arch: x86_64
+            target: google_apis
+
+    steps:
+      - name: Set up JDK 17 for toolchains
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Set runner-specific environment variables
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
+      - uses: actions/checkout@v6
+
+      - name: Fetch BoringSSL source
+        uses: actions/download-artifact@v7
+        with:
+          name: boringssl-source
+          path: ${{ runner.temp }}/boringssl
+
+      - name: Checkout BoringSSL main branch
+        shell: bash
+        run: |
+          cd "$BORINGSSL_HOME"
+          git checkout --progress --force -B main
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: Run instrumentation tests on Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: ${{ matrix.arch }}
+          force-avd-creation: true
+          disable-spellchecker: true
+          target: ${{ matrix.target }}
+          script: ./gradlew :conscrypt-android:connectedAndroidTest -PcheckErrorQueue
+
   uberjar:
     needs: build
 

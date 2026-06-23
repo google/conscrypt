@@ -16,7 +16,7 @@
 
 package org.conscrypt;
 
-import static org.conscrypt.TestUtils.installConscryptAsDefaultProvider;
+import static org.conscrypt.TestUtils.getConscryptProvider;
 
 import org.conscrypt.ct.SerializationTest;
 import org.conscrypt.ct.VerifierTest;
@@ -64,6 +64,11 @@ import org.conscrypt.metrics.ProtocolTest;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+
+import java.security.Provider;
+import java.security.Security;
+
+import tests.util.ServiceTester;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -151,7 +156,9 @@ import org.junit.runners.Suite;
 })
 public class ConscryptAndroidSuite {
     @BeforeClass
-    public static void setupStatic() {
-        installConscryptAsDefaultProvider();
+    public static void setupStatic() throws Exception {
+        Provider conscryptProvider = getConscryptProvider();
+        Security.insertProviderAt(conscryptProvider, 1);
+        ServiceTester.setProviders(new Provider[] {conscryptProvider});
     }
 }

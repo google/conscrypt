@@ -16,36 +16,25 @@
 
 package org.conscrypt;
 
-import java.util.regex.Pattern;
+
 
 /**
  * Utilities to check whether IP addresses meet some criteria.
  */
 final class AddressUtils {
-    /*
-     * Regex that matches valid IPv4 and IPv6 addresses.
-     */
-    private static final String IP_PATTERN = "^(?:(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\\.){"
-            + "3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]))|"
-            + "(?i:(?:(?:[0-9a-f]{1,4}:){7}(?:[0-9a-f]{1,4}|:))|(?:(?:[0-9a-f]{1,4}:){6}(?::[0-9a-"
-            + "f]{1,4}|(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4]["
-            + "0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})|:))|(?:(?:[0-9a-f]{1,4}:){5}(?:(?:(?::[0-9a-f]{"
-            + "1,4}){1,2})|:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\\.(?:25[0-5]|2["
-            + "0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})|:))|(?:(?:[0-9a-f]{1,4}:){4}(?:(?:(?::[0-"
-            + "9a-f]{1,4}){1,3})|(?:(?::[0-9a-f]{1,4})?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-"
-            + "9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:))|(?:(?:[0-"
-            + "9a-f]{1,4}:){3}(?:(?:(?::[0-9a-f]{1,4}){1,4})|(?:(?::[0-9a-f]{1,4}){0,2}:(?:(?:25["
-            + "0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|"
-            + "[1-9]?[0-9])){3}))|:))|(?:(?:[0-9a-f]{1,4}:){2}(?:(?:(?::[0-9a-f]{1,4}){1,5})|(?:("
-            + "?::[0-9a-f]{1,4}){0,3}:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\\.(?:"
-            + "25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:))|(?:(?:[0-9a-f]{1,4}:){1}(?:"
-            + "(?:(?::[0-9a-f]{1,4}){1,6})|(?:(?::[0-9a-f]{1,4}){0,4}:(?:(?:25[0-5]|2[0-4][0-9]|"
-            + "1[0-9][0-9]|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})"
-            + ")|:))|(?::(?:(?:(?::[0-9a-f]{1,4}){1,7})|(?:(?::[0-9a-f]{1,4}){0,5}:(?:(?:25[0-5]|"
-            + "2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]"
-            + "?[0-9])){3}))|:)))(?:%.+)?$";
 
-    private static Pattern ipPattern;
+    private static final int IPV4_OCTET_COUNT = 4;
+    private static final int MAX_IPV4_OCTET_VALUE = 255;
+    private static final int MAX_IPV4_OCTET_DIGITS = 3;
+    private static final int MAX_IPV4_DOTS = IPV4_OCTET_COUNT - 1;
+    private static final int MIN_IPV4_ADDRESS_LENGTH = 7;
+    private static final int MAX_IPV4_ADDRESS_LENGTH = 15;
+
+    private static final int IPV6_TOTAL_GROUPS = 8;
+    private static final int IPV6_GROUPS_PER_IPV4 = 2;
+    private static final int MAX_HEX_DIGITS_PER_GROUP = 4;
+
+    private static final int ASCII_CASE_DIFF = 'a' - 'A';
 
     private AddressUtils() {}
 
@@ -58,20 +47,225 @@ final class AddressUtils {
         }
 
         // Must be a FQDN that does not have a trailing dot.
-        return (sniHostname.equalsIgnoreCase("localhost") || sniHostname.indexOf('.') != -1)
-                && !isLiteralIpAddress(sniHostname) && !sniHostname.endsWith(".")
+        return (asciiEqualsIgnoreCase(sniHostname, "localhost") || sniHostname.indexOf('.') != -1)
+                && !isLiteralIpAddress(sniHostname)
+                && !sniHostname.endsWith(".")
                 && sniHostname.indexOf('\0') == -1;
     }
 
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
+    /** Returns true if the supplied hostname is an literal IP address. */
     static boolean isLiteralIpAddress(String hostname) {
-        /* This is here for backwards compatibility for pre-Honeycomb devices. */
-        Pattern ipPattern = AddressUtils.ipPattern;
-        if (ipPattern == null) {
-            AddressUtils.ipPattern = ipPattern = Pattern.compile(IP_PATTERN);
+        if (hostname.isEmpty()) {
+            return false;
         }
-        return ipPattern.matcher(hostname).matches();
+        return isValidIPv4(hostname, 0, hostname.length(), /* allowLeadingZeros= */ true)
+                || isValidIPv6(hostname);
+    }
+
+    /**
+     * Validates IPv4 address. Expects exactly 4 octets separated by dots, each octet being 0-255.
+     * Allows leading zeros (up to 3 digits per octet). Parses the substring [start, end) without
+     * allocation.
+     */
+    private static boolean isValidIPv4(String s, int start, int end, boolean allowLeadingZeros) {
+        int len = end - start;
+        if (len < MIN_IPV4_ADDRESS_LENGTH || len > MAX_IPV4_ADDRESS_LENGTH) {
+            return false;
+        }
+        int octets = 0;
+        int value = 0;
+        int partLen = 0;
+        for (int i = start; i < end; i++) {
+            char c = s.charAt(i);
+            if (c == '.') {
+                octets++;
+                if (partLen == 0 || octets > MAX_IPV4_DOTS) {
+                    return false;
+                }
+                value = 0;
+                partLen = 0;
+            } else if (isDigit(c)) {
+                if (!allowLeadingZeros && partLen == 1 && value == 0) {
+                    return false;
+                }
+                value = value * 10 + (c - '0');
+                partLen++;
+                if (partLen > MAX_IPV4_OCTET_DIGITS || value > MAX_IPV4_OCTET_VALUE) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        octets++;
+        return octets == IPV4_OCTET_COUNT;
+    }
+
+    /**
+     * Validates IPv6 address. Supports full, compressed (::), and embedded IPv4 formats. Also
+     * supports optional Zone ID (%zone) at the end. Scans the string in a single pass without
+     * allocations.
+     */
+    private static boolean isValidIPv6(String s) {
+        if (s.indexOf(':') == -1) {
+            return false;
+        }
+        int len = s.length();
+        int groupCount = 0;
+        int groupLen = 0;
+        boolean hasDoubleColon = false;
+        int groupStart = 0;
+
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+
+            if (c == ':') {
+                boolean isDoubleColon = (i + 1 < len && s.charAt(i + 1) == ':');
+                if (isDoubleColon) {
+                    if (hasDoubleColon) {
+                        return false; // Multiple "::"
+                    }
+                    hasDoubleColon = true;
+                    i++; // Skip second colon
+
+                    // Check for triple colon ":::"
+                    if (i + 1 < len && s.charAt(i + 1) == ':') {
+                        return false;
+                    }
+
+                    if (groupLen > 0) {
+                        groupCount++;
+                        if (groupCount >= IPV6_TOTAL_GROUPS) {
+                            return false;
+                        }
+                    }
+                    groupLen = 0;
+                    groupStart = i + 1;
+                } else {
+                    // Single colon validation
+                    if (i == len - 1
+                            || s.charAt(i + 1) == '%'
+                            || groupLen == 0) {
+                        return false;
+                    }
+                    groupCount++;
+                    if (groupCount > IPV6_TOTAL_GROUPS
+                            || (hasDoubleColon && groupCount >= IPV6_TOTAL_GROUPS)) {
+                        return false;
+                    }
+                    groupLen = 0;
+                    groupStart = i + 1;
+                }
+            } else if (c == '.') {
+                // Embedded IPv4 detected. Find the end of it (either end of string or start of zone
+                // ID '%').
+                int ipv4End = i;
+                while (ipv4End < len && s.charAt(ipv4End) != '%') {
+                    ipv4End++;
+                }
+                // Validate optional Zone ID if present after IPv4
+                if (ipv4End < len && !isValidZoneId(s, ipv4End + 1)) {
+                    return false;
+                }
+
+                if (!isValidIPv4(s, groupStart, ipv4End, /* allowLeadingZeros= */ false)) {
+                    return false;
+                }
+                groupCount += IPV6_GROUPS_PER_IPV4;
+                groupLen = 0;
+                break; // We have consumed the rest of the IP (and validated zone ID if present)
+            } else if (c == '%') {
+                // Standard IPv6 Zone ID
+                if (!isValidZoneId(s, i + 1)) {
+                    return false;
+                }
+                if (groupLen > 0) {
+                    groupCount++;
+                }
+                groupLen = 0;
+                break; // Exit loop, zone ID is validated
+            } else {
+                if (!isHexDigit(c)) {
+                    return false;
+                }
+                groupLen++;
+                if (groupLen > MAX_HEX_DIGITS_PER_GROUP) {
+                    return false;
+                }
+            }
+        }
+
+        if (groupLen > 0) {
+            groupCount++;
+        }
+
+        return hasDoubleColon ? groupCount < IPV6_TOTAL_GROUPS : groupCount == IPV6_TOTAL_GROUPS;
+    }
+
+    /**
+     * Validates the IPv6 Zone ID (Scope ID). A valid Zone ID must not be empty and must not contain
+     * any line terminators, matching the behavior of the '.' character in the original regular
+     * expression.
+     */
+    private static boolean isValidZoneId(String s, int start) {
+        int len = s.length();
+        if (start >= len) {
+            return false;
+        }
+        for (int i = start; i < len; i++) {
+            char c = s.charAt(i);
+            // Reject Unicode line terminators:
+            // \n (Newline), \r (Carriage Return), \u0085 (Next Line),
+            // \u2028 (Line Separator), \u2029 (Paragraph Separator)
+            if (c == '\n' || c == '\r' || c == '\u0085' || c == '\u2028' || c == '\u2029') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Returns true if the character is a basic ASCII digit (0-9). We use this custom implementation
+     * instead of {@link Character#isDigit(char)} to avoid checking for other Unicode digit
+     * characters, keeping it strictly to ASCII and avoiding any locale or Unicode overhead.
+     */
+    private static boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    /**
+     * Returns true if the character is a valid hexadecimal digit (0-9, a-f, A-F). This is a simple
+     * range check that avoids any character class or regex compilation.
+     */
+    private static boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    }
+
+    private static char toLowerCaseAscii(char c) {
+        if (c >= 'A' && c <= 'Z') {
+            return (char) (c + ASCII_CASE_DIFF);
+        }
+        return c;
+    }
+
+    /**
+     * Compares two ASCII strings case-insensitively. We use this custom implementation instead of
+     * {@link String#equalsIgnoreCase(String)} to: 1. Avoid dependency on Guava's Ascii class. 2.
+     * Avoid locale-dependent behavior of String.equalsIgnoreCase (e.g. Turkish 'I' mapping),
+     * ensuring strictly ASCII comparison. 3. Avoid any object allocations.
+     */
+    private static boolean asciiEqualsIgnoreCase(String s, String expected) {
+        int len = s.length();
+        if (len != expected.length()) {
+            return false;
+        }
+        for (int i = 0; i < len; i++) {
+            char c1 = s.charAt(i);
+            char c2 = expected.charAt(i);
+            if (c1 != c2 && toLowerCaseAscii(c1) != toLowerCaseAscii(c2)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
