@@ -137,14 +137,14 @@ public final class OpenSSLSignatureRawRSA extends SignatureSpi {
         }
 
         if (inputIsTooLong) {
-            throw new SignatureException("input length " + inputOffset + " != "
-                    + inputBuffer.length + " (modulus size)");
+            throw new SignatureException("input length " + inputOffset + " != " + inputBuffer.length
+                                         + " (modulus size)");
         }
 
         byte[] outputBuffer = new byte[inputBuffer.length];
         try {
             NativeCrypto.RSA_private_encrypt(inputOffset, inputBuffer, outputBuffer,
-                    key.getNativeRef(), NativeConstants.RSA_PKCS1_PADDING);
+                                             key.getNativeRef(), NativeConstants.RSA_PKCS1_PADDING);
             return outputBuffer;
         } catch (Exception ex) {
             throw new SignatureException(ex);
@@ -168,7 +168,7 @@ public final class OpenSSLSignatureRawRSA extends SignatureSpi {
         // exception that matches other implementations.
         if (sigBytes.length > inputBuffer.length) {
             throw new SignatureException("Input signature length is too large: " + sigBytes.length
-                    + " > " + inputBuffer.length);
+                                         + " > " + inputBuffer.length);
         }
 
         byte[] outputBuffer = new byte[inputBuffer.length];
@@ -176,7 +176,8 @@ public final class OpenSSLSignatureRawRSA extends SignatureSpi {
             final int resultSize;
             try {
                 resultSize = NativeCrypto.RSA_public_decrypt(sigBytes.length, sigBytes,
-                        outputBuffer, key.getNativeRef(), NativeConstants.RSA_PKCS1_PADDING);
+                                                             outputBuffer, key.getNativeRef(),
+                                                             NativeConstants.RSA_PKCS1_PADDING);
             } catch (SignatureException e) {
                 throw e;
             } catch (Exception e) {

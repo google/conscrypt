@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PushbackInputStream;
@@ -30,7 +32,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 /**
  * An implementation of {@link CertPath} based on BoringSSL.
@@ -38,9 +39,8 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 final class OpenSSLX509CertPath extends CertPath {
     private static final long serialVersionUID = -3249106005255170761L;
 
-    private static final byte[] PKCS7_MARKER = new byte[] {
-            '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'
-    };
+    private static final byte[] PKCS7_MARKER = new byte[] {'-', '-', '-', '-', '-', 'B', 'E', 'G',
+                                                           'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'};
 
     private static final int PUSHBACK_SIZE = 64;
 
@@ -70,8 +70,8 @@ final class OpenSSLX509CertPath extends CertPath {
     }
 
     /** Unmodifiable list of encodings for the API. */
-    private static final List<String> ALL_ENCODINGS = Collections.unmodifiableList(Arrays
-            .asList(new String[] {
+    private static final List<String> ALL_ENCODINGS =
+            Collections.unmodifiableList(Arrays.asList(new String[] {
                     Encoding.PKI_PATH.apiName,
                     Encoding.PKCS7.apiName,
             }));
@@ -166,7 +166,7 @@ final class OpenSSLX509CertPath extends CertPath {
         }
 
         if (certRefs == null) {
-            return new OpenSSLX509CertPath(Collections.<X509Certificate> emptyList());
+            return new OpenSSLX509CertPath(Collections.<X509Certificate>emptyList());
         }
 
         final List<OpenSSLX509Certificate> certs =
@@ -188,7 +188,7 @@ final class OpenSSLX509CertPath extends CertPath {
     private static CertPath fromPkcs7Encoding(InputStream inStream) throws CertificateException {
         try {
             if (inStream == null || inStream.available() == 0) {
-                return new OpenSSLX509CertPath(Collections.<X509Certificate> emptyList());
+                return new OpenSSLX509CertPath(Collections.<X509Certificate>emptyList());
             }
         } catch (IOException e) {
             throw new CertificateException("Problem reading input stream", e);
@@ -212,7 +212,8 @@ final class OpenSSLX509CertPath extends CertPath {
             pbis.unread(buffer, 0, len);
 
             if (len == PKCS7_MARKER.length && Arrays.equals(PKCS7_MARKER, buffer)) {
-                return new OpenSSLX509CertPath(OpenSSLX509Certificate.fromPkcs7PemInputStream(pbis));
+                return new OpenSSLX509CertPath(
+                        OpenSSLX509Certificate.fromPkcs7PemInputStream(pbis));
             }
 
             return new OpenSSLX509CertPath(OpenSSLX509Certificate.fromPkcs7DerInputStream(pbis));

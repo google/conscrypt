@@ -32,8 +32,6 @@
 
 package org.conscrypt;
 
-import static java.lang.Math.min;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.conscrypt.NativeConstants.SSL3_RT_ALERT;
 import static org.conscrypt.NativeConstants.SSL3_RT_APPLICATION_DATA;
 import static org.conscrypt.NativeConstants.SSL3_RT_CHANGE_CIPHER_SPEC;
@@ -41,15 +39,21 @@ import static org.conscrypt.NativeConstants.SSL3_RT_HANDSHAKE;
 import static org.conscrypt.NativeConstants.SSL3_RT_HEADER_LENGTH;
 import static org.conscrypt.NativeConstants.SSL3_RT_MAX_PACKET_SIZE;
 
+import static java.lang.Math.min;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -121,9 +125,9 @@ final class SSLUtils {
         static final int STATE_HANDSHAKE_COMPLETED = 3;
 
         /**
-         * The handshake call returned but the listeners have not yet been notified. This is expected
-         * behaviour in cut-through mode, where SSL_do_handshake returns before the handshake is
-         * complete. We can now start writing data to the socket.
+         * The handshake call returned but the listeners have not yet been notified. This is
+         * expected behaviour in cut-through mode, where SSL_do_handshake returns before the
+         * handshake is complete. We can now start writing data to the socket.
          */
         static final int STATE_READY_HANDSHAKE_CUT_THROUGH = 4;
 
@@ -195,7 +199,8 @@ final class SSLUtils {
     }
 
     private static X509Certificate decodeX509Certificate(CertificateFactory certificateFactory,
-            byte[] bytes) throws java.security.cert.CertificateException {
+                                                         byte[] bytes)
+            throws java.security.cert.CertificateException {
         if (certificateFactory != null) {
             return (X509Certificate) certificateFactory.generateCertificate(
                     new ByteArrayInputStream(bytes));
@@ -259,10 +264,12 @@ final class SSLUtils {
      *
      * @param clientCertificateTypes
      *         {@code ClientCertificateType} values provided by the server.
-     *         See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-2.
+     *         See
+     * https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-2.
      * @param signatureAlgs
      *         {@code SignatureScheme} values provided by the server.
-     *         See https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-signaturescheme
+     *         See
+     * https://www.ietf.org/assignments/tls-parameters/tls-parameters.xml#tls-signaturescheme
      * @return supported key types that can be used in {@code X509KeyManager.chooseClientAlias} and
      * {@code X509ExtendedKeyManager.chooseEngineClientAlias}.  If the inputs imply a preference
      * order, the returned set will have an iteration order that respects that preference order,
@@ -271,7 +278,7 @@ final class SSLUtils {
      * Visible for testing.
      */
     static Set<String> getSupportedClientKeyTypes(byte[] clientCertificateTypes,
-            int[] signatureAlgs) {
+                                                  int[] signatureAlgs) {
         Set<String> fromClientCerts = new HashSet<>(clientCertificateTypes.length);
         for (byte keyTypeCode : clientCertificateTypes) {
             String keyType = SSLUtils.getClientKeyType(keyTypeCode);
@@ -340,7 +347,8 @@ final class SSLUtils {
      * plaintext source bytes.
      */
     static int calculateOutNetBufSize(int pendingBytes) {
-        return min(SSL3_RT_MAX_PACKET_SIZE,
+        return min(
+                SSL3_RT_MAX_PACKET_SIZE,
                 MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
     }
 
@@ -393,12 +401,13 @@ final class SSLUtils {
 
         int numProtocols = 0;
         for (int i = 0; i < protocols.length;) {
-            int protocolLength = protocols[i];
+            int protocolLength = protocols[i] & 0xFF;
             if (protocolLength < 0 || protocolLength > protocols.length - i) {
-                throw new IllegalArgumentException(
-                    "Protocol has invalid length (" + protocolLength + " at position " + i
-                        + "): " + (protocols.length < 50
-                        ? Arrays.toString(protocols) : protocols.length + " byte array"));
+                throw new IllegalArgumentException("Protocol has invalid length (" + protocolLength
+                                                   + " at position " + i + "): "
+                                                   + (protocols.length < 50
+                                                              ? Arrays.toString(protocols)
+                                                              : protocols.length + " byte array"));
             }
 
             numProtocols++;
@@ -407,7 +416,7 @@ final class SSLUtils {
 
         String[] decoded = new String[numProtocols];
         for (int i = 0, d = 0; i < protocols.length;) {
-            int protocolLength = protocols[i];
+            int protocolLength = protocols[i] & 0xFF;
             decoded[d++] = protocolLength > 0
                     ? new String(protocols, i + 1, protocolLength, US_ASCII)
                     : "";
@@ -447,8 +456,8 @@ final class SSLUtils {
             // Verify that the length is valid here, so that we don't attempt to allocate an array
             // below if the threshold is violated.
             if (protocolLength == 0 || protocolLength > MAX_PROTOCOL_LENGTH) {
-                throw new IllegalArgumentException(
-                    "protocol[" + i + "] has invalid length: " + protocolLength);
+                throw new IllegalArgumentException("protocol[" + i
+                                                   + "] has invalid length: " + protocolLength);
             }
 
             // Include a 1-byte prefix for each protocol.
@@ -466,8 +475,8 @@ final class SSLUtils {
                 char c = protocol.charAt(ci);
                 if (c > Byte.MAX_VALUE) {
                     // Enforce US-ASCII
-                    throw new IllegalArgumentException("Protocol contains invalid character: "
-                        + c + "(protocol=" + protocol + ")");
+                    throw new IllegalArgumentException("Protocol contains invalid character: " + c
+                                                       + "(protocol=" + protocol + ")");
                 }
                 data[dataIndex++] = (byte) c;
             }
@@ -569,6 +578,67 @@ final class SSLUtils {
             resultOffset += array.length;
         }
         return result;
+    }
+
+    /**
+     * Maps BoringSSL/TLS signature scheme identifiers to standard JSSE algorithm names.
+     * See RFC 8446, Section 4.2.3.
+     */
+    static String[] mapSignatureAlgorithms(int[] algorithms) {
+        if (algorithms == null || algorithms.length == 0) {
+            // Fallback for TLS 1.2 peers that don't send the signature_algorithms extension
+            return new String[] {"SHA256withRSA",   "SHA256withECDSA", "SHA384withRSA",
+                                 "SHA384withECDSA", "SHA512withRSA",   "SHA512withECDSA",
+                                 "SHA1withRSA",     "SHA1withECDSA"};
+        }
+        List<String> result = new ArrayList<>();
+        for (int alg : algorithms) {
+            switch (alg) {
+                // TLS 1.3 and modern TLS 1.2
+                case 0x0401:
+                    result.add("SHA256withRSA");
+                    break;
+                case 0x0501:
+                    result.add("SHA384withRSA");
+                    break;
+                case 0x0601:
+                    result.add("SHA512withRSA");
+                    break;
+                case 0x0403:
+                    result.add("SHA256withECDSA");
+                    break;
+                case 0x0503:
+                    result.add("SHA384withECDSA");
+                    break;
+                case 0x0603:
+                    result.add("SHA512withECDSA");
+                    break;
+                // RSASSA-PSS schemes
+                case 0x0804:
+                case 0x0805:
+                case 0x0806:
+                case 0x0809:
+                case 0x080a:
+                case 0x080b:
+                    result.add("RSASSA-PSS");
+                    break;
+                // EdDSA schemes
+                case 0x0807:
+                    result.add("Ed25519");
+                    break;
+                // Legacy TLS 1.2
+                case 0x0201:
+                    result.add("SHA1withRSA");
+                    break;
+                case 0x0203:
+                    result.add("SHA1withECDSA");
+                    break;
+                default:
+                    // Ignore unknown or unsupported algorithms
+                    break;
+            }
+        }
+        return result.toArray(new String[0]);
     }
 
     private SSLUtils() {}

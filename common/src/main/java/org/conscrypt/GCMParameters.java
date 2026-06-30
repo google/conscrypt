@@ -31,7 +31,6 @@ import java.security.spec.InvalidParameterSpecException;
  */
 @Internal
 public final class GCMParameters extends AlgorithmParametersSpi {
-
     // The default value (in bits) for TLEN in the GCM ASN.1 module
     private static final int DEFAULT_TLEN = 96;
 
@@ -41,7 +40,7 @@ public final class GCMParameters extends AlgorithmParametersSpi {
     /** Actually the nonce value for the GCM operation. */
     private byte[] iv;
 
-    public GCMParameters() { }
+    public GCMParameters() {}
 
     GCMParameters(int tLen, byte[] iv) {
         this.tLen = tLen;
@@ -86,7 +85,7 @@ public final class GCMParameters extends AlgorithmParametersSpi {
                 newTlen = 8 * (int) NativeCrypto.asn1_read_uint64(seqRef);
             }
             if (!NativeCrypto.asn1_read_is_empty(seqRef)
-                    || !NativeCrypto.asn1_read_is_empty(readRef)) {
+                || !NativeCrypto.asn1_read_is_empty(readRef)) {
                 throw new IOException("Error reading ASN.1 encoding");
             }
             this.iv = newIv;

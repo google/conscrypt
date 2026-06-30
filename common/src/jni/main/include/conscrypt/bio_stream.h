@@ -17,10 +17,9 @@
 #ifndef CONSCRYPT_BIO_STREAM_H_
 #define CONSCRYPT_BIO_STREAM_H_
 
-#include <jni.h>
-
 #include <conscrypt/jniutil.h>
 #include <conscrypt/trace.h>
+#include <jni.h>
 
 namespace conscrypt {
 
@@ -28,7 +27,7 @@ namespace conscrypt {
  * BIO for InputStream
  */
 class BioStream {
- public:
+public:
     explicit BioStream(jobject stream) : mEof(false) {
         JNIEnv* env = jniutil::getJNIEnv();
         mStream = env->NewGlobalRef(stream);
@@ -64,7 +63,7 @@ class BioStream {
         return 1;
     }
 
- protected:
+protected:
     jobject getStream() {
         return mStream;
     }
@@ -73,7 +72,7 @@ class BioStream {
         mEof = eof;
     }
 
- private:
+private:
     jobject mStream;
     bool mEof;
 };

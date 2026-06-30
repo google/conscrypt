@@ -37,6 +37,7 @@ package org.conscrypt;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
@@ -49,7 +50,6 @@ import javax.net.ssl.TrustManagerFactorySpi;
  */
 @Internal
 public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
-
     private KeyStore keyStore;
 
     /**
@@ -70,8 +70,7 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
     @Override
     public void engineInit(ManagerFactoryParameters spec)
             throws InvalidAlgorithmParameterException {
-        throw new InvalidAlgorithmParameterException(
-                "ManagerFactoryParameters not supported");
+        throw new InvalidAlgorithmParameterException("ManagerFactoryParameters not supported");
     }
 
     /**
@@ -80,9 +79,8 @@ public class TrustManagerFactoryImpl extends TrustManagerFactorySpi {
     @Override
     public TrustManager[] engineGetTrustManagers() {
         if (keyStore == null) {
-            throw new IllegalStateException(
-                    "TrustManagerFactory is not initialized");
+            throw new IllegalStateException("TrustManagerFactory is not initialized");
         }
-        return new TrustManager[] { new TrustManagerImpl(keyStore) };
+        return new TrustManager[] {new TrustManagerImpl(keyStore)};
     }
 }

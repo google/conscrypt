@@ -71,7 +71,6 @@ public abstract class AllocatedBuffer {
         checkNotNull(buffer, "buffer");
 
         return new AllocatedBuffer() {
-
             @Override
             public ByteBuffer nioBuffer() {
                 return buffer;

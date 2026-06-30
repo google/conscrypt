@@ -24,6 +24,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
+
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSessionContext;
 
@@ -297,8 +298,8 @@ final class ActiveSession implements ConscryptSession {
     /**
      * Configures the peer information once it has been received by the handshake.
      */
-    void onPeerCertificatesReceived(
-            String peerHost, int peerPort, X509Certificate[] peerCertificates) {
+    void onPeerCertificatesReceived(String peerHost, int peerPort,
+                                    X509Certificate[] peerCertificates) {
         configurePeer(peerHost, peerPort, peerCertificates);
     }
 
@@ -340,5 +341,26 @@ final class ActiveSession implements ConscryptSession {
         if (peerCertificates == null || peerCertificates.length == 0) {
             throw new SSLPeerUnverifiedException("No peer certificates");
         }
+    }
+
+    private String[] peerSupportedSignatureAlgorithms = new String[0];
+
+    void onPeerSignatureAlgorithmsReceived(String[] algorithms) {
+        this.peerSupportedSignatureAlgorithms =
+                algorithms != null ? algorithms.clone() : new String[0];
+    }
+
+    @Override
+    public String[] getPeerSupportedSignatureAlgorithms() {
+        return peerSupportedSignatureAlgorithms.clone();
+    }
+
+    @Override
+    public String[] getLocalSupportedSignatureAlgorithms() {
+        return new String[] {// TLS 1.3 & modern TLS 1.2
+                             "RSASSA-PSS", "Ed25519", "SHA512withRSA", "SHA512withECDSA",
+                             "SHA384withRSA", "SHA384withECDSA", "SHA256withRSA", "SHA256withECDSA",
+                             // Legacy
+                             "SHA224withRSA", "SHA224withECDSA", "SHA1withRSA", "SHA1withECDSA"};
     }
 }

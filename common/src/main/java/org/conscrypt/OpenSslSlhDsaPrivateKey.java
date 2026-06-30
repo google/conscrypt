@@ -16,28 +16,19 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PrivateKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 /** A SLH-DSA private key. */
 public class OpenSslSlhDsaPrivateKey implements PrivateKey {
+    private static final long serialVersionUID = 0x87e8776a4491fecbL;
+
     static final int PRIVATE_KEY_SIZE_BYTES = 64;
 
     private byte[] raw;
-
-    public OpenSslSlhDsaPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-            if (encoded.length != PRIVATE_KEY_SIZE_BYTES) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            raw = encoded;
-        } else {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-    }
 
     public OpenSslSlhDsaPrivateKey(byte[] raw) {
         if (raw.length != PRIVATE_KEY_SIZE_BYTES) {
@@ -53,12 +44,12 @@ public class OpenSslSlhDsaPrivateKey implements PrivateKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        return ArrayUtils.concat(OpenSslSlhDsaKeyFactory.pkcs8Preamble, raw);
     }
 
     byte[] getRaw() {
@@ -96,5 +87,16 @@ public class OpenSslSlhDsaPrivateKey implements PrivateKey {
     @Override
     public int hashCode() {
         return Arrays.hashCode(raw);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "raw"
+        if (raw.length != PRIVATE_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject(); // writes "raw"
     }
 }

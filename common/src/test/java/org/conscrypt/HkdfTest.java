@@ -35,7 +35,7 @@ public class HkdfTest {
 
     @Test
     public void constructor() throws Exception {
-        assertThrows(NullPointerException.class, () ->  new Hkdf(null));
+        assertThrows(NullPointerException.class, () -> new Hkdf(null));
         assertThrows(NoSuchAlgorithmException.class, () -> new Hkdf("No such MAC"));
 
         Hkdf hkdf = new Hkdf(SHA256);
@@ -61,13 +61,13 @@ public class HkdfTest {
         assertThrows(NullPointerException.class, () -> hkdf.expand(null, null, 1));
         // Negative length
         assertThrows(IllegalArgumentException.class,
-            () -> hkdf.expand(new byte[macLen], new byte[0], -1));
+                     () -> hkdf.expand(new byte[macLen], new byte[0], -1));
         // PRK too small
         assertThrows(IllegalArgumentException.class,
-            () -> hkdf.expand(new byte[0], new byte[0], 1));
+                     () -> hkdf.expand(new byte[0], new byte[0], 1));
         // Length too large
         assertThrows(IllegalArgumentException.class,
-            () -> hkdf.expand(new byte[macLen], new byte[0], 255 * macLen + 1));
+                     () -> hkdf.expand(new byte[macLen], new byte[0], 255 * macLen + 1));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class HkdfTest {
         List<TestVector> vectors = TestUtils.readTestVectors("crypto/hkdf.txt");
 
         for (TestVector vector : vectors) {
-            String errMsg =  vector.getString("name");
+            String errMsg = vector.getString("name");
             String macName = vector.getString("hash");
             byte[] ikm = vector.getBytes("ikm");
             byte[] salt = vector.getBytesOrEmpty("salt");

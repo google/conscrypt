@@ -27,7 +27,6 @@ import java.security.spec.AlgorithmParameterSpec;
 
 public class AlgorithmParameterSignatureHelper<T extends AlgorithmParameterSpec>
         extends TestHelper<AlgorithmParameters> {
-
     private final String algorithmName;
     private final String keyPairAlgorithmName;
     private final String plainData = "some data do sign and verify";
@@ -40,7 +39,7 @@ public class AlgorithmParameterSignatureHelper<T extends AlgorithmParameterSpec>
     }
 
     public AlgorithmParameterSignatureHelper(String algorithmName, String keyPairAlgorithmName,
-            Class<T> parameterSpecCla1ss) {
+                                             Class<T> parameterSpecCla1ss) {
         this.algorithmName = algorithmName;
         this.keyPairAlgorithmName = keyPairAlgorithmName;
         this.parameterSpecClass = parameterSpecCla1ss;

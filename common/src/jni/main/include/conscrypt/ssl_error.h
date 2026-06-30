@@ -30,7 +30,7 @@ namespace conscrypt {
  * argument to things that free the error stack state as a side-effect.
  */
 class SslError {
- public:
+public:
     SslError() : sslError_(SSL_ERROR_NONE), released_(false) {}
 
     SslError(SSL* ssl, int returnCode) : sslError_(SSL_ERROR_NONE), released_(false) {
@@ -60,7 +60,7 @@ class SslError {
         return sslError_;
     }
 
- private:
+private:
     int sslError_;
     bool released_;
 };

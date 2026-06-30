@@ -16,8 +16,9 @@
 
 package org.conscrypt.ct;
 
-import java.security.cert.X509Certificate;
 import org.conscrypt.Internal;
+
+import java.security.cert.X509Certificate;
 
 @Internal
 public interface Policy {

@@ -36,7 +36,7 @@ public class Spake2PlusKeyManager implements KeyManager {
     private final int handshakeLimit;
 
     Spake2PlusKeyManager(byte[] context, byte[] password, byte[] idProver, byte[] idVerifier,
-            boolean isClient, int handshakeLimit) {
+                         boolean isClient, int handshakeLimit) {
         this.context = context == null ? new byte[0] : context;
         this.password = password;
         this.idProver = idProver == null ? new byte[0] : idProver;

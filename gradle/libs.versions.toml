@@ -1,6 +1,6 @@
 [versions]
 bnd = "6.4.0"
-bouncycastle = "1.67"
+bouncycastle = "1.77"
 caliper = "1.0-beta-2"
 errorprone = "2.31.0"
 jacoco = "0.8.12"
@@ -22,8 +22,8 @@ shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
 caliper = { module = "com.google.caliper:caliper", version.ref = "caliper" }
 
 # Bouncycastle
-bouncycastle-apis = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
-bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
+bouncycastle-apis = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 # Testing
 errorprone = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
@@ -31,6 +31,7 @@ jacoco-agent = { module = "org.jacoco:org.jacoco.agent", version.ref = "jacoco" 
 jacoco-ant = { module = "org.jacoco:org.jacoco.ant", version.ref = "jacoco" }
 junit = { module = "junit:junit", version.ref = "junit" }
 mockito = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockito-android = { module = "org.mockito:mockito-android", version.ref = "mockito" }
 
 # JMH Benchmarking
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }

@@ -38,7 +38,6 @@ import java.security.Provider;
  */
 @Internal
 public final class JSSEProvider extends Provider {
-
     private static final long serialVersionUID = 3075686092260669675L;
 
     public JSSEProvider() {

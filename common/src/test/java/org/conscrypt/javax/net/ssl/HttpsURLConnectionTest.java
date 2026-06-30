@@ -20,7 +20,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+// g3-add: import static org.junit.Assume.assumeFalse;
 import static org.junit.Assert.fail;
+
+import org.conscrypt.TestUtils;
+import org.conscrypt.VeryBasicHttpServer;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -28,20 +36,16 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+// g3-add: import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
-import org.conscrypt.TestUtils;
-import org.conscrypt.VeryBasicHttpServer;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class HttpsURLConnectionTest {
@@ -52,12 +56,10 @@ public class HttpsURLConnectionTest {
     private static final String UNRESOLVABLE_HTTPS_URL = "https:///";
     private static final String UNREACHABLE_IP = "10.255.255.1";
 
-
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final VeryBasicHttpServer server = new VeryBasicHttpServer();
 
-    public HttpsURLConnectionTest() throws IOException {
-    }
+    public HttpsURLConnectionTest() throws IOException {}
 
     @After
     public void after() {
@@ -111,13 +113,12 @@ public class HttpsURLConnectionTest {
 
     @Test
     public void failedUrlConnect() throws Exception {
-        VeryBasicHttpServer.Op op = server
-                .opBuilder()
-                .build();
+        VeryBasicHttpServer.Op op = server.opBuilder().build();
 
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
+        // g3-add: broken HTTPS hostname verification
         int response = connection.getResponseCode();
         assertEquals(404, response);
 
@@ -126,28 +127,22 @@ public class HttpsURLConnectionTest {
 
     @Test
     public void successfulUrlConnect() throws Exception {
-        VeryBasicHttpServer.Op op = server
-                .opBuilder()
-                .content("/file", "Hello\nWorld\n")
-                .build();
+        VeryBasicHttpServer.Op op = server.opBuilder().content("/file", "Hello\nWorld\n").build();
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
+        // g3-add: broken HTTPS hostname verification
         int response = connection.getResponseCode();
         assertEquals(200, response);
 
         future.get(2000, TimeUnit.MILLISECONDS);
     }
 
-
     @Test
     public void urlReadTimeout() throws Exception {
         TestUtils.assumeEngineSocket();
-        VeryBasicHttpServer.Op op = server
-                .opBuilder()
-                .postAcceptDelay(5000)
-                .closeBeforeRead()
-                .build();
+        VeryBasicHttpServer.Op op =
+                server.opBuilder().postAcceptDelay(5000).closeBeforeRead().build();
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
@@ -249,8 +244,8 @@ public class HttpsURLConnectionTest {
         }
 
         @Override
-        public Socket createSocket(
-                InetAddress address, int port, InetAddress localAddress, int localPort) {
+        public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
+                                   int localPort) {
             throw new UnsupportedOperationException();
         }
 
@@ -269,6 +264,4 @@ public class HttpsURLConnectionTest {
             throw new UnsupportedOperationException();
         }
     }
-
-
 }

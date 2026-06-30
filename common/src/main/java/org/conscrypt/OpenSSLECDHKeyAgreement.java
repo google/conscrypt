@@ -25,8 +25,7 @@ import java.security.PublicKey;
  */
 @Internal
 public final class OpenSSLECDHKeyAgreement extends OpenSSLBaseDHKeyAgreement<OpenSSLKey> {
-    public OpenSSLECDHKeyAgreement() {
-    }
+    public OpenSSLECDHKeyAgreement() {}
 
     @Override
     protected OpenSSLKey convertPublicKey(PublicKey key) throws InvalidKeyException {
@@ -39,18 +38,16 @@ public final class OpenSSLECDHKeyAgreement extends OpenSSLBaseDHKeyAgreement<Ope
     }
 
     @Override
-    protected int computeKey(byte[] buffer, OpenSSLKey theirPublicKey, OpenSSLKey ourPrivateKey) throws InvalidKeyException {
-        return NativeCrypto.ECDH_compute_key(
-                buffer,
-                0,
-                theirPublicKey.getNativeRef(),
-                ourPrivateKey.getNativeRef());
+    protected int computeKey(byte[] buffer, OpenSSLKey theirPublicKey, OpenSSLKey ourPrivateKey)
+            throws InvalidKeyException {
+        return NativeCrypto.ECDH_compute_key(buffer, 0, theirPublicKey.getNativeRef(),
+                                             ourPrivateKey.getNativeRef());
     }
 
     @Override
     protected int getOutputSize(OpenSSLKey openSslKey) {
-        int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(new NativeRef.EC_GROUP(
-                NativeCrypto.EC_KEY_get1_group(openSslKey.getNativeRef())));
+        int fieldSizeBits = NativeCrypto.EC_GROUP_get_degree(
+                new NativeRef.EC_GROUP(NativeCrypto.EC_KEY_get1_group(openSslKey.getNativeRef())));
         return (fieldSizeBits + 7) / 8;
     }
 }

@@ -11,7 +11,6 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class OptionalMethodTest {
-
     @Test
     public void workingMethod() {
         OptionalMethod substring =
@@ -23,8 +22,7 @@ public class OptionalMethodTest {
 
     @Test
     public void nullClass() {
-        OptionalMethod substring =
-                new OptionalMethod(null, "substring", int.class, int.class);
+        OptionalMethod substring = new OptionalMethod(null, "substring", int.class, int.class);
         assertNotNull(substring);
 
         assertNull(substring.invoke("input", 2, 5));
@@ -32,9 +30,8 @@ public class OptionalMethodTest {
 
     @Test
     public void nullMethodName() {
-        assertThrows(
-            NullPointerException.class,
-            () -> new OptionalMethod(String.class, null, int.class, int.class));
+        assertThrows(NullPointerException.class,
+                     () -> new OptionalMethod(String.class, null, int.class, int.class));
     }
 
     @Test
@@ -47,8 +44,7 @@ public class OptionalMethodTest {
 
     @Test
     public void noSuchMethodName() {
-        OptionalMethod subwrong =
-                new OptionalMethod(null, "subwrong", int.class, int.class);
+        OptionalMethod subwrong = new OptionalMethod(null, "subwrong", int.class, int.class);
         assertNotNull(subwrong);
 
         assertNull(subwrong.invoke("input", 2, 5));
@@ -56,8 +52,7 @@ public class OptionalMethodTest {
 
     @Test
     public void noSuchMethodArgs() {
-        OptionalMethod subwrong =
-                new OptionalMethod(null, "substring", long.class, byte[].class);
+        OptionalMethod subwrong = new OptionalMethod(null, "substring", long.class, byte[].class);
         assertNotNull(subwrong);
 
         assertNull(subwrong.invoke("input", 2, 5));
@@ -66,7 +61,7 @@ public class OptionalMethodTest {
     @Test
     public void nullReceiver() {
         OptionalMethod substring =
-            new OptionalMethod(String.class, "substring", int.class, int.class);
+                new OptionalMethod(String.class, "substring", int.class, int.class);
         assertNotNull(substring);
 
         assertEquals(null, substring.invoke(null, 2, 5));

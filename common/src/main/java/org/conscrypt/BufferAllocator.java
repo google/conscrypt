@@ -28,6 +28,11 @@ public abstract class BufferAllocator {
         public AllocatedBuffer allocateDirectBuffer(int capacity) {
             return AllocatedBuffer.wrap(ByteBuffer.allocateDirect(capacity));
         }
+
+        @Override
+        public AllocatedBuffer allocateHeapBuffer(int capacity) {
+            return AllocatedBuffer.wrap(ByteBuffer.allocate(capacity));
+        }
     };
 
     /**
@@ -41,4 +46,9 @@ public abstract class BufferAllocator {
      * Allocates a direct (i.e. non-heap) buffer with the given capacity.
      */
     public abstract AllocatedBuffer allocateDirectBuffer(int capacity);
+
+    /**
+     * Allocates a heap buffer with the given capacity.
+     */
+    public abstract AllocatedBuffer allocateHeapBuffer(int capacity);
 }

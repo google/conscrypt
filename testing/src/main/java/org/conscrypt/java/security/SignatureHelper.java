@@ -25,7 +25,6 @@ import java.security.PublicKey;
 import java.security.Signature;
 
 public class SignatureHelper extends TestHelper<KeyPair> {
-
     private final String algorithmName;
     private final String plainData = "some data do sign and verify";
 

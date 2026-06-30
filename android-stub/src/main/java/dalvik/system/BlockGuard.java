@@ -24,7 +24,9 @@ public class BlockGuard {
         throw new UnsupportedOperationException("Stub!");
     }
 
-    public interface Policy { void onNetwork(); }
+    public interface Policy {
+        void onNetwork();
+    }
 
     public static class PolicyWrapper implements Policy {
         private PolicyWrapper() {}

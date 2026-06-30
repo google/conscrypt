@@ -32,6 +32,7 @@ import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
@@ -118,7 +119,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     }
 
     AbstractConscryptSocket(InetAddress address, int port, InetAddress clientAddress,
-            int clientPort) throws IOException {
+                            int clientPort) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.socket = this;
         this.peerHostname = null;
@@ -512,6 +513,10 @@ abstract class AbstractConscryptSocket extends SSLSocket {
         return builder.toString();
     }
 
+    public abstract void setNamedGroups(String[] namedGroups);
+
+    abstract String getCurveNameForTesting();
+
     /**
      * Returns the hostname that was supplied during socket creation. No DNS resolution is
      * attempted before returning the hostname.
@@ -666,8 +671,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      *
      * @deprecated use {@link #getApplicationProtocol()} instead.
      */
-    @Deprecated
-    abstract byte[] getAlpnSelectedProtocol();
+    @Deprecated abstract byte[] getAlpnSelectedProtocol();
 
     /**
      * Sets the list of ALPN protocols. This method internally converts the protocols to their
@@ -676,8 +680,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * @param alpnProtocols the list of ALPN protocols
      * @deprecated use {@link #setApplicationProtocols(String[])} instead.
      */
-    @Deprecated
-    abstract void setAlpnProtocols(String[] alpnProtocols);
+    @Deprecated abstract void setAlpnProtocols(String[] alpnProtocols);
 
     /**
      * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
@@ -687,8 +690,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * @param alpnProtocols the encoded form of the ALPN protocol list
      * @deprecated Use {@link #setApplicationProtocols(String[])} instead.
      */
-    @Deprecated
-    abstract void setAlpnProtocols(byte[] alpnProtocols);
+    @Deprecated abstract void setAlpnProtocols(byte[] alpnProtocols);
 
     /**
      * Sets the list of ALPN protocols.

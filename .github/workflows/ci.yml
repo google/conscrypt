@@ -10,7 +10,7 @@ on:
 jobs:
   boringssl_clone:
     # This step ensures that all builders have the same version of BoringSSL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Clone BoringSSL repo
@@ -19,7 +19,7 @@ jobs:
           echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
 
       - name: Archive BoringSSL source
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -30,11 +30,11 @@ jobs:
   clang_format_check:
     # Only run on pull requests.
     if: ${{ startsWith(github.ref, 'refs/pull/') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -54,23 +54,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [ubuntu-22.04, macos-latest, windows-latest]
+        # We use commandlinetools v20.
         include:
-          - platform: ubuntu-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          - platform: ubuntu-22.04
+            tools_url: https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
           - platform: macos-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-mac-14742923_latest.zip
           - platform: windows-latest
-            tools_url: https://dl.google.com/android/repository/commandlinetools-win-9477386_latest.zip
+            tools_url: https://dl.google.com/android/repository/commandlinetools-win-14742923_latest.zip
 
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Set up JDK 11 for toolchains
-        uses: actions/setup-java@v4
+      - name: Set up JDK 17 for toolchains
+        uses: actions/setup-java@v5
         with:
-          distribution: 'zulu'
-          java-version: 11
+          distribution: 'temurin'
+          java-version: 17
 
       - name: Set runner-specific environment variables
         shell: bash
@@ -81,7 +82,7 @@ jobs:
           echo "SDKMANAGER=${{ runner.temp }}/android-sdk/cmdline-tools/bin/sdkmanager" >> $GITHUB_ENV
           echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Linux environment
         if: runner.os == 'Linux'
@@ -89,14 +90,12 @@ jobs:
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
 
-          sudo dpkg --add-architecture i386
           sudo add-apt-repository ppa:openjdk-r/ppa
           sudo apt-get -qq update
           sudo apt-get -qq install -y --no-install-recommends \
-            gcc-multilib \
-            g++-multilib \
+            g++-aarch64-linux-gnu \
             ninja-build \
-            openjdk-11-jre-headless
+            openjdk-17-jre-headless
 
       - name: Setup macOS environment
         if: runner.os == 'macOS'
@@ -111,7 +110,7 @@ jobs:
           choco install ninja -y
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -141,11 +140,28 @@ jobs:
           popd
 
       - name: Build BoringSSL 64-bit Linux
+        # Please keep this in sync with other "Build BoringSSL 64-bit Linux"
         if: runner.os == 'Linux'
         run: |
           mkdir -p "$BORINGSSL_HOME/build64"
           pushd "$BORINGSSL_HOME/build64"
           cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -GNinja ..
+          ninja
+          popd
+
+      - name: Build BoringSSL AArch64 Linux
+        # Please keep this in sync with other "Build BoringSSL AArch64 Linux"
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build.arm"
+          pushd "$BORINGSSL_HOME/build.arm"
+          cmake -DCMAKE_SYSTEM_NAME=Linux \
+                -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+                -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+                -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+                -DCMAKE_BUILD_TYPE=Release \
+                -GNinja ..
           ninja
           popd
 
@@ -179,7 +195,7 @@ jobs:
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'build-tools;30.0.3'
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'platforms;android-26'
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'extras;android;m2repository'
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'ndk;25.2.9519653'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'ndk;27.3.13750724'
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'cmake;3.22.1'
 
       - name: Build with Gradle
@@ -188,7 +204,7 @@ jobs:
 
       - name: Test with Gradle
         shell: bash
-        timeout-minutes: 15
+        timeout-minutes: 30
         run: ./gradlew check -PcheckErrorQueue
 
       - name: Publish to local Maven repo
@@ -196,7 +212,7 @@ jobs:
         run: ./gradlew publishToMavenLocal -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: m2repo-${{ runner.os }}
           path: ${{ runner.temp }}/m2
@@ -208,7 +224,7 @@ jobs:
 
       - name: Upload test JAR with dependencies
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: testjar
           path: openjdk/build/libs/conscrypt-openjdk-*-tests.jar
@@ -217,24 +233,22 @@ jobs:
   uberjar:
     needs: build
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Linux environment
         run: |
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
 
-          sudo dpkg --add-architecture i386
           sudo add-apt-repository ppa:openjdk-r/ppa
           sudo apt-get -qq update
           sudo apt-get -qq install -y --no-install-recommends \
-            gcc-multilib \
-            g++-multilib \
+            g++-aarch64-linux-gnu \
             ninja-build \
-            openjdk-11-jre-headless
+            openjdk-17-jre-headless
 
       - name: Set runner-specific environment variables
         shell: bash
@@ -243,7 +257,7 @@ jobs:
           echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
 
       - name: Fetch BoringSSL source
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: boringssl-source
           path: ${{ runner.temp }}/boringssl
@@ -255,12 +269,27 @@ jobs:
           git checkout --progress --force -B main
 
       - name: Build BoringSSL 64-bit Linux
+        # Please keep this in sync with other "Build BoringSSL 64-bit Linux"
         run: |
           mkdir -p "$BORINGSSL_HOME/build64"
           pushd "$BORINGSSL_HOME/build64"
           cmake -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DCMAKE_BUILD_TYPE=Release -GNinja ..
           ninja
           popd
+
+      - name: Build BoringSSL AArch64 Linux
+        # Please keep this in sync with other "Build BoringSSL AArch64 Linux"
+        run: |
+          mkdir -p "$BORINGSSL_HOME/build.arm"
+          pushd "$BORINGSSL_HOME/build.arm"
+          cmake -DCMAKE_SYSTEM_NAME=Linux \
+                -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+                -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+                -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+                -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE \
+                -DCMAKE_BUILD_TYPE=Release \
+                -GNinja ..
+          ninja
 
       # TODO(prb) remove build dependency above and go back to this.
       # - name: Make fake BoringSSL directories
@@ -274,19 +303,19 @@ jobs:
       #     mkdir -p "${{ runner.temp }}/boringssl/include"
 
       - name: Download Maven repository for Linux
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: m2repo-Linux
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for MacOS
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: m2repo-macOS
           path: ${{ runner.temp }}/m2
 
       - name: Download Maven repository for Windows
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: m2repo-Windows
           path: ${{ runner.temp }}/m2
@@ -302,7 +331,7 @@ jobs:
           ./gradlew :conscrypt-openjdk-uber:publishToMavenLocal -Dorg.conscrypt.openjdk.buildUberJar=true -Dmaven.repo.local="$M2_REPO"
 
       - name: Upload Maven respository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: m2repo-uber
           path: ${{ runner.temp }}/m2
@@ -313,20 +342,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-13, macos-latest, windows-latest]
-        java: [8, 11, 17, 21]
+        platform: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-latest, macos-14, macos-latest, windows-latest]
+        java: [8, 11, 17, 21, 25, EA]
         dist: ['temurin', 'zulu']
         include:
+          - platform: ubuntu-22.04
+            separator: ':'
+          - platform: ubuntu-22.04-arm
+            separator: ':'
           - platform: ubuntu-latest
             separator: ':'
           - platform: macos-latest
             separator: ':'
-          - platform: macos-13
+          - platform: macos-14
             separator: ':'
           - platform: windows-latest
             separator: ';'
         exclude: # Not available on Github runners
           - platform: macos-latest
+            java: 8
+            dist: 'temurin'
+          - platform: macos-14
             java: 8
             dist: 'temurin'
 
@@ -335,19 +371,27 @@ jobs:
 
     steps:
       - name: Set up Java
-        uses: actions/setup-java@v4
+        if: ${{ matrix.java != 'EA' }}
+        uses: actions/setup-java@v5
         with:
           distribution: ${{ matrix.dist }}
           java-version: ${{ matrix.java }}
 
+      - name: 'Set up JDK ${{ matrix.java }} from jdk.java.net'
+        if: ${{ matrix.java == 'EA' }}
+        uses: oracle-actions/setup-java@v1
+        with:
+          website: jdk.java.net
+          release: ${{ matrix.java }}
+
       - name: Download UberJAR
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: m2repo-uber
           path: m2
 
       - name: Download Test JAR with Dependencies
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: testjar
           path: testjar
@@ -357,7 +401,7 @@ jobs:
         run: mvn org.apache.maven.plugins:maven-dependency-plugin:3.8.0:copy -Dartifact=org.junit.platform:junit-platform-console-standalone:1.11.2 -DoutputDirectory=. -Dmdep.stripVersion=true
 
       - name: Run JUnit tests
-        timeout-minutes: 15
+        timeout-minutes: 30
         shell: bash
         run: |
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
@@ -389,7 +433,7 @@ jobs:
 
       - name: Archive test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ matrix.platform }}-${{ matrix.java }}-${{ matrix.dist }}
           path: results

@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-
 /**
  * Test support class for filtering collections of {@link Method}.  Each filter is a list of
  * predicates which must all be true for a Method in order for it to be included it the output.
@@ -31,7 +30,8 @@ public class MethodFilter {
         }
         if (expectedSize != 0) {
             assertTrue(String.format("Filter %s only returned %d methods, expected at least %d",
-                    name, result.size(), expectedSize), result.size() >= expectedSize);
+                                     name, result.size(), expectedSize),
+                       result.size() >= expectedSize);
         }
         return result;
     }
@@ -43,10 +43,7 @@ public class MethodFilter {
 
     /** Returns a filter which selects only methods named in {@code methodNames} */
     public static MethodFilter nameFilter(String name, String... methodNames) {
-        return newBuilder(name)
-                .named(methodNames)
-                .expectSize(methodNames.length)
-                .build();
+        return newBuilder(name).named(methodNames).expectSize(methodNames.length).build();
     }
 
     private void addPredicate(Predicate<Method> predicate) {
@@ -96,8 +93,10 @@ public class MethodFilter {
             return this;
         }
 
-        /** Expect at least {@code size} matching methods when filtering, otherwise filter()
-         * will throw {@code AssertionError} */
+        /**
+         * Expect at least {@code size} matching methods when filtering, otherwise filter()
+         * will throw {@code AssertionError}
+         */
         public Builder expectSize(int size) {
             filter.expectedSize = size;
             return this;

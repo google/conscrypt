@@ -147,30 +147,30 @@ public class XdhKeyFactoryTest {
     @Test
     public void keySpec_Fail() throws Exception {
         assertThrows(InvalidKeySpecException.class,
-                () -> factory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
+                     () -> factory.getKeySpec(publicKey, PKCS8EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class,
-                () -> factory.getKeySpec(privateKey, X509EncodedKeySpec.class));
+                     () -> factory.getKeySpec(privateKey, X509EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class,
-                ()
-                        -> factory.getKeySpec(
-                                new TestPublicKeyWrongEncoding(), X509EncodedKeySpec.class));
+                     ()
+                             -> factory.getKeySpec(new TestPublicKeyWrongEncoding(),
+                                                   X509EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class,
-                ()
-                        -> factory.getKeySpec(
-                                new TestPrivateKeyWrongEncoding(), PKCS8EncodedKeySpec.class));
+                     ()
+                             -> factory.getKeySpec(new TestPrivateKeyWrongEncoding(),
+                                                   PKCS8EncodedKeySpec.class));
 
         assertThrows(InvalidKeySpecException.class,
-                () -> factory.getKeySpec(publicKey, TestKeySpecWrongEncoding.class));
+                     () -> factory.getKeySpec(publicKey, TestKeySpecWrongEncoding.class));
         assertThrows(InvalidKeySpecException.class,
-                () -> factory.getKeySpec(privateKey, TestKeySpecWrongEncoding.class));
+                     () -> factory.getKeySpec(privateKey, TestKeySpecWrongEncoding.class));
 
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         KeyPair kp = kpg.generateKeyPair();
 
         assertThrows(InvalidKeySpecException.class,
-                () -> factory.getKeySpec(kp.getPublic(), X509EncodedKeySpec.class));
+                     () -> factory.getKeySpec(kp.getPublic(), X509EncodedKeySpec.class));
         assertThrows(InvalidKeySpecException.class,
-                () -> factory.getKeySpec(kp.getPrivate(), PKCS8EncodedKeySpec.class));
+                     () -> factory.getKeySpec(kp.getPrivate(), PKCS8EncodedKeySpec.class));
     }
 
     @Test
@@ -210,11 +210,12 @@ public class XdhKeyFactoryTest {
                 decodeHex("0900000000000000000000000000000000000000000000000000000000000000"),
                 decodeHex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c"),
                 decodeHex("e5210f12786811d3f4b7959d0538ae2c31dbe7106fc03c3efc4cd549c715a493")};
-        BigInteger[] expectedUAsBigIntegers = new BigInteger[] {BigInteger.valueOf(9),
-                new BigInteger("34426434033919594451155107781188821651"
-                        + "316167215306631574996226621102155684838"),
-                new BigInteger("88838573511839298940907593866106493194"
-                        + "17338800022198945255395922347792736741")};
+        BigInteger[] expectedUAsBigIntegers =
+                new BigInteger[] {BigInteger.valueOf(9),
+                                  new BigInteger("34426434033919594451155107781188821651"
+                                                 + "316167215306631574996226621102155684838"),
+                                  new BigInteger("88838573511839298940907593866106493194"
+                                                 + "17338800022198945255395922347792736741")};
         assertEquals(expectedUAsBigIntegers.length, uAsBytes.length);
         for (int i = 0; i < uAsBytes.length; i++) {
             PublicKey publicKey = factory.generatePublic(new XdhKeySpec(uAsBytes[i]));
@@ -271,9 +272,9 @@ public class XdhKeyFactoryTest {
     @Test
     public void translate_Fail() throws Exception {
         assertThrows(InvalidKeyException.class,
-                () -> factory.translateKey(new TestPublicKeyWrongEncoding()));
+                     () -> factory.translateKey(new TestPublicKeyWrongEncoding()));
         assertThrows(InvalidKeyException.class,
-                () -> factory.translateKey(new TestPrivateKeyWrongEncoding()));
+                     () -> factory.translateKey(new TestPrivateKeyWrongEncoding()));
 
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
         KeyPair kp = kpg.generateKeyPair();

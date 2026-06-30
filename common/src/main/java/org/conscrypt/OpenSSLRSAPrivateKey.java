@@ -74,15 +74,9 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         }
 
         try {
-            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                    modulus.toByteArray(),
-                    null,
-                    privateExponent.toByteArray(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null));
+            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(modulus.toByteArray(), null,
+                                                                privateExponent.toByteArray(), null,
+                                                                null, null, null, null));
         } catch (Exception e) {
             throw new InvalidKeySpecException(e);
         }
@@ -97,8 +91,9 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     }
 
     static OpenSSLKey wrapPlatformKey(RSAPrivateKey rsaPrivateKey) {
-        return new OpenSSLKey(NativeCrypto.getRSAPrivateKeyWrapper(rsaPrivateKey, rsaPrivateKey
-                .getModulus().toByteArray()), true);
+        return new OpenSSLKey(NativeCrypto.getRSAPrivateKeyWrapper(
+                                      rsaPrivateKey, rsaPrivateKey.getModulus().toByteArray()),
+                              true);
     }
 
     /**
@@ -106,8 +101,8 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
      * using the key will be delegated to the {@code Signature}/{@code Cipher} implementation of the
      * provider which accepts the key.
      */
-    static OpenSSLKey wrapJCAPrivateKeyForTLSStackOnly(PrivateKey privateKey,
-            PublicKey publicKey) throws InvalidKeyException {
+    static OpenSSLKey wrapJCAPrivateKeyForTLSStackOnly(PrivateKey privateKey, PublicKey publicKey)
+            throws InvalidKeyException {
         BigInteger modulus = null;
         if (privateKey instanceof RSAKey) {
             modulus = ((RSAKey) privateKey).getModulus();
@@ -116,7 +111,7 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         }
         if (modulus == null) {
             throw new InvalidKeyException("RSA modulus not available. Private: " + privateKey
-                    + ", public: " + publicKey);
+                                          + ", public: " + publicKey);
         }
         return new OpenSSLKey(
                 NativeCrypto.getRSAPrivateKeyWrapper(privateKey, modulus.toByteArray()), true);
@@ -141,15 +136,9 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         }
 
         try {
-            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                    modulus.toByteArray(),
-                    null,
-                    privateExponent.toByteArray(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null));
+            return new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(modulus.toByteArray(), null,
+                                                                privateExponent.toByteArray(), null,
+                                                                null, null, null, null));
         } catch (Exception e) {
             throw new InvalidKeyException(e);
         }
@@ -263,15 +252,9 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
 
-        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(
-                modulus.toByteArray(),
-                null,
-                privateExponent.toByteArray(),
-                null,
-                null,
-                null,
-                null,
-                null));
+        key = new OpenSSLKey(NativeCrypto.EVP_PKEY_new_RSA(modulus.toByteArray(), null,
+                                                           privateExponent.toByteArray(), null,
+                                                           null, null, null, null));
         fetchedParams = true;
     }
 

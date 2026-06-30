@@ -72,8 +72,8 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
      * @param serverId The server identifier for the link.
      * @return An unmodifiable list of PAKE options for the given link.
      */
-    public @NonNull List<PakeOption> getOptions(
-            @Nullable byte[] clientId, @Nullable byte[] serverId) {
+    public @NonNull List<PakeOption> getOptions(@Nullable byte[] clientId,
+                                                @Nullable byte[] serverId) {
         throw new RuntimeException("Stub!");
     }
 
@@ -139,7 +139,7 @@ public final class PakeServerKeyManagerParameters implements ManagerFactoryParam
          * @throws InvalidParameterException If the provided options are invalid.
          */
         public @NonNull Builder setOptions(@Nullable byte[] clientId, @Nullable byte[] serverId,
-                @NonNull List<PakeOption> options) {
+                                           @NonNull List<PakeOption> options) {
             throw new RuntimeException("Stub!");
         }
 

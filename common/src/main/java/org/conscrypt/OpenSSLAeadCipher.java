@@ -97,8 +97,10 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         }
     }
 
-    /** Constant-time array comparison.  Since we are using this to compare keys, we want to
-     * ensure there's no opportunity for a timing attack. */
+    /**
+     * Constant-time array comparison.  Since we are using this to compare keys, we want to
+     * ensure there's no opportunity for a timing attack.
+     */
     private boolean arraysAreEqual(byte[] a, byte[] b) {
         if (a.length != b.length) {
             return false;
@@ -130,9 +132,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     @Override
-    void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException,
-        InvalidAlgorithmParameterException {
+    void engineInitInternal(byte[] encodedKey, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         byte[] iv;
         final int tagLenBits;
         if (params == null) {
@@ -165,7 +166,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         if (iv == null && expectedIvLength != 0) {
             if (!encrypting) {
                 throw new InvalidAlgorithmParameterException("IV must be specified in " + mode
-                        + " mode");
+                                                             + " mode");
             }
 
             iv = new byte[expectedIvLength];
@@ -177,14 +178,13 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         } else if (expectedIvLength == 0 && iv != null) {
             throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
         } else if (iv != null && iv.length != expectedIvLength) {
-            throw new InvalidAlgorithmParameterException("Expected IV length of "
-                    + expectedIvLength + " but was " + iv.length);
+            throw new InvalidAlgorithmParameterException("Expected IV length of " + expectedIvLength
+                                                         + " but was " + iv.length);
         }
 
         if (isEncrypting() && iv != null && !allowsNonceReuse()) {
-            if (previousKey != null && previousIv != null
-                    && arraysAreEqual(previousKey, encodedKey)
-                    && arraysAreEqual(previousIv, iv)) {
+            if (previousKey != null && previousIv != null && arraysAreEqual(previousKey, encodedKey)
+                && arraysAreEqual(previousIv, iv)) {
                 mustInitialize = true;
                 throw new InvalidAlgorithmParameterException(
                         "When using AEAD key and IV must not be re-used");
@@ -202,11 +202,10 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         bufCount = 0;
     }
 
-    void checkSupportedTagLength(int tagLenBits)
-            throws InvalidAlgorithmParameterException {
+    void checkSupportedTagLength(int tagLenBits) throws InvalidAlgorithmParameterException {
         if (tagLenBits % 8 != 0) {
-            throw new InvalidAlgorithmParameterException(
-                    "Tag length must be a multiple of 8; was " + tagLenBits);
+            throw new InvalidAlgorithmParameterException("Tag length must be a multiple of 8; was "
+                                                         + tagLenBits);
         }
     }
 
@@ -220,8 +219,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     @Override
-    protected int engineDoFinal(ByteBuffer input, ByteBuffer output) throws ShortBufferException,
-            IllegalBlockSizeException, BadPaddingException {
+    protected int engineDoFinal(ByteBuffer input, ByteBuffer output)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         if (!ENABLE_BYTEBUFFER_OPTIMIZATIONS) {
             return super.engineDoFinal(input, output);
         }
@@ -247,14 +246,13 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             input = inputClone;
         }
         if (!output.isDirect()) {
-            ByteBuffer outputClone = ByteBuffer.allocateDirect(
-                    getOutputSizeForFinal(input.remaining()));
+            ByteBuffer outputClone =
+                    ByteBuffer.allocateDirect(getOutputSizeForFinal(input.remaining()));
             bytesWritten = doFinalInternal(input, outputClone);
             output.put(outputClone);
             input.position(input.limit()); // API reasons
-        }
-        else {
-            bytesWritten =  doFinalInternal(input, output);
+        } else {
+            bytesWritten = doFinalInternal(input, output);
             output.position(output.position() + bytesWritten);
             input.position(input.limit()); // API reasons
         }
@@ -288,8 +286,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
-            BadPaddingException {
+                                int outputOffset)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         if (output == null) {
             throw new NullPointerException("output == null");
         }
@@ -309,8 +307,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     @Override
-    int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset, int maximumLen) throws ShortBufferException {
+    int updateInternal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset,
+                       int maximumLen) throws ShortBufferException {
         checkInitialization();
         appendToBuf(input, inputOffset, inputLen);
         return 0;
@@ -321,8 +319,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
             throws BadPaddingException {
         Constructor<?> aeadBadTagConstructor;
         try {
-            aeadBadTagConstructor = Class.forName("javax.crypto.AEADBadTagException")
-                                            .getConstructor(String.class);
+            aeadBadTagConstructor =
+                    Class.forName("javax.crypto.AEADBadTagException").getConstructor(String.class);
         } catch (Exception ignored) {
             return;
         }
@@ -336,8 +334,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         } catch (InstantiationException e2) {
             // Fall through
         } catch (InvocationTargetException e2) {
-            throw(BadPaddingException) new BadPaddingException().initCause(
-                    e2.getTargetException());
+            throw(BadPaddingException) new BadPaddingException().initCause(e2.getTargetException());
         }
         if (badTagException != null) {
             throw badTagException;
@@ -378,8 +375,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         return bytesWritten;
     }
 
-    int doFinalInternal(byte[] input, int inputOffset, int inputLen,
-            byte[] output, int outputOffset)
+    int doFinalInternal(byte[] input, int inputOffset, int inputLen, byte[] output,
+                        int outputOffset)
             throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         checkInitialization();
 
@@ -398,9 +395,9 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
                 in = EmptyArray.BYTE; // input can be null when inputLen == 0
                 inOffset = inputOffset;
             } else if (input == output
-                    && ((inputOffset + inputLen > outputOffset && inputOffset <= outputOffset)
-                            || (inputOffset >= outputOffset
-                                    && outputOffset + inputLen + tagLengthInBytes > inputOffset))) {
+                       && ((inputOffset + inputLen > outputOffset && inputOffset <= outputOffset)
+                           || (inputOffset >= outputOffset
+                               && outputOffset + inputLen + tagLengthInBytes > inputOffset))) {
                 // BoringSSL requires that input and output do not overlap. To be on the safe side,
                 // we copy the input to a new array.
                 in = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen);
@@ -416,11 +413,13 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         final int bytesWritten;
         try {
             if (isEncrypting()) {
-                bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(evpAead, encodedKey,
-                        tagLengthInBytes, output, outputOffset, iv, in, inOffset, inLen, aad);
+                bytesWritten = NativeCrypto.EVP_AEAD_CTX_seal(evpAead, encodedKey, tagLengthInBytes,
+                                                              output, outputOffset, iv, in,
+                                                              inOffset, inLen, aad);
             } else {
-                bytesWritten = NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey,
-                        tagLengthInBytes, output, outputOffset, iv, in, inOffset, inLen, aad);
+                bytesWritten = NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey, tagLengthInBytes,
+                                                              output, outputOffset, iv, in,
+                                                              inOffset, inLen, aad);
             }
         } catch (BadPaddingException e) {
             throwAEADBadTagExceptionIfAvailable(e.getMessage(), e.getCause());

@@ -42,7 +42,7 @@ public final class ServerSessionContext extends AbstractSessionContext {
         // sure you don't reuse sessions externalized with i2d_SSL_SESSION
         // between apps. However our sessions are either in memory or
         // exported to a app's SSLServerSessionCache.
-        setSesssionIdContext(new byte[] { ' ' });
+        setSesssionIdContext(new byte[] {' '});
     }
 
     /**

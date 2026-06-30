@@ -61,21 +61,24 @@
 
 #define CONSCRYPT_LOG(priority, tag, ...) CONSCRYPT_##priority(__VA_ARGS__)
 
-#define CONSCRYPT_LOG_ERROR(...) {   \
-    fprintf(stderr, __VA_ARGS__);    \
-    fprintf(stderr, "\n");           \
-}
-#define CONSCRYPT_LOG_INFO(...) {    \
-    fprintf(stderr, __VA_ARGS__);    \
-    fprintf(stderr, "\n");           \
-}
+#define CONSCRYPT_LOG_ERROR(...)      \
+    {                                 \
+        fprintf(stderr, __VA_ARGS__); \
+        fprintf(stderr, "\n");        \
+    }
+#define CONSCRYPT_LOG_INFO(...)       \
+    {                                 \
+        fprintf(stderr, __VA_ARGS__); \
+        fprintf(stderr, "\n");        \
+    }
 #if LOG_NDEBUG
 #define CONSCRYPT_LOG_VERBOSE(...) ((void)0)
 #else
-#define CONSCRYPT_LOG_VERBOSE(...) { \
-    fprintf(stderr, __VA_ARGS__);    \
-    fprintf(stderr, "\n");           \
-}
+#define CONSCRYPT_LOG_VERBOSE(...)    \
+    {                                 \
+        fprintf(stderr, __VA_ARGS__); \
+        fprintf(stderr, "\n");        \
+    }
 #endif  // LOG_NDEBUG
 
 #endif  // !ANDROID

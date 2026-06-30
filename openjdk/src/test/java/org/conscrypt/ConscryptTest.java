@@ -22,22 +22,24 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.Provider;
-import java.security.Security;
-import javax.net.ssl.SSLContext;
-
 import org.conscrypt.java.security.StandardNames;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.security.Provider;
+import java.security.Security;
+
+import javax.net.ssl.SSLContext;
+
 @RunWith(JUnit4.class)
 public class ConscryptTest {
-
     /**
      * This confirms that the version machinery is working.
      */
     @Test
+    // g3-add: @Ignore("Failing on google3. TODO(b/309186591)")
     public void testVersionIsSensible() {
         Conscrypt.Version version = Conscrypt.version();
         assertNotNull(version);
@@ -71,8 +73,7 @@ public class ConscryptTest {
     @Test
     public void buildInvalid() {
         try {
-            Conscrypt.newProviderBuilder()
-                .defaultTlsProtocol("invalid").build();
+            Conscrypt.newProviderBuilder().defaultTlsProtocol("invalid").build();
             fail();
         } catch (IllegalArgumentException e) {
             // Expected.
@@ -81,10 +82,10 @@ public class ConscryptTest {
 
     private void buildProvider(String defaultProtocol, boolean withTrustManager) throws Exception {
         Provider provider = Conscrypt.newProviderBuilder()
-            .setName("test name")
-            .provideTrustManager(withTrustManager)
-            .defaultTlsProtocol(defaultProtocol)
-            .build();
+                                    .setName("test name")
+                                    .provideTrustManager(withTrustManager)
+                                    .defaultTlsProtocol(defaultProtocol)
+                                    .build();
 
         assertEquals("test name", provider.getName());
         assertEquals(withTrustManager, provider.containsKey("TrustManagerFactory.PKIX"));
@@ -96,13 +97,12 @@ public class ConscryptTest {
             context.init(null, null, null);
             assertEquals(provider, context.getProvider());
             StandardNames.assertSSLContextEnabledProtocols(
-                defaultProtocol, context.createSSLEngine().getEnabledProtocols());
-
+                    defaultProtocol, context.createSSLEngine().getEnabledProtocols());
 
             context = SSLContext.getInstance("Default");
             assertEquals(provider, context.getProvider());
             StandardNames.assertSSLContextEnabledProtocols(
-                defaultProtocol, context.createSSLEngine().getEnabledProtocols());
+                    defaultProtocol, context.createSSLEngine().getEnabledProtocols());
         } finally {
             Security.removeProvider("test name");
         }

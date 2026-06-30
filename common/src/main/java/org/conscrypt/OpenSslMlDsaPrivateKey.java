@@ -16,28 +16,43 @@
 
 package org.conscrypt;
 
+import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PrivateKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
-import java.util.Objects;
 
 /** An OpenSSL ML-DSA private key. */
-public class OpenSslMlDsaPrivateKey implements PrivateKey {
+public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
     private static final long serialVersionUID = 0x3bacc385e8e106a3L;
 
     // To preserve the serialization format, "seed" is the only variable that gets
-    // serialized. To be able to distinguish between ML-DSA-65 and ML-DSA-87, we add
-    // and additional byte to the end of the seed if the algorithm is ML-DSA-87. So:
+    // serialized. To be able to distinguish between ML-DSA-44, ML-DSA-65 and ML-DSA-87, we add
+    // and additional byte to the end of the seed if the algorithm is ML-DSA-44 or ML-DSA-87. So:
+    // - for ML-DSA-44, "seed" has length 33, where the first 32 bytes are the seed, and
+    //   the last byte has value 44 = 0x2c.
     // - for ML-DSA-65, "seed" has length 32 and is equal to the seed.
     // - for ML-DSA-87, "seed" has length 33, where the first 32 bytes are the seed, and
     //   the last byte has value 87 = 0x57.
-    private byte[] seed;
+    private byte[] seed = null; // only set when the key is serialized or deserialized.
     private transient MlDsaAlgorithm algorithm;
+    private transient OpenSSLKey key;
+
+    private static OpenSSLKey getOpenSslKeyFromSeed(byte[] seed, MlDsaAlgorithm algorithm)
+            throws ParsingException {
+        if (seed.length != 32) {
+            throw new ParsingException("Invalid key size");
+        }
+        return new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_seed(
+                OpenSslMlDsaKeyFactory.getPKeyType(algorithm), seed));
+    }
 
     private static boolean isValid(byte[] encodedSeed, MlDsaAlgorithm algorithm) {
+        if (algorithm == MlDsaAlgorithm.ML_DSA_44) {
+            return encodedSeed.length == 33 && encodedSeed[32] == 44;
+        }
         if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
             return encodedSeed.length == 32;
         }
@@ -48,6 +63,9 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
     }
 
     private static MlDsaAlgorithm getAlgorithmFromEncodedSeed(byte[] encodedSeed) {
+        if (encodedSeed.length == 33 && encodedSeed[32] == 44) {
+            return MlDsaAlgorithm.ML_DSA_44;
+        }
         if (encodedSeed.length == 32) {
             return MlDsaAlgorithm.ML_DSA_65;
         }
@@ -63,6 +81,11 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
         }
         if (algorithm == MlDsaAlgorithm.ML_DSA_65) {
             return unencodedSeed.clone();
+        } else if (algorithm == MlDsaAlgorithm.ML_DSA_44) {
+            // add the suffix 44 to the end of the seed.
+            byte[] encodedSeed = Arrays.copyOf(unencodedSeed, 33);
+            encodedSeed[32] = 44;
+            return encodedSeed;
         } else {
             // add the suffix 87 to the end of the seed.
             byte[] encodedSeed = Arrays.copyOf(unencodedSeed, 33);
@@ -71,30 +94,22 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
         }
     }
 
-    public OpenSslMlDsaPrivateKey(EncodedKeySpec keySpec, MlDsaAlgorithm algorithm)
-            throws InvalidKeySpecException {
-        byte[] rawKey = keySpec.getEncoded();
-        if (!"raw".equalsIgnoreCase(keySpec.getFormat())) {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-        if (rawKey.length != 32) {
-            throw new InvalidKeySpecException("Invalid key");
-        }
-        byte[] encodedSeed = encodeSeed(rawKey, algorithm);
-        if (!isValid(encodedSeed, algorithm)) {
-            throw new IllegalArgumentException("Invalid key");
+    OpenSslMlDsaPrivateKey(OpenSSLKey key, MlDsaAlgorithm algorithm) {
+        if (NativeCrypto.EVP_PKEY_type(key.getNativeRef())
+            != OpenSslMlDsaKeyFactory.getPKeyType(algorithm)) {
+            throw new IllegalArgumentException("Invalid key type");
         }
         this.algorithm = algorithm;
-        this.seed = encodedSeed;
+        this.key = key;
     }
 
     public OpenSslMlDsaPrivateKey(byte[] seed, MlDsaAlgorithm algorithm) {
-        byte[] encodedSeed = encodeSeed(seed, algorithm);
-        if (!isValid(encodedSeed, algorithm)) {
-            throw new IllegalArgumentException("Invalid key");
-        }
         this.algorithm = algorithm;
-        this.seed = encodedSeed;
+        try {
+            this.key = getOpenSslKeyFromSeed(seed, algorithm);
+        } catch (ParsingException e) {
+            throw new IllegalArgumentException("Invalid key", e);
+        }
     }
 
     @Override
@@ -108,33 +123,37 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "PKCS#8";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        if (key == null) {
+            throw new IllegalStateException("key is destroyed");
+        }
+        return NativeCrypto.EVP_marshal_private_key(key.getNativeRef());
     }
 
     byte[] getSeed() {
-        if (seed == null) {
+        if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
-        // The unencoded seed is always the first 32 bytes of the encoded seed.
-        return Arrays.copyOf(seed, 32);
+        return NativeCrypto.EVP_PKEY_get_private_seed(key.getNativeRef());
+    }
+
+    @Override
+    public OpenSSLKey getOpenSSLKey() {
+        return key;
     }
 
     @Override
     public void destroy() {
-        if (seed != null) {
-            Arrays.fill(seed, (byte) 0);
-            seed = null;
-        }
+        key = null;
     }
 
     @Override
     public boolean isDestroyed() {
-        return seed == null;
+        return key == null;
     }
 
     @Override
@@ -146,13 +165,12 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
             return false;
         }
         OpenSslMlDsaPrivateKey that = (OpenSslMlDsaPrivateKey) o;
-        // algorithm is encoded in the seed, so we only need to compare the seed.
-        return Arrays.equals(seed, that.seed);
+        return Arrays.equals(getEncoded(), that.getEncoded());
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(seed);
+        return Arrays.hashCode(getEncoded());
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
@@ -160,6 +178,22 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey {
         this.algorithm = getAlgorithmFromEncodedSeed(this.seed);
         if (!isValid(this.seed, this.algorithm)) {
             throw new IOException("Invalid key");
+        }
+        // The unencoded seed is always the first 32 bytes of the encoded seed.
+        byte[] unencodedSeed = Arrays.copyOf(seed, 32);
+        try {
+            this.key = getOpenSslKeyFromSeed(unencodedSeed, this.algorithm);
+        } catch (ParsingException e) {
+            throw new IOException("Invalid key", e);
+        }
+        this.seed = null;
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        synchronized (this) {
+            this.seed = encodeSeed(getSeed(), this.algorithm);
+            stream.defaultWriteObject(); // writes "seed"
+            this.seed = null;
         }
     }
 }

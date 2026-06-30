@@ -16,28 +16,19 @@
 
 package org.conscrypt;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PublicKey;
-import java.security.spec.EncodedKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
 /** An SLH-DSA public key. */
 public class OpenSslSlhDsaPublicKey implements PublicKey {
+    private static final long serialVersionUID = 0x4589aa00e279d127L;
+
     static final int PUBLIC_KEY_SIZE_BYTES = 32;
 
     private final byte[] raw;
-
-    public OpenSslSlhDsaPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
-        byte[] encoded = keySpec.getEncoded();
-        if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
-            if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
-                throw new InvalidKeySpecException("Invalid key size");
-            }
-            raw = encoded;
-        } else {
-            throw new InvalidKeySpecException("Encoding must be in raw format");
-        }
-    }
 
     public OpenSslSlhDsaPublicKey(byte[] raw) {
         if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
@@ -53,12 +44,12 @@ public class OpenSslSlhDsaPublicKey implements PublicKey {
 
     @Override
     public String getFormat() {
-        throw new UnsupportedOperationException("getFormat() not yet supported");
+        return "X.509";
     }
 
     @Override
     public byte[] getEncoded() {
-        throw new UnsupportedOperationException("getEncoded() not yet supported");
+        return ArrayUtils.concat(OpenSslSlhDsaKeyFactory.x509Preamble, raw);
     }
 
     byte[] getRaw() {
@@ -90,5 +81,16 @@ public class OpenSslSlhDsaPublicKey implements PublicKey {
             throw new IllegalStateException("key is destroyed");
         }
         return Arrays.hashCode(raw);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "raw"
+        if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject(); // writes "raw"
     }
 }

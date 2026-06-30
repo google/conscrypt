@@ -61,7 +61,6 @@ abstract class NativeRef {
         return address == 0;
     }
 
-
     abstract void doFree(long context);
 
     static final class CMAC_CTX extends NativeRef {

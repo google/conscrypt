@@ -18,30 +18,30 @@ package org.conscrypt.java.security;
 import java.security.PrivateKey;
 
 class TestPrivateKey implements PrivateKey {
-  private PrivateKey key;
-  private String format;
+    private PrivateKey key;
+    private String format;
 
-  TestPrivateKey(PrivateKey key) {
-    this(key, key.getFormat());
-  }
+    TestPrivateKey(PrivateKey key) {
+        this(key, key.getFormat());
+    }
 
-  TestPrivateKey(PrivateKey key, String format) {
-    this.key = key;
-    this.format = format;
-  }
+    TestPrivateKey(PrivateKey key, String format) {
+        this.key = key;
+        this.format = format;
+    }
 
-  @Override
-  public String getAlgorithm() {
-    return key.getAlgorithm();
-  }
+    @Override
+    public String getAlgorithm() {
+        return key.getAlgorithm();
+    }
 
-  @Override
-  public byte[] getEncoded() {
-    return key.getEncoded();
-  }
+    @Override
+    public byte[] getEncoded() {
+        return key.getEncoded();
+    }
 
-  @Override
-  public String getFormat() {
-    return format;
-  }
+    @Override
+    public String getFormat() {
+        return format;
+    }
 }

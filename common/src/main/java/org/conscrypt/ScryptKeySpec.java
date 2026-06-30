@@ -31,13 +31,8 @@ public class ScryptKeySpec implements KeySpec {
     private final int parallelizationParameter;
     private final int keyOutputBits;
 
-    public ScryptKeySpec(
-            char[] password,
-            byte[] salt,
-            int costParameter,
-            int blockSize,
-            int parallelizationParameter,
-            int keyOutputBits) {
+    public ScryptKeySpec(char[] password, byte[] salt, int costParameter, int blockSize,
+                         int parallelizationParameter, int keyOutputBits) {
         this.password = password;
         this.salt = salt;
         this.costParameter = costParameter;

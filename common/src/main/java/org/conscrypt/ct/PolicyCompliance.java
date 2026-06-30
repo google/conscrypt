@@ -18,9 +18,4 @@ package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
 
-@Internal
-public enum PolicyCompliance {
-    COMPLY,
-    NOT_ENOUGH_SCTS,
-    NOT_ENOUGH_DIVERSE_SCTS
-}
+@Internal public enum PolicyCompliance { COMPLY, NOT_ENOUGH_SCTS, NOT_ENOUGH_DIVERSE_SCTS }

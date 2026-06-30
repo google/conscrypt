@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -37,9 +38,7 @@ public final class TestSSLEnginePair implements Closeable {
     public final SSLEngine server;
     public final SSLEngine client;
 
-    private TestSSLEnginePair(TestSSLContext c,
-            SSLEngine server,
-            SSLEngine client) {
+    private TestSSLEnginePair(TestSSLContext c, SSLEngine server, SSLEngine client) {
         this.c = c;
         this.server = server;
         this.client = client;
@@ -109,16 +108,10 @@ public final class TestSSLEnginePair implements Closeable {
                 break;
             }
 
-            boolean progress = handshakeStep(client,
-                    clientToServer,
-                    serverToClient,
-                    scratch,
-                    clientFinished);
-            progress |= handshakeStep(server,
-                    serverToClient,
-                    clientToServer,
-                    scratch,
-                    serverFinished);
+            boolean progress =
+                    handshakeStep(client, clientToServer, serverToClient, scratch, clientFinished);
+            progress |=
+                    handshakeStep(server, serverToClient, clientToServer, scratch, serverFinished);
             if (!progress) {
                 break;
             }
@@ -129,7 +122,7 @@ public final class TestSSLEnginePair implements Closeable {
             finished[0] = clientFinished[0];
             finished[1] = serverFinished[0];
         }
-        return new SSLEngine[] { server, client };
+        return new SSLEngine[] {server, client};
     }
 
     public static class Hooks {
@@ -138,7 +131,7 @@ public final class TestSSLEnginePair implements Closeable {
 
     @Override
     public void close() throws SSLException {
-        close(new SSLEngine[] { client, server });
+        close(new SSLEngine[] {client, server});
     }
 
     public static void close(SSLEngine[] engines) {
@@ -154,18 +147,14 @@ public final class TestSSLEnginePair implements Closeable {
         }
     }
 
-    public static boolean handshakeStep(SSLEngine engine,
-            ByteBuffer output,
-            ByteBuffer input,
-            ByteBuffer scratch,
-            boolean[] finished) throws IOException {
+    public static boolean handshakeStep(SSLEngine engine, ByteBuffer output, ByteBuffer input,
+                                        ByteBuffer scratch, boolean[] finished) throws IOException {
         try {
             // make the other side's output into our input
             input.flip();
 
             HandshakeStatus status = engine.getHandshakeStatus();
             switch (status) {
-
                 case NEED_TASK: {
                     boolean progress = false;
                     while (true) {
@@ -191,7 +180,8 @@ public final class TestSSLEnginePair implements Closeable {
                     assertEquals(SSLEngineResult.Status.OK, unwrapResult.getStatus());
                     assertEquals(0, scratch.position());
                     assertEquals(0, unwrapResult.bytesProduced());
-                    assertEquals(input.position() - inputPositionBefore, unwrapResult.bytesConsumed());
+                    assertEquals(input.position() - inputPositionBefore,
+                                 unwrapResult.bytesConsumed());
                     assertFinishedOnce(finished, unwrapResult);
                     return true;
                 }
@@ -209,7 +199,7 @@ public final class TestSSLEnginePair implements Closeable {
                     assertEquals(0, wrapResult.bytesConsumed());
                     assertEquals(inputPositionBefore, emptyByteBuffer.position());
                     assertEquals(output.position() - outputPositionBefore,
-                            wrapResult.bytesProduced());
+                                 wrapResult.bytesProduced());
                     assertFinishedOnce(finished, wrapResult);
                     return true;
                 }

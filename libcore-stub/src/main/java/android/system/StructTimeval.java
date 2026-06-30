@@ -20,7 +20,8 @@ import libcore.util.Objects;
 
 /**
  * Corresponds to C's {@code struct timeval} from
- * <a href="http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_time.h.html">&lt;sys/time.h&gt;</a>
+ * <a
+ * href="http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_time.h.html">&lt;sys/time.h&gt;</a>
  */
 public final class StructTimeval {
     /** Seconds. */
@@ -44,7 +45,8 @@ public final class StructTimeval {
         return (tv_sec * 1000) + (tv_usec / 1000);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return Objects.toString(this);
     }
 }

@@ -16,13 +16,13 @@
 
 package org.conscrypt;
 
-import java.util.Enumeration;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.Enumeration;
+
 @RunWith(JUnit4.class)
 public class ServerSessionContextTest extends AbstractSessionContextTest<ServerSessionContext> {
-
     @Override
     ServerSessionContext newContext() {
         return new ServerSessionContext();
@@ -39,7 +39,7 @@ public class ServerSessionContextTest extends AbstractSessionContextTest<ServerS
         int count = 0;
         Enumeration<byte[]> ids = context.getIds();
         while (ids.hasMoreElements()) {
-            ids.nextElement();
+            Object unused = ids.nextElement();
             count++;
         }
         return count;

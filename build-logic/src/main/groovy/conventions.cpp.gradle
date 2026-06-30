@@ -26,6 +26,11 @@ model {
                 }
             }
         }
-        gcc(Gcc)
+        gcc(Gcc) {
+            target("linux_aarch64") {
+                cppCompiler.executable = 'aarch64-linux-gnu-g++'
+                linker.executable = 'aarch64-linux-gnu-g++'
+            }
+        }
     }
 }

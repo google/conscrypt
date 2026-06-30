@@ -33,140 +33,142 @@ import java.util.Map;
  */
 @Internal
 public class DuckTypedHpkeSpi implements HpkeSpi {
-  private final Object delegate;
-  private final Map<String, Method> methods = new HashMap<>();
+    private final Object delegate;
+    private final Map<String, Method> methods = new HashMap<>();
 
-  private DuckTypedHpkeSpi(Object delegate) throws NoSuchMethodException {
-    this.delegate = delegate;
+    private DuckTypedHpkeSpi(Object delegate) throws NoSuchMethodException {
+        this.delegate = delegate;
 
-    Class<?> sourceClass = delegate.getClass();
-    for (Method targetMethod : HpkeSpi.class.getMethods()) {
-      if (targetMethod.isSynthetic()) {
-        continue;
-      }
-      if (targetMethod.getName().equals("engineInitSenderForTesting")) {
-          continue;
-      }
+        Class<?> sourceClass = delegate.getClass();
+        for (Method targetMethod : HpkeSpi.class.getMethods()) {
+            if (targetMethod.isSynthetic()) {
+                continue;
+            }
+            if (targetMethod.getName().equals("engineInitSenderForTesting")) {
+                continue;
+            }
 
-      Method sourceMethod =
-          sourceClass.getMethod(targetMethod.getName(), targetMethod.getParameterTypes());
-      // Check that the return types match too.
-      Class<?> sourceReturnType = sourceMethod.getReturnType();
-      Class<?> targetReturnType = targetMethod.getReturnType();
-      if (!targetReturnType.isAssignableFrom(sourceReturnType)) {
-        throw new NoSuchMethodException(sourceMethod + " return value (" + sourceReturnType
-            + ") incompatible with target return value (" + targetReturnType + ")");
-      }
-      methods.put(sourceMethod.getName(), sourceMethod);
+            Method sourceMethod =
+                    sourceClass.getMethod(targetMethod.getName(), targetMethod.getParameterTypes());
+            // Check that the return types match too.
+            Class<?> sourceReturnType = sourceMethod.getReturnType();
+            Class<?> targetReturnType = targetMethod.getReturnType();
+            if (!targetReturnType.isAssignableFrom(sourceReturnType)) {
+                throw new NoSuchMethodException(sourceMethod + " return value (" + sourceReturnType
+                                                + ") incompatible with target return value ("
+                                                + targetReturnType + ")");
+            }
+            methods.put(sourceMethod.getName(), sourceMethod);
+        }
     }
-  }
 
-  public static DuckTypedHpkeSpi newInstance(Object delegate) {
-    try {
-      return new DuckTypedHpkeSpi(delegate);
-    } catch (Exception ignored) {
-      return null;
+    public static DuckTypedHpkeSpi newInstance(Object delegate) {
+        try {
+            return new DuckTypedHpkeSpi(delegate);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
-  }
 
-  private Object invoke(String methodName, Object... args) throws InvocationTargetException {
-    Method method = methods.get(methodName);
-    if (method == null) {
-      throw new IllegalStateException("DuckTypedHpkSpi internal error");
+    private Object invoke(String methodName, Object... args) throws InvocationTargetException {
+        Method method = methods.get(methodName);
+        if (method == null) {
+            throw new IllegalStateException("DuckTypedHpkSpi internal error");
+        }
+        try {
+            return method.invoke(delegate, args);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("DuckTypedHpkSpi internal error", e);
+        } catch (InvocationTargetException e) {
+            if (e.getCause() instanceof RuntimeException) {
+                throw (RuntimeException) e.getCause();
+            }
+            throw e;
+        }
     }
-    try {
-      return method.invoke(delegate, args);
-    } catch (IllegalAccessException e) {
-      throw new IllegalStateException("DuckTypedHpkSpi internal error", e);
-    } catch (InvocationTargetException e) {
-      if (e.getCause() instanceof RuntimeException){
-        throw (RuntimeException) e.getCause();
-      }
-      throw e;
+
+    private void invokeWithPossibleInvalidKey(String methodName, Object... args)
+            throws InvalidKeyException {
+        try {
+            invoke(methodName, args);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof InvalidKeyException) {
+                throw (InvalidKeyException) cause;
+            }
+            throw new IllegalStateException(cause);
+        }
     }
-  }
 
-  private void invokeWithPossibleInvalidKey(String methodName, Object... args)
-      throws InvalidKeyException {
-    try {
-      invoke(methodName, args);
-    } catch (InvocationTargetException e) {
-      Throwable cause = e.getCause();
-      if (cause instanceof InvalidKeyException){
-        throw (InvalidKeyException) cause;
-      }
-      throw new IllegalStateException(cause);
+    private Object invokeWithPossibleGeneralSecurity(String methodName, Object... args)
+            throws GeneralSecurityException {
+        try {
+            return invoke(methodName, args);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof GeneralSecurityException) {
+                throw (GeneralSecurityException) cause;
+            }
+            throw new IllegalStateException(cause);
+        }
     }
-  }
 
-  private Object invokeWithPossibleGeneralSecurity(String methodName, Object... args)
-      throws GeneralSecurityException {
-    try {
-      return invoke(methodName, args);
-    } catch (InvocationTargetException e) {
-      Throwable cause = e.getCause();
-      if (cause instanceof GeneralSecurityException){
-        throw (GeneralSecurityException) cause;
-      }
-      throw new IllegalStateException(cause);
+    private Object invokeNoChecked(String methodName, Object... args) {
+        try {
+            return invoke(methodName, args);
+        } catch (InvocationTargetException e) {
+            throw new IllegalStateException(e.getCause());
+        }
     }
-  }
 
-  private Object invokeNoChecked(String methodName, Object... args) {
-    try {
-      return invoke(methodName, args);
-    } catch (InvocationTargetException e) {
-      throw new IllegalStateException(e.getCause());
+    // Visible for testing
+    public Object getDelegate() {
+        return delegate;
     }
-  }
 
-  // Visible for testing
-  public Object getDelegate() {
-    return delegate;
-  }
+    @Override
+    public void engineInitSender(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
+                                 byte[] psk, byte[] pskId) throws InvalidKeyException {
+        invokeWithPossibleInvalidKey("engineInitSender", recipientKey, info, senderKey, psk, pskId);
+    }
 
-  @Override
-  public void engineInitSender(
-          PublicKey recipientKey, byte[] info, PrivateKey senderKey, byte[] psk, byte[] pskId)
-          throws InvalidKeyException {
-    invokeWithPossibleInvalidKey("engineInitSender", recipientKey, info, senderKey, psk, pskId);
-  }
+    @Override
+    public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info,
+                                           PrivateKey senderKey, byte[] psk, byte[] pskId,
+                                           byte[] sKe) throws InvalidKeyException {
+        if (!methods.containsKey("engineInitSenderForTesting")) {
+            throw new UnsupportedOperationException(
+                    "engineInitSenderForTesting is not supported by the delegate");
+        }
+        invokeWithPossibleInvalidKey("engineInitSenderForTesting", recipientKey, info, senderKey,
+                                     psk, pskId, sKe);
+    }
 
-  @Override
-  public void engineInitSenderForTesting(PublicKey recipientKey, byte[] info, PrivateKey senderKey,
-          byte[] psk, byte[] pskId, byte[] sKe) throws InvalidKeyException {
-      if (!methods.containsKey("engineInitSenderForTesting")) {
-          throw new UnsupportedOperationException(
-                  "engineInitSenderForTesting is not supported by the delegate");
-      }
-      invokeWithPossibleInvalidKey("engineInitSenderForTesting",
-              recipientKey, info, senderKey, psk, pskId, sKe);
-  }
+    @Override
+    public void engineInitRecipient(byte[] encapsulated, PrivateKey key, byte[] info,
+                                    PublicKey senderKey, byte[] psk, byte[] psk_id)
+            throws InvalidKeyException {
+        invokeWithPossibleInvalidKey("engineInitRecipient", encapsulated, key, info, senderKey, psk,
+                                     psk_id);
+    }
 
-  @Override
-  public void engineInitRecipient(byte[] encapsulated, PrivateKey key, byte[] info,
-          PublicKey senderKey, byte[] psk, byte[] psk_id) throws InvalidKeyException {
-    invokeWithPossibleInvalidKey(
-        "engineInitRecipient", encapsulated, key, info, senderKey, psk, psk_id);
-  }
+    @Override
+    public byte[] engineSeal(byte[] plaintext, byte[] aad) {
+        return (byte[]) invokeNoChecked("engineSeal", plaintext, aad);
+    }
 
-  @Override
-  public byte[] engineSeal(byte[] plaintext, byte[] aad) {
-      return (byte[]) invokeNoChecked("engineSeal", plaintext, aad);
-  }
+    @Override
+    public byte[] engineExport(int length, byte[] exporterContext) {
+        return (byte[]) invokeNoChecked("engineExport", length, exporterContext);
+    }
 
-  @Override
-  public byte[] engineExport(int length, byte[] exporterContext) {
-      return (byte[]) invokeNoChecked("engineExport", length, exporterContext);
-  }
+    @Override
+    public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException {
+        return (byte[]) invokeWithPossibleGeneralSecurity("engineOpen", ciphertext, aad);
+    }
 
-  @Override
-  public byte[] engineOpen(byte[] ciphertext, byte[] aad) throws GeneralSecurityException {
-      return (byte[]) invokeWithPossibleGeneralSecurity("engineOpen", ciphertext, aad);
-  }
-
-  @Override
-  public byte[] getEncapsulated() {
-      return (byte[]) invokeNoChecked("getEncapsulated");
-  }
+    @Override
+    public byte[] getEncapsulated() {
+        return (byte[]) invokeNoChecked("getEncapsulated");
+    }
 }

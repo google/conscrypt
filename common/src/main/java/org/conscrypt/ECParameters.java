@@ -30,7 +30,6 @@ import java.security.spec.InvalidParameterSpecException;
  */
 @Internal
 public class ECParameters extends AlgorithmParametersSpi {
-
     private OpenSSLECGroupContext curve;
 
     public ECParameters() {}

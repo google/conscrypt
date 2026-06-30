@@ -40,8 +40,8 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslXwingPublicKey((EncodedKeySpec) keySpec);
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -52,8 +52,8 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof EncodedKeySpec) {
             return new OpenSslXwingPrivateKey((EncodedKeySpec) keySpec);
         }
-        throw new InvalidKeySpecException(
-                "Currently only EncodedKeySpec is supported; was " + keySpec.getClass().getName());
+        throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
+                                          + keySpec.getClass().getName());
     }
 
     @Override
@@ -65,25 +65,33 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
         if (keySpec == null) {
             throw new InvalidKeySpecException("keySpec == null");
         }
+        try {
+            key = engineTranslateKey(key);
+        } catch (InvalidKeyException e) {
+            throw new InvalidKeySpecException("Unsupported key class: " + key.getClass(), e);
+        }
         if (key instanceof OpenSslXwingPublicKey) {
             OpenSslXwingPublicKey conscryptKey = (OpenSslXwingPublicKey) key;
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException(
-                        "X509EncodedKeySpec is currently not supported");
+                @SuppressWarnings("unchecked") // safe because of isAssignableFrom check above
+                T result = (T) new X509EncodedKeySpec(key.getEncoded());
+                return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         } else if (key instanceof OpenSslXwingPrivateKey) {
             OpenSslXwingPrivateKey conscryptKey = (OpenSslXwingPrivateKey) key;
             if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                throw new UnsupportedOperationException(
-                        "PKCS8EncodedKeySpec is currently not supported");
+                @SuppressWarnings("unchecked") // safe because of isAssignableFrom check above
+                T result = (T) new PKCS8EncodedKeySpec(key.getEncoded());
+                return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
                 return KeySpecUtil.makeRawKeySpec(conscryptKey.getRaw(), keySpec);
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
-                + key.getClass().getName() + ", keySpec=" + keySpec.getName());
+                                          + key.getClass().getName()
+                                          + ", keySpec=" + keySpec.getName());
     }
 
     @Override
@@ -94,7 +102,28 @@ public final class OpenSslXwingKeyFactory extends KeyFactorySpi {
         if ((key instanceof OpenSslXwingPublicKey) || (key instanceof OpenSslXwingPrivateKey)) {
             return key;
         }
-        throw new InvalidKeyException(
-                "Key must be OpenSslXwingPublicKey or OpenSslXwingPrivateKey");
+        if ((key instanceof PrivateKey) && key.getFormat().equals("PKCS#8")) {
+            byte[] encoded = key.getEncoded();
+            if (encoded == null) {
+                throw new InvalidKeyException("Key does not support encoding");
+            }
+            try {
+                return engineGeneratePrivate(new PKCS8EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else if ((key instanceof PublicKey) && key.getFormat().equals("X.509")) {
+            byte[] encoded = key.getEncoded();
+            if (encoded == null) {
+                throw new InvalidKeyException("Key does not support encoding");
+            }
+            try {
+                return engineGeneratePublic(new X509EncodedKeySpec(encoded));
+            } catch (InvalidKeySpecException e) {
+                throw new InvalidKeyException(e);
+            }
+        } else {
+            throw new InvalidKeyException("Key is not a XWING key");
+        }
     }
 }

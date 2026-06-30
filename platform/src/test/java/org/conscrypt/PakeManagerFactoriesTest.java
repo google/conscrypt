@@ -62,7 +62,7 @@ public class PakeManagerFactoriesTest {
         PakeTrustManagerFactory trustManagerFactory = new PakeTrustManagerFactory();
         // The trust manager factory does not accept parameters
         assertThrows(InvalidAlgorithmParameterException.class,
-                () -> trustManagerFactory.engineInit(params));
+                     () -> trustManagerFactory.engineInit(params));
         trustManagerFactory.engineInit((ManagerFactoryParameters) null);
     }
 

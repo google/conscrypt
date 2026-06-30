@@ -19,25 +19,27 @@ package org.conscrypt.javax.crypto;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyGeneratorTest {
-
     private static boolean isUnsupported(KeyGenerator kg) {
         // Don't bother testing "Sun..." KeyGenerators or BC outside of Android
         return kg.getProvider().getName().startsWith("Sun")
@@ -51,37 +53,37 @@ public class KeyGeneratorTest {
 
     @Test
     public void test_getInstance() {
-        ServiceTester.test("KeyGenerator")
-            // Do not test AndroidKeyStore's KeyGenerator. It cannot be initialized without
-            // providing AndroidKeyStore-specific algorithm parameters.
-            // It's OKish not to test AndroidKeyStore's KeyGenerator here because it's tested
-            // by cts/tests/test/keystore.
-            .skipProvider("AndroidKeyStore")
-            .run((provider, algorithm) -> {
-                // KeyGenerator.getInstance(String)
-                KeyGenerator kg1 = KeyGenerator.getInstance(algorithm);
-                assertEquals(algorithm, kg1.getAlgorithm());
-                test_KeyGenerator(kg1);
+        ServiceTester
+                .test("KeyGenerator")
+                // Do not test AndroidKeyStore's KeyGenerator. It cannot be initialized without
+                // providing AndroidKeyStore-specific algorithm parameters.
+                // It's OKish not to test AndroidKeyStore's KeyGenerator here because it's tested
+                // by cts/tests/test/keystore.
+                .skipProvider("AndroidKeyStore")
+                .run((provider, algorithm) -> {
+                    // KeyGenerator.getInstance(String)
+                    KeyGenerator kg1 = KeyGenerator.getInstance(algorithm);
+                    assertEquals(algorithm, kg1.getAlgorithm());
+                    test_KeyGenerator(kg1);
 
-                // KeyGenerator.getInstance(String, Provider)
-                KeyGenerator kg2 = KeyGenerator.getInstance(algorithm, provider);
-                assertEquals(algorithm, kg2.getAlgorithm());
-                assertEquals(provider, kg2.getProvider());
-                test_KeyGenerator(kg2);
+                    // KeyGenerator.getInstance(String, Provider)
+                    KeyGenerator kg2 = KeyGenerator.getInstance(algorithm, provider);
+                    assertEquals(algorithm, kg2.getAlgorithm());
+                    assertEquals(provider, kg2.getProvider());
+                    test_KeyGenerator(kg2);
 
-                // KeyGenerator.getInstance(String, String)
-                KeyGenerator kg3 = KeyGenerator.getInstance(algorithm, provider.getName());
-                assertEquals(algorithm, kg3.getAlgorithm());
-                assertEquals(provider, kg3.getProvider());
-                test_KeyGenerator(kg3);
-            });
+                    // KeyGenerator.getInstance(String, String)
+                    KeyGenerator kg3 = KeyGenerator.getInstance(algorithm, provider.getName());
+                    assertEquals(algorithm, kg3.getAlgorithm());
+                    assertEquals(provider, kg3.getProvider());
+                    test_KeyGenerator(kg3);
+                });
     }
 
     private static final Map<String, List<Integer>> KEY_SIZES = new HashMap<>();
     private static void putKeySize(String algorithm, int keySize) {
         algorithm = algorithm.toUpperCase(Locale.ROOT);
-        List<Integer> keySizes =
-                KEY_SIZES.computeIfAbsent(algorithm, k -> new ArrayList<>());
+        List<Integer> keySizes = KEY_SIZES.computeIfAbsent(algorithm, k -> new ArrayList<>());
         keySizes.add(keySize);
     }
     private static List<Integer> getKeySizes(String algorithm) throws Exception {
@@ -103,7 +105,7 @@ public class KeyGeneratorTest {
         putKeySize("ARCFOUR", 40);
         putKeySize("ARCFOUR", 41);
         putKeySize("Blowfish", 32);
-        putKeySize("Blowfish", 32+8);
+        putKeySize("Blowfish", 32 + 8);
         putKeySize("Blowfish", 448);
         putKeySize("ChaCha20", 256);
         putKeySize("DES", 56);
@@ -157,7 +159,7 @@ public class KeyGeneratorTest {
     private void test_SecretKey(KeyGenerator kg, SecretKey sk) {
         assertNotNull(sk);
         assertEquals(kg.getAlgorithm().toUpperCase(Locale.ROOT),
-                sk.getAlgorithm().toUpperCase(Locale.ROOT));
+                     sk.getAlgorithm().toUpperCase(Locale.ROOT));
         assertNotNull(sk.getEncoded());
         assertNotNull(sk.getFormat());
     }

@@ -20,56 +20,53 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
+
 @RunWith(JUnit4.class)
 public class SerializationTest {
-
     @Test
     public void test_decode_SignedCertificateTimestamp() throws Exception {
         byte[] in = new byte[] {
-            0x00,                            // version
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // log id
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0x01, 0x02, 0x03, 0x04,          // timestamp
-            0x05, 0x06, 0x07, 0x08,
-            0x00, 0x00,                      // extensions length
-            0x04, 0x03,                      // hash & signature algorithm
-            0x00, 0x04,                      // signature length
-            0x12, 0x34, 0x56, 0x78           // signature
+                0x00, // version
+                0,    0,    0,    0,    0,    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // log id
+                0,    0,    0,    0,    0,    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0x01, 0x02, 0x03, 0x04, // timestamp
+                0x05, 0x06, 0x07, 0x08, 0x00, 0x00, // extensions length
+                0x04, 0x03, // hash & signature algorithm
+                0x00, 0x04, // signature length
+                0x12, 0x34, 0x56, 0x78 // signature
         };
 
-        SignedCertificateTimestamp sct
-            = SignedCertificateTimestamp.decode(in, SignedCertificateTimestamp.Origin.EMBEDDED);
+        SignedCertificateTimestamp sct =
+                SignedCertificateTimestamp.decode(in, SignedCertificateTimestamp.Origin.EMBEDDED);
 
         assertEquals(SignedCertificateTimestamp.Version.V1, sct.getVersion());
         assertEquals(0x0102030405060708L, sct.getTimestamp());
         assertEquals(0, sct.getExtensions().length);
-        assertEquals(DigitallySigned.HashAlgorithm.SHA256,
-                     sct.getSignature().getHashAlgorithm());
+        assertEquals(DigitallySigned.HashAlgorithm.SHA256, sct.getSignature().getHashAlgorithm());
         assertEquals(DigitallySigned.SignatureAlgorithm.ECDSA,
                      sct.getSignature().getSignatureAlgorithm());
-        assertTrue(Arrays.equals(new byte[] { 0x12, 0x34, 0x56, 0x78},
-                     sct.getSignature().getSignature()));
+        assertTrue(Arrays.equals(new byte[] {0x12, 0x34, 0x56, 0x78},
+                                 sct.getSignature().getSignature()));
         assertEquals(SignedCertificateTimestamp.Origin.EMBEDDED, sct.getOrigin());
     }
 
     @Test
     public void test_decode_invalid_SignedCertificateTimestamp() throws Exception {
         byte[] sct = new byte[] {
-            0x00,                            // version
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // log id
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0x01, 0x02, 0x03, 0x04,          // timestamp
-            0x05, 0x06, 0x07, 0x08,
-            0x00, 0x00,                      // extensions length
-            0x04, 0x03,                      // hash & signature algorithm
-            0x00, 0x04,                      // signature length
-            0x12, 0x34, 0x56, 0x78           // signature
+                0x00, // version
+                0,    0,    0,    0,    0,    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // log id
+                0,    0,    0,    0,    0,    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0x01, 0x02, 0x03, 0x04, // timestamp
+                0x05, 0x06, 0x07, 0x08, 0x00, 0x00, // extensions length
+                0x04, 0x03, // hash & signature algorithm
+                0x00, 0x04, // signature length
+                0x12, 0x34, 0x56, 0x78 // signature
         };
 
         // Make sure the original decodes fine
@@ -81,98 +78,112 @@ public class SerializationTest {
             in[0] = 1; // Modify version field
             SignedCertificateTimestamp.decode(in, SignedCertificateTimestamp.Origin.EMBEDDED);
             fail("SerializationException not thrown on unsupported version");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
 
         try {
             byte[] in = sct.clone();
             in[41] = 1; // Modify extensions lemgth
             SignedCertificateTimestamp.decode(in, SignedCertificateTimestamp.Origin.EMBEDDED);
             fail("SerializationException not thrown on invalid extensions length");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
     }
 
     @Test
     public void test_decode_DigitallySigned() throws Exception {
         byte[] in = new byte[] {
-            0x04, 0x03,            // hash & signature algorithm
-            0x00, 0x04,            // signature length
-            0x12, 0x34, 0x56, 0x78 // signature
+                0x04, 0x03, // hash & signature algorithm
+                0x00, 0x04, // signature length
+                0x12, 0x34, 0x56, 0x78 // signature
         };
 
         DigitallySigned dst = DigitallySigned.decode(in);
         assertEquals(DigitallySigned.HashAlgorithm.SHA256, dst.getHashAlgorithm());
         assertEquals(DigitallySigned.SignatureAlgorithm.ECDSA, dst.getSignatureAlgorithm());
-        assertEqualByteArrays(new byte[] { 0x12, 0x34, 0x56, 0x78}, dst.getSignature());
+        assertEqualByteArrays(new byte[] {0x12, 0x34, 0x56, 0x78}, dst.getSignature());
     }
 
     @Test
     public void test_decode_invalid_DigitallySigned() throws Exception {
         try {
             DigitallySigned.decode(new byte[] {
-                0x07, 0x03,            // hash & signature algorithm
-                0x00, 0x04,            // signature length
-                0x12, 0x34, 0x56, 0x78 // signature
+                    0x07, 0x03, // hash & signature algorithm
+                    0x00, 0x04, // signature length
+                    0x12, 0x34, 0x56, 0x78 // signature
             });
             fail("SerializationException not thrown on invalid hash type");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
 
         try {
             DigitallySigned.decode(new byte[] {
-                0x04, 0x04,            // hash & signature algorithm
-                0x00, 0x04,            // signature length
-                0x12, 0x34, 0x56, 0x78 // signature
+                    0x04, 0x04, // hash & signature algorithm
+                    0x00, 0x04, // signature length
+                    0x12, 0x34, 0x56, 0x78 // signature
             });
             fail("SerializationException not thrown on invalid signature type");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
 
         try {
             DigitallySigned.decode(new byte[] {
-                0x07, 0x03,            // hash & signature algorithm
-                0x64, 0x35,            // signature length
-                0x12, 0x34, 0x56, 0x78 // signature
+                    0x07, 0x03, // hash & signature algorithm
+                    0x64, 0x35, // signature length
+                    0x12, 0x34, 0x56, 0x78 // signature
             });
             fail("SerializationException not thrown on invalid signature length");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
 
         try {
             DigitallySigned.decode(new byte[] {
-                0x07, 0x03,            // hash & signature algorithm
+                    0x07,
+                    0x03, // hash & signature algorithm
             });
             fail("SerializationException not thrown on missing signature");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
     }
 
     @Test
     public void test_encode_CertificateEntry_X509Certificate() throws Exception {
-        // Use a dummy certificate. It doesn't matter, CertificateEntry doesn't care about the contents.
-        CertificateEntry entry = CertificateEntry.createForX509Certificate(new byte[] { 0x12, 0x34, 0x56, 0x78 });
+        // Use a dummy certificate. It doesn't matter, CertificateEntry doesn't care about the
+        // contents.
+        CertificateEntry entry =
+                CertificateEntry.createForX509Certificate(new byte[] {0x12, 0x34, 0x56, 0x78});
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         entry.encode(output);
 
-        assertEqualByteArrays(new byte[] {
-            0x00, 0x00,            // entry_type
-            0x00, 0x00, 0x04,      // x509_entry length
-            0x12, 0x34, 0x56, 0x78 // x509_entry
-        }, output.toByteArray());
+        assertEqualByteArrays(
+                new byte[] {
+                        0x00, 0x00, // entry_type
+                        0x00, 0x00, 0x04, // x509_entry length
+                        0x12, 0x34, 0x56, 0x78 // x509_entry
+                },
+                output.toByteArray());
     }
 
     @Test
     public void test_encode_CertificateEntry_PreCertificate() throws Exception {
         // Use a dummy certificate and issuer key hash. It doesn't matter,
         // CertificateEntry doesn't care about the contents.
-        CertificateEntry entry = CertificateEntry.createForPrecertificate(new byte[] { 0x12, 0x34, 0x56, 0x78 },
-                                                          new byte[32]);
+        CertificateEntry entry = CertificateEntry.createForPrecertificate(
+                new byte[] {0x12, 0x34, 0x56, 0x78}, new byte[32]);
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         entry.encode(output);
 
-        assertEqualByteArrays(new byte[] {
-            0x00, 0x01,                      // entry_type
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // issuer key hash
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0x00, 0x00, 0x04,                // precert_entry length
-            0x12, 0x34, 0x56, 0x78           // precert_entry
-        }, output.toByteArray());
+        assertEqualByteArrays(
+                new byte[] {
+                        0x00, 0x01, // entry_type
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // issuer key
+                                                                        // hash
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00,
+                        0x04, // precert_entry length
+                        0x12, 0x34, 0x56, 0x78 // precert_entry
+                },
+                output.toByteArray());
     }
 
     @Test
@@ -180,17 +191,17 @@ public class SerializationTest {
         byte[] in, expected;
 
         in = new byte[] {
-            0x04, // TAG
-            0x06, // length
-            0x01, 0x02, 0x03, 0x04, 0x05, 0x05 // data
+                0x04, // TAG
+                0x06, // length
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x05 // data
         };
-        expected = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x05 };
+        expected = new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x05};
         assertEqualByteArrays(expected, Serialization.readDEROctetString(in));
 
         in = new byte[203];
         in[0] = 0x04; // TAG
-        in[1] = (byte)0x81; // long length flag
-        in[2] = (byte)200; // length
+        in[1] = (byte) 0x81; // long length flag
+        in[2] = (byte) 200; // length
         in[3] = 0x45; // data, the rest is just zeros
 
         expected = new byte[200];
@@ -199,27 +210,28 @@ public class SerializationTest {
 
         try {
             in = new byte[] {
-                0x12, // wrong tag
-                0x06, // length
-                0x01, 0x02, 0x03, 0x04, 0x05, 0x05 // data
+                    0x12, // wrong tag
+                    0x06, // length
+                    0x01, 0x02, 0x03, 0x04, 0x05, 0x05 // data
             };
             Serialization.readDEROctetString(in);
             fail("SerializationException not thrown on invalid tag.");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
 
         try {
             in = new byte[] {
-                0x04, // wrong tag
-                0x06, // length
-                0x01, 0x02 // data
+                    0x04, // wrong tag
+                    0x06, // length
+                    0x01, 0x02 // data
             };
             Serialization.readDEROctetString(in);
             fail("SerializationException not thrown on invalid length.");
-        } catch (SerializationException e) {}
+        } catch (SerializationException e) {
+        }
     }
 
     public static void assertEqualByteArrays(byte[] expected, byte[] actual) {
         assertEquals(Arrays.toString(expected), Arrays.toString(actual));
     }
 }
-

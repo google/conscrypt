@@ -135,8 +135,8 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     int paddedBlockSizeBytes() {
         int paddedBlockSizeBytes = keySizeBytes();
         if (padding == NativeConstants.RSA_PKCS1_PADDING) {
-            paddedBlockSizeBytes--;  // for 0 prefix
-            paddedBlockSizeBytes -= 10;  // PKCS1 padding header length
+            paddedBlockSizeBytes--; // for 0 prefix
+            paddedBlockSizeBytes -= 10; // PKCS1 padding header length
         }
         return paddedBlockSizeBytes;
     }
@@ -166,7 +166,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     void doCryptoInit(AlgorithmParameterSpec spec)
-        throws InvalidAlgorithmParameterException, InvalidKeyException {}
+            throws InvalidAlgorithmParameterException, InvalidKeyException {}
 
     void engineInitInternal(int opmode, Key key, AlgorithmParameterSpec spec)
             throws InvalidKeyException, InvalidAlgorithmParameterException {
@@ -247,10 +247,11 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
     @Override
     protected void engineInit(int opmode, Key key, AlgorithmParameterSpec params,
-            SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+                              SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (params != null) {
             throw new InvalidAlgorithmParameterException("unknown param type: "
-                    + params.getClass().getName());
+                                                         + params.getClass().getName());
         }
 
         engineInitInternal(opmode, key, params);
@@ -261,7 +262,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             throws InvalidKeyException, InvalidAlgorithmParameterException {
         if (params != null) {
             throw new InvalidAlgorithmParameterException("unknown param type: "
-                    + params.getClass().getName());
+                                                         + params.getClass().getName());
         }
 
         engineInitInternal(opmode, key, null);
@@ -281,7 +282,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
     @Override
     protected int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException {
+                               int outputOffset) throws ShortBufferException {
         engineUpdate(input, inputOffset, inputLen);
         return 0;
     }
@@ -324,14 +325,14 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
-            BadPaddingException {
+                                int outputOffset)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         byte[] b = engineDoFinal(input, inputOffset, inputLen);
 
         final int lastOffset = outputOffset + b.length;
         if (lastOffset > output.length) {
-            throw new ShortBufferWithoutStackTraceException("output buffer is too small " + output.length + " < "
-                    + lastOffset);
+            throw new ShortBufferWithoutStackTraceException("output buffer is too small "
+                                                            + output.length + " < " + lastOffset);
         }
 
         System.arraycopy(b, 0, output, outputOffset, b.length);
@@ -351,8 +352,8 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
     }
 
     @Override
-    protected Key engineUnwrap(byte[] wrappedKey, String wrappedKeyAlgorithm,
-            int wrappedKeyType) throws InvalidKeyException, NoSuchAlgorithmException {
+    protected Key engineUnwrap(byte[] wrappedKey, String wrappedKeyAlgorithm, int wrappedKeyType)
+            throws InvalidKeyException, NoSuchAlgorithmException {
         try {
             byte[] encoded = engineDoFinal(wrappedKey, 0, wrappedKey.length);
             if (wrappedKeyType == Cipher.PUBLIC_KEY) {
@@ -386,20 +387,20 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             int resultSize;
             if (encrypting) {
                 if (usingPrivateKey) {
-                    resultSize = NativeCrypto.RSA_private_encrypt(
-                            tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                    resultSize = NativeCrypto.RSA_private_encrypt(tmpBuf.length, tmpBuf, output,
+                                                                  key.getNativeRef(), padding);
                 } else {
-                    resultSize = NativeCrypto.RSA_public_encrypt(
-                            tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                    resultSize = NativeCrypto.RSA_public_encrypt(tmpBuf.length, tmpBuf, output,
+                                                                 key.getNativeRef(), padding);
                 }
             } else {
                 try {
                     if (usingPrivateKey) {
-                        resultSize = NativeCrypto.RSA_private_decrypt(
-                                tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                        resultSize = NativeCrypto.RSA_private_decrypt(tmpBuf.length, tmpBuf, output,
+                                                                      key.getNativeRef(), padding);
                     } else {
-                        resultSize = NativeCrypto.RSA_public_decrypt(
-                                tmpBuf.length, tmpBuf, output, key.getNativeRef(), padding);
+                        resultSize = NativeCrypto.RSA_public_decrypt(tmpBuf.length, tmpBuf, output,
+                                                                     key.getNativeRef(), padding);
                     }
                 } catch (SignatureException e) {
                     IllegalBlockSizeException newE = new IllegalBlockSizeException();
@@ -464,7 +465,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
                 return params;
             } catch (NoSuchAlgorithmException e) {
                 // We should not get here.
-                throw (Error) new AssertionError("OAEP not supported").initCause(e);
+                throw(Error) new AssertionError("OAEP not supported").initCause(e);
             } catch (InvalidParameterSpecException e) {
                 throw new RuntimeException("No providers of AlgorithmParameters.OAEP available");
             }
@@ -482,8 +483,8 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         }
 
         @Override
-        protected void engineInit(
-                int opmode, Key key, AlgorithmParameterSpec spec, SecureRandom random)
+        protected void engineInit(int opmode, Key key, AlgorithmParameterSpec spec,
+                                  SecureRandom random)
                 throws InvalidKeyException, InvalidAlgorithmParameterException {
             if (spec != null && !(spec instanceof OAEPParameterSpec)) {
                 throw new InvalidAlgorithmParameterException(
@@ -494,8 +495,8 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
         }
 
         @Override
-        protected void engineInit(
-                int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+        protected void engineInit(int opmode, Key key, AlgorithmParameters params,
+                                  SecureRandom random)
                 throws InvalidKeyException, InvalidAlgorithmParameterException {
             OAEPParameterSpec spec = null;
             if (params != null) {
@@ -527,17 +528,17 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
         @Override
         void doCryptoInit(AlgorithmParameterSpec spec)
-            throws InvalidAlgorithmParameterException, InvalidKeyException {
-            pkeyCtx = new NativeRef.EVP_PKEY_CTX(encrypting
-                            ? NativeCrypto.EVP_PKEY_encrypt_init(key.getNativeRef())
-                            : NativeCrypto.EVP_PKEY_decrypt_init(key.getNativeRef()));
+                throws InvalidAlgorithmParameterException, InvalidKeyException {
+            pkeyCtx = new NativeRef.EVP_PKEY_CTX(
+                    encrypting ? NativeCrypto.EVP_PKEY_encrypt_init(key.getNativeRef())
+                               : NativeCrypto.EVP_PKEY_decrypt_init(key.getNativeRef()));
 
             if (spec instanceof OAEPParameterSpec) {
                 readOAEPParameters((OAEPParameterSpec) spec);
             }
 
-            NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(
-                    pkeyCtx.address, NativeConstants.RSA_PKCS1_OAEP_PADDING);
+            NativeCrypto.EVP_PKEY_CTX_set_rsa_padding(pkeyCtx.address,
+                                                      NativeConstants.RSA_PKCS1_OAEP_PADDING);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_oaep_md(pkeyCtx.address, oaepMd);
             NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(pkeyCtx.address, mgf1Md);
             if (label != null && label.length > 0) {
@@ -559,8 +560,8 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             String mgfAlgUpper = spec.getMGFAlgorithm().toUpperCase(Locale.US);
             AlgorithmParameterSpec mgfSpec = spec.getMGFParameters();
             if ((!EvpMdRef.MGF1_ALGORITHM_NAME.equals(mgfAlgUpper)
-                        && !EvpMdRef.MGF1_OID.equals(mgfAlgUpper))
-                    || !(mgfSpec instanceof MGF1ParameterSpec)) {
+                 && !EvpMdRef.MGF1_OID.equals(mgfAlgUpper))
+                || !(mgfSpec instanceof MGF1ParameterSpec)) {
                 throw new InvalidAlgorithmParameterException(
                         "Only MGF1 supported as mask generation function");
             }
@@ -579,7 +580,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
 
             PSource pSource = spec.getPSource();
             if (!"PSpecified".equals(pSource.getAlgorithm())
-                    || !(pSource instanceof PSource.PSpecified)) {
+                || !(pSource instanceof PSource.PSpecified)) {
                 throw new InvalidAlgorithmParameterException(
                         "Only PSpecified accepted for PSource");
             }

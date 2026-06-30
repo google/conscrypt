@@ -17,14 +17,13 @@
 #ifndef CONSCRYPT_BIO_OUTPUT_STREAM_H_
 #define CONSCRYPT_BIO_OUTPUT_STREAM_H_
 
-#include <jni.h>
-
 #include <conscrypt/bio_stream.h>
+#include <jni.h>
 
 namespace conscrypt {
 
 class BioOutputStream : public BioStream {
- public:
+public:
     explicit BioOutputStream(jobject stream) : BioStream(stream) {}
 
     int write(const char* buf, int len) {

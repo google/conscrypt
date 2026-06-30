@@ -36,12 +36,13 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
-import java.security.GeneralSecurityException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 @RunWith(JUnit4.class)
 public class HpkeContextTest {
@@ -152,7 +153,8 @@ public class HpkeContextTest {
         final HpkeContextRecipient ctxRecipient =
                 HpkeContextRecipient.getInstance(DEFAULT_SUITE_NAME);
         ctxRecipient.init(enc, privateKey, DEFAULT_INFO);
-        assertThrows(GeneralSecurityException.class, () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
+        assertThrows(GeneralSecurityException.class,
+                     () -> ctxRecipient.open(ciphertext, DEFAULT_AAD));
     }
 
     @Test

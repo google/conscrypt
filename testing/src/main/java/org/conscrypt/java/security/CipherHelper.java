@@ -20,10 +20,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+
 import javax.crypto.Cipher;
 
 public abstract class CipherHelper<T> extends TestHelper<T> {
-
     private final String algorithmName;
     private final String plainData;
     private final int mode1;

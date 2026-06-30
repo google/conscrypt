@@ -40,15 +40,15 @@ public class MetricsTest {
         ReflexiveStatsEvent reflexiveStatsEvent;
         if (Platform.isSdkGreater(32)) {
             frameworkStatsEvent = StatsEvent.newBuilder()
-                                                 .setAtomId(TLS_HANDSHAKE_REPORTED)
-                                                 .writeBoolean(false)
-                                                 .writeInt(1) // protocol
-                                                 .writeInt(2) // cipher suite
-                                                 .writeInt(100) // duration
-                                                 .writeInt(3) // source
-                                                 .writeIntArray(new int[] {0}) // uids
-                                                 .usePooledBuffer()
-                                                 .build();
+                                          .setAtomId(TLS_HANDSHAKE_REPORTED)
+                                          .writeBoolean(false)
+                                          .writeInt(1) // protocol
+                                          .writeInt(2) // cipher suite
+                                          .writeInt(100) // duration
+                                          .writeInt(3) // source
+                                          .writeIntArray(new int[] {0}) // uids
+                                          .usePooledBuffer()
+                                          .build();
             ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder()
                                                           .setAtomId(TLS_HANDSHAKE_REPORTED)
                                                           .writeBoolean(false)
@@ -61,14 +61,14 @@ public class MetricsTest {
             reflexiveStatsEvent = builder.build();
         } else {
             frameworkStatsEvent = StatsEvent.newBuilder()
-                                                 .setAtomId(TLS_HANDSHAKE_REPORTED)
-                                                 .writeBoolean(false)
-                                                 .writeInt(1) // protocol
-                                                 .writeInt(2) // cipher suite
-                                                 .writeInt(100) // duration
-                                                 .writeInt(3) // source
-                                                 .usePooledBuffer()
-                                                 .build();
+                                          .setAtomId(TLS_HANDSHAKE_REPORTED)
+                                          .writeBoolean(false)
+                                          .writeInt(1) // protocol
+                                          .writeInt(2) // cipher suite
+                                          .writeInt(100) // duration
+                                          .writeInt(3) // source
+                                          .usePooledBuffer()
+                                          .build();
             ReflexiveStatsEvent.Builder builder = ReflexiveStatsEvent.newBuilder()
                                                           .setAtomId(TLS_HANDSHAKE_REPORTED)
                                                           .writeBoolean(false)

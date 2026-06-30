@@ -15,14 +15,16 @@
  */
 package org.conscrypt.javax.net.ssl;
 
+import org.conscrypt.TestUtils;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
+
 import javax.crypto.SecretKey;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLEngine;
-import org.conscrypt.TestUtils;
 
 /**
  * Reflection-based implementation of {@code PSKKeyManager} from Conscrypt on which these tests
@@ -36,10 +38,9 @@ class PSKKeyManagerProxy implements InvocationHandler {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        return (KeyManager) Proxy.newProxyInstance(
-                PSKKeyManagerProxy.class.getClassLoader(),
-                new Class<?>[] {pskKeyManagerInterface},
-                delegate);
+        return (KeyManager) Proxy.newProxyInstance(PSKKeyManagerProxy.class.getClassLoader(),
+                                                   new Class<?>[] {pskKeyManagerInterface},
+                                                   delegate);
     }
     @SuppressWarnings("unused")
     protected SecretKey getKey(String identityHint, String identity, Socket socket) {

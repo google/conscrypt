@@ -35,13 +35,13 @@ import java.lang.annotation.Target;
 @Retention(SOURCE)
 @Target({FIELD, METHOD, PARAMETER, TYPE_USE})
 public @interface Nullable {
-   /**
-    * Min Android API level (inclusive) to which this annotation is applied.
-    */
-   int from() default Integer.MIN_VALUE;
+    /**
+     * Min Android API level (inclusive) to which this annotation is applied.
+     */
+    int from() default Integer.MIN_VALUE;
 
-   /**
-    * Max Android API level to which this annotation is applied.
-    */
-   int to() default Integer.MAX_VALUE;
+    /**
+     * Max Android API level to which this annotation is applied.
+     */
+    int to() default Integer.MAX_VALUE;
 }

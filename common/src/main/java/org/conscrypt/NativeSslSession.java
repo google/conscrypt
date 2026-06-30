@@ -31,6 +31,7 @@ import java.security.cert.CertificateEncodingException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -54,8 +55,8 @@ abstract class NativeSslSession {
         AbstractSessionContext context = (AbstractSessionContext) session.getSessionContext();
         if (context instanceof ClientSessionContext) {
             return new Impl(context, ref, session.getPeerHost(), session.getPeerPort(),
-                session.getPeerCertificates(), getOcspResponse(session),
-                session.getPeerSignedCertificateTimestamp());
+                            session.getPeerCertificates(), getOcspResponse(session),
+                            session.getPeerSignedCertificateTimestamp());
         }
 
         // Server's will be cached by ID and won't have any of the extra fields.
@@ -77,8 +78,8 @@ abstract class NativeSslSession {
      * @return The new instance if successful. If unable to parse the bytes for any reason, returns
      * {@code null}.
      */
-    static NativeSslSession newInstance(
-            AbstractSessionContext context, byte[] data, String host, int port) {
+    static NativeSslSession newInstance(AbstractSessionContext context, byte[] data, String host,
+                                        int port) {
         ByteBuffer buf = ByteBuffer.wrap(data);
         try {
             int type = buf.getInt();
@@ -224,8 +225,8 @@ abstract class NativeSslSession {
         private final byte[] peerSignedCertificateTimestamp;
 
         private Impl(AbstractSessionContext context, NativeRef.SSL_SESSION ref, String host,
-                int port, java.security.cert.X509Certificate[] peerCertificates,
-                byte[] peerOcspStapledResponse, byte[] peerSignedCertificateTimestamp) {
+                     int port, java.security.cert.X509Certificate[] peerCertificates,
+                     byte[] peerOcspStapledResponse, byte[] peerSignedCertificateTimestamp) {
             this.context = context;
             this.host = host;
             this.port = port;
@@ -251,9 +252,10 @@ abstract class NativeSslSession {
         boolean isValid() {
             long creationTimeMillis = getCreationTime();
             // Use the minimum of the timeout from the context and the session.
-            long timeoutMillis = Math.max(0,
-                                         Math.min(context.getSessionTimeout(),
-                                                 NativeCrypto.SSL_SESSION_get_timeout(ref.address)))
+            long timeoutMillis =
+                    Math.max(0,
+                             Math.min(context.getSessionTimeout(),
+                                      NativeCrypto.SSL_SESSION_get_timeout(ref.address)))
                     * 1000;
             return (System.currentTimeMillis() - timeoutMillis) < creationTimeMillis;
         }
@@ -465,7 +467,7 @@ abstract class NativeSslSession {
     private static void log(Throwable t) {
         // TODO(nathanmittler): Better error handling?
         logger.log(Level.FINE, "Error inflating SSL session: {0}",
-                (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
+                   (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
     }
 
     private static void checkRemaining(ByteBuffer buf, int length) throws IOException {
@@ -473,8 +475,8 @@ abstract class NativeSslSession {
             throw new IOException("Length is negative: " + length);
         }
         if (length > buf.remaining()) {
-            throw new IOException(
-                    "Length of blob is longer than available: " + length + " > " + buf.remaining());
+            throw new IOException("Length of blob is longer than available: " + length + " > "
+                                  + buf.remaining());
         }
     }
 }

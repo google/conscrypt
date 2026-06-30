@@ -22,11 +22,12 @@
 namespace conscrypt {
 
 /*
- * Sets the read and write BIO for an SSL connection and removes it when it goes out of scope.
- * We hang on to BIO with a JNI GlobalRef and we want to remove them as soon as possible.
+ * Sets the read and write BIO for an SSL connection and removes it when it goes
+ * out of scope. We hang on to BIO with a JNI GlobalRef and we want to remove
+ * them as soon as possible.
  */
 class ScopedSslBio {
- public:
+public:
     ScopedSslBio(SSL* ssl, BIO* rbio, BIO* wbio) : ssl_(ssl) {
         SSL_set_bio(ssl_, rbio, wbio);
         BIO_up_ref(rbio);
@@ -37,7 +38,7 @@ class ScopedSslBio {
         SSL_set_bio(ssl_, nullptr, nullptr);
     }
 
- private:
+private:
     SSL* const ssl_;
 };
 

@@ -27,7 +27,7 @@ final class EmptyArray {
     static final double[] DOUBLE = new double[0];
     static final int[] INT = new int[0];
 
-    static final Class<?>[] CLASS = new Class<?>[ 0 ];
+    static final Class<?>[] CLASS = new Class<?>[0];
     static final Object[] OBJECT = new Object[0];
     static final String[] STRING = new String[0];
     static final Throwable[] THROWABLE = new Throwable[0];

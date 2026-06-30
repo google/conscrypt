@@ -16,15 +16,16 @@
 
 package org.conscrypt.ct;
 
+import org.conscrypt.Internal;
+import org.conscrypt.NativeCrypto;
+import org.conscrypt.OpenSSLX509Certificate;
+
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.conscrypt.Internal;
-import org.conscrypt.NativeCrypto;
-import org.conscrypt.OpenSSLX509Certificate;
 
 @Internal
 public class Verifier {
@@ -35,7 +36,8 @@ public class Verifier {
     }
 
     public VerificationResult verifySignedCertificateTimestamps(List<X509Certificate> chain,
-            byte[] tlsData, byte[] ocspData) throws CertificateEncodingException {
+                                                                byte[] tlsData, byte[] ocspData)
+            throws CertificateEncodingException {
         OpenSSLX509Certificate[] certs = new OpenSSLX509Certificate[chain.size()];
         int i = 0;
         for (X509Certificate cert : chain) {
@@ -51,7 +53,8 @@ public class Verifier {
      * @throws IllegalArgumentException if the chain is empty
      */
     public VerificationResult verifySignedCertificateTimestamps(OpenSSLX509Certificate[] chain,
-            byte[] tlsData, byte[] ocspData) throws CertificateEncodingException {
+                                                                byte[] tlsData, byte[] ocspData)
+            throws CertificateEncodingException {
         if (chain.length == 0) {
             throw new IllegalArgumentException("Chain of certificates mustn't be empty.");
         }
@@ -75,7 +78,7 @@ public class Verifier {
      * The result of the verification for each sct is added to {@code result}.
      */
     private void verifyEmbeddedSCTs(List<SignedCertificateTimestamp> scts,
-            OpenSSLX509Certificate[] chain, VerificationResult result) {
+                                    OpenSSLX509Certificate[] chain, VerificationResult result) {
         // Avoid creating the cert entry if we don't need it
         if (scts.isEmpty()) {
             return;
@@ -107,7 +110,7 @@ public class Verifier {
      * The result of the verification for each sct is added to {@code result}.
      */
     private void verifyExternalSCTs(List<SignedCertificateTimestamp> scts,
-            OpenSSLX509Certificate leaf, VerificationResult result) {
+                                    OpenSSLX509Certificate leaf, VerificationResult result) {
         // Avoid creating the cert entry if we don't need it
         if (scts.isEmpty()) {
             return;
@@ -128,7 +131,7 @@ public class Verifier {
      * Verify a list of SCTs.
      */
     private void verifySCTs(List<SignedCertificateTimestamp> scts, CertificateEntry certEntry,
-            VerificationResult result) {
+                            VerificationResult result) {
         for (SignedCertificateTimestamp sct : scts) {
             VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
             LogInfo log = store.getKnownLog(sct.getLogID());
@@ -148,8 +151,8 @@ public class Verifier {
     /**
      * Add every SCT in {@code scts} to {@code result} with INVALID_SCT as status
      */
-    private void markSCTsAsInvalid(
-            List<SignedCertificateTimestamp> scts, VerificationResult result) {
+    private void markSCTsAsInvalid(List<SignedCertificateTimestamp> scts,
+                                   VerificationResult result) {
         for (SignedCertificateTimestamp sct : scts) {
             VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
             result.add(builder.setStatus(VerifiedSCT.Status.INVALID_SCT).build());
@@ -172,8 +175,8 @@ public class Verifier {
 
         byte[][] sctList;
         try {
-            sctList = Serialization.readList(
-                    data, Constants.SCT_LIST_LENGTH_BYTES, Constants.SERIALIZED_SCT_LENGTH_BYTES);
+            sctList = Serialization.readList(data, Constants.SCT_LIST_LENGTH_BYTES,
+                                             Constants.SERIALIZED_SCT_LENGTH_BYTES);
         } catch (SerializationException e) {
             return Collections.emptyList();
         }
@@ -219,7 +222,8 @@ public class Verifier {
         }
 
         byte[] extData = NativeCrypto.get_ocsp_single_extension(data, Constants.OCSP_SCT_LIST_OID,
-                chain[0].getContext(), chain[0], chain[1].getContext(), chain[1]);
+                                                                chain[0].getContext(), chain[0],
+                                                                chain[1].getContext(), chain[1]);
         if (extData == null) {
             return Collections.emptyList();
         }

@@ -16,6 +16,23 @@
 
 package org.conscrypt;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.conscrypt.java.security.TestKeyStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -45,23 +62,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.security.auth.x500.X500Principal;
-import org.conscrypt.java.security.TestKeyStore;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import javax.security.auth.x500.X500Principal;
 
 @SuppressWarnings("unused")
 @RunWith(Parameterized.class)
@@ -264,11 +266,11 @@ public class TrustedCertificateStoreTest {
             PRIVATE = TestKeyStore.getServer().getPrivateKey("RSA", "RSA");
             CHAIN = (X509Certificate[]) PRIVATE.getCertificateChain();
             CA3_WITH_CA1_SUBJECT = new TestKeyStore.Builder()
-                    .aliasPrefix("unused")
-                    .subject(CA1.getSubjectX500Principal())
-                    .ca(true)
-                    .build().getRootCertificate("RSA");
-
+                                           .aliasPrefix("unused")
+                                           .subject(CA1.getSubjectX500Principal())
+                                           .ca(true)
+                                           .build()
+                                           .getRootCertificate("RSA");
 
             ALIAS_SYSTEM_CA1 = alias(false, CA1, 0);
             ALIAS_SYSTEM_CA2 = alias(false, CA2, 0);
@@ -297,52 +299,57 @@ public class TrustedCertificateStoreTest {
              *            +--------------+
              */
             TestKeyStore certLoopTempCa1 = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("certloop-ca1")
-                    .subject("CN=certloop-ca1")
-                    .ca(true)
-                    .build();
-            Certificate certLoopTempCaCert1 = ((TrustedCertificateEntry) certLoopTempCa1
-                    .getEntryByAlias("certloop-ca1-public-RSA")).getTrustedCertificate();
-            PrivateKeyEntry certLoopCaKey1 = (PrivateKeyEntry) certLoopTempCa1
-                    .getEntryByAlias("certloop-ca1-private-RSA");
+                                                   .keyAlgorithms("RSA")
+                                                   .aliasPrefix("certloop-ca1")
+                                                   .subject("CN=certloop-ca1")
+                                                   .ca(true)
+                                                   .build();
+            Certificate certLoopTempCaCert1 =
+                    ((TrustedCertificateEntry) certLoopTempCa1.getEntryByAlias(
+                             "certloop-ca1-public-RSA"))
+                            .getTrustedCertificate();
+            PrivateKeyEntry certLoopCaKey1 =
+                    (PrivateKeyEntry) certLoopTempCa1.getEntryByAlias("certloop-ca1-private-RSA");
 
             TestKeyStore certLoopCa2 = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("certloop-ca2")
-                    .subject("CN=certloop-ca2")
-                    .rootCa(certLoopTempCaCert1)
-                    .signer(certLoopCaKey1)
-                    .ca(true)
-                    .build();
-            CERTLOOP_CA2 = (X509Certificate) ((TrustedCertificateEntry) certLoopCa2
-                    .getEntryByAlias("certloop-ca2-public-RSA")).getTrustedCertificate();
+                                               .keyAlgorithms("RSA")
+                                               .aliasPrefix("certloop-ca2")
+                                               .subject("CN=certloop-ca2")
+                                               .rootCa(certLoopTempCaCert1)
+                                               .signer(certLoopCaKey1)
+                                               .ca(true)
+                                               .build();
+            CERTLOOP_CA2 = (X509Certificate) ((TrustedCertificateEntry) certLoopCa2.getEntryByAlias(
+                                                      "certloop-ca2-public-RSA"))
+                                   .getTrustedCertificate();
             ALIAS_USER_CERTLOOP_CA2 = alias(true, CERTLOOP_CA2, 0);
-            PrivateKeyEntry certLoopCaKey2 = (PrivateKeyEntry) certLoopCa2
-                    .getEntryByAlias("certloop-ca2-private-RSA");
+            PrivateKeyEntry certLoopCaKey2 =
+                    (PrivateKeyEntry) certLoopCa2.getEntryByAlias("certloop-ca2-private-RSA");
 
             TestKeyStore certLoopCa1 = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("certloop-ca1")
-                    .subject("CN=certloop-ca1")
-                    .privateEntry(certLoopCaKey1)
-                    .rootCa(CERTLOOP_CA2)
-                    .signer(certLoopCaKey2)
-                    .ca(true)
-                    .build();
-            CERTLOOP_CA1 = (X509Certificate) ((TrustedCertificateEntry) certLoopCa1
-                    .getEntryByAlias("certloop-ca1-public-RSA")).getTrustedCertificate();
+                                               .keyAlgorithms("RSA")
+                                               .aliasPrefix("certloop-ca1")
+                                               .subject("CN=certloop-ca1")
+                                               .privateEntry(certLoopCaKey1)
+                                               .rootCa(CERTLOOP_CA2)
+                                               .signer(certLoopCaKey2)
+                                               .ca(true)
+                                               .build();
+            CERTLOOP_CA1 = (X509Certificate) ((TrustedCertificateEntry) certLoopCa1.getEntryByAlias(
+                                                      "certloop-ca1-public-RSA"))
+                                   .getTrustedCertificate();
             ALIAS_USER_CERTLOOP_CA1 = alias(true, CERTLOOP_CA1, 0);
 
             TestKeyStore certLoopEe = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("certloop-ee")
-                    .subject("CN=certloop-ee")
-                    .rootCa(CERTLOOP_CA1)
-                    .signer(certLoopCaKey1)
-                    .build();
-            CERTLOOP_EE = (X509Certificate) ((TrustedCertificateEntry) certLoopEe
-                    .getEntryByAlias("certloop-ee-public-RSA")).getTrustedCertificate();
+                                              .keyAlgorithms("RSA")
+                                              .aliasPrefix("certloop-ee")
+                                              .subject("CN=certloop-ee")
+                                              .rootCa(CERTLOOP_CA1)
+                                              .signer(certLoopCaKey1)
+                                              .build();
+            CERTLOOP_EE = (X509Certificate) ((TrustedCertificateEntry) certLoopEe.getEntryByAlias(
+                                                     "certloop-ee-public-RSA"))
+                                  .getTrustedCertificate();
             ALIAS_USER_CERTLOOP_EE = alias(true, CERTLOOP_EE, 0);
 
             /*
@@ -353,53 +360,62 @@ public class TrustedCertificateStoreTest {
              *    Where CA1 also exists in a self-issued form.
              */
             TestKeyStore multipleIssuersCa1 = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("multiple-issuers-ca1")
-                    .subject("CN=multiple-issuers-ca1")
-                    .ca(true)
-                    .build();
-            MULTIPLE_ISSUERS_CA1 = (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa1
-                    .getEntryByAlias("multiple-issuers-ca1-public-RSA")).getTrustedCertificate();
+                                                      .keyAlgorithms("RSA")
+                                                      .aliasPrefix("multiple-issuers-ca1")
+                                                      .subject("CN=multiple-issuers-ca1")
+                                                      .ca(true)
+                                                      .build();
+            MULTIPLE_ISSUERS_CA1 =
+                    (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa1.getEntryByAlias(
+                                               "multiple-issuers-ca1-public-RSA"))
+                            .getTrustedCertificate();
             ALIAS_MULTIPLE_ISSUERS_CA1 = alias(false, MULTIPLE_ISSUERS_CA1, 0);
-            PrivateKeyEntry multipleIssuersCa1Key = (PrivateKeyEntry) multipleIssuersCa1
-                    .getEntryByAlias("multiple-issuers-ca1-private-RSA");
+            PrivateKeyEntry multipleIssuersCa1Key =
+                    (PrivateKeyEntry) multipleIssuersCa1.getEntryByAlias(
+                            "multiple-issuers-ca1-private-RSA");
 
             TestKeyStore multipleIssuersCa2 = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("multiple-issuers-ca2")
-                    .subject("CN=multiple-issuers-ca2")
-                    .ca(true)
-                    .build();
-            MULTIPLE_ISSUERS_CA2 = (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa2
-                    .getEntryByAlias("multiple-issuers-ca2-public-RSA")).getTrustedCertificate();
+                                                      .keyAlgorithms("RSA")
+                                                      .aliasPrefix("multiple-issuers-ca2")
+                                                      .subject("CN=multiple-issuers-ca2")
+                                                      .ca(true)
+                                                      .build();
+            MULTIPLE_ISSUERS_CA2 =
+                    (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa2.getEntryByAlias(
+                                               "multiple-issuers-ca2-public-RSA"))
+                            .getTrustedCertificate();
             ALIAS_MULTIPLE_ISSUERS_CA2 = alias(false, MULTIPLE_ISSUERS_CA2, 0);
-            PrivateKeyEntry multipleIssuersCa2Key = (PrivateKeyEntry) multipleIssuersCa2
-                    .getEntryByAlias("multiple-issuers-ca2-private-RSA");
+            PrivateKeyEntry multipleIssuersCa2Key =
+                    (PrivateKeyEntry) multipleIssuersCa2.getEntryByAlias(
+                            "multiple-issuers-ca2-private-RSA");
 
-            TestKeyStore multipleIssuersCa1SignedByCa2 = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("multiple-issuers-ca1")
-                    .subject("CN=multiple-issuers-ca1")
-                    .privateEntry(multipleIssuersCa1Key)
-                    .rootCa(MULTIPLE_ISSUERS_CA2)
-                    .signer(multipleIssuersCa2Key)
-                    .ca(true)
-                    .build();
+            TestKeyStore multipleIssuersCa1SignedByCa2 =
+                    new TestKeyStore.Builder()
+                            .keyAlgorithms("RSA")
+                            .aliasPrefix("multiple-issuers-ca1")
+                            .subject("CN=multiple-issuers-ca1")
+                            .privateEntry(multipleIssuersCa1Key)
+                            .rootCa(MULTIPLE_ISSUERS_CA2)
+                            .signer(multipleIssuersCa2Key)
+                            .ca(true)
+                            .build();
             MULTIPLE_ISSUERS_CA1_CROSS =
                     (X509Certificate) ((TrustedCertificateEntry) multipleIssuersCa1SignedByCa2
-                            .getEntryByAlias("multiple-issuers-ca1-public-RSA"))
-                    .getTrustedCertificate();
+                                               .getEntryByAlias("multiple-issuers-ca1-public-RSA"))
+                            .getTrustedCertificate();
             ALIAS_MULTIPLE_ISSUERS_CA1_CROSS = alias(false, MULTIPLE_ISSUERS_CA1_CROSS, 1);
 
             TestKeyStore multipleIssuersEe = new TestKeyStore.Builder()
-                    .keyAlgorithms("RSA")
-                    .aliasPrefix("multiple-issuers-ee")
-                    .subject("CN=multiple-issuers-ee")
-                    .rootCa(MULTIPLE_ISSUERS_CA1)
-                    .signer(multipleIssuersCa1Key)
-                    .build();
-            MULTIPLE_ISSUERS_EE = (X509Certificate) ((TrustedCertificateEntry) multipleIssuersEe
-                    .getEntryByAlias("multiple-issuers-ee-public-RSA")).getTrustedCertificate();
+                                                     .keyAlgorithms("RSA")
+                                                     .aliasPrefix("multiple-issuers-ee")
+                                                     .subject("CN=multiple-issuers-ee")
+                                                     .rootCa(MULTIPLE_ISSUERS_CA1)
+                                                     .signer(multipleIssuersCa1Key)
+                                                     .build();
+            MULTIPLE_ISSUERS_EE =
+                    (X509Certificate) ((TrustedCertificateEntry) multipleIssuersEe.getEntryByAlias(
+                                               "multiple-issuers-ee-public-RSA"))
+                            .getTrustedCertificate();
             ALIAS_MULTIPLE_ISSUERS_EE = alias(false, MULTIPLE_ISSUERS_EE, 0);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -441,7 +457,7 @@ public class TrustedCertificateStoreTest {
     }
 
     private void cleanStore() {
-        for (File dir : new File[] { dirSystem, dirAdded, dirDeleted, dirTest }) {
+        for (File dir : new File[] {dirSystem, dirAdded, dirDeleted, dirTest}) {
             File[] files = dir.listFiles();
             if (files == null) {
                 continue;
@@ -557,32 +573,28 @@ public class TrustedCertificateStoreTest {
 
     @Test
     public void testTwoSystem() throws Exception {
-        testTwo(getCa1(), getAliasSystemCa1(),
-                getCa2(), getAliasSystemCa2());
+        testTwo(getCa1(), getAliasSystemCa1(), getCa2(), getAliasSystemCa2());
     }
 
     @Test
     public void testTwoUser() throws Exception {
-        testTwo(getCa1(), getAliasUserCa1(),
-                getCa2(), getAliasUserCa2());
+        testTwo(getCa1(), getAliasUserCa1(), getCa2(), getAliasUserCa2());
     }
 
     @Test
     public void testOneSystemOneUser() throws Exception {
-        testTwo(getCa1(), getAliasSystemCa1(),
-                getCa2(), getAliasUserCa2());
+        testTwo(getCa1(), getAliasSystemCa1(), getCa2(), getAliasUserCa2());
     }
 
     @Test
     public void testTwoSystemSameSubject() throws Exception {
-        testTwo(getCa1(), getAliasSystemCa1(),
-                getCa3WithCa1Subject(), getAliasSystemCa3Collision());
+        testTwo(getCa1(), getAliasSystemCa1(), getCa3WithCa1Subject(),
+                getAliasSystemCa3Collision());
     }
 
     @Test
     public void testTwoUserSameSubject() throws Exception {
-        testTwo(getCa1(), getAliasUserCa1(),
-                getCa3WithCa1Subject(), getAliasUserCa3Collision());
+        testTwo(getCa1(), getAliasUserCa1(), getCa3WithCa1Subject(), getAliasUserCa3Collision());
 
         store.deleteCertificateEntry(getAliasUserCa1());
         assertDeleted(getCa1(), getAliasUserCa1());
@@ -599,14 +611,11 @@ public class TrustedCertificateStoreTest {
 
     @Test
     public void testOneSystemOneUserSameSubject() throws Exception {
-        testTwo(getCa1(), getAliasSystemCa1(),
-                getCa3WithCa1Subject(), getAliasUserCa3());
-        testTwo(getCa1(), getAliasUserCa1(),
-                getCa3WithCa1Subject(), getAliasSystemCa3());
+        testTwo(getCa1(), getAliasSystemCa1(), getCa3WithCa1Subject(), getAliasUserCa3());
+        testTwo(getCa1(), getAliasUserCa1(), getCa3WithCa1Subject(), getAliasSystemCa3());
     }
 
-    private void testTwo(X509Certificate x1, String alias1,
-                         X509Certificate x2, String alias2) {
+    private void testTwo(X509Certificate x1, String alias1, X509Certificate x2, String alias2) {
         install(x1, alias1);
         install(x2, alias2);
         assertRootCa(x1, alias1);
@@ -666,7 +675,7 @@ public class TrustedCertificateStoreTest {
         assertEquals("Generated CA list should be same length", expected.length, actualList.size());
         for (int i = 0; i < expected.length; i++) {
             assertEquals("Chain value should be the same for position " + i, expected[i],
-                    actualList.get(i));
+                         actualList.get(i));
         }
         resetStore();
     }
@@ -791,8 +800,8 @@ public class TrustedCertificateStoreTest {
         install(getCertLoopCa2(), getAliasCertLoopCa2());
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<List<X509Certificate>> future = executor
-                .submit(new Callable<List<X509Certificate>>() {
+        Future<List<X509Certificate>> future =
+                executor.submit(new Callable<List<X509Certificate>>() {
                     @Override
                     public List<X509Certificate> call() throws Exception {
                         return store.getCertificateChain(getCertLoopEe());
@@ -863,16 +872,16 @@ public class TrustedCertificateStoreTest {
 
             File expectedFile = store.getCertificateFile(dir, cert);
             assertEquals("Updatable certificate stored in the wrong file",
-                    expectedFile.getAbsolutePath(), actualFile.getAbsolutePath());
+                         expectedFile.getAbsolutePath(), actualFile.getAbsolutePath());
 
             // The two statements below indirectly assert that the certificate can be looked up
             // from a file (hopefully the same one as the expectedFile above). As opposed to
             // getCertificateFile above, these are the actual methods used when verifying chain of
             // trust. Thus, we assert that they work as expected for all system certificates.
             assertNotNull("Issuer certificate not found for updatable certificate " + actualFile,
-                    store.findIssuer(cert));
+                          store.findIssuer(cert));
             assertNotNull("Trust anchor not found for updatable certificate " + actualFile,
-                    store.getTrustAnchor(cert));
+                          store.getTrustAnchor(cert));
         }
 
         assertTrue(systemCertFileCount > 0);
@@ -890,13 +899,13 @@ public class TrustedCertificateStoreTest {
             X509Certificate cert = (X509Certificate) store.getCertificate(alias);
             File expectedFile = store.getCertificateFile(dir, cert);
             if (!expectedFile.isFile()) {
-                fail("Missing certificate file for alias " + alias
-                        + ": " + expectedFile.getAbsolutePath());
+                fail("Missing certificate file for alias " + alias + ": "
+                     + expectedFile.getAbsolutePath());
             }
         }
 
-        assertEquals("Number of system cert files and aliases doesn't match",
-                systemCertFileCount, systemCertAliasCount);
+        assertEquals("Number of system cert files and aliases doesn't match", systemCertFileCount,
+                     systemCertAliasCount);
     }
 
     @Test
@@ -906,14 +915,13 @@ public class TrustedCertificateStoreTest {
         result = store.findAllIssuers(getMultipleIssuersEe());
         assertEquals("Unexpected number of issuers found", 1, result.size());
         assertTrue("findAllIssuers does not contain expected issuer",
-                result.contains(getMultipleIssuersCa1()));
+                   result.contains(getMultipleIssuersCa1()));
         install(getMultipleIssuersCa1Cross(), getAliasMultipleIssuersCa1Cross());
         result = store.findAllIssuers(getMultipleIssuersEe());
         assertEquals("findAllIssuers did not return all issuers", 2, result.size());
-        assertTrue("findAllIssuers does not contain CA1",
-                result.contains(getMultipleIssuersCa1()));
+        assertTrue("findAllIssuers does not contain CA1", result.contains(getMultipleIssuersCa1()));
         assertTrue("findAllIssuers does not contain CA1 signed by CA2",
-                result.contains(getMultipleIssuersCa1Cross()));
+                   result.contains(getMultipleIssuersCa1Cross()));
     }
 
     private static File[] listFilesNoNull(File dir) {
@@ -1045,7 +1053,7 @@ public class TrustedCertificateStoreTest {
         if (index == -1) {
             throw new IllegalArgumentException(alias);
         }
-        String filename = alias.substring(index+1);
+        String filename = alias.substring(index + 1);
 
         return new File(dir, filename);
     }

@@ -196,20 +196,28 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     ConscryptEngine(SSLParametersImpl sslParameters, PeerInfoProvider peerInfoProvider,
-            AliasChooser aliasChooser) {
+                    AliasChooser aliasChooser) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
         this.ssl = newSsl(sslParameters, this, aliasChooser);
         this.networkBio = ssl.newBio();
     }
 
-    private static NativeSsl newSsl(
-            SSLParametersImpl sslParameters, ConscryptEngine engine, AliasChooser aliasChooser) {
+    private static NativeSsl newSsl(SSLParametersImpl sslParameters, ConscryptEngine engine,
+                                    AliasChooser aliasChooser) {
         try {
             return NativeSsl.newInstance(sslParameters, engine, aliasChooser, engine);
         } catch (SSLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void setNamedGroups(String[] namedGroups) {
+        sslParameters.setNamedGroups(namedGroups);
+    }
+
+    String getCurveNameForTesting() {
+        return ssl.getCurveNameForTesting();
     }
 
     /**
@@ -263,7 +271,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
             }
             if (isHandshakeStarted()) {
                 throw new IllegalStateException("Could not enable/disable Channel ID after the "
-                        + "initial handshake has begun.");
+                                                + "initial handshake has begun.");
             }
             sslParameters.channelIdEnabled = enabled;
         }
@@ -315,7 +323,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
         synchronized (ssl) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException("Could not change Channel ID private key "
-                        + "after the initial handshake has begun.");
+                                                + "after the initial handshake has begun.");
             }
 
             if (privateKey == null) {
@@ -650,7 +658,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public boolean isInboundDone() {
         synchronized (ssl) {
             return (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND
-                           || ssl.wasShutdownReceived())
+                    || ssl.wasShutdownReceived())
                     && (pendingInboundCleartextBytes() == 0);
         }
     }
@@ -659,7 +667,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public boolean isOutboundDone() {
         synchronized (ssl) {
             return (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND
-                           || ssl.wasShutdownSent())
+                    || ssl.wasShutdownSent())
                     && (pendingOutboundEncryptedBytes() == 0);
         }
     }
@@ -688,8 +696,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public void setUseClientMode(boolean mode) {
         synchronized (ssl) {
             if (isHandshakeStarted()) {
-                throw new IllegalArgumentException(
-                        "Can not change mode after handshake: state == " + state);
+                throw new IllegalArgumentException("Can not change mode after handshake: state == "
+                                                   + state);
             }
             transitionTo(STATE_MODE_SET);
             sslParameters.setUseClientMode(mode);
@@ -726,7 +734,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset,
-            final int length) throws SSLException {
+                                  final int length) throws SSLException {
         synchronized (ssl) {
             try {
                 return unwrap(singleSrcBuffer(src), 0, 1, dsts, offset, length);
@@ -745,7 +753,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
-            final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
+                           final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
             throws SSLException {
         checkArgument(srcs != null, "srcs is null");
         checkArgument(dsts != null, "dsts is null");
@@ -888,9 +896,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
                                     // inbound direction as closed and shut down the SSL object
                                     closeAll();
                                     return new SSLEngineResult(Status.CLOSED,
-                                            pendingOutboundEncryptedBytes() > 0 ? NEED_WRAP
-                                                                                : NOT_HANDSHAKING,
-                                            bytesConsumed, bytesProduced);
+                                                               pendingOutboundEncryptedBytes() > 0
+                                                                       ? NEED_WRAP
+                                                                       : NOT_HANDSHAKING,
+                                                               bytesConsumed, bytesProduced);
                                 }
                                 default: {
                                     // Should never get here.
@@ -922,10 +931,11 @@ final class ConscryptEngine extends AbstractConscryptEngine
             if (pendingCleartextBytes > 0) {
                 // We filled all buffers but there is still some data pending in the BIO buffer,
                 // return BUFFER_OVERFLOW.
-                return new SSLEngineResult(BUFFER_OVERFLOW,
+                return new SSLEngineResult(
+                        BUFFER_OVERFLOW,
                         mayFinishHandshake(handshakeStatus == FINISHED
-                                        ? handshakeStatus
-                                        : getHandshakeStatusInternal()),
+                                                   ? handshakeStatus
+                                                   : getHandshakeStatusInternal()),
                         bytesConsumed, bytesProduced);
             }
 
@@ -1212,7 +1222,9 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     private SSLEngineResult readPendingBytesFromBIO(ByteBuffer dst, int bytesConsumed,
-            int bytesProduced, SSLEngineResult.HandshakeStatus status) throws SSLException {
+                                                    int bytesProduced,
+                                                    SSLEngineResult.HandshakeStatus status)
+            throws SSLException {
         try {
             // Check to see if the engine wrote data into the network BIO
             int pendingNet = pendingOutboundEncryptedBytes();
@@ -1220,9 +1232,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
                 // Do we have enough room in dst to write encrypted data?
                 int capacity = dst.remaining();
                 if (capacity < pendingNet) {
-                    return new SSLEngineResult(BUFFER_OVERFLOW,
-                            mayFinishHandshake(
-                                    status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                    return new SSLEngineResult(
+                            BUFFER_OVERFLOW,
+                            mayFinishHandshake(status == FINISHED ? status
+                                                                  : getHandshakeStatus(pendingNet)),
                             bytesConsumed, bytesProduced);
                 }
 
@@ -1239,9 +1252,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
                     pendingNet -= produced;
                 }
 
-                return new SSLEngineResult(getEngineStatus(),
-                        mayFinishHandshake(
-                                status == FINISHED ? status : getHandshakeStatus(pendingNet)),
+                return new SSLEngineResult(
+                        getEngineStatus(),
+                        mayFinishHandshake(status == FINISHED ? status
+                                                              : getHandshakeStatus(pendingNet)),
                         bytesConsumed, bytesProduced);
             }
             return null;
@@ -1358,8 +1372,9 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     private SSLEngineResult newResult(int bytesConsumed, int bytesProduced,
-            SSLEngineResult.HandshakeStatus status) throws SSLException {
-        return new SSLEngineResult(getEngineStatus(),
+                                      SSLEngineResult.HandshakeStatus status) throws SSLException {
+        return new SSLEngineResult(
+                getEngineStatus(),
                 mayFinishHandshake(status == FINISHED ? status : getHandshakeStatusInternal()),
                 bytesConsumed, bytesProduced);
     }
@@ -1431,8 +1446,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
             int dataLength = (int) min(BufferUtils.remaining(srcs), SSL3_RT_MAX_PLAIN_LENGTH);
             if (dst.remaining() < calculateOutNetBufSize(dataLength)) {
-                return new SSLEngineResult(
-                        Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0, 0);
+                return new SSLEngineResult(Status.BUFFER_OVERFLOW, getHandshakeStatusInternal(), 0,
+                                           0);
             }
 
             int bytesProduced = 0;
@@ -1453,8 +1468,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
                     // direct one.
                     // TODO(): use bufferAllocator if set.
                     // https://github.com/google/conscrypt/issues/974
-                    outputBuffer = BufferUtils.copyNoConsume(
-                            srcs, getOrCreateLazyDirectBuffer(), SSL3_RT_MAX_PLAIN_LENGTH);
+                    outputBuffer = BufferUtils.copyNoConsume(srcs, getOrCreateLazyDirectBuffer(),
+                                                             SSL3_RT_MAX_PLAIN_LENGTH);
                     isCopy = true;
                 }
                 final SSLEngineResult pendingNetResult;
@@ -1468,8 +1483,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
                         BufferUtils.consume(srcs, bytesConsumed);
                     }
 
-                    pendingNetResult = readPendingBytesFromBIO(
-                            dst, bytesConsumed, bytesProduced, handshakeStatus);
+                    pendingNetResult = readPendingBytesFromBIO(dst, bytesConsumed, bytesProduced,
+                                                               handshakeStatus);
                     if (pendingNetResult != null) {
                         if (pendingNetResult.getStatus() != OK) {
                             return pendingNetResult;
@@ -1499,7 +1514,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
                             return pendingNetResult != null
                                     ? pendingNetResult
                                     : new SSLEngineResult(getEngineStatus(), NEED_UNWRAP,
-                                              bytesConsumed, bytesProduced);
+                                                          bytesConsumed, bytesProduced);
                         case SSL_ERROR_WANT_WRITE:
                             // SSL_ERROR_WANT_WRITE typically means that the underlying
                             // transport is not writable
@@ -1566,9 +1581,9 @@ final class ConscryptEngine extends AbstractConscryptEngine
                 }
                 case SSL_CB_HANDSHAKE_DONE: {
                     if (state != STATE_HANDSHAKE_STARTED
-                            && state != STATE_READY_HANDSHAKE_CUT_THROUGH) {
-                        throw new IllegalStateException(
-                                "Completed handshake while in mode " + state);
+                        && state != STATE_READY_HANDSHAKE_CUT_THROUGH) {
+                        throw new IllegalStateException("Completed handshake while in mode "
+                                                        + state);
                     }
                     transitionTo(STATE_HANDSHAKE_COMPLETED);
                     break;
@@ -1580,8 +1595,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     @Override
-    public void serverCertificateRequested() throws IOException {
+    public void serverCertificateRequested(int[] signatureAlgs) throws IOException {
         synchronized (ssl) {
+            String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
+            activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
             ssl.configureServerCertificate();
         }
     }
@@ -1645,7 +1662,10 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
-            byte[][] asn1DerEncodedPrincipals) throws CertificateEncodingException, SSLException {
+                                           byte[][] asn1DerEncodedPrincipals)
+            throws CertificateEncodingException, SSLException {
+        String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
+        activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
         ssl.chooseClientCertificate(keyTypeBytes, signatureAlgs, asn1DerEncodedPrincipals);
     }
 
@@ -1695,8 +1715,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     @Override
-    public String chooseClientAlias(
-            X509KeyManager keyManager, X500Principal[] issuers, String[] keyTypes) {
+    public String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
+                                    String[] keyTypes) {
         if (keyManager instanceof X509ExtendedKeyManager) {
             X509ExtendedKeyManager ekm = (X509ExtendedKeyManager) keyManager;
             return ekm.chooseEngineClientAlias(keyTypes, issuers, this);
