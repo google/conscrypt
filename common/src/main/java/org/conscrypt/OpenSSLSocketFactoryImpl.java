@@ -79,6 +79,10 @@ final class OpenSSLSocketFactoryImpl extends SSLSocketFactory {
         this.useEngineSocket = useEngineSocket;
     }
 
+    void setNamedGroups(String[] namedGroups) {
+        sslParameters.setNamedGroups(namedGroups);
+    }
+
     @Override
     public String[] getDefaultCipherSuites() {
         return sslParameters.getEnabledCipherSuites();

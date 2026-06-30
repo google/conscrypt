@@ -367,6 +367,16 @@ public final class Conscrypt {
      *
      * <p>See {@link SSLParameters#setNamedGroups(String[])} for more details.
      */
+    public static void setNamedGroups(SSLSocketFactory factory, String[] namedGroups) {
+        toConscrypt(factory).setNamedGroups(namedGroups);
+    }
+
+    /**
+     * Sets the prioritized array of key exchange named groups names that can be used over the
+     * TLS socket.
+     *
+     * <p>See {@link SSLParameters#setNamedGroups(String[])} for more details.
+     */
     public static void setNamedGroups(SSLSocket socket, String[] namedGroups) {
         toConscrypt(socket).setNamedGroups(namedGroups);
     }

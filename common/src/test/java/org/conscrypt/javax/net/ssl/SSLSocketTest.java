@@ -1246,6 +1246,36 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void socketFactory_setNamedGroups_works() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        SSLSocketFactory clientSocketFactory = context.clientContext.getSocketFactory();
+        Conscrypt.setNamedGroups(clientSocketFactory, new String[] {"P-384"});
+
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+
+        // For the server, we don't set the named groups. P-384 should be
+        // enabled by default.
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        // This must works even if sslParametersSupportsNamedGroups is false.
+        assertEquals("P-384", getCurveName(client));
+        assertEquals("P-384", getCurveName(server));
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
     public void handshake_namedGroupsDontIntersect_throwsException() throws Exception {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
