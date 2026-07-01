@@ -12,7 +12,7 @@ ext {
     androidSdkInstalled = file("$androidHome").exists()
     androidVersionCode = 1
     androidVersionName = "$version"
-    androidMinSdkVersion = 19
+    androidMinSdkVersion = 21
     androidTargetSdkVersion = 26
     androidNdkVersion = '27.3.13750724'
     androidCmakeVersion = '3.22.1'
