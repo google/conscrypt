@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, FrozenSet
 
 CLANG_FORMAT_BIN: str = "clang-format"
-PROJECT_PREFIX: str = "//depot/google3/third_party/java_src/conscrypt/"
+PROJECT_PREFIX: str = "//depot/google3/third_party/java/conscrypt/main_src/"
 VALID_EXTENSIONS: FrozenSet[str] = frozenset({".java", ".cc", ".h", ".cpp", ".c"})
 
 def get_g4_output() -> str:
