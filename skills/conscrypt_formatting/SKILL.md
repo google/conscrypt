@@ -1,7 +1,7 @@
 ---
 name: conscrypt-formatting
 description: >-
-  Automatically formats C++, Java, and C source files in the Conscrypt directory using a project-specific formatting tool. Use when you have modified any C++, Java, or C files under `third_party/java_src/conscrypt/` and need to ensure they comply with project style before committing or submitting. Don't use for general Google3 formatting (use the standard `g4 fix` or `hg fix` instead unless working in Conscrypt).
+  Automatically formats C++, Java, and C source files in the Conscrypt directory using a project-specific formatting tool. Use when you have modified any C++, Java, or C files under `third_party/java/conscrypt/main_src/` and need to ensure they comply with project style before committing or submitting. Don't use for general Google3 formatting (use the standard `g4 fix` or `hg fix` instead unless working in Conscrypt).
 ---
 
 # Conscrypt Formatting
@@ -25,5 +25,5 @@ formatters are not sufficient as Conscrypt uses a specific configuration.
 Run the Python script located in the Conscrypt root directory:
 
 ```bash
-python3 third_party/java_src/conscrypt/fix_format.py
+python3 third_party/java/conscrypt/main_src/fix_format.py
 ```
