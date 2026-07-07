@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.MessageDigest;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 import java.io.IOException;
@@ -213,7 +214,7 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
         }
 
         final ECPrivateKey other = (ECPrivateKey) o;
-        if (!getPrivateKey().equals(other.getS())) {
+        if (!MessageDigest.isEqual(getPrivateKey().toByteArray(), other.getS().toByteArray())) {
             return false;
         }
 

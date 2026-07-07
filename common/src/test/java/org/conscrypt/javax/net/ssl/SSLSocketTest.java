@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -509,6 +510,11 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getHandshakeSession_duringHandshake_client() throws Exception {
+        // On Android 27 and below, this test fails because
+        // Platform.getOriginalHostNameFromInetAddress is not supported.
+        boolean isAndroid27OrBelow = TestUtils.isAndroid() && !TestUtils.isAndroidSdkGreater(27);
+        assumeFalse(isAndroid27OrBelow);
+
         // We can't reference the actual context we're using, since we need to pass
         // the test trust manager in to construct it, so create reference objects that
         // we can test against.

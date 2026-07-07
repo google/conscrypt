@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.MessageDigest;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 import java.io.IOException;
@@ -120,7 +121,7 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
             return false;
         }
         OpenSslEdDsaPrivateKey that = (OpenSslEdDsaPrivateKey) o;
-        return Arrays.equals(getRaw(), that.getRaw());
+        return MessageDigest.isEqual(getRaw(), that.getRaw());
     }
 
     @Override

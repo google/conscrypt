@@ -19,6 +19,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.util.Arrays;
 
@@ -81,7 +82,7 @@ public class OpenSslSlhDsaPrivateKey implements PrivateKey {
             return false;
         }
         OpenSslSlhDsaPrivateKey that = (OpenSslSlhDsaPrivateKey) o;
-        return Arrays.equals(raw, that.raw);
+        return MessageDigest.isEqual(raw, that.raw);
     }
 
     @Override
