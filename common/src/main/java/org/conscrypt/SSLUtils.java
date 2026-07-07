@@ -402,7 +402,7 @@ final class SSLUtils {
         int numProtocols = 0;
         for (int i = 0; i < protocols.length;) {
             int protocolLength = protocols[i] & 0xFF;
-            if (protocolLength < 0 || protocolLength > protocols.length - i) {
+            if (protocolLength < 0 || protocolLength >= protocols.length - i) {
                 throw new IllegalArgumentException("Protocol has invalid length (" + protocolLength
                                                    + " at position " + i + "): "
                                                    + (protocols.length < 50

@@ -109,6 +109,18 @@ public class SSLUtilsTest {
     }
 
     @Test
+    public void decodeProtocolsWithInvalidLengthShouldThrow() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> SSLUtils.decodeProtocols(new byte[] { 1 }));
+
+        assertThrows(IllegalArgumentException.class,
+                     () -> SSLUtils.decodeProtocols(new byte[] { 2, 'a' }));
+
+        assertThrows(IllegalArgumentException.class,
+                     () -> SSLUtils.decodeProtocols(new byte[] { 1, 'a', 5, 'b' }));
+    }
+
+    @Test
     public void testGetClientKeyType() throws Exception {
         // See http://www.ietf.org/assignments/tls-parameters/tls-parameters.xml
         byte b = Byte.MIN_VALUE;

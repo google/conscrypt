@@ -206,7 +206,7 @@ public final class TestUtils {
         assumeClassAvailable("javax.crypto.AEADBadTagException");
     }
 
-    private static boolean isAndroid() {
+    public static boolean isAndroid() {
         try {
             Class.forName("android.app.Application", false, ClassLoader.getSystemClassLoader());
             return true;
@@ -884,6 +884,17 @@ public final class TestUtils {
     public static boolean isOsx() {
         String name = osName();
         return name.startsWith("macosx") || name.startsWith("osx");
+    }
+
+    public static boolean isAndroidSdkGreater(int sdkVersion) {
+        try {
+            return (Boolean)
+                conscryptClass("Platform")
+                    .getDeclaredMethod("isSdkGreater", int.class)
+                    .invoke(null, sdkVersion);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Reflection failure", e);
+        }
     }
 
     public static void assumeXecClassesAvailable() {

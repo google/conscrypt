@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.MessageDigest;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 import java.io.IOException;
@@ -165,7 +166,7 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
             return false;
         }
         OpenSslMlDsaPrivateKey that = (OpenSslMlDsaPrivateKey) o;
-        return Arrays.equals(getEncoded(), that.getEncoded());
+        return algorithm.equals(that.algorithm) && MessageDigest.isEqual(getSeed(), that.getSeed());
     }
 
     @Override
