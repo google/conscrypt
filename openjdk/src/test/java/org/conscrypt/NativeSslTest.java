@@ -17,6 +17,7 @@ package org.conscrypt;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,5 +101,39 @@ public final class NativeSslTest {
                      () -> NativeSsl.parseNamedGroupsProperty("Unknown"));
         assertThrows(IllegalArgumentException.class,
                      () -> NativeSsl.parseNamedGroupsProperty("Unknown,Unknown2"));
+    }
+
+    @Test
+    public void parseTlsNamedGroupsProperty_works() throws Exception {
+        String savedProperty = System.getProperty("jdk.tls.namedGroups");
+
+        // Valid values.
+        System.setProperty("jdk.tls.namedGroups", "P-384,X25519");
+        NativeSsl.parseTlsNamedGroupsProperty();
+        assertArrayEquals(new int[] {NativeConstants.NID_secp384r1, NativeConstants.NID_X25519},
+                          NativeSsl.getParsedTlsNamedGroupsPropertyOrNull());
+
+        // Property not set.
+        System.clearProperty("jdk.tls.namedGroups");
+        NativeSsl.parseTlsNamedGroupsProperty();
+        assertNull(NativeSsl.getParsedTlsNamedGroupsPropertyOrNull());
+
+        // Empty property.
+        System.setProperty("jdk.tls.namedGroups", "");
+        NativeSsl.parseTlsNamedGroupsProperty();
+        assertNull(NativeSsl.getParsedTlsNamedGroupsPropertyOrNull());
+
+        // Invalid values.
+        System.setProperty("jdk.tls.namedGroups", "invalid,invalid2");
+        assertThrows(IllegalArgumentException.class, () -> NativeSsl.parseTlsNamedGroupsProperty());
+
+        // Restore the property to its original value, to make sure that the test does not
+        // have any side effects on other tests when setting the property.
+        if (savedProperty == null) {
+            System.clearProperty("jdk.tls.namedGroups");
+        } else {
+            System.setProperty("jdk.tls.namedGroups", savedProperty);
+        }
+        NativeSsl.parseTlsNamedGroupsProperty();
     }
 }

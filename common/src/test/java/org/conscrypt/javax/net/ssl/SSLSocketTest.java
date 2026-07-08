@@ -1319,26 +1319,56 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void handshake_namedGroupsProperty_failsIfAllValuesAreInvalid() throws Exception {
+    public void setNamedGroupsProperty_invalidValue_isIgnored() throws Exception {
+        // Set the property to a valid value.
+        System.setProperty("jdk.tls.namedGroups", "MLKEM1024");
+
+        {
+            TestSSLContext context = TestSSLContext.create();
+            final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                    context.host, context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            assertEquals("MLKEM1024", getCurveName(client));
+            assertEquals("MLKEM1024", getCurveName(server));
+            client.close();
+            server.close();
+            context.close();
+        }
+
+        // Now, set the property to an invalid value.
         System.setProperty("jdk.tls.namedGroups", "invalid,invalid2");
 
-        TestSSLContext context = TestSSLContext.create();
-        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                context.host, context.port);
-        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        Future<Void> s = runAsync(() -> {
-            server.startHandshake();
-            return null;
-        });
-        Future<Void> c = runAsync(() -> {
-            client.startHandshake();
-            return null;
-        });
-        assertThrows(ExecutionException.class, s::get);
-        assertThrows(ExecutionException.class, c::get);
-        client.close();
-        server.close();
-        context.close();
+        {
+            TestSSLContext context = TestSSLContext.create();
+            final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                    context.host, context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            assertEquals("MLKEM1024", getCurveName(client));
+            assertEquals("MLKEM1024", getCurveName(server));
+            client.close();
+            server.close();
+            context.close();
+        }
     }
 
     @Test
