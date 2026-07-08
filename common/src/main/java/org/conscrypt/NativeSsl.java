@@ -396,14 +396,14 @@ final class NativeSsl {
             NativeCrypto.SSL_set1_groups(ssl, this, toBoringSslGroups(paramsNamedGroups));
         } else {
             // Use default named group.
-            String namedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
-            if (namedGroupsProperty == null || namedGroupsProperty.isEmpty()) {
-                // If the property is not set or empty, use the default named groups. See:
+            int[] parsedNamedGroups = getParsedTlsNamedGroupsPropertyOrNull();
+            if (parsedNamedGroups == null) {
+                // The jdk.tls.namedGroups property has not been set or is empty. We have to use the
+                // default named groups. See:
                 // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html
                 setDefaultNamedGroups(ssl, this);
             } else {
-                int[] groups = parseNamedGroupsProperty(namedGroupsProperty);
-                NativeCrypto.SSL_set1_groups(ssl, this, groups);
+                NativeCrypto.SSL_set1_groups(ssl, this, parsedNamedGroups);
             }
         }
 
@@ -797,5 +797,47 @@ final class NativeSsl {
                 lock.writeLock().unlock();
             }
         }
+    }
+
+    /**
+     * Returns the parsed value of the "jdk.tls.namedGroups" property.
+     *
+     * <p>Is null if the property is not set or empty.
+     */
+    static synchronized int[] getParsedTlsNamedGroupsPropertyOrNull() {
+        try {
+            parseTlsNamedGroupsProperty();
+        } catch (IllegalArgumentException e) {
+            // This may happen if the user set the property to an invalid value.
+            // Since the last time the property was parsed successfully. We ignore it
+            // and return the previously parsed value.
+        }
+        return parsedTlsNamedGroupsProperty;
+    }
+
+    private static int[] parsedTlsNamedGroupsProperty = null;
+    private static String unparsedTlsNamedGroupsProperty = "";
+
+    /**
+     * Parses the "jdk.tls.namedGroups" property and stores the result in {@code
+     * parsedTlsNamedGroupsProperty}.
+     *
+     * <p>May throw an {@link IllegalArgumentException} if the property contains invalid values.
+     */
+    static synchronized void parseTlsNamedGroupsProperty() {
+        String property = System.getProperty("jdk.tls.namedGroups");
+        if (property == null || property.isEmpty()) {
+            parsedTlsNamedGroupsProperty = null;
+            unparsedTlsNamedGroupsProperty = "";
+        } else {
+            if (!property.equals(unparsedTlsNamedGroupsProperty)) {
+                unparsedTlsNamedGroupsProperty = property;
+                parsedTlsNamedGroupsProperty = parseNamedGroupsProperty(property);
+            }
+        }
+    }
+
+    static {
+        parseTlsNamedGroupsProperty();
     }
 }

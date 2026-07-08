@@ -217,26 +217,26 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
             RSAPrivateCrtKey other = (RSAPrivateCrtKey) o;
 
             if (getOpenSSLKey().isHardwareBacked()) {
-                return getModulus().equals(other.getModulus())
-                        && publicExponent.equals(other.getPublicExponent());
+                return equalsBigInteger(getModulus(), other.getModulus())
+                        && equalsBigInteger(publicExponent, other.getPublicExponent());
             } else {
-                return getModulus().equals(other.getModulus())
-                        && publicExponent.equals(other.getPublicExponent())
-                        && getPrivateExponent().equals(other.getPrivateExponent())
-                        && primeP.equals(other.getPrimeP()) && primeQ.equals(other.getPrimeQ())
-                        && primeExponentP.equals(other.getPrimeExponentP())
-                        && primeExponentQ.equals(other.getPrimeExponentQ())
-                        && crtCoefficient.equals(other.getCrtCoefficient());
+                return equalsBigInteger(getModulus(), other.getModulus())
+                        && equalsBigInteger(publicExponent, other.getPublicExponent())
+                        && equalsBigInteger(getPrivateExponent(), other.getPrivateExponent())
+                        && equalsBigInteger(primeP, other.getPrimeP()) && equalsBigInteger(primeQ, other.getPrimeQ())
+                        && equalsBigInteger(primeExponentP, other.getPrimeExponentP())
+                        && equalsBigInteger(primeExponentQ, other.getPrimeExponentQ())
+                        && equalsBigInteger(crtCoefficient, other.getCrtCoefficient());
             }
         } else if (o instanceof RSAPrivateKey) {
             ensureReadParams();
             RSAPrivateKey other = (RSAPrivateKey) o;
 
             if (getOpenSSLKey().isHardwareBacked()) {
-                return getModulus().equals(other.getModulus());
+                return equalsBigInteger(getModulus(), other.getModulus());
             } else {
-                return getModulus().equals(other.getModulus())
-                        && getPrivateExponent().equals(other.getPrivateExponent());
+                return equalsBigInteger(getModulus(), other.getModulus())
+                        && equalsBigInteger(getPrivateExponent(), other.getPrivateExponent());
             }
         }
 
