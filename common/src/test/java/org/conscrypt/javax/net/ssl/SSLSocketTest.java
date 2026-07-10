@@ -1043,14 +1043,19 @@ public class SSLSocketTest {
         s.get();
         c.get();
         // By default, BoringSSL uses X25519, P-256, and P-384.
+        // On newer versions of BoringSSL, X25519MLKEM768 is also a default.
         if (sslParametersSupportsNamedGroups()) {
             // If the client requests P-256, it will be chosen.
             assertEquals("P-256", getCurveName(client));
             assertEquals("P-256", getCurveName(server));
         } else {
-            // Otherwise, X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // Otherwise, X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                    serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1078,14 +1083,19 @@ public class SSLSocketTest {
         s.get();
         c.get();
         // By default, BoringSSL uses X25519, P-256, and P-384.
+        // On newer versions of BoringSSL, X25519MLKEM768 is also a default.
         if (sslParametersSupportsNamedGroups()) {
             // If the client requests P-384, it will be chosen.
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // Otherwise, X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // Otherwise, X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                    serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1120,9 +1130,13 @@ public class SSLSocketTest {
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                    serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1179,9 +1193,13 @@ public class SSLSocketTest {
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                    serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1214,9 +1232,13 @@ public class SSLSocketTest {
             assertEquals("X25519MLKEM768", getCurveName(client));
             assertEquals("X25519MLKEM768", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                    serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1309,9 +1331,13 @@ public class SSLSocketTest {
         } else {
             s.get();
             c.get();
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                    serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
