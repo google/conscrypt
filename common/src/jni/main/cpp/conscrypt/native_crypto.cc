@@ -3850,12 +3850,12 @@ static jbyteArray NativeCrypto_EVP_DigestSign(JNIEnv* env, jclass, jobject evpMd
     jint in_offset = inOffset;
     jint in_size = inLength;
 
-    jbyte* array_elements = env->GetByteArrayElements(inJavaBytes, nullptr);
-    if (array_elements == nullptr) {
+    ScopedByteArrayRO array_elements(env, inJavaBytes);
+    if (array_elements.get() == nullptr) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to obtain elements of inBytes");
         return nullptr;
     }
-    const unsigned char* buf = reinterpret_cast<const unsigned char*>(array_elements);
+    const unsigned char* buf = reinterpret_cast<const unsigned char*>(array_elements.get());
     const unsigned char* inStart = buf + in_offset;
     size_t inLen = static_cast<size_t>(in_size);
 

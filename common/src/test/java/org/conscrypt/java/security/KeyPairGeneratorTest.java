@@ -162,6 +162,8 @@ public class KeyPairGeneratorTest {
         putKeySize("ML-DSA-87", -1);
         putKeySize("SLH-DSA-SHA2-128S", -1);
         putKeySize("XWING", -1);
+        putKeySize("MLDSA44-Ed25519-SHA512", -1);
+        putKeySize("MLDSA65-Ed25519-SHA512", -1);
     }
 
     /** Elliptic Curve Crypto named curves that should be supported. */
@@ -284,8 +286,8 @@ public class KeyPairGeneratorTest {
             // serializable, so just skip them.
             return;
         }
-        if (expectedAlgorithm.equals("ML-DSA")) {
-            // ML-DSA keys are not yet serializable, so just skip them.
+        if (expectedAlgorithm.equals("ML-DSA") || expectedAlgorithm.startsWith("MLDSA")) {
+            // ML-DSA and Composite ML-DSA keys are not yet serializable, so just skip them.
             return;
         }
         if (expectedAlgorithm.equals("ML-KEM")) {

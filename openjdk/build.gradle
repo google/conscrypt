@@ -278,6 +278,7 @@ jar.manifest {
     attributes ('BoringSSL-Version' : boringSslVersion,
                 'Automatic-Module-Name' : 'org.conscrypt',
                 'Bundle-SymbolicName': 'org.conscrypt',
+                'Import-Package': '!android.util,*',
                 '-exportcontents': 'org.conscrypt.*')
 }
 
