@@ -220,7 +220,7 @@ jobs:
 
       - name: Set up MSVC paths on Windows
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756  # v1.13.0
         with:
             arch: x64
 
@@ -335,7 +335,7 @@ jobs:
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
       - name: Run instrumentation tests on Emulator
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
           arch: ${{ matrix.arch }}
