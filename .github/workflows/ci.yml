@@ -37,6 +37,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Get git-clang-format
         # Uses the most recent clang-format on Ubuntu.
@@ -127,6 +128,8 @@ jobs:
           echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
 
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Linux environment
         if: runner.os == 'Linux'
@@ -314,6 +317,8 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Fetch BoringSSL source
         uses: actions/download-artifact@v7
@@ -346,6 +351,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Linux environment
         run: |
