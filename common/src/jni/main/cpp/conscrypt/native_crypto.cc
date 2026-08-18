@@ -34,6 +34,7 @@
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
 #include <openssl/bn.h>
+#include <openssl/bytestring.h>
 #include <openssl/chacha.h>
 #include <openssl/cmac.h>
 #include <openssl/crypto.h>
@@ -823,6 +824,485 @@ void init_engine_globals() {
 #define THROW_SOCKETTIMEOUTEXCEPTION (-3)
 #define THROWN_EXCEPTION (-4)
 
+static jbyteArray NativeCrypto_wrap_EC_private_key_pkcs8(JNIEnv* env, jclass,
+                                                         jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_wrap_EC_private_key_pkcs8");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EC_KEY> ec_key(EC_KEY_parse_private_key(&cbs, nullptr));
+    if (!ec_key || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "Error parsing EC private key", conscrypt::jniutil::throwParsingException);
+        return nullptr;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
+    if (!pkey) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_new failed");
+        return nullptr;
+    }
+
+    if (!EVP_PKEY_assign_EC_KEY(pkey.get(), ec_key.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_assign_EC_KEY");
+        return nullptr;
+    }
+    ec_key.release();  // pkey now owns the ec_key
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!EVP_marshal_private_key(cbb.get(), pkey.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_marshal_private_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result != nullptr) {
+        env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<jbyte*>(out_data));
+    }
+    return result;
+}
+
+static jbyteArray NativeCrypto_wrap_RSA_private_key_pkcs8(JNIEnv* env, jclass,
+                                                          jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_wrap_RSA_private_key_pkcs8");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<RSA> rsa(RSA_parse_private_key(&cbs));
+    if (!rsa || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing RSA private key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
+    if (!pkey) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_new failed");
+        return nullptr;
+    }
+
+    if (!EVP_PKEY_assign_RSA(pkey.get(), rsa.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_assign_RSA");
+        return nullptr;
+    }
+    rsa.release();  // pkey now owns the rsa
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!EVP_marshal_private_key(cbb.get(), pkey.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_marshal_private_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
+static jbyteArray NativeCrypto_wrap_RSA_public_key_x509(JNIEnv* env, jclass,
+                                                        jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_wrap_RSA_public_key_x509");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<RSA> rsa(RSA_parse_public_key(&cbs));
+    if (!rsa || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing RSA public key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
+    if (!pkey) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_new failed");
+        return nullptr;
+    }
+
+    if (!EVP_PKEY_assign_RSA(pkey.get(), rsa.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_assign_RSA");
+        return nullptr;
+    }
+    rsa.release();  // pkey now owns the rsa
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!EVP_marshal_public_key(cbb.get(), pkey.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_marshal_public_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
+static jbyteArray NativeCrypto_wrap_EC_public_key_x509(JNIEnv* env, jclass, jbyteArray rawKeyBytes,
+                                                       jstring curveNameJava) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_wrap_EC_public_key_x509");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+    if (curveNameJava == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "curveName == null");
+        return nullptr;
+    }
+
+    ScopedUtfChars curveName(env, curveNameJava);
+    if (curveName.c_str() == nullptr) {
+        return nullptr;
+    }
+
+    int nid = OBJ_sn2nid(curveName.c_str());
+    if (nid == NID_undef) {
+        conscrypt::jniutil::throwParsingException(
+                env, "Error parsing EC public key: unknown curve name");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    bssl::UniquePtr<EC_KEY> ec(EC_KEY_new_by_curve_name(nid));
+    if (!ec) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env,
+                                                             "EC_KEY_new_by_curve_name failed");
+        return nullptr;
+    }
+
+    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(bytes.get());
+    EC_KEY* raw_ec = ec.get();
+    if (!o2i_ECPublicKey(&raw_ec, &ptr, bytes.size())) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing EC public key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
+    if (!pkey) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_new failed");
+        return nullptr;
+    }
+
+    if (!EVP_PKEY_assign_EC_KEY(pkey.get(), ec.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_PKEY_assign_EC_KEY");
+        return nullptr;
+    }
+    ec.release();  // pkey now owns the ec_key
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!EVP_marshal_public_key(cbb.get(), pkey.get())) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EVP_marshal_public_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
+static jbyteArray NativeCrypto_unwrap_RSA_private_key_pkcs8(JNIEnv* env, jclass,
+                                                            jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_unwrap_RSA_private_key_pkcs8");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_private_key(&cbs));
+    if (!pkey || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing PKCS#8 private key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    RSA* rsa = EVP_PKEY_get0_RSA(pkey.get());
+    if (rsa == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Key is not an RSA key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!RSA_marshal_private_key(cbb.get(), rsa)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "RSA_marshal_private_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
+static jbyteArray NativeCrypto_unwrap_RSA_public_key_x509(JNIEnv* env, jclass,
+                                                          jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_unwrap_RSA_public_key_x509");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_public_key(&cbs));
+    if (!pkey || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing X.509 SPKI public key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    RSA* rsa = EVP_PKEY_get0_RSA(pkey.get());
+    if (rsa == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Key is not an RSA key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!RSA_marshal_public_key(cbb.get(), rsa)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "RSA_marshal_public_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
+static jbyteArray NativeCrypto_unwrap_EC_private_key_pkcs8(JNIEnv* env, jclass,
+                                                           jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_unwrap_EC_private_key_pkcs8");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_private_key(&cbs));
+    if (!pkey || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing PKCS#8 private key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    EC_KEY* ec = EVP_PKEY_get0_EC_KEY(pkey.get());
+    if (ec == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Key is not an EC key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    bssl::ScopedCBB cbb;
+    if (!CBB_init(cbb.get(), 0)) {
+        conscrypt::jniutil::throwOutOfMemory(env, "CBB_init failed");
+        return nullptr;
+    }
+    if (!EC_KEY_marshal_private_key(cbb.get(), ec, EC_PKEY_NO_PUBKEY)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "EC_KEY_marshal_private_key");
+        return nullptr;
+    }
+
+    uint8_t* out_data;
+    size_t out_len;
+    if (!CBB_finish(cbb.get(), &out_data, &out_len)) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "CBB_finish");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
+static jbyteArray NativeCrypto_unwrap_EC_public_key_x509(JNIEnv* env, jclass,
+                                                         jbyteArray rawKeyBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("NativeCrypto_unwrap_EC_public_key_x509");
+    if (rawKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "rawKeyBytes == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO bytes(env, rawKeyBytes);
+    if (bytes.get() == nullptr) {
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(bytes.get()), bytes.size());
+    bssl::UniquePtr<EVP_PKEY> pkey(EVP_parse_public_key(&cbs));
+    if (!pkey || CBS_len(&cbs) != 0) {
+        conscrypt::jniutil::throwParsingException(env, "Error parsing X.509 SPKI public key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    EC_KEY* ec = EVP_PKEY_get0_EC_KEY(pkey.get());
+    if (ec == nullptr) {
+        conscrypt::jniutil::throwParsingException(env, "Key is not an EC key");
+        ERR_clear_error();
+        return nullptr;
+    }
+
+    uint8_t* out_data = nullptr;
+    int out_len = i2o_ECPublicKey(ec, &out_data);
+    if (out_len <= 0) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "i2o_ECPublicKey");
+        return nullptr;
+    }
+    bssl::UniquePtr<uint8_t> free_data(out_data);
+
+    jbyteArray result = env->NewByteArray(out_len);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, out_len, reinterpret_cast<const jbyte*>(out_data));
+    return result;
+}
+
 /**
  * private static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d,
  * byte[] p, byte[] q);
@@ -917,6 +1397,7 @@ static jlong NativeCrypto_EVP_PKEY_new_RSA(JNIEnv* env, jclass, jbyteArray n, jb
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         conscrypt::jniutil::throwRuntimeException(env, "EVP_PKEY_new failed");
+        ERR_clear_error();
         return 0;
     }
     if (EVP_PKEY_assign_RSA(pkey.get(), rsa.get()) != 1) {
@@ -1740,6 +2221,7 @@ static jlong NativeCrypto_RSA_generate_key_ex(JNIEnv* env, jclass, jint modulusB
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate RSA key");
+        ERR_clear_error();
         return 0;
     }
 
@@ -4184,6 +4666,35 @@ static void NativeCrypto_EVP_PKEY_CTX_set_rsa_oaep_label(JNIEnv* env, jclass, jl
     JNI_TRACE("EVP_PKEY_CTX_set_rsa_oaep_label(%p, %p) => success", pkeyCtx, labelJava);
 }
 
+static void NativeCrypto_EVP_PKEY_CTX_set1_signature_context_string(JNIEnv* env, jclass,
+                                                                    jlong pkeyCtxRef,
+                                                                    jbyteArray contextJava) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    EVP_PKEY_CTX* pkeyCtx = reinterpret_cast<EVP_PKEY_CTX*>(pkeyCtxRef);
+    JNI_TRACE("EVP_PKEY_CTX_set1_signature_context_string(%p, %p)", pkeyCtx, contextJava);
+    if (pkeyCtx == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "pkeyCtx == null");
+        return;
+    }
+
+    ScopedByteArrayRO contextBytes(env, contextJava);
+    if (contextBytes.get() == nullptr) {
+        return;
+    }
+
+    if (EVP_PKEY_CTX_set1_signature_context_string(
+                pkeyCtx, reinterpret_cast<const uint8_t*>(contextBytes.get()),
+                contextBytes.size()) <= 0) {
+        JNI_TRACE("ctx=%p EVP_PKEY_CTX_set1_signature_context_string => threw exception", pkeyCtx);
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(
+                env, "EVP_PKEY_CTX_set1_signature_context_string");
+        return;
+    }
+
+    JNI_TRACE("EVP_PKEY_CTX_set1_signature_context_string(%p, %p) => success", pkeyCtx,
+              contextJava);
+}
+
 static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algorithm) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EVP_get_cipherbyname(%p)", algorithm);
@@ -5408,6 +5919,7 @@ static jlong NativeCrypto_HMAC_CTX_new(JNIEnv* env, jclass) {
     auto hmacCtx = HMAC_CTX_new();
     if (hmacCtx == nullptr) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate HMAC_CTX");
+        ERR_clear_error();
         return 0;
     }
 
@@ -5656,6 +6168,7 @@ static jstring X509_NAME_to_jstring(JNIEnv* env, X509_NAME* name, unsigned long 
     bssl::UniquePtr<BIO> buffer(BIO_new(BIO_s_mem()));
     if (buffer.get() == nullptr) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate BIO");
+        ERR_clear_error();
         JNI_TRACE("X509_NAME_to_jstring(%p) => threw error", name);
         return nullptr;
     }
@@ -6359,6 +6872,7 @@ static jbyteArray get_X509_ALGOR_parameter(JNIEnv* env, const X509_ALGOR* algor)
     bssl::UniquePtr<ASN1_TYPE> param(ASN1_TYPE_new());
     if (!param || !ASN1_TYPE_set1(param.get(), param_type, param_value)) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to serialize parameter");
+        ERR_clear_error();
         return nullptr;
     }
 
@@ -6706,6 +7220,7 @@ static void NativeCrypto_ASN1_TIME_to_Calendar(JNIEnv* env, jclass, jlong asn1Ti
     if (gen.get() == nullptr) {
         conscrypt::jniutil::throwParsingException(env,
                                                   "ASN1_TIME_to_generalizedtime returned null");
+        ERR_clear_error();
         return;
     }
 
@@ -6875,6 +7390,75 @@ static jstring NativeCrypto_asn1_read_oid(JNIEnv* env, jclass, jlong cbsRef) {
     return ASN1_OBJECT_to_OID_string(env, obj);
 }
 
+static jstring NativeCrypto_asn1_read_oid_raw(JNIEnv* env, jclass, jlong cbsRef) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_oid_raw(%p)", cbs);
+
+    CBS oid_cbs;
+    if (!CBS_get_asn1(cbs->cbs.get(), &oid_cbs, CBS_ASN1_OBJECT)) {
+        conscrypt::jniutil::throwIOException(env, "Error reading ASN.1 encoding");
+        return nullptr;
+    }
+    if (!CBS_is_valid_asn1_oid(&oid_cbs)) {
+        conscrypt::jniutil::throwIOException(env, "Error reading ASN.1 encoding: OID not valid");
+        return nullptr;
+    }
+    char* oid_text = CBS_asn1_oid_to_text(&oid_cbs);
+    if (oid_text == nullptr) {
+        conscrypt::jniutil::throwIOException(
+                env, "Error reading ASN.1 encoding: could not convert OID to text");
+        return nullptr;
+    }
+    jstring result = env->NewStringUTF(oid_text);
+    OPENSSL_free(oid_text);
+
+    return result;
+}
+
+// This function reads the raw BITSTRING payload from the given CBS, and
+// verifies that the padding byte matches the expected value. It returns the
+// payload as a byte array.
+static jbyteArray NativeCrypto_asn1_read_bitstring_payload(JNIEnv* env, jclass, jlong cbsRef,
+                                                           jint expectedUnusedBits) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CbsHandle* cbs = reinterpret_cast<CbsHandle*>(static_cast<uintptr_t>(cbsRef));
+    JNI_TRACE("asn1_read_bitstring_payload(%p)", cbs);
+
+    CBS bitstring_cbs;
+    if (!CBS_get_asn1(cbs->cbs.get(), &bitstring_cbs, CBS_ASN1_BITSTRING)) {
+        conscrypt::jniutil::throwIOException(env, "Error reading ASN.1 encoding");
+        return nullptr;
+    }
+    if (CBS_len(&bitstring_cbs) == 0) {
+        conscrypt::jniutil::throwIOException(env, "Error reading ASN.1 encoding: empty bitstring");
+        return nullptr;
+    }
+    uint8_t padding;
+    if (!CBS_get_u8(&bitstring_cbs, &padding)) {
+        conscrypt::jniutil::throwIOException(env, "Error reading ASN.1 encoding");
+        return nullptr;
+    }
+    if (padding != static_cast<uint8_t>(expectedUnusedBits)) {
+        conscrypt::jniutil::throwIOException(
+                env, "Error reading ASN.1 encoding: unexpected padding byte");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> out(env,
+                                   env->NewByteArray(static_cast<jsize>(CBS_len(&bitstring_cbs))));
+    if (out.get() == nullptr) {
+        return nullptr;
+    }
+    ScopedByteArrayRW outBytes(env, out.get());
+    if (outBytes.get() == nullptr) {
+        return nullptr;
+    }
+    memcpy(outBytes.get(), CBS_data(&bitstring_cbs), CBS_len(&bitstring_cbs));
+    JNI_TRACE("asn1_read_bitstring_payload(%p) => %p", cbs, out.get());
+    return out.release();
+}
+
 static jboolean NativeCrypto_asn1_read_is_empty(CONSCRYPT_UNUSED JNIEnv* env, jclass,
                                                 jlong cbsRef) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -6966,6 +7550,28 @@ static void NativeCrypto_asn1_write_octetstring(JNIEnv* env, jclass, jlong cbbRe
     }
 }
 
+static void NativeCrypto_asn1_write_bitstring(JNIEnv* env, jclass, jlong cbbRef, jbyteArray data) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_bitstring(%p, %p)", cbb, data);
+
+    ScopedByteArrayRO bytes(env, data);
+    if (bytes.get() == nullptr) {
+        JNI_TRACE("asn1_write_bitstring(%p, %p) => using byte array failed", cbb, data);
+        return;
+    }
+
+    std::unique_ptr<CBB> bitstring(new CBB());
+    if (!CBB_add_asn1(cbb, bitstring.get(), CBS_ASN1_BITSTRING) ||
+        !CBB_add_u8(bitstring.get(), 0) ||
+        !CBB_add_bytes(bitstring.get(), reinterpret_cast<const uint8_t*>(bytes.get()),
+                       bytes.size()) ||
+        !CBB_flush(cbb)) {
+        conscrypt::jniutil::throwIOException(env, "Error writing ASN.1 encoding");
+        return;
+    }
+}
+
 static void NativeCrypto_asn1_write_uint64(JNIEnv* env, jclass, jlong cbbRef, jlong data) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
@@ -7010,6 +7616,25 @@ static void NativeCrypto_asn1_write_oid(JNIEnv* env, jclass, jlong cbbRef, jstri
     }
 
     if (!OBJ_nid2cbb(cbb, nid)) {
+        conscrypt::jniutil::throwIOException(env, "Error writing ASN.1 encoding");
+        return;
+    }
+}
+
+static void NativeCrypto_asn1_write_oid_raw(JNIEnv* env, jclass, jlong cbbRef, jstring oid) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    CBB* cbb = reinterpret_cast<CBB*>(static_cast<uintptr_t>(cbbRef));
+    JNI_TRACE("asn1_write_oid_raw(%p)", cbb);
+
+    ScopedUtfChars oid_chars(env, oid);
+    if (oid_chars.c_str() == nullptr) {
+        return;
+    }
+
+    CBB child;
+    if (!CBB_add_asn1(cbb, &child, CBS_ASN1_OBJECT) ||
+        !CBB_add_asn1_oid_from_text(&child, oid_chars.c_str(), strlen(oid_chars.c_str())) ||
+        !CBB_flush(cbb)) {
         conscrypt::jniutil::throwIOException(env, "Error writing ASN.1 encoding");
         return;
     }
@@ -7971,183 +8596,6 @@ static void info_callback_LOG(const SSL* s, int where, int ret) {
     }
 }
 
-#ifdef _WIN32
-
-/**
- * Dark magic helper function that checks, for a given SSL session, whether it
- * can SSL_read() or SSL_write() without blocking. Takes into account any
- * concurrent attempts to close the SSLSocket from the Java side. This is
- * needed to get rid of the hangs that occur when thread #1 closes the SSLSocket
- * while thread #2 is sitting in a blocking read or write. The type argument
- * specifies whether we are waiting for readability or writability. It expects
- * to be passed either SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE, since we
- * only need to wait in case one of these problems occurs.
- *
- * @param env
- * @param type Either SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
- * @param fdObject The FileDescriptor, since appData->fileDescriptor should be
- * NULL
- * @param appData The application data structure with mutex info etc.
- * @param timeout_millis The timeout value for select call, with the special
- * value 0 meaning no timeout at all (wait indefinitely). Note: This is the Java
- * semantics of the timeout value, not the usual select() semantics.
- * @return THROWN_EXCEPTION on close socket, 0 on timeout, -1 on error, and 1 on
- * success
- */
-static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData,
-                     int timeout_millis) {
-    int result = -1;
-
-    NetFd fd(env, fdObject);
-    do {
-        if (fd.isClosed()) {
-            result = THROWN_EXCEPTION;
-            break;
-        }
-
-        WSAEVENT events[2];
-        events[0] = appData->interruptEvent;
-        events[1] = WSACreateEvent();
-        if (events[1] == WSA_INVALID_EVENT) {
-            JNI_TRACE("sslSelect failure in WSACreateEvent: %d", WSAGetLastError());
-            break;
-        }
-
-        if (WSAEventSelect(fd.get(), events[1],
-                           (type == SSL_ERROR_WANT_READ ? FD_READ : FD_WRITE) | FD_CLOSE) ==
-            SOCKET_ERROR) {
-            JNI_TRACE("sslSelect failure in WSAEventSelect: %d", WSAGetLastError());
-            break;
-        }
-
-        JNI_TRACE("sslSelect type=%s fd=%d appData=%p timeout_millis=%d",
-                  (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", fd.get(), appData,
-                  timeout_millis);
-
-        int rc = WSAWaitForMultipleEvents(
-                2, events, FALSE, timeout_millis == 0 ? WSA_INFINITE : timeout_millis, FALSE);
-        if (rc == WSA_WAIT_FAILED) {
-            JNI_TRACE("WSAWaitForMultipleEvents failed: %d", WSAGetLastError());
-            result = -1;
-        } else if (rc == WSA_WAIT_TIMEOUT) {
-            result = 0;
-        } else {
-            result = 1;
-        }
-        WSACloseEvent(events[1]);
-    } while (0);
-
-    JNI_TRACE("sslSelect type=%s fd=%d appData=%p timeout_millis=%d => %d",
-              (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", fd.get(), appData, timeout_millis,
-              result);
-
-    std::lock_guard<std::mutex> appDataLock(appData->mutex);
-    appData->waitingThreads--;
-
-    return result;
-}
-
-#else   // !defined(_WIN32)
-
-/**
- * Dark magic helper function that checks, for a given SSL session, whether it
- * can SSL_read() or SSL_write() without blocking. Takes into account any
- * concurrent attempts to close the SSLSocket from the Java side. This is
- * needed to get rid of the hangs that occur when thread #1 closes the SSLSocket
- * while thread #2 is sitting in a blocking read or write. The type argument
- * specifies whether we are waiting for readability or writability. It expects
- * to be passed either SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE, since we
- * only need to wait in case one of these problems occurs.
- *
- * @param env
- * @param type Either SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE
- * @param fdObject The FileDescriptor, since appData->fileDescriptor should be
- * nullptr
- * @param appData The application data structure with mutex info etc.
- * @param timeout_millis The timeout value for poll call, with the special value
- *                0 meaning no timeout at all (wait indefinitely). Note: This is
- *                the Java semantics of the timeout value, not the usual
- *                poll() semantics.
- * @return The result of the inner poll() call,
- * THROW_SOCKETEXCEPTION if a SocketException was thrown, -1 on
- * additional errors
- */
-static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData,
-                     int timeout_millis) {
-    // This loop is an expanded version of the NET_FAILURE_RETRY
-    // macro. It cannot simply be used in this case because poll
-    // cannot be restarted without recreating the pollfd structure.
-    int result;
-    struct pollfd fds[2];
-    do {
-        NetFd fd(env, fdObject);
-        if (fd.isClosed()) {
-            result = THROWN_EXCEPTION;
-            break;
-        }
-        int intFd = fd.get();
-        JNI_TRACE("sslSelect type=%s fd=%d appData=%p timeout_millis=%d",
-                  (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", intFd, appData, timeout_millis);
-
-        memset(&fds, 0, sizeof(fds));
-        fds[0].fd = intFd;
-        if (type == SSL_ERROR_WANT_READ) {
-            fds[0].events = POLLIN | POLLPRI;
-        } else {
-            fds[0].events = POLLOUT | POLLPRI;
-        }
-
-        fds[1].fd = appData->fdsEmergency[0];
-        fds[1].events = POLLIN | POLLPRI;
-
-        // Converting from Java semantics to Posix semantics.
-        if (timeout_millis <= 0) {
-            timeout_millis = -1;
-        }
-
-        CompatibilityCloseMonitor monitor(intFd);
-
-        result = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_millis);
-        JNI_TRACE("sslSelect %s fd=%d appData=%p timeout_millis=%d => %d",
-                  (type == SSL_ERROR_WANT_READ) ? "READ" : "WRITE", fd.get(), appData,
-                  timeout_millis, result);
-        if (result == -1) {
-            if (fd.isClosed()) {
-                result = THROWN_EXCEPTION;
-                break;
-            }
-            if (errno != EINTR) {
-                break;
-            }
-        }
-    } while (result == -1);
-
-    std::lock_guard<std::mutex> appDataLock(appData->mutex);
-
-    if (result > 0) {
-        // We have been woken up by a token in the emergency pipe. We
-        // can't be sure the token is still in the pipe at this point
-        // because it could have already been read by the thread that
-        // originally wrote it if it entered sslSelect and acquired
-        // the mutex before we did. Thus we cannot safely read from
-        // the pipe in a blocking way (so we make the pipe
-        // non-blocking at creation).
-        if (fds[1].revents & POLLIN) {
-            char token;
-            do {
-                CONSCRYPT_UNUSED int n = read(appData->fdsEmergency[0], &token, 1);
-            } while (errno == EINTR);
-        }
-    }
-
-    // Tell the world that there is now one thread less waiting for the
-    // underlying network.
-    appData->waitingThreads--;
-
-    return result;
-}
-#endif  // !defined(_WIN32)
-
 /**
  * Helper function that wakes up a thread blocked in select(), in case there is
  * one. Is being called by sslRead() and sslWrite() as well as by JNI glue
@@ -8798,96 +9246,6 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address,
 
     JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new => ssl=%p appData=%p", ssl_ctx, ssl.get(), appData);
     return (jlong)ssl.release();
-}
-
-static void NativeCrypto_SSL_enable_tls_channel_id(JNIEnv* env, jclass, jlong ssl_address,
-                                                   CONSCRYPT_UNUSED jobject ssl_holder) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_enable_tls_channel_id", ssl);
-    if (ssl == nullptr) {
-        return;
-    }
-
-    // NOLINTNEXTLINE(runtime/int)
-    long ret = SSL_enable_tls_channel_id(ssl);
-    if (ret != 1L) {
-        CONSCRYPT_LOG_ERROR("%s", ERR_error_string(ERR_peek_error(), nullptr));
-        conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE,
-                                                           "Error enabling Channel ID");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_enable_tls_channel_id => error", ssl);
-        return;
-    }
-}
-
-static jbyteArray NativeCrypto_SSL_get_tls_channel_id(JNIEnv* env, jclass, jlong ssl_address,
-                                                      CONSCRYPT_UNUSED jobject ssl_holder) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_tls_channel_id", ssl);
-    if (ssl == nullptr) {
-        return nullptr;
-    }
-
-    // Channel ID is 64 bytes long. Unfortunately, OpenSSL doesn't declare this
-    // length as a constant anywhere.
-    jbyteArray javaBytes = env->NewByteArray(64);
-    ScopedByteArrayRW bytes(env, javaBytes);
-    if (bytes.get() == nullptr) {
-        JNI_TRACE("NativeCrypto_SSL_get_tls_channel_id(%p) => null", ssl);
-        return nullptr;
-    }
-
-    unsigned char* tmp = reinterpret_cast<unsigned char*>(bytes.get());
-    // Unfortunately, the SSL_get_tls_channel_id method below always returns 64
-    // (upon success) regardless of the number of bytes copied into the output
-    // buffer "tmp". Thus, the correctness of this code currently relies on the
-    // "tmp" buffer being exactly 64 bytes long.
-    size_t ret = SSL_get_tls_channel_id(ssl, tmp, 64);
-    if (ret == 0) {
-        // Channel ID either not set or did not verify
-        JNI_TRACE("NativeCrypto_SSL_get_tls_channel_id(%p) => not available", ssl);
-        return nullptr;
-    } else if (ret != 64) {
-        CONSCRYPT_LOG_ERROR("%s", ERR_error_string(ERR_peek_error(), nullptr));
-        conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE,
-                                                           "Error getting Channel ID");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_get_tls_channel_id => error, returned %zd", ssl, ret);
-        return nullptr;
-    }
-
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_get_tls_channel_id() => %p", ssl, javaBytes);
-    return javaBytes;
-}
-
-static void NativeCrypto_SSL_set1_tls_channel_id(JNIEnv* env, jclass, jlong ssl_address,
-                                                 CONSCRYPT_UNUSED jobject ssl_holder,
-                                                 jobject pkeyRef) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p SSL_set1_tls_channel_id privatekey=%p", ssl, pkeyRef);
-    if (ssl == nullptr) {
-        return;
-    }
-
-    EVP_PKEY* pkey = fromContextObject<EVP_PKEY>(env, pkeyRef);
-    if (pkey == nullptr) {
-        JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => pkey == null", ssl);
-        return;
-    }
-
-    // NOLINTNEXTLINE(runtime/int)
-    long ret = SSL_set1_tls_channel_id(ssl, pkey);
-
-    if (ret != 1L) {
-        CONSCRYPT_LOG_ERROR("%s", ERR_error_string(ERR_peek_error(), nullptr));
-        conscrypt::jniutil::throwSSLExceptionWithSslErrors(
-                env, ssl, SSL_ERROR_NONE, "Error setting private key for Channel ID");
-        JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => error", ssl);
-        return;
-    }
-
-    JNI_TRACE("ssl=%p SSL_set1_tls_channel_id => ok", ssl);
 }
 
 static void NativeCrypto_setLocalCertsAndPrivateKey(JNIEnv* env, jclass, jlong ssl_address,
@@ -9825,6 +10183,7 @@ static void NativeCrypto_setApplicationProtocols(JNIEnv* env, jclass, jlong ssl_
             if (ret != 0) {
                 conscrypt::jniutil::throwSSLExceptionStr(env,
                                                          "Unable to set ALPN protocols for client");
+                ERR_clear_error();
                 JNI_TRACE("ssl=%p NativeCrypto_setApplicationProtocols => exception", ssl);
                 return;
             }
@@ -9862,177 +10221,6 @@ static void NativeCrypto_setHasApplicationProtocolSelector(JNIEnv* env, jclass, 
     if (hasSelector) {
         SSL_CTX_set_alpn_select_cb(SSL_get_SSL_CTX(ssl), alpn_select_callback, nullptr);
     }
-}
-
-/**
- * Perform SSL handshake
- */
-static void NativeCrypto_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_address,
-                                          CONSCRYPT_UNUSED jobject ssl_holder, jobject fdObject,
-                                          jobject shc, jint timeout_millis) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake fd=%p shc=%p timeout_millis=%d", ssl, fdObject,
-              shc, timeout_millis);
-    if (ssl == nullptr) {
-        return;
-    }
-    if (fdObject == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "fd == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake fd == null => exception", ssl);
-        return;
-    }
-    if (shc == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE(
-                "ssl=%p NativeCrypto_SSL_do_handshake sslHandshakeCallbacks == null => "
-                "exception",
-                ssl);
-        return;
-    }
-
-    NetFd fd(env, fdObject);
-    if (fd.isClosed()) {
-        // SocketException thrown by NetFd.isClosed
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake fd.isClosed() => exception", ssl);
-        return;
-    }
-
-    int ret = SSL_set_fd(ssl, fd.get());
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake s=%d", ssl, fd.get());
-
-    if (ret != 1) {
-        conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, SSL_ERROR_NONE,
-                                                           "Error setting the file descriptor");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake SSL_set_fd => exception", ssl);
-        return;
-    }
-
-    /*
-     * Make socket non-blocking, so SSL_connect SSL_read() and SSL_write() don't
-     * hang forever and we can use select() to find out if the socket is ready.
-     */
-    if (!conscrypt::netutil::setBlocking(fd.get(), false)) {
-        conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to make socket non blocking");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake setBlocking => exception", ssl);
-        return;
-    }
-
-    AppData* appData = toAppData(ssl);
-    if (appData == nullptr) {
-        conscrypt::jniutil::throwSSLExceptionStr(env, "Unable to retrieve application data");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake appData => exception", ssl);
-        return;
-    }
-
-    ret = 0;
-    SslError sslError;
-    while (appData->aliveAndKicking) {
-        errno = 0;
-
-        if (!appData->setCallbackState(env, shc, fdObject)) {
-            // SocketException thrown by NetFd.isClosed
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake setCallbackState => exception", ssl);
-            return;
-        }
-        ret = SSL_do_handshake(ssl);
-        appData->clearCallbackState();
-        // cert_verify_callback threw exception
-        if (env->ExceptionCheck()) {
-            ERR_clear_error();
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake exception => exception", ssl);
-            return;
-        }
-        // success case
-        if (ret == 1) {
-            break;
-        }
-        // retry case
-        if (errno == EINTR) {
-            continue;
-        }
-        // error case
-        sslError.reset(ssl, ret);
-        JNI_TRACE(
-                "ssl=%p NativeCrypto_SSL_do_handshake ret=%d errno=%d sslError=%d "
-                "timeout_millis=%d",
-                ssl, ret, errno, sslError.get(), timeout_millis);
-
-        /*
-         * If SSL_do_handshake doesn't succeed due to the socket being
-         * either unreadable or unwritable, we use sslSelect to
-         * wait for it to become ready. If that doesn't happen
-         * before the specified timeout or an error occurs, we
-         * cancel the handshake. Otherwise we try the SSL_connect
-         * again.
-         */
-        if (sslError.get() == SSL_ERROR_WANT_READ || sslError.get() == SSL_ERROR_WANT_WRITE) {
-            appData->waitingThreads++;
-            int selectResult = sslSelect(env, sslError.get(), fdObject, appData, timeout_millis);
-
-            if (selectResult == THROWN_EXCEPTION) {
-                // SocketException thrown by NetFd.isClosed
-                JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake sslSelect => exception", ssl);
-                return;
-            }
-            if (selectResult == -1) {
-                conscrypt::jniutil::throwSSLExceptionWithSslErrors(
-                        env, ssl, SSL_ERROR_SYSCALL, "handshake error",
-                        conscrypt::jniutil::throwSSLHandshakeExceptionStr);
-                JNI_TRACE(
-                        "ssl=%p NativeCrypto_SSL_do_handshake selectResult == -1 => "
-                        "exception",
-                        ssl);
-                return;
-            }
-            if (selectResult == 0) {
-                conscrypt::jniutil::throwSocketTimeoutException(env, "SSL handshake timed out");
-                ERR_clear_error();
-                JNI_TRACE(
-                        "ssl=%p NativeCrypto_SSL_do_handshake selectResult == 0 => "
-                        "exception",
-                        ssl);
-                return;
-            }
-        } else {
-            // CONSCRYPT_LOG_ERROR("Unknown error %d during handshake", error);
-            break;
-        }
-    }
-
-    // clean error. See SSL_do_handshake(3SSL) man page.
-    if (ret == 0) {
-        /*
-         * The other side closed the socket before the handshake could be
-         * completed, but everything is within the bounds of the TLS protocol.
-         * We still might want to find out the real reason of the failure.
-         */
-        if (sslError.get() == SSL_ERROR_NONE ||
-            (sslError.get() == SSL_ERROR_SYSCALL && errno == 0) ||
-            (sslError.get() == SSL_ERROR_ZERO_RETURN)) {
-            conscrypt::jniutil::throwSSLHandshakeExceptionStr(env, "Connection closed by peer");
-        } else {
-            conscrypt::jniutil::throwSSLExceptionWithSslErrors(
-                    env, ssl, sslError.release(), "SSL handshake terminated",
-                    conscrypt::jniutil::throwSSLHandshakeExceptionStr);
-        }
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake clean error => exception", ssl);
-        return;
-    }
-
-    // unclean error. See SSL_do_handshake(3SSL) man page.
-    if (ret < 0) {
-        /*
-         * Translate the error and throw exception. We are sure it is an error
-         * at this point.
-         */
-        conscrypt::jniutil::throwSSLExceptionWithSslErrors(
-                env, ssl, sslError.release(), "SSL handshake aborted",
-                conscrypt::jniutil::throwSSLHandshakeExceptionStr);
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake unclean error => exception", ssl);
-        return;
-    }
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake => success", ssl);
 }
 
 static jstring NativeCrypto_SSL_get_current_cipher(JNIEnv* env, jclass, jlong ssl_address,
@@ -10136,514 +10324,6 @@ static jobjectArray NativeCrypto_SSL_get0_peer_certificates(JNIEnv* env, jclass,
     return array.release();
 }
 
-static int sslRead(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, char* buf, jint len,
-                   SslError* sslError, int read_timeout_millis) {
-    JNI_TRACE("ssl=%p sslRead buf=%p len=%d", ssl, buf, len);
-
-    if (len == 0) {
-        // Don't bother doing anything in this case.
-        return 0;
-    }
-
-    BIO* rbio = SSL_get_rbio(ssl);
-    BIO* wbio = SSL_get_wbio(ssl);
-
-    AppData* appData = toAppData(ssl);
-    JNI_TRACE("ssl=%p sslRead appData=%p", ssl, appData);
-    if (appData == nullptr) {
-        return THROW_SSLEXCEPTION;
-    }
-
-    while (appData->aliveAndKicking) {
-        errno = 0;
-
-        std::unique_lock<std::mutex> appDataLock(appData->mutex);
-
-        if (!SSL_is_init_finished(ssl) && !SSL_in_false_start(ssl) &&
-            !SSL_renegotiate_pending(ssl)) {
-            JNI_TRACE("ssl=%p sslRead => init is not finished (state: %s)", ssl,
-                      SSL_state_string_long(ssl));
-            return THROW_SSLEXCEPTION;
-        }
-
-        size_t bytesMoved = BIO_number_read(rbio) + BIO_number_written(wbio);
-
-        if (!appData->setCallbackState(env, shc, fdObject)) {
-            return THROWN_EXCEPTION;
-        }
-        int result = SSL_read(ssl, buf, len);
-        appData->clearCallbackState();
-        // callbacks can happen if server requests renegotiation
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("ssl=%p sslRead => THROWN_EXCEPTION", ssl);
-            return THROWN_EXCEPTION;
-        }
-        sslError->reset(ssl, result);
-
-        JNI_TRACE("ssl=%p sslRead SSL_read result=%d sslError=%d", ssl, result, sslError->get());
-        if (conscrypt::trace::kWithJniTraceData) {
-            for (size_t i = 0; result > 0 && i < static_cast<size_t>(result);
-                 i += conscrypt::trace::kWithJniTraceDataChunkSize) {
-                size_t n = result - i;
-                if (n > conscrypt::trace::kWithJniTraceDataChunkSize) {
-                    n = conscrypt::trace::kWithJniTraceDataChunkSize;
-                }
-                JNI_TRACE("ssl=%p sslRead data: %zu:\n%.*s", ssl, n, (int)n, buf + i);
-            }
-        }
-
-        // If we have been successful in moving data around, check whether it
-        // might make sense to wake up other blocked threads, so they can give
-        // it a try, too.
-        if (BIO_number_read(rbio) + BIO_number_written(wbio) != bytesMoved &&
-            appData->waitingThreads > 0) {
-            sslNotify(appData);
-        }
-
-        // If we are blocked by the underlying socket, tell the world that
-        // there will be one more waiting thread now.
-        if (sslError->get() == SSL_ERROR_WANT_READ || sslError->get() == SSL_ERROR_WANT_WRITE) {
-            appData->waitingThreads++;
-        }
-
-        appDataLock.unlock();
-
-        switch (sslError->get()) {
-            // Successfully read at least one byte.
-            case SSL_ERROR_NONE: {
-                return result;
-            }
-
-            // Read zero bytes. End of stream reached.
-            case SSL_ERROR_ZERO_RETURN: {
-                return -1;
-            }
-
-            // Need to wait for availability of underlying layer, then retry.
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_WRITE: {
-                int selectResult =
-                        sslSelect(env, sslError->get(), fdObject, appData, read_timeout_millis);
-                if (selectResult == THROWN_EXCEPTION) {
-                    return THROWN_EXCEPTION;
-                }
-                if (selectResult == -1) {
-                    return THROW_SSLEXCEPTION;
-                }
-                if (selectResult == 0) {
-                    return THROW_SOCKETTIMEOUTEXCEPTION;
-                }
-
-                break;
-            }
-
-            // A problem occurred during a system call, but this is not
-            // necessarily an error.
-            case SSL_ERROR_SYSCALL: {
-                // Connection closed without proper shutdown. Tell caller we
-                // have reached end-of-stream.
-                if (result == 0) {
-                    return -1;
-                }
-
-                // System call has been interrupted. Simply retry.
-                if (errno == EINTR) {
-                    break;
-                }
-
-                // Note that for all other system call errors we fall through
-                // to the default case, which results in an Exception.
-                FALLTHROUGH_INTENDED;
-            }
-
-            // Everything else is basically an error.
-            default: {
-                return THROW_SSLEXCEPTION;
-            }
-        }
-    }
-
-    return -1;
-}
-
-/**
- * OpenSSL read function (2): read into buffer at offset n chunks.
- * Returns the number of bytes read (success) or value <= 0 (failure).
- */
-static jint NativeCrypto_SSL_read(JNIEnv* env, jclass, jlong ssl_address,
-                                  CONSCRYPT_UNUSED jobject ssl_holder, jobject fdObject,
-                                  jobject shc, jbyteArray b, jint offset, jint len,
-                                  jint read_timeout_millis) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE(
-            "ssl=%p NativeCrypto_SSL_read fd=%p shc=%p b=%p offset=%d len=%d "
-            "read_timeout_millis=%d",
-            ssl, fdObject, shc, b, offset, len, read_timeout_millis);
-    if (ssl == nullptr) {
-        return 0;
-    }
-    if (fdObject == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "fd == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read => fd == null", ssl);
-        return 0;
-    }
-    if (shc == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read => sslHandshakeCallbacks == null", ssl);
-        return 0;
-    }
-    if (b == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "b == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read => b == null", ssl);
-        return 0;
-    }
-
-    size_t array_size = static_cast<size_t>(env->GetArrayLength(b));
-    if (ARRAY_CHUNK_INVALID(array_size, offset, len)) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException", "b");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_read => ArrayIndexOutOfBoundsException", ssl);
-        return 0;
-    }
-
-    SslError sslError;
-    int ret;
-    if (conscrypt::jniutil::isGetByteArrayElementsLikelyToReturnACopy(array_size)) {
-        if (len <= 1024) {
-            // Allocate small buffers on the stack for performance.
-            jbyte buf[1024];
-            ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(&buf[0]), len, &sslError,
-                          read_timeout_millis);
-            if (ret > 0) {
-                // Don't bother applying changes if issues were encountered.
-                env->SetByteArrayRegion(b, offset, ret, &buf[0]);
-            }
-        } else {
-            // Allocate larger buffers on the heap.
-            // ARRAY_CHUNK_INVALID above ensures that len >= 0.
-            jint remaining = len;
-            jint buf_size = (remaining >= 65536) ? 65536 : remaining;
-            std::unique_ptr<jbyte[]> buf(new jbyte[static_cast<unsigned int>(buf_size)]);
-            // TODO(flooey): Use new(std::nothrow).
-            if (buf.get() == nullptr) {
-                conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate chunk buffer");
-                return 0;
-            }
-            // TODO(flooey): Fix cumulative read timeout? The effective timeout is the
-            // multiplied by the number of internal calls to sslRead() below.
-            ret = 0;
-            while (remaining > 0) {
-                jint temp_ret;
-                jint chunk_size = (remaining >= buf_size) ? buf_size : remaining;
-                temp_ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(buf.get()),
-                                   chunk_size, &sslError, read_timeout_millis);
-                if (temp_ret < 0) {
-                    if (ret > 0) {
-                        // We've already read some bytes; attempt to preserve them if this
-                        // is an "expected" error.
-                        if (temp_ret == -1) {
-                            // EOF
-                            break;
-                        } else if (temp_ret == THROWN_EXCEPTION) {
-                            // FD closed. Subsequent calls to sslRead should reproduce the
-                            // exception.
-                            env->ExceptionClear();
-                            break;
-                        }
-                    }
-                    // An error was encountered. Handle below.
-                    ret = temp_ret;
-                    break;
-                }
-                env->SetByteArrayRegion(b, offset, temp_ret, buf.get());
-                if (env->ExceptionCheck()) {
-                    // Error committing changes to JVM.
-                    return -1;
-                }
-                // Accumulate bytes read.
-                ret += temp_ret;
-                offset += temp_ret;
-                remaining -= temp_ret;
-                if (temp_ret < chunk_size) {
-                    // sslRead isn't able to fulfill our request right now.
-                    break;
-                }
-            }
-        }
-    } else {
-        ScopedByteArrayRW bytes(env, b);
-        if (bytes.get() == nullptr) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_read => threw exception", ssl);
-            return 0;
-        }
-
-        ret = sslRead(env, ssl, fdObject, shc, reinterpret_cast<char*>(bytes.get() + offset), len,
-                      &sslError, read_timeout_millis);
-    }
-
-    int result;
-    switch (ret) {
-        case THROW_SSLEXCEPTION:
-            // See sslRead() regarding improper failure to handle normal cases.
-            conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
-                                                               "Read error");
-            result = -1;
-            break;
-        case THROW_SOCKETTIMEOUTEXCEPTION:
-            conscrypt::jniutil::throwSocketTimeoutException(env, "Read timed out");
-            result = -1;
-            break;
-        case THROWN_EXCEPTION:
-            // SocketException thrown by NetFd.isClosed
-            // or RuntimeException thrown by callback
-            result = -1;
-            break;
-        default:
-            result = ret;
-            break;
-    }
-
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_read => %d", ssl, result);
-    return result;
-}
-
-static int sslWrite(JNIEnv* env, SSL* ssl, jobject fdObject, jobject shc, const char* buf, jint len,
-                    SslError* sslError, int write_timeout_millis) {
-    JNI_TRACE("ssl=%p sslWrite buf=%p len=%d write_timeout_millis=%d", ssl, buf, len,
-              write_timeout_millis);
-
-    if (len == 0) {
-        // Don't bother doing anything in this case.
-        return 0;
-    }
-
-    BIO* rbio = SSL_get_rbio(ssl);
-    BIO* wbio = SSL_get_wbio(ssl);
-
-    AppData* appData = toAppData(ssl);
-    JNI_TRACE("ssl=%p sslWrite appData=%p", ssl, appData);
-    if (appData == nullptr) {
-        return THROW_SSLEXCEPTION;
-    }
-
-    int count = len;
-
-    while (appData->aliveAndKicking && len > 0) {
-        errno = 0;
-
-        std::unique_lock<std::mutex> appDataLock(appData->mutex);
-
-        if (!SSL_is_init_finished(ssl) && !SSL_in_false_start(ssl) &&
-            !SSL_renegotiate_pending(ssl)) {
-            JNI_TRACE("ssl=%p sslWrite => init is not finished (state: %s)", ssl,
-                      SSL_state_string_long(ssl));
-            return THROW_SSLEXCEPTION;
-        }
-
-        size_t bytesMoved = BIO_number_read(rbio) + BIO_number_written(wbio);
-
-        if (!appData->setCallbackState(env, shc, fdObject)) {
-            return THROWN_EXCEPTION;
-        }
-        JNI_TRACE("ssl=%p sslWrite SSL_write len=%d", ssl, len);
-        int result = SSL_write(ssl, buf, len);
-        appData->clearCallbackState();
-        // callbacks can happen if server requests renegotiation
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("ssl=%p sslWrite exception => THROWN_EXCEPTION", ssl);
-            return THROWN_EXCEPTION;
-        }
-        sslError->reset(ssl, result);
-
-        JNI_TRACE("ssl=%p sslWrite SSL_write result=%d sslError=%d", ssl, result, sslError->get());
-        if (conscrypt::trace::kWithJniTraceData) {
-            for (size_t i = 0; result > 0 && i < static_cast<size_t>(result);
-                 i += conscrypt::trace::kWithJniTraceDataChunkSize) {
-                size_t n = result - i;
-                if (n > conscrypt::trace::kWithJniTraceDataChunkSize) {
-                    n = conscrypt::trace::kWithJniTraceDataChunkSize;
-                }
-                JNI_TRACE("ssl=%p sslWrite data: %zu:\n%.*s", ssl, n, (int)n, buf + i);
-            }
-        }
-
-        // If we have been successful in moving data around, check whether it
-        // might make sense to wake up other blocked threads, so they can give
-        // it a try, too.
-        if (BIO_number_read(rbio) + BIO_number_written(wbio) != bytesMoved &&
-            appData->waitingThreads > 0) {
-            sslNotify(appData);
-        }
-
-        // If we are blocked by the underlying socket, tell the world that
-        // there will be one more waiting thread now.
-        if (sslError->get() == SSL_ERROR_WANT_READ || sslError->get() == SSL_ERROR_WANT_WRITE) {
-            appData->waitingThreads++;
-        }
-
-        appDataLock.unlock();
-
-        switch (sslError->get()) {
-            // Successfully wrote at least one byte.
-            case SSL_ERROR_NONE: {
-                buf += result;
-                len -= result;
-                break;
-            }
-
-            // Wrote zero bytes. End of stream reached.
-            case SSL_ERROR_ZERO_RETURN: {
-                return -1;
-            }
-
-            // Need to wait for availability of underlying layer, then retry.
-            // The concept of a write timeout doesn't really make sense, and
-            // it's also not standard Java behavior, so we wait forever here.
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_WRITE: {
-                int selectResult =
-                        sslSelect(env, sslError->get(), fdObject, appData, write_timeout_millis);
-                if (selectResult == THROWN_EXCEPTION) {
-                    return THROWN_EXCEPTION;
-                }
-                if (selectResult == -1) {
-                    return THROW_SSLEXCEPTION;
-                }
-                if (selectResult == 0) {
-                    return THROW_SOCKETTIMEOUTEXCEPTION;
-                }
-
-                break;
-            }
-
-            // A problem occurred during a system call, but this is not
-            // necessarily an error.
-            case SSL_ERROR_SYSCALL: {
-                // Connection closed without proper shutdown. Tell caller we
-                // have reached end-of-stream.
-                if (result == 0) {
-                    return -1;
-                }
-
-                // System call has been interrupted. Simply retry.
-                if (errno == EINTR) {
-                    break;
-                }
-
-                // Note that for all other system call errors we fall through
-                // to the default case, which results in an Exception.
-                FALLTHROUGH_INTENDED;
-            }
-
-            // Everything else is basically an error.
-            default: {
-                return THROW_SSLEXCEPTION;
-            }
-        }
-    }
-    JNI_TRACE("ssl=%p sslWrite => count=%d", ssl, count);
-
-    return count;
-}
-
-/**
- * OpenSSL write function (2): write into buffer at offset n chunks.
- */
-static void NativeCrypto_SSL_write(JNIEnv* env, jclass, jlong ssl_address,
-                                   CONSCRYPT_UNUSED jobject ssl_holder, jobject fdObject,
-                                   jobject shc, jbyteArray b, jint offset, jint len,
-                                   jint write_timeout_millis) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, true);
-    JNI_TRACE(
-            "ssl=%p NativeCrypto_SSL_write fd=%p shc=%p b=%p offset=%d len=%d "
-            "write_timeout_millis=%d",
-            ssl, fdObject, shc, b, offset, len, write_timeout_millis);
-    if (ssl == nullptr) {
-        return;
-    }
-    if (fdObject == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "fd == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write => fd == null", ssl);
-        return;
-    }
-    if (shc == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write => sslHandshakeCallbacks == null", ssl);
-        return;
-    }
-    if (b == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "b == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write => b == null", ssl);
-        return;
-    }
-
-    size_t array_size = static_cast<size_t>(env->GetArrayLength(b));
-    if (ARRAY_CHUNK_INVALID(array_size, offset, len)) {
-        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException", "b");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_write => ArrayIndexOutOfBoundsException", ssl);
-        return;
-    }
-
-    SslError sslError;
-    int ret;
-    if (conscrypt::jniutil::isGetByteArrayElementsLikelyToReturnACopy(array_size)) {
-        if (len <= 1024) {
-            jbyte buf[1024];
-            env->GetByteArrayRegion(b, offset, len, buf);
-            ret = sslWrite(env, ssl, fdObject, shc, reinterpret_cast<const char*>(&buf[0]), len,
-                           &sslError, write_timeout_millis);
-        } else {
-            // TODO(flooey): Similar safety concerns and questions here as in
-            // SSL_read.
-            jint remaining = len;
-            jint buf_size = (remaining >= 65536) ? 65536 : remaining;
-            std::unique_ptr<jbyte[]> buf(new jbyte[static_cast<unsigned int>(buf_size)]);
-            if (buf.get() == nullptr) {
-                conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate chunk buffer");
-                return;
-            }
-            while (remaining > 0) {
-                jint chunk_size = (remaining >= buf_size) ? buf_size : remaining;
-                env->GetByteArrayRegion(b, offset, chunk_size, buf.get());
-                ret = sslWrite(env, ssl, fdObject, shc, reinterpret_cast<const char*>(buf.get()),
-                               chunk_size, &sslError, write_timeout_millis);
-                if (ret == THROW_SSLEXCEPTION || ret == THROW_SOCKETTIMEOUTEXCEPTION ||
-                    ret == THROWN_EXCEPTION) {
-                    // Encountered an error. Terminate early and handle below.
-                    break;
-                }
-                offset += ret;
-                remaining -= ret;
-            }
-        }
-    } else {
-        ScopedByteArrayRO bytes(env, b);
-        if (bytes.get() == nullptr) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_write => threw exception", ssl);
-            return;
-        }
-        ret = sslWrite(env, ssl, fdObject, shc, reinterpret_cast<const char*>(bytes.get() + offset),
-                       len, &sslError, write_timeout_millis);
-    }
-
-    switch (ret) {
-        case THROW_SSLEXCEPTION:
-            // See sslWrite() regarding improper failure to handle normal cases.
-            conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, sslError.release(),
-                                                               "Write error");
-            break;
-        case THROW_SOCKETTIMEOUTEXCEPTION:
-            conscrypt::jniutil::throwSocketTimeoutException(env, "Write timed out");
-            break;
-        case THROWN_EXCEPTION:
-            // SocketException thrown by NetFd.isClosed
-            break;
-        default:
-            break;
-    }
-}
-
 /**
  * Interrupt any pending I/O before closing the socket.
  */
@@ -10668,86 +10348,6 @@ static void NativeCrypto_SSL_interrupt(JNIEnv* env, jclass, jlong ssl_address,
         sslNotify(appData);
         sslNotify(appData);
     }
-}
-
-/**
- * OpenSSL close SSL socket function.
- */
-static void NativeCrypto_SSL_shutdown(JNIEnv* env, jclass, jlong ssl_address,
-                                      CONSCRYPT_UNUSED jobject ssl_holder, jobject fdObject,
-                                      jobject shc) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
-    SSL* ssl = to_SSL(env, ssl_address, false);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown fd=%p shc=%p", ssl, fdObject, shc);
-    if (ssl == nullptr) {
-        return;
-    }
-    if (fdObject == nullptr) {
-        return;
-    }
-    if (shc == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "sslHandshakeCallbacks == null");
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown => sslHandshakeCallbacks == null", ssl);
-        return;
-    }
-
-    AppData* appData = toAppData(ssl);
-    if (appData != nullptr) {
-        if (!appData->setCallbackState(env, shc, fdObject)) {
-            // SocketException thrown by NetFd.isClosed
-            ERR_clear_error();
-            return;
-        }
-
-        /*
-         * Try to make socket blocking again. OpenSSL literature recommends this.
-         */
-        int fd = SSL_get_fd(ssl);
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown s=%d", ssl, fd);
-#ifndef _WIN32
-        if (fd != -1) {
-            conscrypt::netutil::setBlocking(fd, true);
-        }
-#endif
-
-        int ret = SSL_shutdown(ssl);
-        appData->clearCallbackState();
-        // callbacks can happen if server requests renegotiation
-        if (env->ExceptionCheck()) {
-            JNI_TRACE("ssl=%p NativeCrypto_SSL_shutdown => exception", ssl);
-            return;
-        }
-        switch (ret) {
-            case 0:
-                /*
-                 * Shutdown was not successful (yet), but there also
-                 * is no error. Since we can't know whether the remote
-                 * server is actually still there, and we don't want to
-                 * get stuck forever in a second SSL_shutdown() call, we
-                 * simply return. This is not security a problem as long
-                 * as we close the underlying socket, which we actually
-                 * do, because that's where we are just coming from.
-                 */
-                break;
-            case 1:
-                /*
-                 * Shutdown was successful. We can safely return. Hooray!
-                 */
-                break;
-            default:
-                /*
-                 * Everything else is a real error condition. We should
-                 * let the Java layer know about this by throwing an
-                 * exception.
-                 */
-                int sslError = SSL_get_error(ssl, ret);
-                conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl, sslError,
-                                                                   "SSL shutdown failed");
-                break;
-        }
-    }
-
-    ERR_clear_error();
 }
 
 static jint NativeCrypto_SSL_get_shutdown(JNIEnv* env, jclass, jlong ssl_address,
@@ -11094,11 +10694,22 @@ static jobjectArray NativeCrypto_get_cipher_names(JNIEnv* env, jclass, jstring s
     JNI_TRACE("NativeCrypto_get_cipher_names %s", selector.c_str());
 
     bssl::UniquePtr<SSL_CTX> sslCtx(SSL_CTX_new(TLS_with_buffers_method()));
+    if (sslCtx.get() == nullptr) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Unable to allocate SSL_CTX",
+                                                             conscrypt::jniutil::throwOutOfMemory);
+        return nullptr;
+    }
     bssl::UniquePtr<SSL> ssl(SSL_new(sslCtx.get()));
+    if (ssl.get() == nullptr) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "Unable to allocate SSL",
+                                                             conscrypt::jniutil::throwOutOfMemory);
+        return nullptr;
+    }
 
     if (!SSL_set_cipher_list(ssl.get(), selector.c_str())) {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
                                            "Unable to set SSL cipher list");
+        ERR_clear_error();
         return nullptr;
     }
     STACK_OF(SSL_CIPHER)* ciphers = SSL_get_ciphers(ssl.get());
@@ -11518,7 +11129,7 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
                     env, ssl, sslError.release(), "SSL handshake terminated",
                     conscrypt::jniutil::throwSSLHandshakeExceptionStr);
         }
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake clean error => exception", ssl);
+        JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake clean error => exception", ssl);
         return code;
     }
 
@@ -11530,7 +11141,7 @@ static jint NativeCrypto_ENGINE_SSL_do_handshake(JNIEnv* env, jclass, jlong ssl_
     conscrypt::jniutil::throwSSLExceptionWithSslErrors(
             env, ssl, sslError.release(), "SSL handshake aborted",
             conscrypt::jniutil::throwSSLHandshakeExceptionStr);
-    JNI_TRACE("ssl=%p NativeCrypto_SSL_do_handshake unclean error => exception", ssl);
+    JNI_TRACE("ssl=%p NativeCrypto_ENGINE_SSL_do_handshake unclean error => exception", ssl);
     return code;
 }
 
@@ -12145,6 +11756,7 @@ static int NativeCrypto_BIO_read(JNIEnv* env, jclass, jlong bioRef, jbyteArray o
     int read = BIO_read(bio, buffer.get(), static_cast<int>(outputSize));
     if (read <= 0) {
         conscrypt::jniutil::throwIOException(env, "BIO_read");
+        ERR_clear_error();
         JNI_TRACE("BIO_read(%p, %p) => threw IO exception", bio, outputJavaBytes);
         return 0;
     }
@@ -12492,6 +12104,14 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(CMAC_UpdateDirect, "(" REF_CMAC_CTX "JI)V"),
         CONSCRYPT_NATIVE_METHOD(CMAC_Final, "(" REF_CMAC_CTX ")[B"),
         CONSCRYPT_NATIVE_METHOD(CMAC_Reset, "(" REF_CMAC_CTX ")V"),
+        CONSCRYPT_NATIVE_METHOD(wrap_EC_private_key_pkcs8, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(wrap_RSA_private_key_pkcs8, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(wrap_RSA_public_key_x509, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(wrap_EC_public_key_x509, "([BLjava/lang/String;)[B"),
+        CONSCRYPT_NATIVE_METHOD(unwrap_RSA_private_key_pkcs8, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(unwrap_RSA_public_key_x509, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(unwrap_EC_private_key_pkcs8, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(unwrap_EC_public_key_x509, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_new_RSA, "([B[B[B[B[B[B[B[B)J"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_new_EC_KEY, "(" REF_EC_GROUP REF_EC_POINT "[B)J"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_type, "(" REF_EVP_PKEY ")I"),
@@ -12593,6 +12213,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_CTX_set_rsa_mgf1_md, "(JJ)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_CTX_set_rsa_oaep_md, "(JJ)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_PKEY_CTX_set_rsa_oaep_label, "(J[B)V"),
+        CONSCRYPT_NATIVE_METHOD(EVP_PKEY_CTX_set1_signature_context_string, "(J[B)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_get_cipherbyname, "(Ljava/lang/String;)J"),
         CONSCRYPT_NATIVE_METHOD(EVP_CipherInit_ex, "(" REF_EVP_CIPHER_CTX "J[B[BZ)V"),
         CONSCRYPT_NATIVE_METHOD(EVP_CipherUpdate, "(" REF_EVP_CIPHER_CTX "[BI[BII)I"),
@@ -12719,15 +12340,19 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(asn1_read_uint64, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_null, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_oid, "(J)Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(asn1_read_oid_raw, "(J)Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(asn1_read_bitstring_payload, "(JI)[B"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_is_empty, "(J)Z"),
         CONSCRYPT_NATIVE_METHOD(asn1_read_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_init, "()J"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_sequence, "(J)J"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_tag, "(JI)J"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_octetstring, "(J[B)V"),
+        CONSCRYPT_NATIVE_METHOD(asn1_write_bitstring, "(J[B)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_uint64, "(JJ)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_null, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_oid, "(JLjava/lang/String;)V"),
+        CONSCRYPT_NATIVE_METHOD(asn1_write_oid_raw, "(JLjava/lang/String;)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_flush, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_cleanup, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(asn1_write_finish, "(J)[B"),
@@ -12738,9 +12363,6 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_session_id_context, "(J" REF_SSL_CTX "[B)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_timeout, "(J" REF_SSL_CTX "J)J"),
         CONSCRYPT_NATIVE_METHOD(SSL_new, "(J" REF_SSL_CTX ")J"),
-        CONSCRYPT_NATIVE_METHOD(SSL_enable_tls_channel_id, "(J" REF_SSL ")V"),
-        CONSCRYPT_NATIVE_METHOD(SSL_get_tls_channel_id, "(J" REF_SSL ")[B"),
-        CONSCRYPT_NATIVE_METHOD(SSL_set1_tls_channel_id, "(J" REF_SSL REF_EVP_PKEY ")V"),
         CONSCRYPT_NATIVE_METHOD(setLocalCertsAndPrivateKey, "(J" REF_SSL "[[B" REF_EVP_PKEY ")V"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_client_CA_list, "(J" REF_SSL "[[B)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_mode, "(J" REF_SSL "J)J"),
@@ -12769,16 +12391,12 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(SSL_accept_renegotiations, "(J" REF_SSL ")V"),
         CONSCRYPT_NATIVE_METHOD(SSL_set_tlsext_host_name, "(J" REF_SSL "Ljava/lang/String;)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_servername, "(J" REF_SSL ")Ljava/lang/String;"),
-        CONSCRYPT_NATIVE_METHOD(SSL_do_handshake, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "I)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_current_cipher, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_set1_groups, "(J" REF_SSL "[I)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_curve_name, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_version, "(J" REF_SSL ")Ljava/lang/String;"),
         CONSCRYPT_NATIVE_METHOD(SSL_get0_peer_certificates, "(J" REF_SSL ")[[B"),
-        CONSCRYPT_NATIVE_METHOD(SSL_read, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)I"),
-        CONSCRYPT_NATIVE_METHOD(SSL_write, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS "[BIII)V"),
         CONSCRYPT_NATIVE_METHOD(SSL_interrupt, "(J" REF_SSL ")V"),
-        CONSCRYPT_NATIVE_METHOD(SSL_shutdown, "(J" REF_SSL FILE_DESCRIPTOR SSL_CALLBACKS ")V"),
         CONSCRYPT_NATIVE_METHOD(SSL_get_shutdown, "(J" REF_SSL ")I"),
         CONSCRYPT_NATIVE_METHOD(SSL_free, "(J" REF_SSL ")V"),
         CONSCRYPT_NATIVE_METHOD(SSL_SESSION_session_id, "(J)[B"),

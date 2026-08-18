@@ -16,13 +16,11 @@ dependencyResolutionManagement {
 rootProject.name = "conscrypt"
 if (System.env.ANDROID_HOME && file(System.env.ANDROID_HOME).exists()) {
     include ":conscrypt-android"
-    include ":conscrypt-android-platform"
     include ":conscrypt-android-stub"
     include ":conscrypt-benchmark-android"
     include ":conscrypt-libcore-stub"
 
     project(':conscrypt-android').projectDir = "$rootDir/android" as File
-    project(':conscrypt-android-platform').projectDir = "$rootDir/platform" as File
     project(':conscrypt-android-stub').projectDir = "$rootDir/android-stub" as File
     project(':conscrypt-benchmark-android').projectDir = "$rootDir/benchmark-android" as File
     project(':conscrypt-libcore-stub').projectDir = "$rootDir/libcore-stub" as File

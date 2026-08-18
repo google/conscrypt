@@ -22,8 +22,6 @@ import java.lang.reflect.Method;
 
 /**
  * Helper class to handle reflexive loading and invocation of methods which may be absent.
- *
- * @hide This class is not part of the Android public SDK API
  */
 @Internal
 public final class OptionalMethod {

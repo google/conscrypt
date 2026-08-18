@@ -50,7 +50,7 @@ public class OpenSslXwingPublicKey implements PublicKey {
             if (raw.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }
-        } else if (keySpec.getFormat().equalsIgnoreCase("raw")) {
+        } else if (AddressUtils.asciiEqualsIgnoreCase(keySpec.getFormat(), "raw")) {
             if (encoded.length != PUBLIC_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }
@@ -85,7 +85,7 @@ public class OpenSslXwingPublicKey implements PublicKey {
         return ArrayUtils.concat(x509Preamble, raw);
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }

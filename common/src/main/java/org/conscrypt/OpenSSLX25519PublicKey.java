@@ -52,7 +52,7 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
                 throw new InvalidKeySpecException("Invalid key size");
             }
             uCoordinate = Arrays.copyOfRange(encoded, X509_PREAMBLE.length, totalLength);
-        } else if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+        } else if (AddressUtils.asciiEqualsIgnoreCase(keySpec.getFormat(), "raw")) {
             if (encoded.length != X25519_KEY_SIZE_BYTES) {
                 throw new InvalidKeySpecException("Invalid key size");
             }

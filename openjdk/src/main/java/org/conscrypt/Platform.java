@@ -42,6 +42,7 @@ import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 import org.conscrypt.metrics.NoopStatsLog;
 import org.conscrypt.metrics.Source;
 import org.conscrypt.metrics.StatsLog;
+import org.conscrypt.metrics.StatsLogImpl;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -76,9 +77,11 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
@@ -256,7 +259,7 @@ final public class Platform {
         // TODO: figure this out on the RI
     }
 
-    static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+    public static void setSSLParameters(SSLParameters params, SSLParametersImpl impl) {
         if (JAVA_VERSION >= 9) {
             Java9PlatformUtil.setSSLParameters(params, impl);
         } else if (JAVA_VERSION >= 8) {
@@ -277,7 +280,7 @@ final public class Platform {
         }
     }
 
-    static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
+    public static void getSSLParameters(SSLParameters params, SSLParametersImpl impl) {
         if (JAVA_VERSION >= 9) {
             Java9PlatformUtil.getSSLParameters(params, impl);
         } else if (JAVA_VERSION >= 8) {
@@ -453,68 +456,6 @@ final public class Platform {
         return new ConscryptEngineSocket(socket, hostname, port, autoClose, sslParameters);
     }
 
-    static ConscryptFileDescriptorSocket createFileDescriptorSocket(SSLParametersImpl sslParameters)
-            throws IOException {
-        if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(sslParameters);
-        }
-        return new ConscryptFileDescriptorSocket(sslParameters);
-    }
-
-    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
-                                                                    SSLParametersImpl sslParameters)
-            throws IOException {
-        if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(hostname, port, sslParameters);
-        }
-        return new ConscryptFileDescriptorSocket(hostname, port, sslParameters);
-    }
-
-    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
-                                                                    SSLParametersImpl sslParameters)
-            throws IOException {
-        if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(address, port, sslParameters);
-        }
-        return new ConscryptFileDescriptorSocket(address, port, sslParameters);
-    }
-
-    static ConscryptFileDescriptorSocket createFileDescriptorSocket(String hostname, int port,
-                                                                    InetAddress clientAddress,
-                                                                    int clientPort,
-                                                                    SSLParametersImpl sslParameters)
-            throws IOException {
-        if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(hostname, port, clientAddress, clientPort,
-                                                 sslParameters);
-        }
-        return new ConscryptFileDescriptorSocket(hostname, port, clientAddress, clientPort,
-                                                 sslParameters);
-    }
-
-    static ConscryptFileDescriptorSocket createFileDescriptorSocket(InetAddress address, int port,
-                                                                    InetAddress clientAddress,
-                                                                    int clientPort,
-                                                                    SSLParametersImpl sslParameters)
-            throws IOException {
-        if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(address, port, clientAddress, clientPort,
-                                                 sslParameters);
-        }
-        return new ConscryptFileDescriptorSocket(address, port, clientAddress, clientPort,
-                                                 sslParameters);
-    }
-
-    static ConscryptFileDescriptorSocket createFileDescriptorSocket(Socket socket, String hostname,
-                                                                    int port, boolean autoClose,
-                                                                    SSLParametersImpl sslParameters)
-            throws IOException {
-        if (JAVA_VERSION >= 8) {
-            return new Java8FileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
-        }
-        return new ConscryptFileDescriptorSocket(socket, hostname, port, autoClose, sslParameters);
-    }
-
     /**
      * Currently we don't wrap anything from the RI.
      */
@@ -667,57 +608,13 @@ final public class Platform {
         return true;
     }
 
-    /**
-     * Check if SCT verification is required for a given hostname.
-     *
-     * SCT Verification is enabled using {@code Security} properties.
-     * The "conscrypt.ct.enable" property must be true, as well as a per domain property.
-     * The reverse notation of the domain name, prefixed with "conscrypt.ct.enforce."
-     * is used as the property name.
-     * Basic globbing is also supported.
-     *
-     * For example, for the domain foo.bar.com, the following properties will be
-     * looked up, in order of precedence.
-     * - conscrypt.ct.enforce.com.bar.foo
-     * - conscrypt.ct.enforce.com.bar.*
-     * - conscrypt.ct.enforce.com.*
-     * - conscrypt.ct.enforce.*
-     */
-    public static boolean isCTVerificationRequired(String hostname) {
-        if (hostname == null) {
-            return false;
-        }
-
-        String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || !Boolean.parseBoolean(property.toLowerCase(Locale.ROOT))) {
-            return false;
-        }
-
-        List<String> parts = Arrays.asList(hostname.split("\\."));
-        Collections.reverse(parts);
-
-        boolean enable = false;
-        StringBuilder propertyName = new StringBuilder("conscrypt.ct.enforce");
-        // The loop keeps going on even once we've found a match
-        // This allows for finer grained settings on subdomains
-        for (String part : parts) {
-            property = Security.getProperty(propertyName + ".*");
-            if (property != null) {
-                enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
-            }
-            propertyName.append(".").append(part);
-        }
-
-        property = Security.getProperty(propertyName.toString());
-        if (property != null) {
-            enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
-        }
-        return enable;
+    static SSLException wrapInvalidEchDataException(SSLException e) {
+        return e;
     }
 
-    public static CertificateTransparencyVerificationReason reasonCTVerificationRequired(
-            String hostname) {
-        return CertificateTransparencyVerificationReason.UNKNOWN;
+    static SSLException wrapEchRejectedException(EchRejectedException e, String hostname,
+                                                 byte[] retryConfigs) {
+        return e;
     }
 
     static boolean supportsConscryptCertStore() {
@@ -784,7 +681,8 @@ final public class Platform {
         return null;
     }
 
-    static CertificateTransparency newDefaultCertificateTransparency() {
+    static CertificateTransparency newDefaultCertificateTransparency(
+            Supplier<NetworkSecurityPolicy> policySupplier) {
         return null;
     }
 

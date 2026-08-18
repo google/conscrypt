@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -111,13 +112,13 @@ public class SSLUtilsTest {
     @Test
     public void decodeProtocolsWithInvalidLengthShouldThrow() {
         assertThrows(IllegalArgumentException.class,
-                     () -> SSLUtils.decodeProtocols(new byte[] { 1 }));
+                     () -> SSLUtils.decodeProtocols(new byte[] {1}));
 
         assertThrows(IllegalArgumentException.class,
-                     () -> SSLUtils.decodeProtocols(new byte[] { 2, 'a' }));
+                     () -> SSLUtils.decodeProtocols(new byte[] {2, 'a'}));
 
         assertThrows(IllegalArgumentException.class,
-                     () -> SSLUtils.decodeProtocols(new byte[] { 1, 'a', 5, 'b' }));
+                     () -> SSLUtils.decodeProtocols(new byte[] {1, 'a', 5, 'b'}));
     }
 
     @Test
@@ -214,6 +215,19 @@ public class SSLUtilsTest {
                            NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1,
                            NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512}));
         assertEquals(Arrays.asList("EC", "RSA"), keyTypes);
+    }
+
+    @Test
+    public void testGetEncryptedPacketLength_oversized() {
+        ByteBuffer buffer = ByteBuffer.allocate(5);
+        buffer.put((byte) 23); // SSL3_RT_APPLICATION_DATA
+        buffer.put((byte) 3); // majorVersion
+        buffer.put((byte) 3); // minorVersion
+        buffer.putShort((short) (NativeConstants.SSL3_RT_MAX_PACKET_SIZE
+                                 - NativeConstants.SSL3_RT_HEADER_LENGTH + 1));
+        buffer.flip();
+
+        assertEquals(-1, SSLUtils.getEncryptedPacketLength(new ByteBuffer[] {buffer}, 0));
     }
 
     @Test

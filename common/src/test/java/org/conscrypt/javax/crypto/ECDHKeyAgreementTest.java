@@ -23,12 +23,16 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+
 import junit.framework.AssertionFailedError;
 
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -44,6 +48,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.interfaces.ECKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -58,6 +63,7 @@ import java.util.List;
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
+
 import tests.util.ServiceTester;
 
 /**
@@ -65,6 +71,8 @@ import tests.util.ServiceTester;
  */
 @RunWith(JUnit4.class)
 public class ECDHKeyAgreementTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     // Two key pairs and the resulting shared secret for the Known Answer Test
     private static final byte[] KAT_PUBLIC_KEY1_X509 = TestUtils.decodeHex(
             "3059301306072a8648ce3d020106082a8648ce3d030107034200049fc2f71f85446b1371244491d83"
@@ -463,6 +471,19 @@ public class ECDHKeyAgreementTest {
         if (providers == null) {
             return new Provider[0];
         }
+
+        // Do not test AndroidKeyStore as KeyAgreement provider. It only handles Android
+        // Keystore-backed keys. It's OKish not to test AndroidKeyStore here because it's tested by
+        // cts/tests/test/keystore.
+        List<Provider> filteredProvidersList = new ArrayList<Provider>(providers.length);
+        for (Provider provider : providers) {
+            if ("AndroidKeyStore".equals(provider.getName())) {
+                continue;
+            }
+            filteredProvidersList.add(provider);
+        }
+        providers = filteredProvidersList.toArray(new Provider[filteredProvidersList.size()]);
+
         // Sort providers by name to guarantee deterministic order in which providers are used in
         // the tests.
         return sortByName(providers);

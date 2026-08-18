@@ -16,12 +16,15 @@
 
 package org.conscrypt;
 
+import org.conscrypt.Internal;
+
 import java.math.BigInteger;
 import java.security.PublicKey;
 
 /**
  * A set of certificates that are blacklisted from trust.
  */
+@Internal
 public interface CertBlocklist {
     /**
      * Returns whether the given public key is in the blacklist.

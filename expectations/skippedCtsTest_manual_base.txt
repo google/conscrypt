@@ -1,0 +1,8 @@
+[
+  {
+    "description": "Test for internal APIs.",
+    "names": [
+      "com.android.org.conscrypt.XwingTest#x509AndPkcs8_areNotSupported"
+    ]
+  }
+]

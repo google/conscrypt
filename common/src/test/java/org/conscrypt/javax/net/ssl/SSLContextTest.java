@@ -16,6 +16,7 @@
 
 package org.conscrypt.javax.net.ssl;
 
+import static org.conscrypt.TestUtils.isTlsV1Supported;
 import static org.conscrypt.TestUtils.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -70,6 +71,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.TrustManagerFactorySpi;
 import javax.net.ssl.X509KeyManager;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
@@ -683,6 +685,24 @@ public class SSLContextTest {
         Provider finalDefaultTlsProvider = defaultTlsProvider;
         assertThrows(NoSuchAlgorithmException.class,
                      () -> SSLContext.getInstance("SSLv3", finalDefaultTlsProvider));
+    }
+
+    @Test
+    public void test_SSLContext_init_picksUpProviderChanges() throws Exception {
+        SSLContext initialContext = SSLContext.getInstance("Default");
+        assertThrows(KeyManagementException.class, () -> initialContext.init(null, null, null));
+
+        Provider provider = new ThrowExceptionKeyAndTrustManagerFactoryProvider();
+        invokeWithHighestPrioritySecurityProvider(provider, new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                SSLContext newContext = SSLContext.getInstance("Default");
+                assertThrows(KeyManagementException.class, () -> newContext.init(null, null, null));
+                return null;
+            }
+        });
+        SSLContext finalContext = SSLContext.getInstance("Default");
+        assertThrows(KeyManagementException.class, () -> finalContext.init(null, null, null));
     }
 
     private static void assertContentsInOrder(List<String> expected, String... actual) {

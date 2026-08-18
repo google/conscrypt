@@ -52,7 +52,7 @@ public class OpenSslSlhDsaPublicKey implements PublicKey {
         return ArrayUtils.concat(OpenSslSlhDsaKeyFactory.x509Preamble, raw);
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }

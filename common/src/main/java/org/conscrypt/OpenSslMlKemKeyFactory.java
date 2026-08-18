@@ -130,7 +130,7 @@ public abstract class OpenSslMlKemKeyFactory extends KeyFactorySpi {
                                               + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+        if (AddressUtils.asciiEqualsIgnoreCase(encodedKeySpec.getFormat(), "raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
             return makePublicKeyFromRaw(raw, defaultAlgorithm);
         }
@@ -175,7 +175,7 @@ public abstract class OpenSslMlKemKeyFactory extends KeyFactorySpi {
                                               + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+        if (AddressUtils.asciiEqualsIgnoreCase(encodedKeySpec.getFormat(), "raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
             return makePrivateKeyFromSeed(raw, defaultAlgorithm);
         }

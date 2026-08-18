@@ -397,11 +397,10 @@ public class SSLEngineVersionCompatibilityTest {
     @Test
     public void test_SSLEngine_Multiple_Thread_Success() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
-                                                 .clientProtocol(clientVersion)
-                                                 .serverProtocol(serverVersion)
-                                                 .build();
-        final TestSSLEnginePair pair =
-                TestSSLEnginePair.create(c);
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
+        final TestSSLEnginePair pair = TestSSLEnginePair.create(c);
         try {
             assertConnected(pair);
 
@@ -445,11 +444,10 @@ public class SSLEngineVersionCompatibilityTest {
     @Test
     public void test_SSLEngine_CloseOutbound() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
-                                                 .clientProtocol(clientVersion)
-                                                 .serverProtocol(serverVersion)
-                                                 .build();
-        final TestSSLEnginePair pair =
-                TestSSLEnginePair.create(c);
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
+        final TestSSLEnginePair pair = TestSSLEnginePair.create(c);
         try {
             assertConnected(pair);
 
@@ -499,11 +497,10 @@ public class SSLEngineVersionCompatibilityTest {
     @Test
     public void test_SSLEngine_Closed() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
-                                                 .clientProtocol(clientVersion)
-                                                 .serverProtocol(serverVersion)
-                                                 .build();
-        final TestSSLEnginePair pair =
-                TestSSLEnginePair.create();
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
+        final TestSSLEnginePair pair = TestSSLEnginePair.create();
         pair.close();
         ByteBuffer out = ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
         SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[] {0x01}), out);
@@ -605,20 +602,18 @@ public class SSLEngineVersionCompatibilityTest {
     @Test
     public void test_SSLEngine_TlsUnique() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
-                                                 .clientProtocol(clientVersion)
-                                                 .serverProtocol(serverVersion)
-                                                 .build();
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
         // tls_unique isn't supported in TLS 1.3
         assumeTlsV1_2Connection();
-        TestSSLEnginePair pair = TestSSLEnginePair.create(
-                c,
-                new TestSSLEnginePair.Hooks() {
-                    @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                        assertNull(Conscrypt.getTlsUnique(client));
-                        assertNull(Conscrypt.getTlsUnique(server));
-                    }
-                });
+        TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                assertNull(Conscrypt.getTlsUnique(client));
+                assertNull(Conscrypt.getTlsUnique(server));
+            }
+        });
         try {
             assertConnected(pair);
 
@@ -636,22 +631,20 @@ public class SSLEngineVersionCompatibilityTest {
     @Test
     public void test_SSLEngine_EKM() throws Exception {
         TestSSLContext c = TestSSLContext.newBuilder()
-                                                 .clientProtocol(clientVersion)
-                                                 .serverProtocol(serverVersion)
-                                                 .build();
-        TestSSLEnginePair pair = TestSSLEnginePair.create(
-                c,
-                new TestSSLEnginePair.Hooks() {
-                    @Override
-                    void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                        try {
-                            assertNull(Conscrypt.exportKeyingMaterial(client, "FOO", null, 20));
-                            assertNull(Conscrypt.exportKeyingMaterial(server, "FOO", null, 20));
-                        } catch (SSLException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
+        TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
+            @Override
+            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                try {
+                    assertNull(Conscrypt.exportKeyingMaterial(client, "FOO", null, 20));
+                    assertNull(Conscrypt.exportKeyingMaterial(server, "FOO", null, 20));
+                } catch (SSLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
         try {
             assertConnected(pair);
 
@@ -762,22 +755,20 @@ public class SSLEngineVersionCompatibilityTest {
         assumeJava8();
 
         TestSSLContext c = TestSSLContext.newBuilder()
-                                                 .clientProtocol(clientVersion)
-                                                 .serverProtocol(serverVersion)
-                                                 .build();
+                                   .clientProtocol(clientVersion)
+                                   .serverProtocol(serverVersion)
+                                   .build();
         try {
-            TestSSLEnginePair.create(
-                    c,
-                    new TestSSLEnginePair.Hooks() {
-                        @Override
-                        void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                            Conscrypt.setHostname(client, "any.host");
+            TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
+                @Override
+                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                    Conscrypt.setHostname(client, "any.host");
 
-                            SSLParameters sslParameters = server.getSSLParameters();
-                            sslParameters.setSNIMatchers(singleton(FailingSniMatcher.create()));
-                            server.setSSLParameters(sslParameters);
-                        }
-                    });
+                    SSLParameters sslParameters = server.getSSLParameters();
+                    sslParameters.setSNIMatchers(singleton(FailingSniMatcher.create()));
+                    server.setSSLParameters(sslParameters);
+                }
+            });
             fail();
         } catch (SSLHandshakeException e) {
             assertEquals("SNI match failed: any.host", e.getMessage());

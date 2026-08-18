@@ -45,7 +45,7 @@ public class OpenSslMlKemPublicKey implements PublicKey {
         return "ML-KEM";
     }
 
-    MlKemAlgorithm getMlKemAlgorithm() {
+    public MlKemAlgorithm getMlKemAlgorithm() {
         return algorithm;
     }
 
@@ -70,7 +70,7 @@ public class OpenSslMlKemPublicKey implements PublicKey {
         return ArrayUtils.concat(getX509Preamble(algorithm), raw);
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }

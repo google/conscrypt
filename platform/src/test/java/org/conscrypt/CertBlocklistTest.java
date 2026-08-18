@@ -16,9 +16,13 @@
 
 package org.conscrypt;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.conscrypt.metrics.NoopStatsLog;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -29,6 +33,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import javax.net.ssl.X509TrustManager;
@@ -100,6 +105,44 @@ public class CertBlocklistTest {
         // Check that without the trusted_ca the chain is invalid (since it only chains to a
         // blocklisted ca)
         assertUntrusted(chain, getTrustManager(blocklistedCa));
+    }
+
+    static class FakeStatsLog extends NoopStatsLog {
+        public ArrayList<CertBlocklistEntry> entries = new ArrayList<>();
+
+        @Override
+        public void reportBlocklistHit(CertBlocklistEntry entry) {
+            entries.add(entry);
+        }
+    }
+
+    @Test
+    public void isPublicKeyBlockListed_hitBlocklist_hitIsReported() throws Exception {
+        X509Certificate blocklistedCa = loadCertificate(BLOCKLIST_CA);
+        FakeStatsLog fakeMetrics = new FakeStatsLog();
+        CertBlocklist blocklist =
+                new CertBlocklistImpl.Builder().loadAllDefaults().setMetrics(fakeMetrics).build();
+
+        blocklist.isPublicKeyBlockListed(blocklistedCa.getPublicKey());
+
+        assertThat(fakeMetrics.entries).hasSize(1);
+        CertBlocklistEntry entry = fakeMetrics.entries.get(0);
+        assertThat(entry.getOrigin()).isEqualTo(CertBlocklistEntry.Origin.SHA1_TEST);
+        assertThat(entry.getIndex()).isEqualTo(0);
+    }
+
+    @Test
+    public void isPublicKeyBlockListed_hitBlocklistTwiceWithSameKey_hitIsReportedTwice()
+            throws Exception {
+        X509Certificate blocklistedCa = loadCertificate(BLOCKLIST_CA);
+        FakeStatsLog fakeMetrics = new FakeStatsLog();
+        CertBlocklist blocklist =
+                new CertBlocklistImpl.Builder().loadAllDefaults().setMetrics(fakeMetrics).build();
+
+        blocklist.isPublicKeyBlockListed(blocklistedCa.getPublicKey());
+        blocklist.isPublicKeyBlockListed(blocklistedCa.getPublicKey());
+
+        assertThat(fakeMetrics.entries).hasSize(2);
     }
 
     private static X509Certificate loadCertificate(String file) throws Exception {

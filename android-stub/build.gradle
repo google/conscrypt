@@ -11,3 +11,10 @@ dependencies {
 
 // Disable the javadoc task.
 tasks.withType(Javadoc).configureEach { enabled = false }
+
+// The stubs are used to validate the build but are not expected to be called.
+// Skip these lints.
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone.disable("unused")
+    options.errorprone.disable("DoNotCallSuggester")
+}

@@ -99,7 +99,7 @@ public final class OkHostnameVerifier implements ConscryptHostnameVerifier {
     private boolean verifyIpAddress(String ipAddress, X509Certificate certificate) {
         List<String> altNames = getSubjectAltNames(certificate, ALT_IPA_NAME);
         for (int i = 0, size = altNames.size(); i < size; i++) {
-            if (ipAddress.equalsIgnoreCase(altNames.get(i))) {
+            if (AddressUtils.asciiEqualsIgnoreCase(ipAddress, altNames.get(i))) {
                 return true;
             }
         }

@@ -62,7 +62,7 @@ public class KeyManagerFactoryImpl extends KeyManagerFactorySpi {
             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             String keyStoreName = System.getProperty("javax.net.ssl.keyStore");
             String keyStorePwd = null;
-            if (keyStoreName == null || keyStoreName.equalsIgnoreCase("NONE")
+            if (keyStoreName == null || AddressUtils.asciiEqualsIgnoreCase(keyStoreName, "NONE")
                 || keyStoreName.isEmpty()) {
                 try {
                     keyStore.load(null, null);
