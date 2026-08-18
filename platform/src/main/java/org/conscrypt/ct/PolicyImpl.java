@@ -178,7 +178,7 @@ public class PolicyImpl implements Policy {
             return PolicyCompliance.NOT_ENOUGH_SCTS;
         }
 
-        /* 3. Among the SCTs satisfying requirements 1 and 2, at least two SCTs
+        /* 3. Among the SCTs satisfying requirements 2, at least two SCTs
          *    must be issued from distinct CT Log Operators as recognized by
          *    Chrome.
          */

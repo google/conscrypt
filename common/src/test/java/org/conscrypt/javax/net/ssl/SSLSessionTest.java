@@ -514,12 +514,10 @@ public class SSLSessionTest {
     // http://b/35942385
     @Test
     public void test_SSLSession_getPeerHostFromInetAddress() throws Exception {
-        TestUtils.assumeAndroid();
-        if (TestUtils.isAndroid()) {
-            // On Android 27 and below, this test fails because
-            // Platform.getOriginalHostNameFromInetAddress is not supported.
-            assumeTrue(TestUtils.isAndroidSdkGreater(27));
-        }
+        // On Android, this test fails because Platform.getOriginalHostNameFromInetAddress
+        // and alterOriginalHostName use reflection on private members of InetAddressHolder,
+        // which is blocked by non-SDK interface restrictions (hidden API enforcement).
+        assumeFalse(TestUtils.isAndroid());
         InetAddress inetAddress = TestUtils.getLoopbackAddress();
         String oldOriginalHostName = alterOriginalHostName(inetAddress, "foobar");
         try {

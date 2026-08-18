@@ -220,6 +220,16 @@ public class TrustManagerImplTest {
         }
     }
 
+    @Test
+    public void testSetNetworkSecurityPolicy() throws Exception {
+        KeyStore keystore = TestKeyStore.createKeyStore();
+        TrustManagerImpl tm = new TrustManagerImpl(keystore);
+
+        ConscryptNetworkSecurityPolicy nsp = ConscryptNetworkSecurityPolicy.getDefault();
+        tm.setNetworkSecurityPolicy(nsp);
+        assertEquals(nsp, tm.getNetworkSecurityPolicy());
+    }
+
     private X509TrustManager trustManager(X509Certificate ca) throws Exception {
         KeyStore keyStore = TestKeyStore.createKeyStore();
         keyStore.setCertificateEntry("alias", ca);

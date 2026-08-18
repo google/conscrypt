@@ -27,17 +27,33 @@ public class AeadCipherTest {
         TestUtils.assumeAllowsUnsignedCrypto();
     }
 
+    // UTP's log writer attempts to write stdout to a file named after the test.
+    // Since Android's Context.openFileOutput forbids path separators (slashes),
+    // parameterized tests with slashes in their names (like cipher names) will crash.
+    // This helper replaces slashes with underscores in toString() to avoid this.
+    private static class CipherParam {
+        final String name;
+        CipherParam(String name) {
+            this.name = name;
+        }
+        @Override
+        public String toString() {
+            return name.replace('/', '_');
+        }
+    }
+
     @Parameterized.Parameters(name = "{0}")
-    public static Iterable<String> ciphers() {
-        return Arrays.asList("AES/GCM/NoPadding", "AES/GCM-SIV/NoPadding",
-                             "ChaCha20/Poly1305/NoPadding");
+    public static Iterable<CipherParam> ciphers() {
+        return Arrays.asList(new CipherParam("AES/GCM/NoPadding"),
+                             new CipherParam("AES/GCM-SIV/NoPadding"),
+                             new CipherParam("ChaCha20/Poly1305/NoPadding"));
     }
 
     private final String cipher;
     private byte counter;
 
-    public AeadCipherTest(String cipher) {
-        this.cipher = cipher;
+    public AeadCipherTest(CipherParam cipher) {
+        this.cipher = cipher.name;
     }
 
     private Key newKey() {

@@ -92,6 +92,7 @@ public class ReflexiveStatsEvent {
         private static final OptionalMethod setAtomId;
         private static final OptionalMethod writeBoolean;
         private static final OptionalMethod writeInt;
+        private static final OptionalMethod writeLong;
         private static final OptionalMethod build;
         private static final OptionalMethod usePooledBuffer;
         private static final OptionalMethod writeIntArray;
@@ -101,6 +102,7 @@ public class ReflexiveStatsEvent {
             setAtomId = new OptionalMethod(c_statsEvent_Builder, "setAtomId", int.class);
             writeBoolean = new OptionalMethod(c_statsEvent_Builder, "writeBoolean", boolean.class);
             writeInt = new OptionalMethod(c_statsEvent_Builder, "writeInt", int.class);
+            writeLong = new OptionalMethod(c_statsEvent_Builder, "writeLong", long.class);
             build = new OptionalMethod(c_statsEvent_Builder, "build");
             usePooledBuffer = new OptionalMethod(c_statsEvent_Builder, "usePooledBuffer");
             writeIntArray = new OptionalMethod(c_statsEvent_Builder, "writeIntArray", int[].class);
@@ -132,6 +134,11 @@ public class ReflexiveStatsEvent {
 
         public Builder writeInt(final int value) {
             writeInt.invoke(this.builder, value);
+            return this;
+        }
+
+        public Builder writeLong(final long value) {
+            writeLong.invoke(this.builder, value);
             return this;
         }
 

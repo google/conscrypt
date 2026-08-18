@@ -37,7 +37,7 @@ public class Verifier {
 
     public VerificationResult verifySignedCertificateTimestamps(List<X509Certificate> chain,
                                                                 byte[] tlsData, byte[] ocspData)
-            throws CertificateEncodingException {
+            throws CertificateEncodingException, LogStore.InvalidLogException {
         OpenSSLX509Certificate[] certs = new OpenSSLX509Certificate[chain.size()];
         int i = 0;
         for (X509Certificate cert : chain) {
@@ -54,7 +54,7 @@ public class Verifier {
      */
     public VerificationResult verifySignedCertificateTimestamps(OpenSSLX509Certificate[] chain,
                                                                 byte[] tlsData, byte[] ocspData)
-            throws CertificateEncodingException {
+            throws CertificateEncodingException, LogStore.InvalidLogException {
         if (chain.length == 0) {
             throw new IllegalArgumentException("Chain of certificates mustn't be empty.");
         }
@@ -78,7 +78,8 @@ public class Verifier {
      * The result of the verification for each sct is added to {@code result}.
      */
     private void verifyEmbeddedSCTs(List<SignedCertificateTimestamp> scts,
-                                    OpenSSLX509Certificate[] chain, VerificationResult result) {
+                                    OpenSSLX509Certificate[] chain, VerificationResult result)
+            throws LogStore.InvalidLogException {
         // Avoid creating the cert entry if we don't need it
         if (scts.isEmpty()) {
             return;
@@ -110,7 +111,8 @@ public class Verifier {
      * The result of the verification for each sct is added to {@code result}.
      */
     private void verifyExternalSCTs(List<SignedCertificateTimestamp> scts,
-                                    OpenSSLX509Certificate leaf, VerificationResult result) {
+                                    OpenSSLX509Certificate leaf, VerificationResult result)
+            throws LogStore.InvalidLogException {
         // Avoid creating the cert entry if we don't need it
         if (scts.isEmpty()) {
             return;
@@ -131,7 +133,7 @@ public class Verifier {
      * Verify a list of SCTs.
      */
     private void verifySCTs(List<SignedCertificateTimestamp> scts, CertificateEntry certEntry,
-                            VerificationResult result) {
+                            VerificationResult result) throws LogStore.InvalidLogException {
         for (SignedCertificateTimestamp sct : scts) {
             VerifiedSCT.Builder builder = new VerifiedSCT.Builder(sct);
             LogInfo log = store.getKnownLog(sct.getLogID());

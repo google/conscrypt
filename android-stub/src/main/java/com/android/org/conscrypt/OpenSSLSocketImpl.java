@@ -174,14 +174,6 @@ public class OpenSSLSocketImpl
         throw new RuntimeException("Stub!");
     }
 
-    public void setChannelIdEnabled(boolean enabled) {
-        throw new RuntimeException("Stub!");
-    }
-
-    public byte[] getChannelId() throws SSLException {
-        throw new RuntimeException("Stub!");
-    }
-
     public void setChannelIdPrivateKey(PrivateKey privateKey) {
         throw new RuntimeException("Stub!");
     }

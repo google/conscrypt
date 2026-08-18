@@ -137,13 +137,6 @@ public class ConscryptSocketTest {
      * Various factories for SSL server sockets.
      */
     public enum SocketType {
-        FILE_DESCRIPTOR(false) {
-            @Override
-            void assertSocketType(Socket socket) {
-                assertTrue("Unexpected socket type: " + socket.getClass().getName(),
-                           socket instanceof ConscryptFileDescriptorSocket);
-            }
-        },
         ENGINE(true) {
             @Override
             void assertSocketType(Socket socket) {
@@ -222,17 +215,7 @@ public class ConscryptSocketTest {
 
     @Parameters(name = "{0} wrapping {1} connecting to {2}")
     public static Object[][] data() {
-        Object[][] fd_cases = new Object[][] {
-                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
-                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
-                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
-                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.PLAIN, ServerSocketType.CHANNEL},
-                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.PLAIN},
-                {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL}
-                // Not supported: {SocketType.FILE_DESCRIPTOR, UnderlyingSocketType.SSL},
-        };
-
-        Object[][] engine_cases = new Object[][] {
+        return new Object[][] {
                 {SocketType.ENGINE, UnderlyingSocketType.NONE, ServerSocketType.PLAIN},
                 {SocketType.ENGINE, UnderlyingSocketType.NONE, ServerSocketType.CHANNEL},
                 {SocketType.ENGINE, UnderlyingSocketType.PLAIN, ServerSocketType.PLAIN},
@@ -241,12 +224,6 @@ public class ConscryptSocketTest {
                 {SocketType.ENGINE, UnderlyingSocketType.CHANNEL, ServerSocketType.CHANNEL},
                 {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.PLAIN},
                 {SocketType.ENGINE, UnderlyingSocketType.SSL, ServerSocketType.CHANNEL}};
-
-        if (TestUtils.isJavaVersion(17)) {
-            // FD Socket not feasible on Java 17+
-            return engine_cases;
-        }
-        return ArrayUtils.concat(fd_cases, engine_cases);
     }
 
     @Parameter public SocketType socketType;

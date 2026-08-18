@@ -403,21 +403,6 @@ public class KitKatPlatformOpenSSLSocketImplAdapter
     }
 
     @Override
-    public void setChannelIdEnabled(boolean enabled) {
-        delegate.setChannelIdEnabled(enabled);
-    }
-
-    @Override
-    public byte[] getChannelId() throws SSLException {
-        return delegate.getChannelId();
-    }
-
-    @Override
-    public void setChannelIdPrivateKey(PrivateKey privateKey) {
-        delegate.setChannelIdPrivateKey(privateKey);
-    }
-
-    @Override
     public void setSoWriteTimeout(int writeTimeoutMilliseconds) throws SocketException {
         delegate.setSoWriteTimeout(writeTimeoutMilliseconds);
     }

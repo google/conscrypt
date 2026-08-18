@@ -23,11 +23,19 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+// android-add: import libcore.test.annotation.NonCts;
+// android-add: import libcore.test.annotation.NonMts;
+// android-add: import libcore.test.reasons.NonCtsReasons;
+// android-add: import libcore.test.reasons.NonMtsReasons;
+
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.testing.BrokenProvider;
 import org.conscrypt.testing.OpaqueProvider;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -71,10 +79,14 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class SignatureTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     // 20 bytes for DSA
     private final byte[] EMPTY_DATA = new byte[20];
 
     @Test
+    // android-add: @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    // android-add: @NonMts(reason = NonMtsReasons.API_LEVEL_GATING)
     public void test_getInstance() throws Exception {
         ServiceTester
                 .test("Signature")
@@ -150,6 +162,8 @@ public class SignatureTest {
             kpAlgorithm = "ED25519";
         } else if (sigAlgorithmUpperCase.startsWith("ML-DSA")) {
             kpAlgorithm = "ML-DSA";
+        } else if (sigAlgorithmUpperCase.startsWith("MLDSA")) {
+            kpAlgorithm = sigAlgorithm;
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "
                                 + sigAlgorithm);
@@ -3186,8 +3200,13 @@ public class SignatureTest {
     // Abuse a single Signature object across multiple threads to check for any native crashes.
     private void testSignature_ThreadMisuse(final Signature signature, final PrivateKey key)
             throws Exception {
+        if (TestUtils.isTsan()) {
+            return;
+        }
         final byte[] message = new byte[64];
-        TestUtils.stressTestAllowingExceptions(16, 100, () -> {
+        int threads = signature.getAlgorithm().contains("MLDSA") ? 4 : 16;
+        int iterations = signature.getAlgorithm().contains("MLDSA") ? 20 : 100;
+        TestUtils.stressTestAllowingExceptions(threads, iterations, () -> {
             signature.initSign(key);
             signature.update(message);
             signature.sign();

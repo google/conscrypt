@@ -407,20 +407,7 @@ public final class TestUtils {
     }
 
     static boolean getUseEngineSocketByDefault() {
-        try {
-            boolean sfDefault =
-                    getBooleanField("OpenSSLSocketFactoryImpl", "useEngineSocketByDefault");
-            boolean ssfDefault =
-                    getBooleanField("OpenSSLServerSocketFactoryImpl", "useEngineSocketByDefault");
-            if (sfDefault != ssfDefault) {
-                throw new IllegalStateException(
-                        "Socket factory and server socket factory must\n"
-                        + "use the same default implementation during testing");
-            }
-            return sfDefault;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return true;
     }
 
     static boolean getBooleanField(String className, String fieldName) throws Exception {
@@ -888,8 +875,7 @@ public final class TestUtils {
 
     public static boolean isAndroidSdkGreater(int sdkVersion) {
         try {
-            return (Boolean)
-                conscryptClass("Platform")
+            return (Boolean) conscryptClass("Platform")
                     .getDeclaredMethod("isSdkGreater", int.class)
                     .invoke(null, sdkVersion);
         } catch (ReflectiveOperationException e) {
@@ -926,6 +912,20 @@ public final class TestUtils {
             return defaultValue;
         } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException("Reflection failure", e);
+        }
+    }
+
+    /**
+     * Best-effort check that this is running under TSAN. Returns false if not running under TSAN
+     * or when running outside Google.
+     */
+    public static boolean isTsan() {
+        try {
+            return (Boolean) Class.forName("com.google.devtools.java.sanitizers.Sanitizers")
+                    .getMethod("runningWithTsan")
+                    .invoke(null);
+        } catch (Exception e) {
+            return false;
         }
     }
 

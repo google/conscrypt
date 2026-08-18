@@ -421,49 +421,13 @@ public final class Conscrypt {
     }
 
     /**
-     * Enables/disables TLS Channel ID for the given server-side socket.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
+     * This method sets the ECH config data to be used in the TLS handshake.
      *
      * @param socket the socket
-     * @param enabled Whether to enable channel ID.
-     * @throws IllegalStateException if this is a client socket or if the handshake has already
-     * started.
+     * @param echConfigList the ECH config data to be used in the TLS handshake
      */
-    public static void setChannelIdEnabled(SSLSocket socket, boolean enabled) {
-        toConscrypt(socket).setChannelIdEnabled(enabled);
-    }
-
-    /**
-     * Gets the TLS Channel ID for the given server-side socket. Channel ID is only available
-     * once the handshake completes.
-     *
-     * @param socket the socket
-     * @return channel ID or {@code null} if not available.
-     * @throws IllegalStateException if this is a client socket or if the handshake has not yet
-     * completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    public static byte[] getChannelId(SSLSocket socket) throws SSLException {
-        return toConscrypt(socket).getChannelId();
-    }
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client socket.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param socket the socket
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key
-     * (disables TLS Channel ID).
-     * The private key must be an Elliptic Curve (EC) key based on the NIST P-256 curve (aka
-     * SECG secp256r1 or ANSI
-     * X9.62 prime256v1).
-     * @throws IllegalStateException if this is a server socket or if the handshake has already
-     * started.
-     */
-    public static void setChannelIdPrivateKey(SSLSocket socket, PrivateKey privateKey) {
-        toConscrypt(socket).setChannelIdPrivateKey(privateKey);
+    public static void setEchConfigList(SSLSocket socket, byte[] echConfigList) {
+        toConscrypt(socket).setEchConfigList(echConfigList);
     }
 
     /**
@@ -630,51 +594,6 @@ public final class Conscrypt {
     }
 
     /**
-     * Enables/disables TLS Channel ID for the given server-side engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param engine the engine
-     * @param enabled Whether to enable channel ID.
-     * @throws IllegalStateException if this is a client engine or if the handshake has already
-     * started.
-     */
-    public static void setChannelIdEnabled(SSLEngine engine, boolean enabled) {
-        toConscrypt(engine).setChannelIdEnabled(enabled);
-    }
-
-    /**
-     * Gets the TLS Channel ID for the given server-side engine. Channel ID is only available
-     * once the handshake completes.
-     *
-     * @param engine the engine
-     * @return channel ID or {@code null} if not available.
-     * @throws IllegalStateException if this is a client engine or if the handshake has not yet
-     * completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    public static byte[] getChannelId(SSLEngine engine) throws SSLException {
-        return toConscrypt(engine).getChannelId();
-    }
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param engine the engine
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key
-     * (disables TLS Channel ID).
-     * The private key must be an Elliptic Curve (EC) key based on the NIST P-256 curve (aka
-     * SECG secp256r1 or ANSI X9.62 prime256v1).
-     * @throws IllegalStateException if this is a server engine or if the handshake has already
-     * started.
-     */
-    public static void setChannelIdPrivateKey(SSLEngine engine, PrivateKey privateKey) {
-        toConscrypt(engine).setChannelIdPrivateKey(privateKey);
-    }
-
-    /**
      * Extended unwrap method for multiple source and destination buffers.
      *
      * @param engine the target engine for the unwrap
@@ -717,6 +636,16 @@ public final class Conscrypt {
      */
     public static void setUseSessionTickets(SSLEngine engine, boolean useSessionTickets) {
         toConscrypt(engine).setUseSessionTickets(useSessionTickets);
+    }
+
+    /**
+     * This method sets the ECH config data to be used in the TLS handshake.
+     *
+     * @param engine the engine
+     * @param echConfigList the ECH config data to be used in the TLS handshake
+     */
+    public static void setEchConfigList(SSLEngine engine, byte[] echConfigList) {
+        toConscrypt(engine).setEchConfigList(echConfigList);
     }
 
     /**

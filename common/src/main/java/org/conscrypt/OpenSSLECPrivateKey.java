@@ -16,7 +16,6 @@
 
 package org.conscrypt;
 
-import java.security.MessageDigest;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 import java.io.IOException;
@@ -26,6 +25,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.ECKey;

@@ -292,7 +292,8 @@ dependencies {
     testImplementation project(':conscrypt-constants'),
             project(path: ':conscrypt-testing', configuration: 'shadow'),
             libs.junit,
-            libs.mockito
+            libs.mockito,
+            libs.truth
 
     testRuntimeOnly sourceSets["$preferredSourceSet"].output
 

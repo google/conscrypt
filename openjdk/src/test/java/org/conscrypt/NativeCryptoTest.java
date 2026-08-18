@@ -58,14 +58,18 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -92,12 +96,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.crypto.BadPaddingException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
-import javax.crypto.BadPaddingException;
 
 @RunWith(JUnit4.class)
 public class NativeCryptoTest {
@@ -117,8 +121,6 @@ public class NativeCryptoTest {
     private static long[] CLIENT_CERTIFICATE_REFS;
     private static byte[][] ENCODED_CLIENT_CERTIFICATES;
     private static byte[][] CA_PRINCIPALS;
-    private static OpenSSLKey CHANNEL_ID_PRIVATE_KEY;
-    private static byte[] CHANNEL_ID;
     private static Method m_Platform_getFileDescriptor;
     private static RSAPrivateCrtKey TEST_RSA_KEY;
 
@@ -158,17 +160,6 @@ public class NativeCryptoTest {
         OpenSSLECGroupContext openSslSpec = OpenSSLECGroupContext.getCurveByName("prime256v1");
         BigInteger s = new BigInteger(
                 "229cdbbf489aea584828a261a23f9ff8b0f66f7ccac98bf2096ab3aee41497c5", 16);
-        CHANNEL_ID_PRIVATE_KEY =
-                new OpenSSLECPrivateKey(new ECPrivateKeySpec(s, openSslSpec.getECParameterSpec()))
-                        .getOpenSSLKey();
-
-        // Channel ID is the concatenation of the X and Y coordinates of the public key.
-        CHANNEL_ID =
-                new BigInteger("702b07871fd7955c320b26f15e244e47eed60272124c92b9ebecf0b42f90069b"
-                                       + "ab53592ebfeb4f167dbf3ce61513afb0e354c479b1c1b69874fa47129"
-                                       + "3494f77",
-                               16)
-                        .toByteArray();
 
         // RSA keys are slow to generate, so prefer to reuse the key when possible.
         TEST_RSA_KEY = generateRsaKey();
@@ -243,24 +234,356 @@ public class NativeCryptoTest {
         assertEquals(Arrays.deepToString(expected), Arrays.deepToString(actual));
     }
 
+    // Test values from wycheproof/testvectors/rsa_pkcs1_2048_test.json.
     @Test
-    public void EVP_PKEY_new_RSA_invalidParameters_throwsBoringSSLErrorAndClearsQueue() throws Exception {
+    public void wrap_RSA_private_key_pkcs8_success() throws Exception {
+        byte[] expectedPkcs8 = decodeHex(
+                "308204bd020100300d06092a864886f70d0101010500048204a7308204a30201000282010100b3510a"
+                + "2bcd4ce644c5b594ae5059e12b2f054b658d5da5959a2fdf1871b808bc3df3e628d2792e51aad5c1"
+                + "24b43bda453dca5cde4bcf28e7bd4effba0cb4b742bbb6d5a013cb63d1aa3a89e02627ef5398b52c"
+                + "0cfd97d208abeb8d7c9bce0bbeb019a86ddb589beb29a5b74bf861075c677c81d430f030c265247a"
+                + "f9d3c9140ccb65309d07e0adc1efd15cf17e7b055d7da3868e4648cc3a180f0ee7f8e1e7b18098a3"
+                + "391b4ce7161e98d57af8a947e201a463e2d6bbca8059e5706e9dfed8f4856465ffa712ed1aa18e88"
+                + "8d12dc6aa09ce95ecfca83cc5b0b15db09c8647f5d524c0f2e7620a3416b9623cadc0f097af57326"
+                + "1c98c8400aa12af38e43cad84d0203010001028201001a502d0eea6c7b69e21d5839101f705456ed"
+                + "0ef852fb47fe21071f54c5f33c8ceb066c62d727e32d26c58137329f89d3195325b795264c195d85"
+                + "472f7507dbd0961d2951f935a26b34f0ac24d15490e1128a9b7138915bc7dbfa8fe396357131c543"
+                + "ae9c98507368d9ceb08c1c6198a3eda7aea185a0e976cd42c22d00f003d9f19d96ea4c9afcbfe144"
+                + "1ccc802cfb0689f59d804c6a4e4f404c15174745ed6cb8bc88ef0b33ba0d2a80e35e43bc90f35005"
+                + "2e72016e75b00d357a381c9c0d467069ca660887c987766349fcc43460b4aa516bce079edd87ba16"
+                + "4307b752c277ed9528ad3ba0bf1877349ed3b7966a6c240110409bf4d0fade0c68fdadd847fd0281"
+                + "8100ec125cf37e310a2ff46263b9b2e0629d6390005ec88913d4fb71bd4dd856124498aaeba983d7"
+                + "ba2bd942e64d223feb7a23af4d605efeea6bd70d39afe99d35a3aa15e74a1768778093be0edd4a8d"
+                + "09b2def6dc9b67ff85764625c2e19236db4c401ce30a2572d3ecb4f969b7ad19c522c02d77446567"
+                + "6e1a3776c54d6248348b02818100c2742abcd9897bd4b0b671f973fc82a8f84abf5705ff88dd4194"
+                + "8623afe9dca60dc6543390767feaebeb539576ee8bfa61b5fcbca94a7cef75a09150c540fa9694dd"
+                + "8004ad23718c889049219369c99f4458d4afc148f6f07df87324a96d9cf7b385dd8622414a1832f9"
+                + "f29446f050c2d5a6407649dc41ab70e23b3dcc22c9870281810096a9798d250263400bb627734288"
+                + "1627e07cecdf91187b01b89ff47314188a7c20fb24800156d2c85d5666e8df6ceff9f9804ddfad80"
+                + "ff5767de56ecc029c72bf6c717df9f64daafc29acf9dc7908f9a0ad67e20e8949936ccba18d021a2"
+                + "c4febb04349a2b2047c4901385b6e5d0c691d118b33f81802b32ac272ef09e42fad50281800554f4"
+                + "1b0b87f68a45722b3be0cf4ab1e165034c1a91002ab8f29e9ef9e2dab6fee7b2455bafb42037e9d2"
+                + "f7e533f348a147412fd72080be7c2633f5d802c91c39e6bcece3e675e59995033c55737020dad9e8"
+                + "b30d04b828adfb9304ad54a11a35a4f50709876ac5b118236ba76a4d7c9a291dd9607b169de1d182"
+                + "385691999f0281801c640189d9bfe8c623833210a76c420c6f44e5d760e259916cec2ae2b1564569"
+                + "60fd95e2747660c389562250f055049cfab7e5c3039549384a7a2aaeb1c824d3af709482a8cf9b58"
+                + "7022a00b1f0722db50f33cb26dc20dd2245d5265df61ee2983c938c2167dcee121fc4b4479c237e7"
+                + "28cf633ab60a8c0ecd04fce7e3baa559");
+        byte[] rawKey = decodeHex(
+                "308204a30201000282010100b3510a2bcd4ce644c5b594ae5059e12b2f054b658d5da5959a2fdf1871"
+                + "b808bc3df3e628d2792e51aad5c124b43bda453dca5cde4bcf28e7bd4effba0cb4b742bbb6d5a013"
+                + "cb63d1aa3a89e02627ef5398b52c0cfd97d208abeb8d7c9bce0bbeb019a86ddb589beb29a5b74bf8"
+                + "61075c677c81d430f030c265247af9d3c9140ccb65309d07e0adc1efd15cf17e7b055d7da3868e46"
+                + "48cc3a180f0ee7f8e1e7b18098a3391b4ce7161e98d57af8a947e201a463e2d6bbca8059e5706e9d"
+                + "fed8f4856465ffa712ed1aa18e888d12dc6aa09ce95ecfca83cc5b0b15db09c8647f5d524c0f2e76"
+                + "20a3416b9623cadc0f097af573261c98c8400aa12af38e43cad84d0203010001028201001a502d0e"
+                + "ea6c7b69e21d5839101f705456ed0ef852fb47fe21071f54c5f33c8ceb066c62d727e32d26c58137"
+                + "329f89d3195325b795264c195d85472f7507dbd0961d2951f935a26b34f0ac24d15490e1128a9b71"
+                + "38915bc7dbfa8fe396357131c543ae9c98507368d9ceb08c1c6198a3eda7aea185a0e976cd42c22d"
+                + "00f003d9f19d96ea4c9afcbfe1441ccc802cfb0689f59d804c6a4e4f404c15174745ed6cb8bc88ef"
+                + "0b33ba0d2a80e35e43bc90f350052e72016e75b00d357a381c9c0d467069ca660887c987766349fc"
+                + "c43460b4aa516bce079edd87ba164307b752c277ed9528ad3ba0bf1877349ed3b7966a6c24011040"
+                + "9bf4d0fade0c68fdadd847fd02818100ec125cf37e310a2ff46263b9b2e0629d6390005ec88913d4"
+                + "fb71bd4dd856124498aaeba983d7ba2bd942e64d223feb7a23af4d605efeea6bd70d39afe99d35a3"
+                + "aa15e74a1768778093be0edd4a8d09b2def6dc9b67ff85764625c2e19236db4c401ce30a2572d3ec"
+                + "b4f969b7ad19c522c02d774465676e1a3776c54d6248348b02818100c2742abcd9897bd4b0b671f9"
+                + "73fc82a8f84abf5705ff88dd41948623afe9dca60dc6543390767feaebeb539576ee8bfa61b5fcbc"
+                + "a94a7cef75a09150c540fa9694dd8004ad23718c889049219369c99f4458d4afc148f6f07df87324"
+                + "a96d9cf7b385dd8622414a1832f9f29446f050c2d5a6407649dc41ab70e23b3dcc22c98702818100"
+                + "96a9798d250263400bb6277342881627e07cecdf91187b01b89ff47314188a7c20fb24800156d2c8"
+                + "5d5666e8df6ceff9f9804ddfad80ff5767de56ecc029c72bf6c717df9f64daafc29acf9dc7908f9a"
+                + "0ad67e20e8949936ccba18d021a2c4febb04349a2b2047c4901385b6e5d0c691d118b33f81802b32"
+                + "ac272ef09e42fad50281800554f41b0b87f68a45722b3be0cf4ab1e165034c1a91002ab8f29e9ef9"
+                + "e2dab6fee7b2455bafb42037e9d2f7e533f348a147412fd72080be7c2633f5d802c91c39e6bcece3"
+                + "e675e59995033c55737020dad9e8b30d04b828adfb9304ad54a11a35a4f50709876ac5b118236ba7"
+                + "6a4d7c9a291dd9607b169de1d182385691999f0281801c640189d9bfe8c623833210a76c420c6f44"
+                + "e5d760e259916cec2ae2b156456960fd95e2747660c389562250f055049cfab7e5c3039549384a7a"
+                + "2aaeb1c824d3af709482a8cf9b587022a00b1f0722db50f33cb26dc20dd2245d5265df61ee2983c9"
+                + "38c2167dcee121fc4b4479c237e728cf633ab60a8c0ecd04fce7e3baa559");
+
+        byte[] result = NativeCrypto.wrap_RSA_private_key_pkcs8(rawKey);
+        assertArrayEquals(expectedPkcs8, result);
+    }
+
+    @Test
+    public void wrap_RSA_private_key_pkcs8_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> { NativeCrypto.wrap_RSA_private_key_pkcs8(invalidKey); });
+    }
+
+    @Test
+    public void wrap_EC_private_key_pkcs8_success() throws Exception {
+        byte[] expectedPkcs8 = decodeHex(
+                "3041020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420b94e7609a7"
+                + "176abafbd4a34fabae42b091e44d9e46e67fca566c2a188a63c65f");
+        byte[] rawKey = decodeHex("30310201010420b94e7609a7176abafbd4a34fabae42b091e44d9e46e67fca56"
+                                  + "6c2a188a63c65fa00a06082a8648ce3d030107");
+
+        byte[] result = NativeCrypto.wrap_EC_private_key_pkcs8(rawKey);
+        assertArrayEquals(expectedPkcs8, result);
+    }
+
+    @Test
+    public void wrap_EC_private_key_pkcs8_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.wrap_EC_private_key_pkcs8(invalidKey));
+    }
+
+    // Test value from wycheproof/testvectors/rsa_pkcs1_2048_test.json.
+    @Test
+    public void unwrap_RSA_private_key_pkcs8_success() throws Exception {
+        byte[] expectedRawKey = decodeHex(
+                "308204a30201000282010100b3510a2bcd4ce644c5b594ae5059e12b2f054b658d5da5959a2fdf1871"
+                + "b808bc3df3e628d2792e51aad5c124b43bda453dca5cde4bcf28e7bd4effba0cb4b742bbb6d5a013"
+                + "cb63d1aa3a89e02627ef5398b52c0cfd97d208abeb8d7c9bce0bbeb019a86ddb589beb29a5b74bf8"
+                + "61075c677c81d430f030c265247af9d3c9140ccb65309d07e0adc1efd15cf17e7b055d7da3868e46"
+                + "48cc3a180f0ee7f8e1e7b18098a3391b4ce7161e98d57af8a947e201a463e2d6bbca8059e5706e9d"
+                + "fed8f4856465ffa712ed1aa18e888d12dc6aa09ce95ecfca83cc5b0b15db09c8647f5d524c0f2e76"
+                + "20a3416b9623cadc0f097af573261c98c8400aa12af38e43cad84d0203010001028201001a502d0e"
+                + "ea6c7b69e21d5839101f705456ed0ef852fb47fe21071f54c5f33c8ceb066c62d727e32d26c58137"
+                + "329f89d3195325b795264c195d85472f7507dbd0961d2951f935a26b34f0ac24d15490e1128a9b71"
+                + "38915bc7dbfa8fe396357131c543ae9c98507368d9ceb08c1c6198a3eda7aea185a0e976cd42c22d"
+                + "00f003d9f19d96ea4c9afcbfe1441ccc802cfb0689f59d804c6a4e4f404c15174745ed6cb8bc88ef"
+                + "0b33ba0d2a80e35e43bc90f350052e72016e75b00d357a381c9c0d467069ca660887c987766349fc"
+                + "c43460b4aa516bce079edd87ba164307b752c277ed9528ad3ba0bf1877349ed3b7966a6c24011040"
+                + "9bf4d0fade0c68fdadd847fd02818100ec125cf37e310a2ff46263b9b2e0629d6390005ec88913d4"
+                + "fb71bd4dd856124498aaeba983d7ba2bd942e64d223feb7a23af4d605efeea6bd70d39afe99d35a3"
+                + "aa15e74a1768778093be0edd4a8d09b2def6dc9b67ff85764625c2e19236db4c401ce30a2572d3ec"
+                + "b4f969b7ad19c522c02d774465676e1a3776c54d6248348b02818100c2742abcd9897bd4b0b671f9"
+                + "73fc82a8f84abf5705ff88dd41948623afe9dca60dc6543390767feaebeb539576ee8bfa61b5fcbc"
+                + "a94a7cef75a09150c540fa9694dd8004ad23718c889049219369c99f4458d4afc148f6f07df87324"
+                + "a96d9cf7b385dd8622414a1832f9f29446f050c2d5a6407649dc41ab70e23b3dcc22c98702818100"
+                + "96a9798d250263400bb6277342881627e07cecdf91187b01b89ff47314188a7c20fb24800156d2c8"
+                + "5d5666e8df6ceff9f9804ddfad80ff5767de56ecc029c72bf6c717df9f64daafc29acf9dc7908f9a"
+                + "0ad67e20e8949936ccba18d021a2c4febb04349a2b2047c4901385b6e5d0c691d118b33f81802b32"
+                + "ac272ef09e42fad50281800554f41b0b87f68a45722b3be0cf4ab1e165034c1a91002ab8f29e9ef9"
+                + "e2dab6fee7b2455bafb42037e9d2f7e533f348a147412fd72080be7c2633f5d802c91c39e6bcece3"
+                + "e675e59995033c55737020dad9e8b30d04b828adfb9304ad54a11a35a4f50709876ac5b118236ba7"
+                + "6a4d7c9a291dd9607b169de1d182385691999f0281801c640189d9bfe8c623833210a76c420c6f44"
+                + "e5d760e259916cec2ae2b156456960fd95e2747660c389562250f055049cfab7e5c3039549384a7a"
+                + "2aaeb1c824d3af709482a8cf9b587022a00b1f0722db50f33cb26dc20dd2245d5265df61ee2983c9"
+                + "38c2167dcee121fc4b4479c237e728cf633ab60a8c0ecd04fce7e3baa559");
+        byte[] pkcs8Der = decodeHex(
+                "308204bd020100300d06092a864886f70d0101010500048204a7308204a30201000282010100b3510a"
+                + "2bcd4ce644c5b594ae5059e12b2f054b658d5da5959a2fdf1871b808bc3df3e628d2792e51aad5c1"
+                + "24b43bda453dca5cde4bcf28e7bd4effba0cb4b742bbb6d5a013cb63d1aa3a89e02627ef5398b52c"
+                + "0cfd97d208abeb8d7c9bce0bbeb019a86ddb589beb29a5b74bf861075c677c81d430f030c265247a"
+                + "f9d3c9140ccb65309d07e0adc1efd15cf17e7b055d7da3868e4648cc3a180f0ee7f8e1e7b18098a3"
+                + "391b4ce7161e98d57af8a947e201a463e2d6bbca8059e5706e9dfed8f4856465ffa712ed1aa18e88"
+                + "8d12dc6aa09ce95ecfca83cc5b0b15db09c8647f5d524c0f2e7620a3416b9623cadc0f097af57326"
+                + "1c98c8400aa12af38e43cad84d0203010001028201001a502d0eea6c7b69e21d5839101f705456ed"
+                + "0ef852fb47fe21071f54c5f33c8ceb066c62d727e32d26c58137329f89d3195325b795264c195d85"
+                + "472f7507dbd0961d2951f935a26b34f0ac24d15490e1128a9b7138915bc7dbfa8fe396357131c543"
+                + "ae9c98507368d9ceb08c1c6198a3eda7aea185a0e976cd42c22d00f003d9f19d96ea4c9afcbfe144"
+                + "1ccc802cfb0689f59d804c6a4e4f404c15174745ed6cb8bc88ef0b33ba0d2a80e35e43bc90f35005"
+                + "2e72016e75b00d357a381c9c0d467069ca660887c987766349fcc43460b4aa516bce079edd87ba16"
+                + "4307b752c277ed9528ad3ba0bf1877349ed3b7966a6c240110409bf4d0fade0c68fdadd847fd0281"
+                + "8100ec125cf37e310a2ff46263b9b2e0629d6390005ec88913d4fb71bd4dd856124498aaeba983d7"
+                + "ba2bd942e64d223feb7a23af4d605efeea6bd70d39afe99d35a3aa15e74a1768778093be0edd4a8d"
+                + "09b2def6dc9b67ff85764625c2e19236db4c401ce30a2572d3ecb4f969b7ad19c522c02d77446567"
+                + "6e1a3776c54d6248348b02818100c2742abcd9897bd4b0b671f973fc82a8f84abf5705ff88dd4194"
+                + "8623afe9dca60dc6543390767feaebeb539576ee8bfa61b5fcbca94a7cef75a09150c540fa9694dd"
+                + "8004ad23718c889049219369c99f4458d4afc148f6f07df87324a96d9cf7b385dd8622414a1832f9"
+                + "f29446f050c2d5a6407649dc41ab70e23b3dcc22c9870281810096a9798d250263400bb627734288"
+                + "1627e07cecdf91187b01b89ff47314188a7c20fb24800156d2c85d5666e8df6ceff9f9804ddfad80"
+                + "ff5767de56ecc029c72bf6c717df9f64daafc29acf9dc7908f9a0ad67e20e8949936ccba18d021a2"
+                + "c4febb04349a2b2047c4901385b6e5d0c691d118b33f81802b32ac272ef09e42fad50281800554f4"
+                + "1b0b87f68a45722b3be0cf4ab1e165034c1a91002ab8f29e9ef9e2dab6fee7b2455bafb42037e9d2"
+                + "f7e533f348a147412fd72080be7c2633f5d802c91c39e6bcece3e675e59995033c55737020dad9e8"
+                + "b30d04b828adfb9304ad54a11a35a4f50709876ac5b118236ba76a4d7c9a291dd9607b169de1d182"
+                + "385691999f0281801c640189d9bfe8c623833210a76c420c6f44e5d760e259916cec2ae2b1564569"
+                + "60fd95e2747660c389562250f055049cfab7e5c3039549384a7a2aaeb1c824d3af709482a8cf9b58"
+                + "7022a00b1f0722db50f33cb26dc20dd2245d5265df61ee2983c938c2167dcee121fc4b4479c237e7"
+                + "28cf633ab60a8c0ecd04fce7e3baa559");
+
+        byte[] result = NativeCrypto.unwrap_RSA_private_key_pkcs8(pkcs8Der);
+        assertArrayEquals(expectedRawKey, result);
+    }
+
+    @Test
+    public void unwrap_nonRSA_private_key_pkcs8_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.unwrap_RSA_private_key_pkcs8(invalidKey));
+    }
+
+    @Test
+    public void unwrap_EC_private_key_pkcs8_success() throws Exception {
+        byte[] expectedRawKey =
+                decodeHex("30310201010420b94e7609a7176abafbd4a34fabae42b091e44d9e46e67fca56"
+                          + "6c2a188a63c65fa00a06082a8648ce3d030107");
+        byte[] pkcs8Der = decodeHex(
+                "3041020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420b94e7609a7"
+                + "176abafbd4a34fabae42b091e44d9e46e67fca566c2a188a63c65f");
+
+        byte[] result = NativeCrypto.unwrap_EC_private_key_pkcs8(pkcs8Der);
+        assertArrayEquals(expectedRawKey, result);
+    }
+
+    @Test
+    public void unwrap_nonEC_private_key_pkcs8_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.unwrap_EC_private_key_pkcs8(invalidKey));
+    }
+
+    // Test values from wycheproof/testvectors/rsa_pss_misc_test.json.
+    @Test
+    public void wrap_RSA_public_key_x509_success() throws Exception {
+        byte[] expectedX509 = decodeHex("30820122300d06092a864886f70d01010105000382010f003082010a02"
+                                        + "82010100b3510a2bcd4ce644c5b"
+                                        + "594ae5059e12b2f054b658d5da5959a2fdf1871b808bc3df3e628d27"
+                                        + "92e51aad5c124b43bda453dca5"
+                                        + "cde4bcf28e7bd4effba0cb4b742bbb6d5a013cb63d1aa3a89e02627e"
+                                        + "f5398b52c0cfd97d208abeb8d7"
+                                        + "c9bce0bbeb019a86ddb589beb29a5b74bf861075c677c81d430f030c"
+                                        + "265247af9d3c9140ccb65309d0"
+                                        + "7e0adc1efd15cf17e7b055d7da3868e4648cc3a180f0ee7f8e1e7b18"
+                                        + "098a3391b4ce7161e98d57af8a"
+                                        + "947e201a463e2d6bbca8059e5706e9dfed8f4856465ffa712ed1aa18"
+                                        + "e888d12dc6aa09ce95ecfca83c"
+                                        + "c5b0b15db09c8647f5d524c0f2e7620a3416b9623cadc0f097af5732"
+                                        + "61c98c8400aa12af38e43cad84"
+                                        + "d0203010001");
+        byte[] rawKey = decodeHex(
+                "3082010a0282010100b3510a2bcd4ce644c5b594ae5059e12b2f054b658d5da5959a2fdf1871b808bc"
+                + "3df3e628d2792e51aad5c124b43bda453dca5cde4bcf28e7bd4effba0cb4b742bbb6d5a013cb63d1"
+                + "aa"
+                + "3a89e02627ef5398b52c0cfd97d208abeb8d7c9bce0bbeb019a86ddb589beb29a5b74bf861075c67"
+                + "7c"
+                + "81d430f030c265247af9d3c9140ccb65309d07e0adc1efd15cf17e7b055d7da3868e4648cc3a180f"
+                + "0e"
+                + "e7f8e1e7b18098a3391b4ce7161e98d57af8a947e201a463e2d6bbca8059e5706e9dfed8f4856465"
+                + "ff"
+                + "a712ed1aa18e888d12dc6aa09ce95ecfca83cc5b0b15db09c8647f5d524c0f2e7620a3416b9623ca"
+                + "dc"
+                + "0f097af573261c98c8400aa12af38e43cad84d0203010001");
+
+        byte[] result = NativeCrypto.wrap_RSA_public_key_x509(rawKey);
+        assertArrayEquals(expectedX509, result);
+    }
+
+    @Test
+    public void wrap_RSA_public_key_x509_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.wrap_RSA_public_key_x509(invalidKey));
+    }
+
+    // Test values from third_party/wycheproof/testvectors/ecdsa_secp256r1_sha256_test.json.
+    @Test
+    public void wrap_EC_public_key_x509_success() throws Exception {
+        byte[] expectedX509 = decodeHex(
+                "3059301306072a8648ce3d020106082a8648ce3d030107034200"
+                + "042927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c7787964"
+                + "eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e");
+        byte[] rawKey =
+                decodeHex("042927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c77879"
+                          + "64eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e");
+        byte[] result = NativeCrypto.wrap_EC_public_key_x509(rawKey, "prime256v1");
+        assertArrayEquals(expectedX509, result);
+    }
+
+    @Test
+    public void wrap_EC_public_key_x509_wrong_key_fails() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.wrap_EC_public_key_x509(invalidKey, "prime256v1"));
+    }
+
+    @Test
+    public void wrap_EC_public_key_x509_wrong_curve_fails() throws Exception {
+        byte[] rawKey =
+                decodeHex("042927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c77879"
+                          + "64eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.wrap_EC_public_key_x509(rawKey, "unknowncurve"));
+    }
+
+    @Test
+    public void unwrap_RSA_public_key_x509_success() throws Exception {
+        byte[] expectedRawKey = decodeHex(
+                "3082010a0282010100b3510a2bcd4ce644c5b594ae5059e12b2f054b658d5da5959a2fdf1871b808bc"
+                + "3df3e628d2792e51aad5c124b43bda453dca5cde4bcf28e7bd4effba0cb4b742bbb6d5a013cb63d1"
+                + "aa"
+                + "3a89e02627ef5398b52c0cfd97d208abeb8d7c9bce0bbeb019a86ddb589beb29a5b74bf861075c67"
+                + "7c"
+                + "81d430f030c265247af9d3c9140ccb65309d07e0adc1efd15cf17e7b055d7da3868e4648cc3a180f"
+                + "0e"
+                + "e7f8e1e7b18098a3391b4ce7161e98d57af8a947e201a463e2d6bbca8059e5706e9dfed8f4856465"
+                + "ff"
+                + "a712ed1aa18e888d12dc6aa09ce95ecfca83cc5b0b15db09c8647f5d524c0f2e7620a3416b9623ca"
+                + "dc"
+                + "0f097af573261c98c8400aa12af38e43cad84d0203010001");
+        byte[] x509Key = decodeHex("30820122300d06092a864886f70d01010105000382010f003082010a02"
+                                   + "82010100b3510a2bcd4ce644c5b"
+                                   + "594ae5059e12b2f054b658d5da5959a2fdf1871b808bc3df3e628d27"
+                                   + "92e51aad5c124b43bda453dca5"
+                                   + "cde4bcf28e7bd4effba0cb4b742bbb6d5a013cb63d1aa3a89e02627e"
+                                   + "f5398b52c0cfd97d208abeb8d7"
+                                   + "c9bce0bbeb019a86ddb589beb29a5b74bf861075c677c81d430f030c"
+                                   + "265247af9d3c9140ccb65309d0"
+                                   + "7e0adc1efd15cf17e7b055d7da3868e4648cc3a180f0ee7f8e1e7b18"
+                                   + "098a3391b4ce7161e98d57af8a"
+                                   + "947e201a463e2d6bbca8059e5706e9dfed8f4856465ffa712ed1aa18"
+                                   + "e888d12dc6aa09ce95ecfca83c"
+                                   + "c5b0b15db09c8647f5d524c0f2e7620a3416b9623cadc0f097af5732"
+                                   + "61c98c8400aa12af38e43cad84"
+                                   + "d0203010001");
+
+        byte[] result = NativeCrypto.unwrap_RSA_public_key_x509(x509Key);
+        assertArrayEquals(expectedRawKey, result);
+    }
+
+    @Test
+    public void unwrap_nonRSA_public_key_x509_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.unwrap_RSA_public_key_x509(invalidKey));
+    }
+
+    // Test values from third_party/wycheproof/testvectors/ecdsa_secp256r1_sha256_test.json.
+    @Test
+    public void unwrap_EC_public_key_x509_success() throws Exception {
+        byte[] expectedRawKey =
+                decodeHex("042927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c77879"
+                          + "64eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e");
+        byte[] x509Key = decodeHex(
+                "3059301306072a8648ce3d020106082a8648ce3d030107034200"
+                + "042927b10512bae3eddcfe467828128bad2903269919f7086069c8c4df6c732838c7787964"
+                + "eaac00e5921fb1498a60f4606766b3d9685001558d1a974e7341513e");
+
+        byte[] result = NativeCrypto.unwrap_EC_public_key_x509(x509Key);
+        assertArrayEquals(expectedRawKey, result);
+    }
+
+    @Test
+    public void unwrap_nonEC_public_key_x509_fail() throws Exception {
+        byte[] invalidKey = decodeHex("1234567890abcdef");
+        assertThrows(ParsingException.class,
+                     () -> NativeCrypto.unwrap_EC_public_key_x509(invalidKey));
+    }
+
+    @Test
+    public void EVP_PKEY_new_RSA_invalidParameters_throwsBoringSSLErrorAndClearsQueue()
+            throws Exception {
         RSAPrivateCrtKey privKey = TEST_RSA_KEY;
 
         RuntimeException ex = assertThrows(
-        RuntimeException.class,
-        () ->
-            new NativeRef.EVP_PKEY(
-                NativeCrypto.EVP_PKEY_new_RSA(
-                    // we mixed the order of the arguments to make an invalid key.
-                    privKey.getPrivateExponent().toByteArray(),
-                    privKey.getPublicExponent().toByteArray(),
-                    privKey.getModulus().toByteArray(),
-                    privKey.getPrimeP().toByteArray(),
-                    privKey.getPrimeQ().toByteArray(),
-                    privKey.getPrimeExponentP().toByteArray(),
-                    privKey.getPrimeExponentQ().toByteArray(),
-                    privKey.getCrtCoefficient().toByteArray())));
+                RuntimeException.class,
+                ()
+                        -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_new_RSA(
+                                // we mixed the order of the arguments to make an invalid key.
+                                privKey.getPrivateExponent().toByteArray(),
+                                privKey.getPublicExponent().toByteArray(),
+                                privKey.getModulus().toByteArray(),
+                                privKey.getPrimeP().toByteArray(),
+                                privKey.getPrimeQ().toByteArray(),
+                                privKey.getPrimeExponentP().toByteArray(),
+                                privKey.getPrimeExponentQ().toByteArray(),
+                                privKey.getCrtCoefficient().toByteArray())));
         // check that the exception message contains the error message from BoringSSL.
         assertTrue(ex.getMessage().contains("OPENSSL_internal:"));
 
@@ -273,10 +596,55 @@ public class NativeCryptoTest {
         byte[] aad = new byte[100];
         byte[] output = new byte[100];
         long evpAead = NativeCrypto.EVP_aead_chacha20_poly1305();
-        assertThrows(
-                BadPaddingException.class,
-                () -> NativeCrypto.EVP_AEAD_CTX_open(
-                    evpAead, encodedKey, 16, output, 0, iv, in, 0, in.length, aad));
+        assertThrows(BadPaddingException.class,
+                     ()
+                             -> NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey, 16, output, 0,
+                                                               iv, in, 0, in.length, aad));
+    }
+
+    @Test
+    public void setApplicationProtocols_invalid_clearsErrorQueue() throws Exception {
+        long sslCtx = NativeCrypto.SSL_CTX_new();
+        long ssl = NativeCrypto.SSL_new(sslCtx, null);
+        try {
+            assertThrows(SSLException.class,
+                         ()
+                                 -> NativeCrypto.setApplicationProtocols(
+                                         ssl, null, true, new byte[] {(byte) 255, 0, 0}));
+
+            byte[] encodedKey = new byte[32];
+            byte[] iv = new byte[12];
+            byte[] in = new byte[100];
+            byte[] aad = new byte[100];
+            byte[] output = new byte[100];
+            long evpAead = NativeCrypto.EVP_aead_chacha20_poly1305();
+            assertThrows(BadPaddingException.class,
+                         ()
+                                 -> NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey, 16, output,
+                                                                   0, iv, in, 0, in.length, aad));
+        } finally {
+            NativeCrypto.SSL_free(ssl, null);
+            NativeCrypto.SSL_CTX_free(sslCtx, null);
+        }
+    }
+
+    @Test
+    public void get_cipher_names_invalid_clearsErrorQueue() throws Exception {
+        IllegalArgumentException e =
+                assertThrows(IllegalArgumentException.class,
+                             () -> NativeCrypto.get_cipher_names("INVALID_CIPHER_NAME"));
+        assertTrue(e.getMessage().contains("Unable to"));
+
+        byte[] encodedKey = new byte[32];
+        byte[] iv = new byte[12];
+        byte[] in = new byte[100];
+        byte[] aad = new byte[100];
+        byte[] output = new byte[100];
+        long evpAead = NativeCrypto.EVP_aead_chacha20_poly1305();
+        assertThrows(BadPaddingException.class,
+                     ()
+                             -> NativeCrypto.EVP_AEAD_CTX_open(evpAead, encodedKey, 16, output, 0,
+                                                               iv, in, 0, in.length, aad));
     }
 
     @Test
@@ -477,39 +845,6 @@ public class NativeCryptoTest {
 
         NativeCrypto.setLocalCertsAndPrivateKey(s, null, ENCODED_SERVER_CERTIFICATES,
                                                 SERVER_PRIVATE_KEY.getNativeRef());
-
-        NativeCrypto.SSL_free(s, null);
-        NativeCrypto.SSL_CTX_free(c, null);
-    }
-
-    @Test
-    public void SSL_set1_tls_channel_id_withNullChannelShouldThrow() throws Exception {
-        assertThrows(NullPointerException.class,
-                     () -> NativeCrypto.SSL_set1_tls_channel_id(NULL, null, null));
-    }
-
-    @Test
-    public void SSL_set1_tls_channel_id_withNullKeyShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(NullPointerException.class, () -> {
-            try {
-                NativeCrypto.SSL_set1_tls_channel_id(s, null, null);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
-    }
-
-    @Test
-    public void test_SSL_use_PrivateKey_for_tls_channel_id() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-
-        // Use the key natively. This works because the initChannelIdKey method ensures that the
-        // key is backed by OpenSSL.
-        NativeCrypto.SSL_set1_tls_channel_id(s, null, CHANNEL_ID_PRIVATE_KEY.getNativeRef());
 
         NativeCrypto.SSL_free(s, null);
         NativeCrypto.SSL_CTX_free(c, null);
@@ -1013,7 +1348,6 @@ public class NativeCryptoTest {
 
     public static class Hooks {
         String negotiatedCipherSuite;
-        private OpenSSLKey channelIdPrivateKey;
         boolean pskEnabled;
         byte[] pskKey;
         List<String> enabledCipherSuites;
@@ -1045,9 +1379,6 @@ public class NativeCryptoTest {
             NativeCrypto.setEnabledCipherSuites(s, null, cipherSuites.toArray(new String[0]),
                                                 new String[] {"TLSv1.2"});
 
-            if (channelIdPrivateKey != null) {
-                NativeCrypto.SSL_set1_tls_channel_id(s, null, channelIdPrivateKey.getNativeRef());
-            }
             return s;
         }
         public void configureCallbacks(@SuppressWarnings("unused")
@@ -1062,12 +1393,13 @@ public class NativeCryptoTest {
                 NativeCrypto.SSL_SESSION_free(session);
             }
             if (ssl != NULL) {
-                try {
-                    NativeCrypto.SSL_shutdown(ssl, null, fd, callback);
-                } catch (IOException e) {
-                    // Expected.
-                }
                 NativeCrypto.SSL_free(ssl, null);
+            }
+            if (callback instanceof TestSSLHandshakeCallbacks) {
+                long bio = ((TestSSLHandshakeCallbacks) callback).getBioRef();
+                if (bio != 0) {
+                    NativeCrypto.BIO_free_all(bio);
+                }
             }
             if (context != NULL) {
                 NativeCrypto.SSL_CTX_free(context, null);
@@ -1083,6 +1415,25 @@ public class NativeCryptoTest {
         private final long sslNativePointer;
         private final Hooks hooks;
         private final ApplicationProtocolSelectorAdapter alpnSelector;
+        private EngineTestConnection engineConn;
+        private long bioRef;
+
+        void setEngineConn(EngineTestConnection conn) {
+            this.engineConn = conn;
+            this.bioRef = conn.bio;
+        }
+
+        EngineTestConnection getEngineConn() {
+            return engineConn;
+        }
+
+        void setBioRef(long bioRef) {
+            this.bioRef = bioRef;
+        }
+
+        long getBioRef() {
+            return bioRef;
+        }
 
         TestSSLHandshakeCallbacks(Socket socket, long sslNativePointer, Hooks hooks,
                                   ApplicationProtocolSelectorAdapter alpnSelector) {
@@ -1278,9 +1629,6 @@ public class NativeCryptoTest {
     static class ServerHooks extends Hooks {
         private final OpenSSLKey privateKey;
         private final byte[][] certificates;
-        private boolean channelIdEnabled;
-        private byte[] channelIdAfterHandshake;
-        private Throwable channelIdAfterHandshakeException;
 
         private String pskIdentityHint;
 
@@ -1299,9 +1647,6 @@ public class NativeCryptoTest {
             if (privateKey != null && certificates != null) {
                 NativeCrypto.setLocalCertsAndPrivateKey(s, null, certificates,
                                                         privateKey.getNativeRef());
-            }
-            if (channelIdEnabled) {
-                NativeCrypto.SSL_enable_tls_channel_id(s, null);
             }
             if (pskEnabled) {
                 NativeCrypto.set_SSL_psk_server_callback_enabled(s, null, true);
@@ -1324,19 +1669,171 @@ public class NativeCryptoTest {
         public void afterHandshake(long session, long ssl, long context, Socket socket,
                                    FileDescriptor fd, SSLHandshakeCallbacks callback)
                 throws Exception {
-            if (channelIdEnabled) {
-                try {
-                    channelIdAfterHandshake = NativeCrypto.SSL_get_tls_channel_id(ssl, null);
-                } catch (Exception e) {
-                    channelIdAfterHandshakeException = e;
-                }
-            }
             super.afterHandshake(session, ssl, context, socket, fd, callback);
         }
 
         @Override
         public void clientCertificateRequested(long s) {
             fail("Server asked for client certificates");
+        }
+    }
+
+    static class EngineTestConnection {
+        final long ssl;
+        final long bio;
+        final Socket socket;
+        final InputStream socketIn;
+        final OutputStream socketOut;
+        final SSLHandshakeCallbacks callback;
+        final byte[] socketBuffer = new byte[8192];
+        final byte[] bioBuffer = new byte[8192];
+        final ByteBuffer directBuffer = ByteBuffer.allocateDirect(16384);
+        boolean atEof = false;
+
+        EngineTestConnection(long ssl, Socket socket, SSLHandshakeCallbacks callback)
+                throws IOException {
+            this.ssl = ssl;
+            this.socket = socket;
+            this.socketIn = socket.getInputStream();
+            this.socketOut = socket.getOutputStream();
+            this.callback = callback;
+            this.bio = NativeCrypto.SSL_BIO_new(ssl, null);
+        }
+
+        void flushBIO() throws IOException {
+            int pendingWrite = NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
+            while (pendingWrite > 0) {
+                int read = NativeCrypto.BIO_read(bio, bioBuffer);
+                if (read > 0) {
+                    socketOut.write(bioBuffer, 0, read);
+                    socketOut.flush();
+                } else {
+                    break;
+                }
+                pendingWrite = NativeCrypto.SSL_pending_written_bytes_in_BIO(bio);
+            }
+        }
+
+        void readToBIO() throws IOException {
+            if (atEof) {
+                return;
+            }
+            int read = socketIn.read(socketBuffer);
+            if (read > 0) {
+                NativeCrypto.BIO_write(bio, socketBuffer, 0, read);
+            } else if (read < 0) {
+                atEof = true;
+            }
+        }
+
+        int doHandshake() throws IOException {
+            int ret = NativeCrypto.ENGINE_SSL_do_handshake(ssl, null, callback);
+            flushBIO();
+            return ret;
+        }
+
+        void runHandshake(int timeoutMillis) throws IOException {
+            int oldTimeout = socket.getSoTimeout();
+            if (timeoutMillis > 0) {
+                socket.setSoTimeout(timeoutMillis);
+            }
+            try {
+                boolean finished = false;
+                while (!finished) {
+                    int ret = doHandshake();
+                    if (ret == NativeConstants.SSL_ERROR_NONE) {
+                        finished = true;
+                    } else if (ret == NativeConstants.SSL_ERROR_WANT_READ) {
+                        if (atEof) {
+                            throw new SSLProtocolException(
+                                    "Connection closed by peer during handshake");
+                        }
+                        readToBIO();
+                    } else if (ret == NativeConstants.SSL_ERROR_WANT_WRITE) {
+                        flushBIO();
+                    } else {
+                        throw new SSLException("Handshake failed with code: " + ret);
+                    }
+                }
+            } finally {
+                if (timeoutMillis > 0) {
+                    socket.setSoTimeout(oldTimeout);
+                }
+            }
+        }
+
+        int read(byte[] b, int off, int len, int timeoutMillis)
+                throws IOException, CertificateException {
+            int oldTimeout = socket.getSoTimeout();
+            if (timeoutMillis > 0) {
+                socket.setSoTimeout(timeoutMillis);
+            }
+            try {
+                directBuffer.clear();
+                int toRead = Math.min(len, directBuffer.remaining());
+                long address = NativeCrypto.getDirectBufferAddress(directBuffer);
+
+                while (true) {
+                    int read = NativeCrypto.ENGINE_SSL_read_direct(ssl, null, address, toRead,
+                                                                   callback);
+                    if (read > 0) {
+                        directBuffer.position(read);
+                        directBuffer.flip();
+                        directBuffer.get(b, off, read);
+                        return read;
+                    }
+
+                    if (read == -NativeConstants.SSL_ERROR_WANT_READ) {
+                        if (atEof) {
+                            return -1;
+                        }
+                        readToBIO();
+                    } else if (read == -NativeConstants.SSL_ERROR_WANT_WRITE) {
+                        flushBIO();
+                    } else if (read == -NativeConstants.SSL_ERROR_ZERO_RETURN) {
+                        return -1; // EOF
+                    } else {
+                        throw new SSLException("Read failed with code: " + read);
+                    }
+                }
+            } finally {
+                if (timeoutMillis > 0) {
+                    socket.setSoTimeout(oldTimeout);
+                }
+            }
+        }
+
+        void write(byte[] b, int off, int len) throws IOException {
+            int remaining = len;
+            int currentOff = off;
+            while (remaining > 0) {
+                directBuffer.clear();
+                int toWrite = Math.min(remaining, directBuffer.remaining());
+                directBuffer.put(b, currentOff, toWrite);
+                directBuffer.flip();
+                long address = NativeCrypto.getDirectBufferAddress(directBuffer);
+
+                int written = 0;
+                while (written < toWrite) {
+                    int ret = NativeCrypto.ENGINE_SSL_write_direct(ssl, null, address + written,
+                                                                   toWrite - written, callback);
+                    if (ret > 0) {
+                        written += ret;
+                        flushBIO();
+                    } else {
+                        int error = NativeCrypto.SSL_get_error(ssl, null, ret);
+                        if (error == NativeConstants.SSL_ERROR_WANT_READ) {
+                            readToBIO();
+                        } else if (error == NativeConstants.SSL_ERROR_WANT_WRITE) {
+                            flushBIO();
+                        } else {
+                            throw new SSLException("Write failed with error: " + error);
+                        }
+                    }
+                }
+                currentOff += toWrite;
+                remaining -= toWrite;
+            }
         }
     }
 
@@ -1358,19 +1855,20 @@ public class NativeCryptoTest {
                         if (timeout == -1) {
                             return new TestSSLHandshakeCallbacks(socket, 0, null, null);
                         }
-                        FileDescriptor fd =
-                                (FileDescriptor) m_Platform_getFileDescriptor.invoke(null, socket);
                         long c = hooks.getContext();
                         long s = hooks.beforeHandshake(c);
                         TestSSLHandshakeCallbacks callback =
                                 new TestSSLHandshakeCallbacks(socket, s, hooks, alpnSelector);
                         hooks.configureCallbacks(callback);
+
+                        EngineTestConnection conn = new EngineTestConnection(s, socket, callback);
+                        callback.setEngineConn(conn);
+
                         if (DEBUG) {
                             System.out.println("ssl=0x" + Long.toString(s, 16) + " handshake"
                                                + " context=0x" + Long.toString(c, 16)
-                                               + " socket=" + socket + " fd=0x"
-                                               + Long.toString(System.identityHashCode(fd), 16)
-                                               + " timeout=" + timeout + " client=" + client);
+                                               + " socket=" + socket + " timeout=" + timeout
+                                               + " client=" + client);
                         }
                         long session = NULL;
                         try {
@@ -1387,7 +1885,7 @@ public class NativeCryptoTest {
                                 NativeCrypto.setHasApplicationProtocolSelector(s, null, true);
                             }
 
-                            NativeCrypto.SSL_do_handshake(s, null, fd, callback, timeout);
+                            conn.runHandshake(timeout);
 
                             session = NativeCrypto.SSL_get1_session(s, null);
                             if (DEBUG) {
@@ -1396,7 +1894,7 @@ public class NativeCryptoTest {
                             }
                         } finally {
                             // Ensure afterHandshake is called to free resources
-                            hooks.afterHandshake(session, s, c, socket, fd, callback);
+                            hooks.afterHandshake(session, s, c, socket, null, callback);
                         }
                         return callback;
                     }
@@ -1408,22 +1906,7 @@ public class NativeCryptoTest {
     @Test
     public void test_SSL_do_handshake_NULL_SSL() throws Exception {
         assertThrows(NullPointerException.class,
-                     () -> NativeCrypto.SSL_do_handshake(NULL, null, null, null, 0));
-    }
-
-    @Test
-    public void test_SSL_do_handshake_withNullFdShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        NativeCrypto.SSL_set_connect_state(s, null);
-        assertThrows(NullPointerException.class, () -> {
-            try {
-                NativeCrypto.SSL_do_handshake(s, null, null, null, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
+                     () -> NativeCrypto.ENGINE_SSL_do_handshake(NULL, null, null));
     }
 
     @Test
@@ -1433,7 +1916,7 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_set_connect_state(s, null);
         assertThrows(NullPointerException.class, () -> {
             try {
-                NativeCrypto.SSL_do_handshake(s, null, INVALID_FD, null, 0);
+                NativeCrypto.ENGINE_SSL_do_handshake(s, null, null);
             } finally {
                 NativeCrypto.SSL_free(s, null);
                 NativeCrypto.SSL_CTX_free(c, null);
@@ -1472,7 +1955,6 @@ public class NativeCryptoTest {
         assertFalse(clientCallback.serverCertificateRequestedInvoked);
         assertTrue(serverCallback.serverCertificateRequestedInvoked);
         assertNotNull(serverCallback.serverSignatureAlgs);
-        // g3-add: assertTrue(serverCallback.serverSignatureAlgs.length > 0);
     }
 
     @Test
@@ -1702,123 +2184,6 @@ public class NativeCryptoTest {
             // Manually close peer socket when testing timeout
             IoUtils.closeQuietly(clientSocket);
         }
-    }
-
-    @Test
-    public void test_SSL_do_handshake_with_channel_id_normal() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
-        // Normal handshake with TLS Channel ID.
-        final ServerSocket listener = newServerSocket();
-        Hooks cHooks = new Hooks();
-        cHooks.channelIdPrivateKey = CHANNEL_ID_PRIVATE_KEY;
-        // TLS Channel ID currently requires ECDHE-based key exchanges.
-        cHooks.enabledCipherSuites = Collections.singletonList("ECDHE-RSA-AES128-SHA");
-        ServerHooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES);
-        sHooks.channelIdEnabled = true;
-        sHooks.enabledCipherSuites = cHooks.enabledCipherSuites;
-        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
-        Future<TestSSLHandshakeCallbacks> server =
-                handshake(listener, 0, false, sHooks, null, null);
-        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertTrue(clientCallback.verifyCertificateChainCalled);
-        assertEqualCertificateChains(SERVER_CERTIFICATE_REFS, clientCallback.certificateChainRefs);
-        assertEquals("ECDHE_RSA", clientCallback.authMethod);
-        assertFalse(serverCallback.verifyCertificateChainCalled);
-        assertFalse(clientCallback.clientCertificateRequestedCalled);
-        assertFalse(serverCallback.clientCertificateRequestedCalled);
-        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
-        assertTrue(clientCallback.onNewSessionEstablishedInvoked);
-        assertTrue(serverCallback.onNewSessionEstablishedInvoked);
-        assertTrue(clientCallback.handshakeCompletedCalled);
-        assertTrue(serverCallback.handshakeCompletedCalled);
-        assertNull(sHooks.channelIdAfterHandshakeException);
-        assertFalse(clientCallback.serverCertificateRequestedInvoked);
-        assertTrue(serverCallback.serverCertificateRequestedInvoked);
-        assertEqualByteArrays(CHANNEL_ID, sHooks.channelIdAfterHandshake);
-    }
-
-    @Test
-    public void test_SSL_do_handshake_with_channel_id_not_supported_by_server() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
-        // Client tries to use TLS Channel ID but the server does not enable/offer the extension.
-        final ServerSocket listener = newServerSocket();
-        Hooks cHooks = new Hooks();
-        cHooks.channelIdPrivateKey = CHANNEL_ID_PRIVATE_KEY;
-        // TLS Channel ID currently requires ECDHE-based key exchanges.
-        cHooks.enabledCipherSuites = Collections.singletonList("ECDHE-RSA-AES128-SHA");
-        ServerHooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES);
-        sHooks.channelIdEnabled = false;
-        sHooks.enabledCipherSuites = cHooks.enabledCipherSuites;
-        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
-        Future<TestSSLHandshakeCallbacks> server =
-                handshake(listener, 0, false, sHooks, null, null);
-        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertTrue(clientCallback.verifyCertificateChainCalled);
-        assertEqualCertificateChains(SERVER_CERTIFICATE_REFS, clientCallback.certificateChainRefs);
-        assertEquals("ECDHE_RSA", clientCallback.authMethod);
-        assertFalse(serverCallback.verifyCertificateChainCalled);
-        assertFalse(clientCallback.clientCertificateRequestedCalled);
-        assertFalse(serverCallback.clientCertificateRequestedCalled);
-        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
-        assertTrue(clientCallback.onNewSessionEstablishedInvoked);
-        assertTrue(serverCallback.onNewSessionEstablishedInvoked);
-        assertTrue(clientCallback.handshakeCompletedCalled);
-        assertTrue(serverCallback.handshakeCompletedCalled);
-        assertFalse(clientCallback.serverCertificateRequestedInvoked);
-        assertTrue(serverCallback.serverCertificateRequestedInvoked);
-        assertNull(sHooks.channelIdAfterHandshakeException);
-        assertNull(sHooks.channelIdAfterHandshake);
-    }
-
-    @Test
-    public void test_SSL_do_handshake_with_channel_id_not_enabled_by_client() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
-        // Client does not use TLS Channel ID when the server has the extension enabled/offered.
-        final ServerSocket listener = newServerSocket();
-        Hooks cHooks = new Hooks();
-        cHooks.channelIdPrivateKey = null;
-        // TLS Channel ID currently requires ECDHE-based key exchanges.
-        cHooks.enabledCipherSuites = Collections.singletonList("ECDHE-RSA-AES128-SHA");
-        ServerHooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES);
-        sHooks.channelIdEnabled = true;
-        sHooks.enabledCipherSuites = cHooks.enabledCipherSuites;
-        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
-        Future<TestSSLHandshakeCallbacks> server =
-                handshake(listener, 0, false, sHooks, null, null);
-        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        TestSSLHandshakeCallbacks serverCallback = server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertTrue(clientCallback.verifyCertificateChainCalled);
-        assertEqualCertificateChains(SERVER_CERTIFICATE_REFS, clientCallback.certificateChainRefs);
-        assertEquals("ECDHE_RSA", clientCallback.authMethod);
-        assertFalse(serverCallback.verifyCertificateChainCalled);
-        assertFalse(clientCallback.clientCertificateRequestedCalled);
-        assertFalse(serverCallback.clientCertificateRequestedCalled);
-        assertFalse(clientCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.clientPSKKeyRequestedInvoked);
-        assertFalse(clientCallback.serverPSKKeyRequestedInvoked);
-        assertFalse(serverCallback.serverPSKKeyRequestedInvoked);
-        assertTrue(clientCallback.onNewSessionEstablishedInvoked);
-        assertTrue(serverCallback.onNewSessionEstablishedInvoked);
-        assertTrue(clientCallback.handshakeCompletedCalled);
-        assertTrue(serverCallback.handshakeCompletedCalled);
-        assertFalse(clientCallback.serverCertificateRequestedInvoked);
-        assertTrue(serverCallback.serverCertificateRequestedInvoked);
-        assertNull(sHooks.channelIdAfterHandshakeException);
-        assertNull(sHooks.channelIdAfterHandshake);
     }
 
     @Test
@@ -2347,7 +2712,7 @@ public class NativeCryptoTest {
                 client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 fail();
             } catch (ExecutionException expected) {
-                assertEquals(SSLHandshakeException.class, expected.getCause().getClass());
+                assertEquals(SSLProtocolException.class, expected.getCause().getClass());
             }
             try {
                 server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -2681,21 +3046,7 @@ public class NativeCryptoTest {
     @Test
     public void SSL_read_withNullSslShouldThrow() throws Exception {
         assertThrows(NullPointerException.class,
-                     () -> NativeCrypto.SSL_read(NULL, null, null, null, null, 0, 0, 0));
-    }
-
-    @Test
-    public void SSL_read_withNullFdShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(NullPointerException.class, () -> {
-            try {
-                NativeCrypto.SSL_read(s, null, null, DUMMY_CB, null, 0, 0, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
+                     () -> NativeCrypto.ENGINE_SSL_read_direct(NULL, null, 0, 0, null));
     }
 
     @Test
@@ -2704,35 +3055,7 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c, null);
         assertThrows(NullPointerException.class, () -> {
             try {
-                NativeCrypto.SSL_read(s, null, INVALID_FD, null, null, 0, 0, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
-    }
-
-    @Test
-    public void SSL_read_withNullBytesShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(NullPointerException.class, () -> {
-            try {
-                NativeCrypto.SSL_read(s, null, INVALID_FD, DUMMY_CB, null, 0, 0, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
-    }
-
-    @Test
-    public void SSL_read_beforeHandshakeShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(SSLException.class, () -> {
-            try {
-                NativeCrypto.SSL_read(s, null, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
+                NativeCrypto.ENGINE_SSL_read_direct(s, null, 0, 0, null);
             } finally {
                 NativeCrypto.SSL_free(s, null);
                 NativeCrypto.SSL_CTX_free(c, null);
@@ -2755,9 +3078,9 @@ public class NativeCryptoTest {
                                            FileDescriptor fd, SSLHandshakeCallbacks callback)
                         throws Exception {
                     byte[] in = new byte[256];
-                    assertEquals(
-                            BYTES.length,
-                            NativeCrypto.SSL_read(s, null, fd, callback, in, 0, BYTES.length, 0));
+                    EngineTestConnection conn =
+                            ((TestSSLHandshakeCallbacks) callback).getEngineConn();
+                    assertEquals(BYTES.length, conn.read(in, 0, BYTES.length, 0));
                     for (int i = 0; i < BYTES.length; i++) {
                         assertEquals(BYTES[i], in[i]);
                     }
@@ -2769,7 +3092,9 @@ public class NativeCryptoTest {
                 public void afterHandshake(long session, long s, long c, Socket sock,
                                            FileDescriptor fd, SSLHandshakeCallbacks callback)
                         throws Exception {
-                    NativeCrypto.SSL_write(s, null, fd, callback, BYTES, 0, BYTES.length, 0);
+                    EngineTestConnection conn =
+                            ((TestSSLHandshakeCallbacks) callback).getEngineConn();
+                    conn.write(BYTES, 0, BYTES.length);
                     super.afterHandshake(session, s, c, sock, fd, callback);
                 }
             };
@@ -2788,7 +3113,9 @@ public class NativeCryptoTest {
                 public void afterHandshake(long session, long s, long c, Socket sock,
                                            FileDescriptor fd, SSLHandshakeCallbacks callback)
                         throws Exception {
-                    NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 1);
+                    EngineTestConnection conn =
+                            ((TestSSLHandshakeCallbacks) callback).getEngineConn();
+                    conn.read(new byte[1], 0, 1, 1);
                     fail();
                 }
             };
@@ -2797,7 +3124,9 @@ public class NativeCryptoTest {
                 public void afterHandshake(long session, long s, long c, Socket sock,
                                            FileDescriptor fd, SSLHandshakeCallbacks callback)
                         throws Exception {
-                    NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 0);
+                    EngineTestConnection conn =
+                            ((TestSSLHandshakeCallbacks) callback).getEngineConn();
+                    conn.read(new byte[1], 0, 1, 0);
                     super.afterHandshake(session, s, c, sock, fd, callback);
                 }
             };
@@ -2816,21 +3145,7 @@ public class NativeCryptoTest {
     @Test
     public void SSL_write_withNullSslShouldThrow() throws Exception {
         assertThrows(NullPointerException.class,
-                     () -> NativeCrypto.SSL_write(NULL, null, null, null, null, 0, 0, 0));
-    }
-
-    @Test
-    public void SSL_write_withNullFdShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(NullPointerException.class, () -> {
-            try {
-                NativeCrypto.SSL_write(s, null, null, DUMMY_CB, null, 0, 1, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
+                     () -> NativeCrypto.ENGINE_SSL_write_direct(NULL, null, 0, 0, null));
     }
 
     @Test
@@ -2839,99 +3154,12 @@ public class NativeCryptoTest {
         long s = NativeCrypto.SSL_new(c, null);
         assertThrows(NullPointerException.class, () -> {
             try {
-                NativeCrypto.SSL_write(s, null, INVALID_FD, null, null, 0, 1, 0);
+                NativeCrypto.ENGINE_SSL_write_direct(s, null, 0, 0, null);
             } finally {
                 NativeCrypto.SSL_free(s, null);
                 NativeCrypto.SSL_CTX_free(c, null);
             }
         });
-    }
-
-    @Test
-    public void SSL_write_withNullBytesShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(NullPointerException.class, () -> {
-            try {
-                NativeCrypto.SSL_write(s, null, INVALID_FD, DUMMY_CB, null, 0, 1, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
-    }
-
-    @Test
-    public void SSL_write_beforeHandshakeShouldThrow() throws Exception {
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        assertThrows(SSLException.class, () -> {
-            try {
-                NativeCrypto.SSL_write(s, null, INVALID_FD, DUMMY_CB, new byte[1], 0, 1, 0);
-            } finally {
-                NativeCrypto.SSL_free(s, null);
-                NativeCrypto.SSL_CTX_free(c, null);
-            }
-        });
-    }
-
-    @Test
-    public void SSL_interrupt_withNullShouldSucceed() {
-        // SSL_interrupt is a rare case that tolerates a null SSL argument
-        NativeCrypto.SSL_interrupt(NULL, null);
-    }
-
-    @Test
-    public void SSL_interrupt_withoutHandshakeShouldSucceed() throws Exception {
-        // also works without handshaking
-        long c = NativeCrypto.SSL_CTX_new();
-        long s = NativeCrypto.SSL_new(c, null);
-        NativeCrypto.SSL_interrupt(s, null);
-        NativeCrypto.SSL_free(s, null);
-        NativeCrypto.SSL_CTX_free(c, null);
-    }
-
-    @Test
-    public void test_SSL_interrupt() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
-        final ServerSocket listener = newServerSocket();
-
-        Hooks cHooks = new Hooks() {
-            @Override
-            public void afterHandshake(long session, long s, long c, Socket sock, FileDescriptor fd,
-                                       SSLHandshakeCallbacks callback) throws Exception {
-                NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 0);
-                super.afterHandshake(session, s, c, sock, fd, callback);
-            }
-        };
-        Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
-            @Override
-            public void afterHandshake(long session, final long s, long c, Socket sock,
-                                       FileDescriptor fd, SSLHandshakeCallbacks callback)
-                    throws Exception {
-                new Thread() {
-                    @Override
-                    public void run() {
-                        try {
-                            Thread.sleep(1000);
-                            NativeCrypto.SSL_interrupt(s, null);
-                        } catch (Exception e) {
-                            // Expected.
-                        }
-                    }
-                }.start();
-                assertEquals(-1,
-                             NativeCrypto.SSL_read(s, null, fd, callback, new byte[1], 0, 1, 0));
-                super.afterHandshake(session, s, c, sock, fd, callback);
-            }
-        };
-        Future<TestSSLHandshakeCallbacks> client = handshake(listener, 0, true, cHooks, null, null);
-        Future<TestSSLHandshakeCallbacks> server =
-                handshake(listener, 0, false, sHooks, null, null);
-        client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     private static abstract class SSLSessionWrappedTask {
@@ -2950,23 +3178,12 @@ public class NativeCryptoTest {
     }
 
     @Test
-    public void SSL_shutdown_withNullFdShouldSucceed() throws Exception {
-        // We tolerate a null FileDescriptor
-        wrapWithSSLSession(new SSLSessionWrappedTask() {
-            @Override
-            public void run(long sslSession) throws Exception {
-                NativeCrypto.SSL_shutdown(sslSession, null, null, DUMMY_CB);
-            }
-        });
-    }
-
-    @Test
     public void SSL_shutdown_withNullCallbacksShouldThrow() throws Exception {
         assertThrows(NullPointerException.class,
                      () -> wrapWithSSLSession(new SSLSessionWrappedTask() {
                          @Override
                          public void run(long sslSession) throws Exception {
-                             NativeCrypto.SSL_shutdown(sslSession, null, INVALID_FD, null);
+                             NativeCrypto.ENGINE_SSL_shutdown(sslSession, null, null);
                          }
                      }));
     }
@@ -2974,16 +3191,16 @@ public class NativeCryptoTest {
     @Test
     public void SSL_shutdown_withNullSslShouldSucceed() throws Exception {
         // SSL_shutdown is a rare case that tolerates a null SSL argument
-        NativeCrypto.SSL_shutdown(NULL, null, INVALID_FD, DUMMY_CB);
+        NativeCrypto.ENGINE_SSL_shutdown(NULL, null, DUMMY_CB);
     }
 
     @Test
     public void SSL_shutdown_beforeHandshakeShouldThrow() throws Exception {
         // handshaking not yet performed
-        assertThrows(SocketException.class, () -> wrapWithSSLSession(new SSLSessionWrappedTask() {
+        assertThrows(SSLException.class, () -> wrapWithSSLSession(new SSLSessionWrappedTask() {
                          @Override
                          public void run(long sslSession) throws Exception {
-                             NativeCrypto.SSL_shutdown(sslSession, null, INVALID_FD, DUMMY_CB);
+                             NativeCrypto.ENGINE_SSL_shutdown(sslSession, null, DUMMY_CB);
                          }
                      }));
 
@@ -4025,6 +4242,93 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void EVP_PKEY_CTX_set1_signature_context_string_nullPkeyCtxThrows() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> NativeCrypto.EVP_PKEY_CTX_set1_signature_context_string(NULL, new byte[0]));
+    }
+
+    @Test
+    public void EVP_PKEY_CTX_set1_signature_context_string_works() throws Exception {
+        // Test case from wycheproof/testvectors_v1/mldsa_44_sign_seed_test.json.
+        byte[] seed = TestUtils.decodeHex(
+                "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a");
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_44, seed));
+        byte[] contextStr = TestUtils.decodeHex("436f6e74657874");
+        byte[] data = TestUtils.decodeHex("48656c6c6f20776f726c64");
+        byte[] expectedSig = TestUtils.decodeHex(
+                "e11d24772c24efc107ae3abb0149817436f11684d3548748cba19fc0b373ddcb7c8f68f00407d96457"
+                + "0c155a9a34823d5b33345a2bb4dfc43d2e178331bc6573f39d634239230cfc160bf03f41d176854d"
+                + "fee5be915ed6c3f4112fff50d8effcc457708261e715fdf0676831989a15cbd16b92fc97bec06c75"
+                + "919c114c167d2bfae8d7dfa384068c0d96a8e6039e755f9b90cb57b4b0e678854a88a8fada69b91b"
+                + "bbea873f81a7489c0e3612774e8a00370b9b9650331bd2184b9037ce340d82b39436dab990f0c176"
+                + "b90421e71fd182bc07ed70e54587bf2b92c038e8794aded666a6c9cdb29d8747c223967c5a283d3b"
+                + "e2946584202a021c5264e04587b3c60bb5ec7a73e2d4d7caf4619e388d1beff4ec4bf7d104fee347"
+                + "65ab6a51108660f052a05d16aa46efc49d46ff42d65bbc6521d8a18c8cbe104de453367bae5c72b4"
+                + "3854def8222480746003fc8ec4efa2d122965ef9e0e5b3d68c9069af54ef4511036a079d9bb67a43"
+                + "eabec138d37eeaa918bf14815159b0216352a354110d5c835ea9631075317ba617085f2d86215c09"
+                + "c288a584add2809bcc7f50f9071fee5ea2fc08020f2a106fad222155155018f67162855ce6243287"
+                + "24b659c645cc30c6382c6fdf48e1c9e8499bf6f8ccd63f06113e3262efd0800d2619d59cd8966d84"
+                + "7c2de3854634f3b5e83f84e66cac84e1013b93fe3869f270380ccf8c26591a2635cfa048d1955516"
+                + "560c95ce0c39b0cd7c12c3234b13939386adcf557118f21811c3595151919da2bce155f9c6300703"
+                + "a7209fcd893305486df90a828bc551f23878b72f04fe471ed75982175b74ce135fbdf0c786acdefb"
+                + "09829afdaf7eab308cd8c181345e8f713afd5b433a6be59a4e70b421c216a02a16bf0e9276309922"
+                + "11d48d71ac0aec3d0626d84456303c3f35c132571eeafa0106cc7ff333e0d2dcd9352b3cdf36a8fe"
+                + "c2a750e5c8ebfeed52a94e5f41c1d295ddc01de6ddbf9df9970460f33fb362b0b94fac9b496459c6"
+                + "ca989e90d53ec8944d1518d7fcc21f1adca0bac93df266820dfbe9c7cbce4b762340ef8ea6464d26"
+                + "c5fd4f2b67b9776548b567d7426511aa9c2fdd19d85206130ab6cf6d7f5115dcb7f53b628b99ed8f"
+                + "a1bd6055764f950deeabae276b419370c4700cd37ca2a34b387d644d4e0ef6a380a5e2d2f32376b4"
+                + "b8752bfc3003c2b67111105b775fd21c3e5ae678f79975097e6c63e759eae6b14d60c9778b4bc31a"
+                + "aa4c9f4fa4911688dc390047aa11f9a998baa652eb9be561cb4039bd9801fd62eedb6f568ff4189d"
+                + "ffa4c9a7bc11d9faf26499285098043fe699b565545a930d9ce8f5247eea4c5f6df27f3e050b8d01"
+                + "eee5dd1058efe65190eebeaa0742515d9f8f36bd29e6d84e56d9e41c1a551d3ce6ad7e8967872abd"
+                + "60488d4172c56006eb2db95cb25743287a1d73fb3a36ca4d7f7dce22fd2baf10ad47aeacf82b37da"
+                + "fad7c06a6795be40bd6abfc8f998219f2a0e58531c8ccd1bf3ce66b960741a2da9d36971bad67ee4"
+                + "d75e660e0805e889eab0f0be62b38439476ec289e77176341461b474f66f44120f784de5490529a1"
+                + "f6f013eac2dfbdea11275733f1b1723357740a903085e09e8d61a2e2c84f26ddf95fe630a398329e"
+                + "48cd58cbf358b98b839c7f17893b6e913ee286c976bea3a0bbc58177ce0a35a28c5bb4ac6d9d5ffd"
+                + "b9dc626555a55bea17386237d8ccf2ef60a31393b1f49a37329598f706eeeca9c2d0b02ef13dfa6b"
+                + "b9f1e84517aa51d7d7e85ffbdacf23892962d231f67c142df49d6236630bdb50dad047bc84fec4f5"
+                + "17758c3f54c77f5f25fe78a12db9e4dd766198d6014b35cdbab0257cc50c7f9dfa5ac0a88c7d107c"
+                + "8f6bb50dee4d7a3e35cc54fb12572d901f02f4e8bf15cb6fef1910fcd5d54530dbca4046bd9ba303"
+                + "9c4ff97bcbfb6d00a16c1f902a25005c30d3d0d96a9d7116b15f81699614afe0aa448973b6da55c1"
+                + "8f20395a15d2ac53c5725e45711f9b3050ca8f409d4776b568afa8d6657668e7d6d3553d23bdbe09"
+                + "cd1957fc5c76fb733b237e60073dfff5d64ad3f03d3116fe1db0ee27c36b9671b0efa079cb0ae055"
+                + "8023ac6a0aa36f1f2d887805658131398f78b4c2fb2e0bfc4a37e444015879f0db10abd5b56d5993"
+                + "a3ccc0798651c0b85b658285cd00e898be4406a431e29d861379c26ed26cee7f23c05fba0519fa6d"
+                + "0336120dffd6d441d7de14233ff6c345425b852e1cbef6ac4d442e6f121975b912b9e60538b5efe7"
+                + "4c3df3861671b54d96d1d512725fe63b511c4d90261577f8a992746cfe6a4e1426a3d9fcbdb3098a"
+                + "626681ed5c41c3158667708c321a515a978c47c337b1d9cdf6be83fae368d57843baaea2b8b7a943"
+                + "98a8fcdb3b3e39c55a8feceae53f4b2b8967f5a7f671d7cff584596682ed7436979ee9e8610bdcdd"
+                + "0c065b39e22b3fefdb8ebbe7ea59ddb2058980f8c186ec95428a8cea2c41376312a073543283f2c8"
+                + "a970b11f1f31dc531748292cf198c63b2f21996f2bf769d397083f5f7c2da8952b38a199a2fa2698"
+                + "e156cc5550f123d99d4f65852fab97e184f0f615ac419af60c236f4e1c3c209b4eda22ec47c963d6"
+                + "b5318031cda0b1ce9dd0876b0a011d9d1a8a1233c38538581401dcb8766c4c9147d257828a0068a9"
+                + "1e458e3a312e398c2b1affcbd7a702efdcb3f79a28d131667545f2ac3d04fefee0228f257e689a85"
+                + "fb92f528d901768a2dfda51f65ad31e1b781759cde2a44adf0a4b84639a8160bf863445f94a04ab7"
+                + "885fa247fe057c161246f1202bad84345aea9e34b77ef93fe01d090f49e1ba3e214acfea26bc04e4"
+                + "bb2ef2f4fa2af4751a873573ee273d8ab7f1d59aad74c8da98232e2562966b6816f01c1db37c0b5a"
+                + "55710011656ff76f8eb4bbba1e5875e954f1dc43bbd0d77b09cfbc57890acedf796507d31fee6330"
+                + "5cc97209964cc7897befd20db3d6203a317bc8769b8b0081016f2180eb3b40d24ac1458d0afb8034"
+                + "b8babe87c91ead17f25715104be58a526409e8f5053b67e48d7de17a2f81f68a679a6d9192120eda"
+                + "7564c7970c88d4aa266f7063d6b24de7b402c69d9d14f8d51b3bdff45e952c45ead4e729d195f930"
+                + "870fda380f64085011fff63caca5e79d1dae0b2b0dad7e01c4b7b2714b20d3bb69dcee4fe9e04124"
+                + "20b55abba95bacbc1b1fe498474d8d3a5396968b057b8b5081ddb57eaae581da0a1b482879cdc1bd"
+                + "a82fe83d4007375831cf06bcd334ac42c780cb91121eb4021f39f9292a6a023b1010b35d378a7986"
+                + "01cd4a6cfebc0f45b1e7879a8f884e3d465a6680a0b8cbd5e0f210111a40464a586184859299a5e3"
+                + "29384751b5c5c6eceef1ff1d3864879398a1b5b7cbd8000000000000000000000000000000000000"
+                + "0000000000000000000000000000000b19242f");
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        long pkeyCtxVerify = NativeCrypto.EVP_DigestVerifyInit(ctx, 0, privateKey);
+
+        NativeCrypto.EVP_PKEY_CTX_set1_signature_context_string(pkeyCtxVerify, contextStr);
+
+        assertTrue(NativeCrypto.EVP_DigestVerify(ctx, expectedSig, 0, expectedSig.length, data, 0,
+                                                 data.length));
+    }
+
+    @Test
     public void EVP_PKEY_CTX_set_rsa_mgf1_md_NullPkeyCtx() throws Exception {
         assertThrows(NullPointerException.class,
                      () -> NativeCrypto.EVP_PKEY_CTX_set_rsa_mgf1_md(NULL, EvpMdRef.SHA256.EVP_MD));
@@ -4685,5 +4989,150 @@ public class NativeCryptoTest {
 
         assertThrows(NullPointerException.class,
                      () -> NativeCrypto.X25519(new byte[32], new byte[32], null));
+    }
+    @Test
+    public void asn1_read_oid_raw_works() throws Exception {
+        byte[] validOid = decodeHex("06082b06010505070627");
+        long cbs = NativeCrypto.asn1_read_init(validOid);
+        try {
+            assertEquals("1.3.6.1.5.5.7.6.39", NativeCrypto.asn1_read_oid_raw(cbs));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_oid_raw_wrongOidTag_throws() throws Exception {
+        // OID tag byte 0x07 instead of 0x06.
+        byte[] invalidTag = decodeHex("07082b06010505070627");
+        long cbs = NativeCrypto.asn1_read_init(invalidTag);
+        try {
+            assertThrows(IOException.class, () -> NativeCrypto.asn1_read_oid_raw(cbs));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_oid_raw_wrongOidLength_tooLong_throws() throws Exception {
+        // OID length byte 0x13 instead of 0x08.
+        byte[] invalidLong = decodeHex("06132b06010505070627");
+        long cbs = NativeCrypto.asn1_read_init(invalidLong);
+        try {
+            assertThrows(IOException.class, () -> NativeCrypto.asn1_read_oid_raw(cbs));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_oid_raw_wrongOidLength_tooShort_succeedsButLeavesData() throws Exception {
+        // OID length byte 0x01 instead of 0x08.
+        byte[] invalidShort = decodeHex("06012b06010505070627");
+        long cbs = NativeCrypto.asn1_read_init(invalidShort);
+        try {
+            // "06 01 2b" successfully parses as OID "1.3", leaving the rest of the bytes.
+            assertEquals("1.3", NativeCrypto.asn1_read_oid_raw(cbs));
+            assertEquals(false, NativeCrypto.asn1_read_is_empty(cbs));
+        } finally {
+        }
+    }
+    @Test
+    public void asn1_write_oid_raw_works() throws Exception {
+        long cbb = NativeCrypto.asn1_write_init();
+        try {
+            NativeCrypto.asn1_write_oid_raw(cbb, "1.3.6.1.5.5.7.6.39");
+            byte[] encoded = NativeCrypto.asn1_write_finish(cbb);
+            cbb = 0;
+            assertArrayEquals(decodeHex("06082b06010505070627"), encoded);
+        } finally {
+            if (cbb != 0) {
+                NativeCrypto.asn1_write_free(cbb);
+            }
+        }
+    }
+
+    @Test
+    public void asn1_write_oid_raw_invalidOid_throws() throws Exception {
+        long cbb = NativeCrypto.asn1_write_init();
+        try {
+            assertThrows(IOException.class,
+                         () -> NativeCrypto.asn1_write_oid_raw(cbb, "1.3.notanoid"));
+        } finally {
+            NativeCrypto.asn1_write_free(cbb);
+        }
+    }
+
+    @Test
+    public void asn1_write_bitstring_works() throws Exception {
+        long cbb = NativeCrypto.asn1_write_init();
+        try {
+            NativeCrypto.asn1_write_bitstring(cbb, new byte[] {(byte) 0xaa});
+            byte[] encoded = NativeCrypto.asn1_write_finish(cbb);
+            cbb = 0;
+            assertArrayEquals(decodeHex("030200aa"), encoded);
+        } finally {
+            if (cbb != 0) {
+                NativeCrypto.asn1_write_free(cbb);
+            }
+        }
+    }
+
+    @Test
+    public void asn1_read_bitstring_payload_works() throws Exception {
+        byte[] bitString = decodeHex("030200aa"); // TAG 03, LEN 02, Padding 00, Payload aa
+        long cbs = NativeCrypto.asn1_read_init(bitString);
+        try {
+            assertArrayEquals(new byte[] {(byte) 0xaa},
+                              NativeCrypto.asn1_read_bitstring_payload(cbs, 0));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_bitstring_payload_wrongTag_throws() throws Exception {
+        byte[] invalidTag = decodeHex("040200aa"); // OCTET STRING 04 instead of BIT STRING 03
+        long cbs = NativeCrypto.asn1_read_init(invalidTag);
+        try {
+            assertThrows(IOException.class, () -> NativeCrypto.asn1_read_bitstring_payload(cbs, 0));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_bitstring_payload_wrongLength_throws() throws Exception {
+        byte[] invalidLong = decodeHex("031300aa");
+        long cbs = NativeCrypto.asn1_read_init(invalidLong);
+        try {
+            assertThrows(IOException.class, () -> NativeCrypto.asn1_read_bitstring_payload(cbs, 0));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_bitstring_payload_wrongPadding_throws() throws Exception {
+        // Encoded expects 0 padding, but the actual bytes specify 1 unused bit padding.
+        byte[] invalidPadding = decodeHex("030201aa");
+        long cbs = NativeCrypto.asn1_read_init(invalidPadding);
+        try {
+            assertThrows(IOException.class, () -> NativeCrypto.asn1_read_bitstring_payload(cbs, 0));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
+    }
+
+    @Test
+    public void asn1_read_bitstring_payload_mismatchedExpectedPadding_throws() throws Exception {
+        byte[] bitString = decodeHex("030200aa"); // Encoded padding is 0.
+        long cbs = NativeCrypto.asn1_read_init(bitString);
+        try {
+            // But we tell the parser to explicitly expect padding 1.
+            assertThrows(IOException.class, () -> NativeCrypto.asn1_read_bitstring_payload(cbs, 1));
+        } finally {
+            NativeCrypto.asn1_read_free(cbs);
+        }
     }
 }

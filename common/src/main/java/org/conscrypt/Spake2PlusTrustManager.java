@@ -20,7 +20,6 @@ import javax.net.ssl.TrustManager;
 
 /**
  * Noop TrustManager for Spake2Plus
- * @hide This class is not part of the Android public SDK API
  */
 @Internal
 public class Spake2PlusTrustManager implements TrustManager {

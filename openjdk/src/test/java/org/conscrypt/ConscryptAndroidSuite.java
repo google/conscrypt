@@ -104,6 +104,7 @@ import tests.util.ServiceTester;
         NativeSslSessionTest.class,
         OpenSSLKeyTest.class,
         OpenSSLX509CertificateTest.class,
+        SignatureThreadMisuseTest.class,
         SSLUtilsTest.class,
         SlhDsaTest.class,
         TestSessionBuilderTest.class,

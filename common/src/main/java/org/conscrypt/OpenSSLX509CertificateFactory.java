@@ -46,6 +46,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     private static final int VALUE_0 = 0x30; // Value of '0'
 
     private static final int PUSHBACK_SIZE = 64;
+    private static final int SAFE_MARK_LIMIT = 256 * 1024;
 
     static class ParsingException extends Exception {
         private static final long serialVersionUID = 8390802697728301325L;
@@ -98,6 +99,41 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     }
 
     /**
+     * Returns true if the header looks like an X.509 Certificate or CRL, by checking that the
+     * first element of the structure is a SEQUENCE, which has tag 0x30 and that the length does
+     * not exceed what can be represented by 4 bytes.
+     */
+    private static boolean isMaybeX509(byte[] header, int len) {
+        // The outer tag must be an ASN.1 SEQUENCE.
+        if (len < 2 || header[0] != VALUE_0) {
+            return false;
+        }
+
+        // Bytes are signed in Java.
+        int lengthByte = header[1] & 0xff;
+        int idx = 2;
+
+        // Skip the length prefix to find the tag of the first child.
+        if (lengthByte <= 0x80) {
+            // Short-form or indefinite length.
+        } else if (lengthByte == 0x81) {
+            idx += 1;
+        } else if (lengthByte == 0x82) {
+            idx += 2;
+        } else if (lengthByte == 0x83) {
+            idx += 3;
+        } else if (lengthByte == 0x84) {
+            idx += 4;
+        } else {
+            return false;
+        }
+
+        // The first element of an X.509 Certificate (TBSCertificate) or
+        // CRL (TBSCertList) is always a SEQUENCE, which has tag 0x30.
+        return idx < len && header[idx] == VALUE_0;
+    }
+
+    /**
      * The code for X509 Certificates and CRL is pretty much the same. We use
      * this abstract class to share the code between them. This makes it ugly,
      * but it's already written in this language anyway.
@@ -110,18 +146,25 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
             final boolean markable = inStream.markSupported();
             if (markable) {
-                inStream.mark(PKCS7_MARKER.length);
+                inStream.mark(SAFE_MARK_LIMIT);
             }
 
             final PushbackInputStream pbis = new PushbackInputStream(inStream, PUSHBACK_SIZE);
             try {
                 byte[] buffer = new byte[PKCS7_MARKER.length];
+                int len = 0;
+                while (len < buffer.length) {
+                    int read = pbis.read(buffer, len, buffer.length - len);
+                    if (read < 0) {
+                        break;
+                    }
+                    len += read;
+                }
 
-                int len = pbis.read(buffer);
-                if (len < 0) {
-                    /* No need to reset here. The stream was empty or EOF. */
+                if (len == 0) {
                     throw new ParsingException("inStream is empty");
                 }
+
                 pbis.unread(buffer, 0, len);
 
                 if (buffer[0] == '-') {
@@ -134,8 +177,20 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                     }
                     return certs.get(0);
                 }
-                if (buffer[0] == VALUE_0) {
-                    return fromX509DerInputStream(pbis);
+                // GUARD: Only attempt greedy DER parsing if the header does not look like PEM and
+                // does look like X509 or PKCS#7.
+                if (isMaybeX509(buffer, len)) {
+                    try {
+                        return fromX509DerInputStream(pbis);
+                    } catch (ParsingException e) {
+                        if (markable) {
+                            try {
+                                inStream.reset();
+                            } catch (IOException ignored) {
+                                // If resetting the stream fails, there's not much we can do
+                            }
+                        }
+                    }
                 }
                 int value = 0;
                 buffer = new byte[PEM_MARKER.length];
@@ -174,7 +229,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
 
             final boolean markable = inStream.markSupported();
             if (markable) {
-                inStream.mark(PUSHBACK_SIZE);
+                inStream.mark(SAFE_MARK_LIMIT);
             }
 
             /* Attempt to see if this is a PKCS#7 bag. */
@@ -182,8 +237,16 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
             try {
                 final byte[] buffer = new byte[PKCS7_MARKER.length];
 
-                final int len = pbis.read(buffer);
-                if (len < 0) {
+                int len = 0;
+                while (len < buffer.length) {
+                    int read = pbis.read(buffer, len, buffer.length - len);
+                    if (read < 0) {
+                        break;
+                    }
+                    len += read;
+                }
+
+                if (len == 0) {
                     // No need to reset here. The stream was empty or EOF so we return an empty
                     // list, making it mutable for consistency with the other code paths.
                     return new ArrayList<>();
@@ -220,7 +283,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                  * there is an error during certificate generation.
                  */
                 if (markable) {
-                    inStream.mark(PUSHBACK_SIZE);
+                    inStream.mark(SAFE_MARK_LIMIT);
                 }
 
                 try {

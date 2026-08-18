@@ -526,6 +526,10 @@ jobs:
           DIR="$(find m2/org/conscrypt/conscrypt-openjdk-uber -maxdepth 1 -mindepth 1 -type d -print)"
           VERSION="${DIR##*/}"
           TESTJAR="$(find testjar -name '*-tests.jar')"
+          EXTRA_FLAGS=""
+          if [ "${{ matrix.java }}" != "8" ]; then
+            EXTRA_FLAGS="--add-opens=java.base/java.net=ALL-UNNAMED"
+          fi
           # SIGTERM handler, e.g. for when tests hang and time out.
           # Send SIGQUIT to test process to get thread dump, give it
           # a few seconds to complete and then kill it.
@@ -537,7 +541,7 @@ jobs:
             kill -KILL "$TESTPID"
             exit 1
           }
-          java -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar${{ matrix.separator }}$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests &
+          java $EXTRA_FLAGS -jar junit-platform-console-standalone.jar execute -cp "$DIR/conscrypt-openjdk-uber-$VERSION.jar${{ matrix.separator }}$TESTJAR" -n='org.conscrypt.ConscryptOpenJdkSuite' --scan-classpath --reports-dir=results --fail-if-no-tests &
           case $(uname -s) in
             Darwin|Linux)
               trap dump_threads SIGTERM SIGINT

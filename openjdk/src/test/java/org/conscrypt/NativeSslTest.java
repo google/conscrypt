@@ -16,8 +16,8 @@
 package org.conscrypt;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,8 +45,6 @@ public final class NativeSslTest {
                           NativeSsl.toBoringSslGroups(new String[] {"secp521r1"}));
         assertArrayEquals(new int[] {NativeConstants.NID_X25519MLKEM768},
                           NativeSsl.toBoringSslGroups(new String[] {"X25519MLKEM768"}));
-        assertArrayEquals(new int[] {NativeConstants.NID_X25519Kyber768Draft00},
-                          NativeSsl.toBoringSslGroups(new String[] {"X25519Kyber768Draft00"}));
         assertArrayEquals(new int[] {NativeConstants.NID_ML_KEM_1024},
                           NativeSsl.toBoringSslGroups(new String[] {"MLKEM1024"}));
     }

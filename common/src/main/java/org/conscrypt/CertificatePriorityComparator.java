@@ -120,12 +120,12 @@ public final class CertificatePriorityComparator implements Comparator<X509Certi
         String lhsAlgorithm = lhs.getAlgorithm();
         String rhsAlgorithm = rhs.getAlgorithm();
 
-        if (lhsAlgorithm.equalsIgnoreCase(rhsAlgorithm)) {
+        if (AddressUtils.asciiEqualsIgnoreCase(lhsAlgorithm, rhsAlgorithm)) {
             return 0;
         }
 
         // Prefer EC to RSA.
-        if ("EC".equalsIgnoreCase(lhsAlgorithm)) {
+        if (AddressUtils.asciiEqualsIgnoreCase(lhsAlgorithm, "EC")) {
             return 1;
         } else {
             return -1;
@@ -135,7 +135,7 @@ public final class CertificatePriorityComparator implements Comparator<X509Certi
     private int compareKeySize(PublicKey lhs, PublicKey rhs) {
         String lhsAlgorithm = lhs.getAlgorithm();
         String rhsAlgorithm = rhs.getAlgorithm();
-        if (!lhsAlgorithm.equalsIgnoreCase(rhsAlgorithm)) {
+        if (!AddressUtils.asciiEqualsIgnoreCase(lhsAlgorithm, rhsAlgorithm)) {
             throw new IllegalArgumentException("Keys are not of the same type");
         }
         int lhsSize = getKeySize(lhs);

@@ -44,7 +44,7 @@ public class OpenSslMlKemPrivateKey implements PrivateKey {
         return "ML-KEM";
     }
 
-    MlKemAlgorithm getMlKemAlgorithm() {
+    public MlKemAlgorithm getMlKemAlgorithm() {
         return algorithm;
     }
 
@@ -69,7 +69,7 @@ public class OpenSslMlKemPrivateKey implements PrivateKey {
         return ArrayUtils.concat(getPkcs8Preamble(algorithm), seed);
     }
 
-    byte[] getSeed() {
+    public byte[] getSeed() {
         if (seed == null) {
             throw new IllegalStateException("key is destroyed");
         }

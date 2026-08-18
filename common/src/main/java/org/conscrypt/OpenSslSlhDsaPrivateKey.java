@@ -53,7 +53,7 @@ public class OpenSslSlhDsaPrivateKey implements PrivateKey {
         return ArrayUtils.concat(OpenSslSlhDsaKeyFactory.pkcs8Preamble, raw);
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (raw == null) {
             throw new IllegalStateException("key is destroyed");
         }

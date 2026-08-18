@@ -36,42 +36,6 @@ abstract class AbstractConscryptEngine extends SSLEngine {
     abstract int maxSealOverhead();
 
     /**
-     * Enables/disables TLS Channel ID for this server engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @throws IllegalStateException if this is a client engine or if the handshake has already
-     *         started.
-     */
-    abstract void setChannelIdEnabled(boolean enabled);
-
-    /**
-     * Gets the TLS Channel ID for this server engine. Channel ID is only available once the
-     * handshake completes.
-     *
-     * @return channel ID or {@code null} if not available.
-     *
-     * @throws IllegalStateException if this is a client engine or if the handshake has not yet
-     * completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    abstract byte[] getChannelId() throws SSLException;
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
-     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
-     *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
-     *
-     * @throws IllegalStateException if this is a server engine or if the handshake has already
-     *         started.
-     */
-    abstract void setChannelIdPrivateKey(PrivateKey privateKey);
-
-    /**
      * Sets the listener for the completion of the TLS handshake.
      */
     abstract void setHandshakeListener(HandshakeListener handshakeListener);
@@ -134,6 +98,13 @@ abstract class AbstractConscryptEngine extends SSLEngine {
      * @param useSessionTickets True to enable session tickets
      */
     abstract void setUseSessionTickets(boolean useSessionTickets);
+
+    /**
+     * This method sets the ECH config data to be used in the TLS handshake.
+     *
+     * @param echConfigList the ECH config data to be used in the TLS handshake
+     */
+    abstract void setEchConfigList(byte[] echConfigList);
 
     /**
      * Sets the list of ALPN protocols.

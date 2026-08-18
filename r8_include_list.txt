@@ -1,0 +1,1 @@
+com.android.org.conscrypt.internal.flatbuffers.**

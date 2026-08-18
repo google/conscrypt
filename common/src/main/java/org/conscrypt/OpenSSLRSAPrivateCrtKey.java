@@ -223,7 +223,8 @@ final class OpenSSLRSAPrivateCrtKey extends OpenSSLRSAPrivateKey implements RSAP
                 return equalsBigInteger(getModulus(), other.getModulus())
                         && equalsBigInteger(publicExponent, other.getPublicExponent())
                         && equalsBigInteger(getPrivateExponent(), other.getPrivateExponent())
-                        && equalsBigInteger(primeP, other.getPrimeP()) && equalsBigInteger(primeQ, other.getPrimeQ())
+                        && equalsBigInteger(primeP, other.getPrimeP())
+                        && equalsBigInteger(primeQ, other.getPrimeQ())
                         && equalsBigInteger(primeExponentP, other.getPrimeExponentP())
                         && equalsBigInteger(primeExponentQ, other.getPrimeExponentQ())
                         && equalsBigInteger(crtCoefficient, other.getCrtCoefficient());

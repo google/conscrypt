@@ -17,11 +17,14 @@
 package org.conscrypt.java.security.cert;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -31,7 +34,9 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -51,6 +56,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.cert.CRL;
 import java.security.cert.CRLException;
 import java.security.cert.CertPath;
@@ -73,6 +79,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class CertificateFactoryTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static final String VALID_CERTIFICATE_PEM = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDITCCAoqgAwIBAgIQL9+89q6RUm0PmqPfQDQ+mjANBgkqhkiG9w0BAQUFADBM\n"
             + "MQswCQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkg\n"

@@ -42,6 +42,7 @@ final class SessionSnapshot implements ConscryptSession {
     private final String peerHost;
     private final String applicationProtocol;
     private final int peerPort;
+    private X509Certificate[] peerCertificates;
     private final String[] peerSupportedSignatureAlgorithms;
     private final String[] localSupportedSignatureAlgorithms;
 
@@ -58,6 +59,11 @@ final class SessionSnapshot implements ConscryptSession {
         peerHost = session.getPeerHost();
         peerPort = session.getPeerPort();
         applicationProtocol = session.getApplicationProtocol();
+        try {
+            peerCertificates = session.getPeerCertificates();
+        } catch (SSLPeerUnverifiedException e) {
+            peerCertificates = null;
+        }
         peerSupportedSignatureAlgorithms = session.getPeerSupportedSignatureAlgorithms();
         localSupportedSignatureAlgorithms = session.getLocalSupportedSignatureAlgorithms();
     }
@@ -137,7 +143,8 @@ final class SessionSnapshot implements ConscryptSession {
 
     @Override
     public X509Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-        throw new SSLPeerUnverifiedException("No peer certificates");
+        checkPeerCertificatesPresent();
+        return peerCertificates.clone();
     }
 
     @Override
@@ -158,7 +165,8 @@ final class SessionSnapshot implements ConscryptSession {
 
     @Override
     public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
-        throw new SSLPeerUnverifiedException("No peer certificates");
+        checkPeerCertificatesPresent();
+        return peerCertificates[0].getSubjectX500Principal();
     }
 
     @Override
@@ -199,6 +207,15 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     public String getApplicationProtocol() {
         return applicationProtocol;
+    }
+
+    /**
+     * Throw SSLPeerUnverifiedException on null or empty peerCertificates array
+     */
+    private void checkPeerCertificatesPresent() throws SSLPeerUnverifiedException {
+        if (peerCertificates == null || peerCertificates.length == 0) {
+            throw new SSLPeerUnverifiedException("No peer certificates");
+        }
     }
 
     @Override

@@ -23,8 +23,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -44,6 +48,8 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class X509CRLTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     private static final String CA_CERT = "-----BEGIN CERTIFICATE-----\n"
             + "MIIC0DCCAjmgAwIBAgIBADANBgkqhkiG9w0BAQUFADBVMQswCQYDVQQGEwJHQjEk\n"
             + "MCIGA1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVX\n"

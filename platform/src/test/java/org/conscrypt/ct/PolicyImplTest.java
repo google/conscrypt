@@ -20,9 +20,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.platform.test.flag.junit.CheckFlagsRule;
+import android.platform.test.flag.junit.DeviceFlagsValueProvider;
+
 import org.conscrypt.java.security.cert.FakeX509Certificate;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -36,9 +40,11 @@ public class PolicyImplTest {
     private static final String OPERATOR2 = "operator 2";
     private static LogInfo usableOp1Log1;
     private static LogInfo usableOp1Log2;
+    private static LogInfo usableStaticOp1Log;
     private static LogInfo retiredOp1LogOld;
     private static LogInfo retiredOp1LogNew;
     private static LogInfo usableOp2Log;
+    private static LogInfo usableStaticOp2Log;
     private static LogInfo retiredOp2Log;
     private static SignedCertificateTimestamp embeddedSCT;
     private static SignedCertificateTimestamp ocspSCT;
@@ -81,6 +87,9 @@ public class PolicyImplTest {
         }
     }
 
+    @Rule
+    public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
+
     @BeforeClass
     public static void setUp() {
         /* Defines LogInfo for the tests. Only a subset of the attributes are
@@ -89,37 +98,49 @@ public class PolicyImplTest {
          */
         usableOp1Log1 = new LogInfo.Builder()
                                 .setPublicKey(new FakePublicKey(new byte[] {0x01}))
-                                .setUrl("")
+                                .setType(LogInfo.TYPE_RFC6962)
                                 .setOperator(OPERATOR1)
                                 .setState(LogInfo.STATE_USABLE, JAN2022)
                                 .build();
         usableOp1Log2 = new LogInfo.Builder()
                                 .setPublicKey(new FakePublicKey(new byte[] {0x02}))
-                                .setUrl("")
+                                .setType(LogInfo.TYPE_RFC6962)
                                 .setOperator(OPERATOR1)
                                 .setState(LogInfo.STATE_USABLE, JAN2022)
                                 .build();
+        usableStaticOp1Log = new LogInfo.Builder()
+                                     .setPublicKey(new FakePublicKey(new byte[] {0x07}))
+                                     .setType(LogInfo.TYPE_STATIC_CT_API)
+                                     .setOperator(OPERATOR1)
+                                     .setState(LogInfo.STATE_USABLE, JAN2022)
+                                     .build();
         retiredOp1LogOld = new LogInfo.Builder()
                                    .setPublicKey(new FakePublicKey(new byte[] {0x03}))
-                                   .setUrl("")
+                                   .setType(LogInfo.TYPE_RFC6962)
                                    .setOperator(OPERATOR1)
                                    .setState(LogInfo.STATE_RETIRED, JAN2022)
                                    .build();
         retiredOp1LogNew = new LogInfo.Builder()
                                    .setPublicKey(new FakePublicKey(new byte[] {0x06}))
-                                   .setUrl("")
+                                   .setType(LogInfo.TYPE_RFC6962)
                                    .setOperator(OPERATOR1)
                                    .setState(LogInfo.STATE_RETIRED, JUN2023)
                                    .build();
         usableOp2Log = new LogInfo.Builder()
                                .setPublicKey(new FakePublicKey(new byte[] {0x04}))
-                               .setUrl("")
+                               .setType(LogInfo.TYPE_RFC6962)
                                .setOperator(OPERATOR2)
                                .setState(LogInfo.STATE_USABLE, JAN2022)
                                .build();
+        usableStaticOp2Log = new LogInfo.Builder()
+                                     .setPublicKey(new FakePublicKey(new byte[] {0x08}))
+                                     .setType(LogInfo.TYPE_STATIC_CT_API)
+                                     .setOperator(OPERATOR2)
+                                     .setState(LogInfo.STATE_USABLE, JAN2022)
+                                     .build();
         retiredOp2Log = new LogInfo.Builder()
                                 .setPublicKey(new FakePublicKey(new byte[] {0x05}))
-                                .setUrl("")
+                                .setType(LogInfo.TYPE_RFC6962)
                                 .setOperator(OPERATOR2)
                                 .setState(LogInfo.STATE_RETIRED, JAN2022)
                                 .build();
@@ -373,11 +394,44 @@ public class PolicyImplTest {
                      p.doesResultConformToPolicyAt(result, leaf, JAN2024));
     }
 
+    public void validVerificationResultPartialStatic(SignedCertificateTimestamp sct)
+            throws Exception {
+        PolicyImpl p = new PolicyImpl();
+
+        VerifiedSCT vsct1 = new VerifiedSCT.Builder(sct)
+                                    .setStatus(VerifiedSCT.Status.VALID)
+                                    .setLogInfo(usableOp1Log1)
+                                    .build();
+
+        VerifiedSCT vsct2 = new VerifiedSCT.Builder(sct)
+                                    .setStatus(VerifiedSCT.Status.VALID)
+                                    .setLogInfo(usableStaticOp2Log)
+                                    .build();
+
+        VerificationResult result = new VerificationResult();
+        result.add(vsct1);
+        result.add(vsct2);
+
+        X509Certificate leaf = new FakeX509Certificate();
+        assertEquals("Two valid SCTs from different operators", PolicyCompliance.COMPLY,
+                     p.doesResultConformToPolicyAt(result, leaf, JAN2024));
+    }
+
+    @Test
+    public void validEmbeddedVerificationResultPartialStatic() throws Exception {
+        validVerificationResultPartialStatic(embeddedSCT);
+    }
+
+    @Test
+    public void validOCSPVerificationResultPartialStatic() throws Exception {
+        validVerificationResultPartialStatic(ocspSCT);
+    }
+
     @Test
     public void validRecentLogStore() throws Exception {
         PolicyImpl p = new PolicyImpl();
 
-        LogStore store = new LogStoreImpl(p) {
+        LogStore store = new LogStoreImplv3(p) {
             @Override
             public long getTimestamp() {
                 return DEC2023;
@@ -390,7 +444,7 @@ public class PolicyImplTest {
     public void invalidFutureLogStore() throws Exception {
         PolicyImpl p = new PolicyImpl();
 
-        LogStore store = new LogStoreImpl(p) {
+        LogStore store = new LogStoreImplv3(p) {
             @Override
             public long getTimestamp() {
                 return JAN2025;
@@ -403,7 +457,7 @@ public class PolicyImplTest {
     public void invalidOldLogStore() throws Exception {
         PolicyImpl p = new PolicyImpl();
 
-        LogStore store = new LogStoreImpl(p) {
+        LogStore store = new LogStoreImplv3(p) {
             @Override
             public long getTimestamp() {
                 return JAN2023;

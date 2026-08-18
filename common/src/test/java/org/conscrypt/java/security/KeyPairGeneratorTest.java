@@ -20,8 +20,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+// android-add: import libcore.test.annotation.NonCts;
+// android-add: import libcore.test.annotation.NonMts;
+// android-add: import libcore.test.reasons.NonCtsReasons;
+// android-add: import libcore.test.reasons.NonMtsReasons;
+
 import org.conscrypt.TestUtils;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -38,6 +46,7 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
@@ -63,7 +72,11 @@ import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public class KeyPairGeneratorTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     @Test
+    // android-add: @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    // android-add: @NonMts(reason = NonMtsReasons.API_LEVEL_GATING)
     public void test_getInstance() throws Exception {
         ServiceTester
                 .test("KeyPairGenerator")
@@ -162,8 +175,21 @@ public class KeyPairGeneratorTest {
         putKeySize("ML-DSA-87", -1);
         putKeySize("SLH-DSA-SHA2-128S", -1);
         putKeySize("XWING", -1);
+        putKeySize("MLDSA44-RSA2048-PSS-SHA256", -1);
+        putKeySize("MLDSA44-RSA2048-PKCS15-SHA256", -1);
         putKeySize("MLDSA44-Ed25519-SHA512", -1);
+        putKeySize("MLDSA44-ECDSA-P256-SHA256", -1);
+        putKeySize("MLDSA65-RSA3072-PSS-SHA512", -1);
+        putKeySize("MLDSA65-RSA3072-PKCS15-SHA512", -1);
+        putKeySize("MLDSA65-RSA4096-PSS-SHA512", -1);
+        putKeySize("MLDSA65-RSA4096-PKCS15-SHA512", -1);
         putKeySize("MLDSA65-Ed25519-SHA512", -1);
+        putKeySize("MLDSA65-ECDSA-P256-SHA512", -1);
+        putKeySize("MLDSA65-ECDSA-P384-SHA512", -1);
+        putKeySize("MLDSA87-RSA3072-PSS-SHA512", -1);
+        putKeySize("MLDSA87-RSA4096-PSS-SHA512", -1);
+        putKeySize("MLDSA87-ECDSA-P384-SHA512", -1);
+        putKeySize("MLDSA87-ECDSA-P521-SHA512", -1);
     }
 
     /** Elliptic Curve Crypto named curves that should be supported. */

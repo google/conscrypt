@@ -45,7 +45,7 @@ public class OpenSslEdDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
 
     public OpenSslEdDsaPublicKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         try {
-            if (keySpec.getFormat().equalsIgnoreCase("raw")) {
+            if (AddressUtils.asciiEqualsIgnoreCase(keySpec.getFormat(), "raw")) {
                 key = getOpenSslKeyFromRaw(keySpec.getEncoded());
             } else if (keySpec.getFormat().equals("X.509")) {
                 key = getOpenSslKeyFromX509(keySpec.getEncoded());
@@ -89,7 +89,7 @@ public class OpenSslEdDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
         return NativeCrypto.EVP_marshal_public_key(key.getNativeRef());
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }

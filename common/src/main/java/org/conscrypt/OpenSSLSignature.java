@@ -385,13 +385,14 @@ public class OpenSSLSignature extends SignatureSpi {
             if (specContentDigest == null) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported content digest algorithm: " + spec.getDigestAlgorithm());
-            } else if (!contentDigestAlgorithm.equalsIgnoreCase(specContentDigest)) {
+            } else if (!AddressUtils.asciiEqualsIgnoreCase(contentDigestAlgorithm,
+                                                           specContentDigest)) {
                 throw new InvalidAlgorithmParameterException(
                         "Changing content digest algorithm not supported");
             }
 
             String specMgfAlgorithm = spec.getMGFAlgorithm();
-            if (!EvpMdRef.MGF1_ALGORITHM_NAME.equalsIgnoreCase(specMgfAlgorithm)
+            if (!AddressUtils.asciiEqualsIgnoreCase(specMgfAlgorithm, EvpMdRef.MGF1_ALGORITHM_NAME)
                 && !EvpMdRef.MGF1_OID.equals(specMgfAlgorithm)) {
                 throw new InvalidAlgorithmParameterException(
                         "Unsupported MGF algorithm: " + specMgfAlgorithm + ". Only "
