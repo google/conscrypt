@@ -212,12 +212,14 @@ public class TlsEncryptedClientHelloHandshake {
             }
 
             if (policy.getDomainEncryptionMode("") == DomainEncryptionMode.OPPORTUNISTIC ||
-                policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.OPPORTUNISTIC) {
+                policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.OPPORTUNISTIC ||
+                policy.getDomainEncryptionMode("") == DomainEncryptionMode.ENABLED ||
+                policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.ENABLED) {
+                // ECH mode was default opportunistic for 26Q2, and default enabled for 26Q4 onwards
                 return UsageReason.DEFAULT;
             }
 
-            return (policy.getDomainEncryptionMode("") == DomainEncryptionMode.ENABLED ||
-                    policy.getDomainEncryptionMode("") == DomainEncryptionMode.REQUIRED)
+            return policy.getDomainEncryptionMode("") == DomainEncryptionMode.REQUIRED
                     ? UsageReason.NSC_APP_OPT_IN
                     : UsageReason.NSC_DOMAIN_OPT_IN;
         }
