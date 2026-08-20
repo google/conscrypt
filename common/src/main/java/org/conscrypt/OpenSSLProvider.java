@@ -569,6 +569,7 @@ public final class OpenSSLProvider extends Provider {
 
         // We don't support SLH-DSA, because it's not clear which algorithm to use.
         putSignatureImplClass("SLH-DSA-SHA2-128S", "OpenSslSignatureSlhDsa");
+        putSignatureImplClass("SLH-DSA-SHA2-128S-WITH-SHA384", "OpenSslSignatureHashSlhDsa$Sha384");
 
         /* === SecureRandom === */
         /*

@@ -20,6 +20,7 @@ import static org.conscrypt.TestUtils.decodeBase64;
 import static org.conscrypt.TestUtils.decodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -118,6 +119,136 @@ public class SlhDsaTest {
         signature.initVerify(keyPair.getPublic());
         signature.update(emptyMessage);
         assertTrue(signature.verify(sig2));
+    }
+
+    @Test
+    public void prehashSignAndVerify_works() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
+
+        byte[] msg = new byte[123];
+        Signature ss =
+                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        ss.initSign(privateKey);
+        ss.update(msg);
+        byte[] sig = ss.sign();
+        assertEquals(7856, sig.length);
+
+        Signature sv =
+                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        sv.initVerify(publicKey);
+        sv.update(msg);
+        boolean verified = sv.verify(sig);
+        assertTrue(verified);
+
+        // Modified message fails verification
+        byte[] modifiedMsg = msg.clone();
+        modifiedMsg[0] ^= 1;
+        sv.initVerify(publicKey);
+        sv.update(modifiedMsg);
+        assertFalse(sv.verify(sig));
+
+        // Modified signature fails verification
+        byte[] modifiedSig = sig.clone();
+        modifiedSig[0] ^= 1;
+        sv.initVerify(publicKey);
+        sv.update(msg);
+        assertFalse(sv.verify(modifiedSig));
+
+        // Wrong public key fails verification
+        KeyPair otherKeyPair = keyGen.generateKeyPair();
+        sv.initVerify(otherKeyPair.getPublic());
+        sv.update(msg);
+        assertFalse(sv.verify(sig));
+
+        // Raw SLH-DSA signature fails verification with prehash verifier
+        Signature rawSigner = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        rawSigner.initSign(privateKey);
+        rawSigner.update(msg);
+        byte[] rawSig = rawSigner.sign();
+        sv.initVerify(publicKey);
+        sv.update(msg);
+        assertFalse(sv.verify(rawSig));
+
+        // Prehash signature fails verification with raw verifier
+        Signature rawVerifier = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        rawVerifier.initVerify(publicKey);
+        rawVerifier.update(msg);
+        assertFalse(rawVerifier.verify(sig));
+    }
+
+    @Test
+    public void prehashEmptyMessage_works() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        byte[] emptyMessage = new byte[0];
+
+        Signature signature =
+                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+
+        signature.initSign(keyPair.getPrivate());
+        signature.update(emptyMessage);
+        byte[] sig = signature.sign();
+
+        signature.initVerify(keyPair.getPublic());
+        signature.update(emptyMessage);
+        assertTrue(signature.verify(sig));
+
+        // Create a signature without calling update.
+        signature.initSign(keyPair.getPrivate());
+        byte[] sig2 = signature.sign();
+
+        signature.initVerify(keyPair.getPublic());
+        assertTrue(signature.verify(sig2));
+
+        signature.initVerify(keyPair.getPublic());
+        signature.update(emptyMessage);
+        assertTrue(signature.verify(sig2));
+    }
+
+    @Test
+    public void prehashUpdateChunks_works() throws Exception {
+        KeyPairGenerator keyGen =
+                KeyPairGenerator.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+
+        byte[] data = new byte[256];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) i;
+        }
+
+        // Sign all at once
+        Signature signer =
+                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        signer.initSign(keyPair.getPrivate());
+        signer.update(data);
+        byte[] sig = signer.sign();
+
+        // Sign in chunks
+        Signature chunkSigner =
+                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        chunkSigner.initSign(keyPair.getPrivate());
+        chunkSigner.update(data, 0, 100);
+        chunkSigner.update(data, 100, 100);
+        chunkSigner.update(data, 200, 56);
+        byte[] chunkSig = chunkSigner.sign();
+
+        // Verify in chunks
+        Signature verifier =
+                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(data, 0, 50);
+        verifier.update(data, 50, 206);
+        assertTrue(verifier.verify(sig));
+
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(data);
+        assertTrue(verifier.verify(chunkSig));
     }
 
     @Test
@@ -321,11 +452,6 @@ public class SlhDsaTest {
             if (!algorithm.equals("SLH-DSA-SHA2-128S")
                 && !algorithm.equals("SLH-DSA-SHA2-128S-WITH-SHA384")) {
                 throw new IllegalArgumentException("Unexpected algorithm: " + algorithm);
-            }
-
-            if (algorithm.equals("SLH-DSA-SHA2-128S-WITH-SHA384")) {
-                // not yet implemented.
-                continue;
             }
 
             KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);

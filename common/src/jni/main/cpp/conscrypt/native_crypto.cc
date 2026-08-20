@@ -3520,6 +3520,59 @@ static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_sign(JNIEnv* env, jclass, jbyteA
     return resultRef.release();
 }
 
+static jbyteArray NativeCrypto_SLHDSA_SHA2_128S_prehash_sign(JNIEnv* env, jclass, jbyteArray data,
+                                                             jint dataLen, jint hashNid, jbyteArray privateKey) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO privateKeyArray(env, privateKey);
+    if (privateKeyArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_prehash_sign => privateKey == null");
+        return nullptr;
+    }
+
+    if (privateKeyArray.size() != SLHDSA_SHA2_128S_PRIVATE_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Private key array length != 64");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO dataArray(env, data);
+    if (dataArray.get() == nullptr) {
+        return nullptr;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
+        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
+                                           "dataLen");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> resultRef(
+            env, env->NewByteArray(static_cast<jsize>(SLHDSA_SHA2_128S_SIGNATURE_BYTES)));
+    if (resultRef.get() == nullptr) {
+        return nullptr;
+    }
+
+    ScopedByteArrayRW resultArray(env, resultRef.get());
+    if (resultArray.get() == nullptr) {
+        return nullptr;
+    }
+
+    int success = SLHDSA_SHA2_128S_prehash_warning_nonstandard_sign(
+            reinterpret_cast<uint8_t*>(resultArray.get()),
+            reinterpret_cast<const unsigned char*>(privateKeyArray.get()),
+            reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
+            hashNid, /* context */ NULL, /* context_len */ 0);
+
+    if (!success) {
+        JNI_TRACE("SLHDSA_SHA2_128S_prehash_sign failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SLHDSA_SHA2_128S_prehash_sign");
+        return nullptr;
+    }
+
+    return resultRef.release();
+}
+
 static jint NativeCrypto_SLHDSA_SHA2_128S_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
                                                  jbyteArray sig, jbyteArray publicKey) {
     CHECK_ERROR_QUEUE_ON_RETURN;
@@ -3559,6 +3612,49 @@ static jint NativeCrypto_SLHDSA_SHA2_128S_verify(JNIEnv* env, jclass, jbyteArray
             /*context=*/NULL, /*context_len=*/0);
 
     JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_verify(%p, %p, %p) => %d", publicKey, sig, data,
+              result);
+    return static_cast<jint>(result);
+}
+
+static jint NativeCrypto_SLHDSA_SHA2_128S_prehash_verify(JNIEnv* env, jclass, jbyteArray data, jint dataLen,
+                                                         jbyteArray sig, jint hashNid, jbyteArray publicKey) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO publicKeyArray(env, publicKey);
+    if (publicKeyArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_prehash_verify => publicKey == null");
+        return -1;
+    }
+
+    if (publicKeyArray.size() != SLHDSA_SHA2_128S_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "Public key array length != 32");
+        return -1;
+    }
+
+    ScopedByteArrayRO dataArray(env, data);
+    if (dataArray.get() == nullptr) {
+        return -1;
+    }
+
+    if (ARRAY_OFFSET_LENGTH_INVALID(dataArray, 0, dataLen)) {
+        conscrypt::jniutil::throwException(env, "java/lang/ArrayIndexOutOfBoundsException",
+                                           "dataLen");
+        return -1;
+    }
+
+    ScopedByteArrayRO sigArray(env, sig);
+    if (sigArray.get() == nullptr) {
+        return -1;
+    }
+
+    int result = SLHDSA_SHA2_128S_prehash_warning_nonstandard_verify(
+            reinterpret_cast<const unsigned char*>(sigArray.get()), sigArray.size(),
+            reinterpret_cast<const unsigned char*>(publicKeyArray.get()),
+            reinterpret_cast<const unsigned char*>(dataArray.get()), dataLen,
+            hashNid, /*context=*/NULL, /*context_len=*/0);
+
+    JNI_TRACE("NativeCrypto_SLHDSA_SHA2_128S_prehash_verify(%p, %p, %p) => %d", publicKey, sig, data,
               result);
     return static_cast<jint>(result);
 }
@@ -12176,7 +12272,9 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(MLDSA87_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_generate_key, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_sign, "([BI[B)[B"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_prehash_sign, "([BII[B)[B"),
         CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_verify, "([BI[B[B)I"),
+        CONSCRYPT_NATIVE_METHOD(SLHDSA_SHA2_128S_prehash_verify, "([BI[BI[B)I"),
         CONSCRYPT_NATIVE_METHOD(X25519, "([B[B[B)Z"),
         CONSCRYPT_NATIVE_METHOD(X25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(ED25519_keypair, "([B[B)V"),
