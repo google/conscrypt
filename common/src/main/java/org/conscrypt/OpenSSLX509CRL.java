@@ -365,10 +365,6 @@ final class OpenSSLX509CRL extends X509CRL {
         if (algName != null) {
             return algName;
         }
-        algName = Platform.oidToAlgorithmName(oid);
-        if (algName != null) {
-            return algName;
-        }
         return oid;
     }
 

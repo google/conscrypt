@@ -84,8 +84,6 @@ import javax.net.ssl.StandardConstants;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import sun.security.x509.AlgorithmId;
-
 @Internal
 final public class Platform {
     private static class NoPreloadHolder {
@@ -481,17 +479,6 @@ final public class Platform {
 
     static void blockGuardOnNetwork() {
         BlockGuard.getThreadPolicy().onNetwork();
-    }
-
-    /**
-     * OID to Algorithm Name mapping.
-     */
-    static String oidToAlgorithmName(String oid) {
-        try {
-            return AlgorithmId.get(oid).getName();
-        } catch (NoSuchAlgorithmException e) {
-            return oid;
-        }
     }
 
     /**

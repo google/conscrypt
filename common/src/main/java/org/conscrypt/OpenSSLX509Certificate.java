@@ -314,10 +314,6 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         if (algName != null) {
             return algName;
         }
-        algName = Platform.oidToAlgorithmName(oid);
-        if (algName != null) {
-            return algName;
-        }
         return oid;
     }
 

@@ -56,6 +56,7 @@
 #include <openssl/xwing.h>
 
 #include <limits>
+#include <string>
 #include <optional>
 #include <type_traits>
 #include <vector>
@@ -11925,7 +11926,8 @@ static jstring NativeCrypto_SSL_get0_ech_name_override(JNIEnv* env, jclass, jlon
     size_t ech_name_override_len;
     SSL_get0_ech_name_override(ssl, &ech_name_override, &ech_name_override_len);
     if (ech_name_override_len > 0) {
-        jstring name = env->NewStringUTF(ech_name_override);
+        std::string bounded_name(ech_name_override, ech_name_override_len);
+        jstring name = env->NewStringUTF(bounded_name.c_str());
         return name;
     }
     return nullptr;

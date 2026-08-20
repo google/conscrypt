@@ -42,6 +42,7 @@ final class OidData {
         OID_TO_NAME_MAP.put("1.2.840.10045.4.1", "SHA1withECDSA");
 
         // RFC 4055
+        OID_TO_NAME_MAP.put("1.2.840.113549.1.1.10", "RSASSA-PSS");
         OID_TO_NAME_MAP.put("1.2.840.113549.1.1.14", "SHA224withRSA");
         OID_TO_NAME_MAP.put("1.2.840.113549.1.1.11", "SHA256withRSA");
         OID_TO_NAME_MAP.put("1.2.840.113549.1.1.12", "SHA384withRSA");

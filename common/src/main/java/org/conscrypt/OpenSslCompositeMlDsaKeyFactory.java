@@ -197,7 +197,8 @@ public abstract class OpenSslCompositeMlDsaKeyFactory extends KeyFactorySpi {
         if (key instanceof OpenSslCompositeMlDsaPublicKey) {
             OpenSslCompositeMlDsaPublicKey conscryptKey = (OpenSslCompositeMlDsaPublicKey) key;
             if (X509EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                @SuppressWarnings("unchecked") // Safe because keySpec is X509EncodedKeySpec or a superclass.
+                @SuppressWarnings("unchecked")
+                // Safe because keySpec is X509EncodedKeySpec or a superclass.
                 T result = (T) new X509EncodedKeySpec(conscryptKey.getEncoded());
                 return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
@@ -206,7 +207,8 @@ public abstract class OpenSslCompositeMlDsaKeyFactory extends KeyFactorySpi {
         } else if (key instanceof OpenSslCompositeMlDsaPrivateKey) {
             OpenSslCompositeMlDsaPrivateKey conscryptKey = (OpenSslCompositeMlDsaPrivateKey) key;
             if (PKCS8EncodedKeySpec.class.isAssignableFrom(keySpec)) {
-                @SuppressWarnings("unchecked") // Safe because keySpec is PKCS8EncodedKeySpec or a superclass.
+                @SuppressWarnings("unchecked")
+                // Safe because keySpec is PKCS8EncodedKeySpec or a superclass.
                 T result = (T) new PKCS8EncodedKeySpec(key.getEncoded());
                 return result;
             } else if (EncodedKeySpec.class.isAssignableFrom(keySpec)) {
