@@ -9033,8 +9033,7 @@ static SSL_SESSION* server_session_requested_callback(SSL* ssl, const uint8_t* i
     return ssl_session_ptr;
 }
 
-static jint NativeCrypto_EVP_has_aes_hardware(JNIEnv* env, jclass) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
+static jint NativeCrypto_EVP_has_aes_hardware(CRITICAL_JNI_PARAMS) {
     int ret = 0;
     ret = EVP_has_aes_hardware();
     JNI_TRACE("EVP_has_aes_hardware => %d", ret);
@@ -10512,9 +10511,8 @@ static jlong NativeCrypto_SSL_get_timeout(JNIEnv* env, jclass, jlong ssl_address
     return result;
 }
 
-static jint NativeCrypto_SSL_get_signature_algorithm_key_type(JNIEnv* env, jclass,
+static jint NativeCrypto_SSL_get_signature_algorithm_key_type(CRITICAL_JNI_PARAMS_COMMA
                                                               jint signatureAlg) {
-    CHECK_ERROR_QUEUE_ON_RETURN;
     return SSL_get_signature_algorithm_key_type(signatureAlg);
 }
 
@@ -11000,7 +10998,7 @@ static jint NativeCrypto_SSL_get_error(JNIEnv* env, jclass, jlong ssl_address,
     return SSL_get_error(ssl, ret);
 }
 
-static void NativeCrypto_SSL_clear_error(JNIEnv*, jclass) {
+static void NativeCrypto_SSL_clear_error(CRITICAL_JNI_PARAMS) {
     ERR_clear_error();
 }
 
@@ -11556,7 +11554,7 @@ static int NativeCrypto_ENGINE_SSL_write_direct(JNIEnv* env, jclass, jlong ssl_a
 /**
  * public static native bool usesBoringSsl_FIPS_mode();
  */
-static jboolean NativeCrypto_usesBoringSsl_FIPS_mode() {
+static jboolean NativeCrypto_usesBoringSsl_FIPS_mode(CRITICAL_JNI_PARAMS) {
     return FIPS_mode();
 }
 

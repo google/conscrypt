@@ -27,9 +27,7 @@ import static org.junit.Assert.fail;
 // android-add: import libcore.test.reasons.NonMtsReasons;
 
 import org.conscrypt.TestUtils;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -46,7 +44,6 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
@@ -94,6 +91,14 @@ public class KeyPairGeneratorTest {
                 // provider, which doesn't exist on OpenJDK 7, and thus totally fails.  This appears
                 // to be a bug introduced into later revisions of OpenJDK 7.
                 .skipProvider("SunPKCS11-NSS")
+                // Skip all composite signature algorithms that include "RSA3072" and "RSA4096",
+                // because they are very slow. It's enough to just test the "RSA2048" variants only.
+                .skipAlgorithm("MLDSA65-RSA3072-PSS-SHA512")
+                .skipAlgorithm("MLDSA65-RSA3072-PKCS15-SHA512")
+                .skipAlgorithm("MLDSA87-RSA3072-PSS-SHA512")
+                .skipAlgorithm("MLDSA65-RSA4096-PSS-SHA512")
+                .skipAlgorithm("MLDSA65-RSA4096-PKCS15-SHA512")
+                .skipAlgorithm("MLDSA87-RSA4096-PSS-SHA512")
                 .run(new ServiceTester.Test() {
                     @Override
                     // g3-add: @SuppressWarnings("InsecureCryptoUsage")

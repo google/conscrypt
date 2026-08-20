@@ -312,23 +312,29 @@ public class SlhDsaTest {
         List<TestVector> vectors = TestUtils.readTestVectors("crypto/slhdsa.txt");
 
         for (TestVector vector : vectors) {
-            String errMsg = vector.getString("name");
             String algorithm = vector.getString("algorithm");
             byte[] privateKey = vector.getBytes("private_key");
             byte[] publicKey = vector.getBytes("public_key");
             byte[] message = vector.getBytes("message");
             byte[] signature = vector.getBytes("signature");
 
-            assertEquals(errMsg + ", algorithm:", "SLH-DSA-SHA2-128S", algorithm);
+            if (!algorithm.equals("SLH-DSA-SHA2-128S") && !algorithm.equals("SLH-DSA-SHA2-128S-WITH-SHA384")) {
+                throw new IllegalArgumentException("Unexpected algorithm: " + algorithm);
+            }
+
+            if (algorithm.equals("SLH-DSA-SHA2-128S-WITH-SHA384")) {
+                // not yet implemented.
+                continue;
+            }
 
             KeyFactory keyFactory = KeyFactory.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
 
-            Signature signer = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+            Signature signer = Signature.getInstance(algorithm, conscryptProvider);
             signer.initSign(keyFactory.generatePrivate(new RawKeySpec(privateKey)));
             signer.update(message);
             byte[] sig = signer.sign();
 
-            Signature verifier = Signature.getInstance("SLH-DSA-SHA2-128S", conscryptProvider);
+            Signature verifier = Signature.getInstance(algorithm, conscryptProvider);
             verifier.initVerify(keyFactory.generatePublic(new RawKeySpec(publicKey)));
             verifier.update(message);
             assertTrue(verifier.verify(sig));
