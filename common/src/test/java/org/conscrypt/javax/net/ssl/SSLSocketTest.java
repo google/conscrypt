@@ -287,7 +287,6 @@ public class SSLSocketTest {
         private int directAllocationCount = 0;
         private int heapAllocationCount = 0;
 
-
         SpyBufferAllocator(BufferAllocator bufferAllocator) {
             this.bufferAllocator = bufferAllocator;
         }

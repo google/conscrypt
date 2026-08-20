@@ -602,8 +602,15 @@ def main() -> None:
       ),
   )
   parser.add_argument(
+      "cl_pos",
+      nargs="?",
+      default=None,
+      help="Optional positional CL number or revision to export (e.g. 123456789).",
+  )
+  parser.add_argument(
       "--cl",
       type=str,
+      default=None,
       help="Specific Piper CL number or revision to export (e.g. 123456789).",
   )
   parser.add_argument(
@@ -679,6 +686,8 @@ def main() -> None:
       args.android_dir
   )
 
+  target_cl = args.cl or args.cl_pos
+
   print("=======================================================")
   print(" Conscrypt google3 -> Android Gerrit Automated Exporter")
   print("=======================================================")
@@ -686,7 +695,7 @@ def main() -> None:
   print(f"Copybara config    : {copybara_config}")
   print(
       "CL / Revision      :"
-      f" {args.cl if args.cl else '(Latest HEAD / default)'}"
+      f" {target_cl if target_cl else '(Latest HEAD / default)'}"
   )
   print(f"Android repo dir   : {android_dir}")
   print(f"Android build top  : {build_top if build_top else '(None)'}")
@@ -712,7 +721,7 @@ def main() -> None:
         copybara_bin=copybara_bin,
         copybara_config=copybara_config,
         android_dir=android_dir,
-        cl=args.cl,
+        cl=target_cl,
         dry_run=args.dry_run,
         extra_copybara_args=extra_copybara_args,
     )

@@ -521,34 +521,6 @@ final public class Platform {
     @SuppressWarnings("unused")
     static void blockGuardOnNetwork() {}
 
-    /**
-     * OID to Algorithm Name mapping.
-     */
-    @SuppressWarnings("unused")
-    static String oidToAlgorithmName(String oid) {
-        try {
-            Class<?> algorithmIdClass = Class.forName("sun.security.x509.AlgorithmId");
-            Method getMethod = algorithmIdClass.getDeclaredMethod("get", String.class);
-            getMethod.setAccessible(true);
-            Method getNameMethod = algorithmIdClass.getDeclaredMethod("getName");
-            getNameMethod.setAccessible(true);
-
-            Object algIdObj = getMethod.invoke(null, oid);
-            return (String) getNameMethod.invoke(algIdObj);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            } else if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new RuntimeException(e);
-        } catch (Exception ignored) {
-            // Ignored
-        }
-        return oid;
-    }
-
     /*
      * Pre-Java-8 backward compatibility.
      */

@@ -318,7 +318,8 @@ public class SlhDsaTest {
             byte[] message = vector.getBytes("message");
             byte[] signature = vector.getBytes("signature");
 
-            if (!algorithm.equals("SLH-DSA-SHA2-128S") && !algorithm.equals("SLH-DSA-SHA2-128S-WITH-SHA384")) {
+            if (!algorithm.equals("SLH-DSA-SHA2-128S")
+                && !algorithm.equals("SLH-DSA-SHA2-128S-WITH-SHA384")) {
                 throw new IllegalArgumentException("Unexpected algorithm: " + algorithm);
             }
 
