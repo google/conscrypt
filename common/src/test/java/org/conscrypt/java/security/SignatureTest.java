@@ -110,6 +110,7 @@ public class SignatureTest {
                 // SLH-DSA-SHA2-128S is skipped because it doesn't yet support getFormat() and
                 // getEncoded().
                 .skipAlgorithm("SLH-DSA-SHA2-128S")
+                .skipAlgorithm("SLH-DSA-SHA2-128S-WITH-SHA384")
                 .skipAlgorithm("HSS/LMS")
                 .run((provider, algorithm) -> {
                     KeyPair kp = keyPair(algorithm);

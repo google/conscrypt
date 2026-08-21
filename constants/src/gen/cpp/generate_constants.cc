@@ -18,6 +18,7 @@
 #include <openssl/aead.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/nid.h>
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/tls1.h>
@@ -71,6 +72,7 @@ int main(int argc, char** argv) {
     CONST(NID_secp521r1);
     CONST(NID_X25519MLKEM768);
     CONST(NID_ML_KEM_1024);
+    CONST(NID_sha384);
 
     CONST(RSA_PKCS1_PADDING);
     CONST(RSA_NO_PADDING);

@@ -76,6 +76,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStore.PrivateKeyEntry;
+import java.security.MessageDigest;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -4931,6 +4932,101 @@ public class NativeCryptoTest {
         assertThrows(
                 RuntimeException.class,
                 () -> NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKeyTooLong, privateKey));
+    }
+
+    @Test
+    public void test_slhdsa_sha2_128s_prehash_works() throws Exception {
+        byte[] publicKey = new byte[32];
+        byte[] privateKey = new byte[64];
+        NativeCrypto.SLHDSA_SHA2_128S_generate_key(publicKey, privateKey);
+
+        byte[] msg = decodeHex("AB");
+        MessageDigest md = MessageDigest.getInstance("SHA-384");
+        byte[] digest = md.digest(msg);
+        assertEquals(48, digest.length);
+        int hashNid = NativeConstants.NID_sha384;
+
+        byte[] signature =
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid, privateKey);
+        assertEquals(7856, signature.length);
+
+        int result =
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                        digest, digest.length, signature, hashNid, publicKey);
+        assertEquals(1, result);
+
+    // digest buffer is larger than digest
+    byte[] digestBuffer = Arrays.copyOf(digest, digest.length + 42);
+        assertEquals(
+                1,
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                        digestBuffer, digest.length, signature, hashNid, publicKey));
+
+    // digest too short
+    assertEquals(
+        0,
+        NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+            digest, digest.length - 1, signature, hashNid, publicKey));
+
+        byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
+        assertEquals(
+                0,
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                        digest, digest.length, signatureTooShort, hashNid, publicKey));
+
+        byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
+        assertEquals(
+                0,
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                        digest, digest.length, signatureTooLong, hashNid, publicKey));
+
+        byte[] modifiedSignature = signature.clone();
+        modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
+        assertEquals(
+                0,
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                        digest, digest.length, modifiedSignature, hashNid, publicKey));
+
+        byte[] modifiedDigest = digest.clone();
+        modifiedDigest[0] = (byte) (modifiedDigest[0] ^ 0x01);
+        assertEquals(
+                0,
+                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                        modifiedDigest, modifiedDigest.length, signature, hashNid, publicKey));
+
+        int invalidDigestLen = digest.length + 1;
+        assertThrows(
+                RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, invalidDigestLen, hashNid, privateKey));
+        assertThrows(
+                RuntimeException.class,
+                ()
+                        -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                                digest, invalidDigestLen, signature, hashNid, publicKey));
+
+        byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
+        assertThrows(
+                RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid, privateKeyTooShort));
+
+        byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
+        assertThrows(
+                RuntimeException.class,
+                () -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid, privateKeyTooLong));
+
+        byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
+        assertThrows(
+                RuntimeException.class,
+                ()
+                        -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                                digest, digest.length, signature, hashNid, publicKeyTooShort));
+
+        byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
+        assertThrows(
+                RuntimeException.class,
+                ()
+                        -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                                digest, digest.length, signature, hashNid, publicKeyTooLong));
     }
 
     @Test
