@@ -109,6 +109,14 @@ public final class TestUtils {
         private static final Random random = new Random(System.currentTimeMillis());
         abstract ByteBuffer newBuffer(int size);
 
+        public ByteBuffer[] newBufferArray(int arrayLength, int bufferSize) {
+            ByteBuffer[] result = new ByteBuffer[arrayLength];
+            for (int i = 0; i < arrayLength; i++) {
+                result[i] = newBuffer(bufferSize);
+            }
+            return result;
+        }
+
         public ByteBuffer[] newRandomBuffers(int... sizes) {
             int numBuffers = sizes.length;
             ByteBuffer[] result = new ByteBuffer[numBuffers];
