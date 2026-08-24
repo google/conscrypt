@@ -31,6 +31,8 @@ repackaged files.
 and uploading to Gerrit (refs/for/master).
 """
 
+from __future__ import annotations
+
 import argparse
 import getpass
 import os
@@ -51,7 +53,7 @@ def run_cmd(
     cwd: Optional[pathlib.Path] = None,
     env: Optional[Dict[str, str]] = None,
     check: bool = True,
-) -> subprocess.CompletedProcess[Any]:
+) -> subprocess.CompletedProcess:
   """Helper to run a subprocess command with logging."""
   print(f"==> Running: {' '.join(cmd)}" + (f" (in {cwd})" if cwd else ""))
   try:
@@ -106,7 +108,7 @@ def resolve_android_and_build_top(
 ) -> Tuple[
     pathlib.Path,
     Optional[pathlib.Path],
-    Optional[tempfile.TemporaryDirectory[str]],
+    Optional[tempfile.TemporaryDirectory],
 ]:
   """Resolves Android conscrypt directory and ANDROID_BUILD_TOP."""
   temp_dir_obj = None

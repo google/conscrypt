@@ -10,26 +10,10 @@ on:
 permissions:
   contents: read
 
+env:
+  BORINGSSL_VERSION: 0.20260813.0
+
 jobs:
-  boringssl_clone:
-    # This step ensures that all builders have the same version of BoringSSL
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Clone BoringSSL repo
-        run: |
-          git clone --depth 1 --filter=blob:none --no-checkout https://github.com/google/boringssl.git "${{ runner.temp }}/boringssl"
-          echo Using BoringSSL commit: $(cd "${{ runner.temp }}/boringssl"; git rev-parse HEAD)
-
-      - name: Archive BoringSSL source
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
-        with:
-          name: boringssl-source
-          path: ${{ runner.temp }}/boringssl
-          retention-days: 1
-          include-hidden-files: true
-          if-no-files-found: error
-
   clang_format_check:
     # Only run on pull requests.
     if: ${{ startsWith(github.ref, 'refs/pull/') }}
@@ -53,8 +37,6 @@ jobs:
           git clang-format --style=file --diff origin/$GITHUB_BASE_REF '*.c' '*.h' '*.cc' '*.cpp' '*.java'
 
   build:
-    needs: boringssl_clone
-
     strategy:
       fail-fast: false
       matrix:
@@ -124,11 +106,11 @@ jobs:
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "ANDROID_HOME=${{ runner.temp }}/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=${{ runner.temp }}/android-sdk" >> $GITHUB_ENV
-          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
-          echo "SDKMANAGER=${{ runner.temp }}/android-sdk/cmdline-tools/bin/sdkmanager" >> $GITHUB_ENV
-          echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=$RUNNER_TEMP/boringssl" >> $GITHUB_ENV
+          echo "SDKMANAGER=$RUNNER_TEMP/android-sdk/cmdline-tools/bin/sdkmanager" >> $GITHUB_ENV
+          echo "M2_REPO=$RUNNER_TEMP/m2" >> $GITHUB_ENV
 
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -163,17 +145,10 @@ jobs:
           choco install nasm -y
           choco install ninja -y
 
-      - name: Fetch BoringSSL source
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
-        with:
-          name: boringssl-source
-          path: ${{ runner.temp }}/boringssl
-
-      - name: Checkout BoringSSL main branch
+      - name: Clone BoringSSL
         shell: bash
         run: |
-          cd "$BORINGSSL_HOME"
-          git checkout --progress --force -B main
+          git clone --depth 1 --branch "$BORINGSSL_VERSION" https://github.com/google/boringssl.git "$BORINGSSL_HOME"
 
       - name: Build BoringSSL x86 and ARM MacOS
         if: runner.os == 'macOS'
@@ -290,7 +265,6 @@ jobs:
           if-no-files-found: error
 
   android-test:
-    needs: boringssl_clone
     runs-on: macos-15-intel
     strategy:
       fail-fast: false
@@ -318,22 +292,15 @@ jobs:
         shell: bash
         run: |
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=$RUNNER_TEMP/boringssl" >> $GITHUB_ENV
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
-      - name: Fetch BoringSSL source
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
-        with:
-          name: boringssl-source
-          path: ${{ runner.temp }}/boringssl
-
-      - name: Checkout BoringSSL main branch
+      - name: Clone BoringSSL
         shell: bash
         run: |
-          cd "$BORINGSSL_HOME"
-          git checkout --progress --force -B main
+          git clone --depth 1 --branch "$BORINGSSL_VERSION" https://github.com/google/boringssl.git "$BORINGSSL_HOME"
       - name: Accept Android SDK licenses
         run: |
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
@@ -372,20 +339,13 @@ jobs:
       - name: Set runner-specific environment variables
         shell: bash
         run: |
-          echo "M2_REPO=${{ runner.temp }}/m2" >> $GITHUB_ENV
-          echo "BORINGSSL_HOME=${{ runner.temp }}/boringssl" >> $GITHUB_ENV
+          echo "M2_REPO=$RUNNER_TEMP/m2" >> $GITHUB_ENV
+          echo "BORINGSSL_HOME=$RUNNER_TEMP/boringssl" >> $GITHUB_ENV
 
-      - name: Fetch BoringSSL source
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131  # v7.0.0
-        with:
-          name: boringssl-source
-          path: ${{ runner.temp }}/boringssl
-
-      - name: Checkout BoringSSL main branch
+      - name: Clone BoringSSL
         shell: bash
         run: |
-          cd "$BORINGSSL_HOME"
-          git checkout --progress --force -B main
+          git clone --depth 1 --branch "$BORINGSSL_VERSION" https://github.com/google/boringssl.git "$BORINGSSL_HOME"
 
       - name: Build BoringSSL 64-bit Linux
         # Please keep this in sync with other "Build BoringSSL 64-bit Linux"
