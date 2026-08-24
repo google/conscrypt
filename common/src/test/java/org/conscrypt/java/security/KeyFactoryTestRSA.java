@@ -20,7 +20,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -47,6 +51,8 @@ import java.util.List;
 
 @RunWith(JUnit4.class)
 public class KeyFactoryTestRSA extends AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
+    // android-add: Allow access to deprecated BC algorithms.
+
     public KeyFactoryTestRSA() {
         super("RSA", RSAPublicKeySpec.class, RSAPrivateKeySpec.class);
     }

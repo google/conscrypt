@@ -158,67 +158,86 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         }
         outputOffset += writtenBytes;
 
-        reset();
-
         return outputOffset - initialOutputOffset;
     }
 
     @Override
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
             throws IllegalBlockSizeException, BadPaddingException {
-        final int maximumLen = getOutputSizeForFinal(inputLen);
-        /* Assume that we'll output exactly on a byte boundary. */
-        final byte[] output = new byte[maximumLen];
+        try {
+            final int maximumLen = getOutputSizeForFinal(inputLen);
+            /* Assume that we'll output exactly on a byte boundary. */
+            final byte[] output = new byte[maximumLen];
 
-        int bytesWritten;
-        if (inputLen > 0) {
+            int bytesWritten;
+            if (inputLen > 0) {
+                try {
+                    bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+                } catch (ShortBufferException e) {
+                    /* This should not happen since we sized our own buffer. */
+                    throw new RuntimeException("our calculated buffer was too small", e);
+                }
+            } else {
+                bytesWritten = 0;
+            }
+
             try {
-                bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+                bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
             } catch (ShortBufferException e) {
                 /* This should not happen since we sized our own buffer. */
                 throw new RuntimeException("our calculated buffer was too small", e);
             }
-        } else {
-            bytesWritten = 0;
-        }
 
-        try {
-            bytesWritten += doFinalInternal(output, bytesWritten, maximumLen - bytesWritten);
-        } catch (ShortBufferException e) {
-            /* This should not happen since we sized our own buffer. */
-            throw new RuntimeException("our calculated buffer was too small", e);
-        }
-
-        if (bytesWritten == output.length) {
-            return output;
-        } else if (bytesWritten == 0) {
-            return EmptyArray.BYTE;
-        } else {
-            return Arrays.copyOfRange(output, 0, bytesWritten);
+            if (bytesWritten == output.length) {
+                return output;
+            } else if (bytesWritten == 0) {
+                return EmptyArray.BYTE;
+            } else {
+                return Arrays.copyOfRange(output, 0, bytesWritten);
+            }
+        } finally {
+            // Always reset the context after a final is called. Note that this
+            // is only required on _success_ by javax.crypto.Cipher's
+            // documentation and otherwise optional, but it is less error-prone
+            // to always reset.
+            reset();
         }
     }
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-                                int outputOffset)
-            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
-        if (output == null) {
-            throw new NullPointerException("output == null");
+            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
+            BadPaddingException {
+        // Assume we will need to reset unless we hit a ShortBufferException
+        boolean resetNeeded = true;
+        try {
+            if (output == null) {
+                throw new NullPointerException("output == null");
+            }
+
+            int maximumLen = getOutputSizeForFinal(inputLen);
+
+            final int bytesWritten;
+            if (inputLen > 0) {
+                bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
+                        maximumLen);
+                outputOffset += bytesWritten;
+                maximumLen -= bytesWritten;
+            } else {
+                bytesWritten = 0;
+            }
+
+            return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
+        } catch (ShortBufferException e) {
+            // State preserved so the caller can retry with a larger buffer
+            resetNeeded = false;
+            throw e;
+        } finally {
+            // Reset on success or FATAL errors (like BadPaddingException), but skip on short buffer
+            if (resetNeeded) {
+                reset();
+            }
         }
-
-        int maximumLen = getOutputSizeForFinal(inputLen);
-
-        final int bytesWritten;
-        if (inputLen > 0) {
-            bytesWritten =
-                    updateInternal(input, inputOffset, inputLen, output, outputOffset, maximumLen);
-            outputOffset += bytesWritten;
-            maximumLen -= bytesWritten;
-        } else {
-            bytesWritten = 0;
-        }
-
-        return bytesWritten + doFinalInternal(output, outputOffset, maximumLen);
     }
 
     @Override

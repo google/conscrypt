@@ -28,8 +28,6 @@ import javax.net.ssl.SSLServerSocket;
  */
 final class ConscryptServerSocket extends SSLServerSocket {
     private final SSLParametersImpl sslParameters;
-    private boolean channelIdEnabled;
-    private boolean useEngineSocket;
 
     ConscryptServerSocket(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
@@ -56,7 +54,7 @@ final class ConscryptServerSocket extends SSLServerSocket {
      * Configures the socket to be created for this instance.
      */
     ConscryptServerSocket setUseEngineSocket(boolean useEngineSocket) {
-        this.useEngineSocket = useEngineSocket;
+        // No-op. Engine sockets are always used.
         return this;
     }
 
@@ -128,20 +126,6 @@ final class ConscryptServerSocket extends SSLServerSocket {
     }
 
     /**
-     * Enables/disables the TLS Channel ID extension for this server socket.
-     */
-    void setChannelIdEnabled(boolean enabled) {
-        channelIdEnabled = enabled;
-    }
-
-    /**
-     * Checks whether the TLS Channel ID extension is enabled for this server socket.
-     */
-    boolean isChannelIdEnabled() {
-        return channelIdEnabled;
-    }
-
-    /**
      * This method enables the cipher suites listed by
      * getSupportedCipherSuites().
      *
@@ -186,14 +170,7 @@ final class ConscryptServerSocket extends SSLServerSocket {
 
     @Override
     public Socket accept() throws IOException {
-        final AbstractConscryptSocket socket;
-        if (useEngineSocket) {
-            socket = Platform.createEngineSocket(sslParameters);
-        } else {
-            socket = Platform.createFileDescriptorSocket(sslParameters);
-        }
-
-        socket.setChannelIdEnabled(channelIdEnabled);
+        final AbstractConscryptSocket socket = Platform.createEngineSocket(sslParameters);
         implAccept(socket);
         return socket;
     }

@@ -29,6 +29,13 @@ public interface LogStore {
         NON_COMPLIANT,
     }
 
+    /** Thrown when the LogStore was found to be unusable while retrieving a log's information. */
+    public class InvalidLogException extends Exception {
+        public InvalidLogException(Throwable cause) {
+            super(cause);
+        }
+    }
+
     State getState();
 
     int getMajorVersion();
@@ -41,5 +48,5 @@ public interface LogStore {
 
     long getTimestamp();
 
-    LogInfo getKnownLog(byte[] logId);
+    LogInfo getKnownLog(byte[] logId) throws InvalidLogException;
 }

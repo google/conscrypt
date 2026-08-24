@@ -24,9 +24,13 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import org.conscrypt.AllocatedBuffer;
+import org.conscrypt.BufferAllocator;
+import org.conscrypt.Conscrypt;
 import org.conscrypt.OpenSSLSocketImpl;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
@@ -75,6 +79,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
@@ -82,7 +87,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.conscrypt.Conscrypt;
 
 import tests.net.DelegatingSSLSocketFactory;
 import tests.util.ForEachRunner;
@@ -266,6 +270,65 @@ public class SSLSocketTest {
             }
         }
         c.close();
+    }
+
+    @Test
+    public void setBufferAllocator_afterConnect_fails() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        BufferAllocator unpooledBufferAllocator = BufferAllocator.unpooled();
+        pair.connect();
+        assertThrows(IllegalStateException.class,
+                     () -> Conscrypt.setBufferAllocator(pair.client, unpooledBufferAllocator));
+    }
+
+    // BufferAllocator that counts allocations.
+    private static final class SpyBufferAllocator extends BufferAllocator {
+        private final BufferAllocator bufferAllocator;
+        private int directAllocationCount = 0;
+        private int heapAllocationCount = 0;
+
+        SpyBufferAllocator(BufferAllocator bufferAllocator) {
+            this.bufferAllocator = bufferAllocator;
+        }
+
+        @Override
+        public AllocatedBuffer allocateDirectBuffer(int capacity) {
+            directAllocationCount++;
+            return bufferAllocator.allocateDirectBuffer(capacity);
+        }
+
+        @Override
+        public AllocatedBuffer allocateHeapBuffer(int capacity) {
+            heapAllocationCount++;
+            return bufferAllocator.allocateHeapBuffer(capacity);
+        }
+    }
+
+    @Test
+    public void setBufferAllocator_works() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create();
+        SpyBufferAllocator clientBufferAllocator =
+                new SpyBufferAllocator(BufferAllocator.unpooled());
+        SpyBufferAllocator serverBufferAllocator =
+                new SpyBufferAllocator(BufferAllocator.unpooled());
+        Conscrypt.setBufferAllocator(pair.client, clientBufferAllocator);
+        Conscrypt.setBufferAllocator(pair.server, serverBufferAllocator);
+        pair.connect();
+
+        pair.client.getOutputStream().write(new byte[] {1, 2, 3, 4});
+        assertEquals(1, pair.server.getInputStream().read());
+        assertEquals(3, pair.server.getInputStream().read(new byte[4]));
+
+        pair.server.getOutputStream().write(new byte[] {1, 2, 3, 4});
+        assertEquals(1, pair.client.getInputStream().read());
+        assertEquals(3, pair.client.getInputStream().read(new byte[4]));
+
+        assertTrue(clientBufferAllocator.directAllocationCount > 0);
+        assertTrue(serverBufferAllocator.directAllocationCount > 0);
+
+        // allocateHeapBuffer is currently not called.
+        assertEquals(0, clientBufferAllocator.heapAllocationCount);
+        assertEquals(0, serverBufferAllocator.heapAllocationCount);
     }
 
     @Test
@@ -509,6 +572,11 @@ public class SSLSocketTest {
 
     @Test
     public void test_SSLSocket_getHandshakeSession_duringHandshake_client() throws Exception {
+        // On Android, this test fails because Platform.getOriginalHostNameFromInetAddress
+        // uses reflection on private members of InetAddressHolder, which is blocked
+        // by non-SDK interface restrictions (hidden API enforcement).
+        assumeFalse(TestUtils.isAndroid());
+
         // We can't reference the actual context we're using, since we need to pass
         // the test trust manager in to construct it, so create reference objects that
         // we can test against.
@@ -918,6 +986,34 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void test_SSLSocket_oversizedTlsRecordHeader_throwsSSLException() throws Exception {
+        try (ServerSocket listening = new ServerSocket(0)) {
+            Future<Void> serverTask = executor.submit(() -> {
+                try (Socket server = listening.accept()) {
+                    byte[] headerAndPayload = new byte[16709];
+                    headerAndPayload[0] = 0x16; // SSL3_RT_HANDSHAKE
+                    headerAndPayload[1] = 0x03; // TLS 1.2 major
+                    headerAndPayload[2] = 0x03; // TLS 1.2 minor
+                    headerAndPayload[3] = (byte) 0xFF; // length high byte (0xFFFF = 65535)
+                    headerAndPayload[4] = (byte) 0xFF; // length low byte
+                    server.getOutputStream().write(headerAndPayload);
+                    server.getOutputStream().flush();
+                    Thread.sleep(500);
+                }
+                return null;
+            });
+
+            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            try (SSLSocket client = (SSLSocket) sf.createSocket(listening.getInetAddress(),
+                                                                listening.getLocalPort())) {
+                assertThrows(SSLException.class, client::startHandshake);
+            } finally {
+                serverTask.get(5, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
     public void test_TestSSLSocketPair_create() {
         TestSSLSocketPair test = TestSSLSocketPair.create().connect();
         assertNotNull(test.c);
@@ -1037,14 +1133,19 @@ public class SSLSocketTest {
         s.get();
         c.get();
         // By default, BoringSSL uses X25519, P-256, and P-384.
+        // On newer versions of BoringSSL, X25519MLKEM768 is also a default.
         if (sslParametersSupportsNamedGroups()) {
             // If the client requests P-256, it will be chosen.
             assertEquals("P-256", getCurveName(client));
             assertEquals("P-256", getCurveName(server));
         } else {
-            // Otherwise, X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // Otherwise, X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1072,14 +1173,19 @@ public class SSLSocketTest {
         s.get();
         c.get();
         // By default, BoringSSL uses X25519, P-256, and P-384.
+        // On newer versions of BoringSSL, X25519MLKEM768 is also a default.
         if (sslParametersSupportsNamedGroups()) {
             // If the client requests P-384, it will be chosen.
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // Otherwise, X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // Otherwise, X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1114,9 +1220,13 @@ public class SSLSocketTest {
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1173,9 +1283,13 @@ public class SSLSocketTest {
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1208,9 +1322,13 @@ public class SSLSocketTest {
             assertEquals("X25519MLKEM768", getCurveName(client));
             assertEquals("X25519MLKEM768", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1303,9 +1421,13 @@ public class SSLSocketTest {
         } else {
             s.get();
             c.get();
-            // The defaults are used, and X25519 gets priority.
-            assertEquals("X25519", getCurveName(client));
-            assertEquals("X25519", getCurveName(server));
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
         }
         client.close();
         server.close();
@@ -1313,26 +1435,58 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void handshake_namedGroupsProperty_failsIfAllValuesAreInvalid() throws Exception {
+    public void setNamedGroupsProperty_invalidValue_isIgnored() throws Exception {
+        // Set the property to a valid value.
+        System.setProperty("jdk.tls.namedGroups", "MLKEM1024");
+
+        {
+            TestSSLContext context = TestSSLContext.create();
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(context.host,
+                                                                                      context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            assertEquals("MLKEM1024", getCurveName(client));
+            assertEquals("MLKEM1024", getCurveName(server));
+            client.close();
+            server.close();
+            context.close();
+        }
+
+        // Now, set the property to an invalid value.
         System.setProperty("jdk.tls.namedGroups", "invalid,invalid2");
 
-        TestSSLContext context = TestSSLContext.create();
-        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                context.host, context.port);
-        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        Future<Void> s = runAsync(() -> {
-            server.startHandshake();
-            return null;
-        });
-        Future<Void> c = runAsync(() -> {
-            client.startHandshake();
-            return null;
-        });
-        assertThrows(ExecutionException.class, s::get);
-        assertThrows(ExecutionException.class, c::get);
-        client.close();
-        server.close();
-        context.close();
+        {
+            TestSSLContext context = TestSSLContext.create();
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(context.host,
+                                                                                      context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            assertEquals("MLKEM1024", getCurveName(client));
+            assertEquals("MLKEM1024", getCurveName(server));
+            client.close();
+            server.close();
+            context.close();
+        }
     }
 
     @Test

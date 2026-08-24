@@ -21,6 +21,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.util.Arrays;
 
@@ -134,7 +135,7 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
         return NativeCrypto.EVP_marshal_private_key(key.getNativeRef());
     }
 
-    byte[] getSeed() {
+    public byte[] getSeed() {
         if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
@@ -165,7 +166,7 @@ public class OpenSslMlDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
             return false;
         }
         OpenSslMlDsaPrivateKey that = (OpenSslMlDsaPrivateKey) o;
-        return Arrays.equals(getEncoded(), that.getEncoded());
+        return algorithm.equals(that.algorithm) && MessageDigest.isEqual(getSeed(), that.getSeed());
     }
 
     @Override

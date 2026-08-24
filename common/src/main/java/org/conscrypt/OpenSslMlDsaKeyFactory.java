@@ -16,8 +16,6 @@
 
 package org.conscrypt;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactorySpi;
@@ -28,7 +26,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
 
 /** An implementation of a {@link KeyFactorySpi} for MLDSA keys based on BoringSSL. */
 @Internal
@@ -149,7 +146,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
                                               + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
+        if (AddressUtils.asciiEqualsIgnoreCase(encodedKeySpec.getFormat(), "raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
             return makePublicKeyFromRaw(raw, defaultAlgorithm);
         }

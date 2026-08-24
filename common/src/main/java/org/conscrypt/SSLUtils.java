@@ -254,6 +254,28 @@ final class SSLUtils {
             case NativeConstants.EVP_PKEY_EC:
                 return KEY_TYPE_EC;
             default:
+                break;
+        }
+        // Fallback for signature schemes where SSL_get_signature_algorithm_key_type
+        // returns an EVP_PKEY type not listed above (e.g. EVP_PKEY_RSA_PSS).
+        switch (signatureAlg) {
+            case 0x0401: // rsa_pkcs1_sha256
+            case 0x0501: // rsa_pkcs1_sha384
+            case 0x0601: // rsa_pkcs1_sha512
+            case 0x0804: // rsa_pss_rsae_sha256
+            case 0x0805: // rsa_pss_rsae_sha384
+            case 0x0806: // rsa_pss_rsae_sha512
+            case 0x0809: // rsa_pss_pss_sha256
+            case 0x080a: // rsa_pss_pss_sha384
+            case 0x080b: // rsa_pss_pss_sha512
+            case 0x0201: // rsa_pkcs1_sha1
+                return KEY_TYPE_RSA;
+            case 0x0403: // ecdsa_secp256r1_sha256
+            case 0x0503: // ecdsa_secp384r1_sha384
+            case 0x0603: // ecdsa_secp521r1_sha512
+            case 0x0203: // ecdsa_sha1
+                return KEY_TYPE_EC;
+            default:
                 return null;
         }
     }
@@ -352,6 +374,14 @@ final class SSLUtils {
                 MAX_ENCRYPTION_OVERHEAD_LENGTH + min(MAX_ENCRYPTION_OVERHEAD_DIFF, pendingBytes));
     }
 
+    static SSLException toEchRejectedException(Throwable e, String hostname, byte[] retryConfigs) {
+        if (e instanceof EchRejectedException) {
+            return Platform.wrapEchRejectedException((EchRejectedException) e, hostname,
+                                                     retryConfigs);
+        }
+        return new EchRejectedException(e.getMessage());
+    }
+
     /**
      * Wraps the given exception if it's not already a {@link SSLHandshakeException}.
      */
@@ -402,7 +432,7 @@ final class SSLUtils {
         int numProtocols = 0;
         for (int i = 0; i < protocols.length;) {
             int protocolLength = protocols[i] & 0xFF;
-            if (protocolLength < 0 || protocolLength > protocols.length - i) {
+            if (protocolLength < 0 || protocolLength >= protocols.length - i) {
                 throw new IllegalArgumentException("Protocol has invalid length (" + protocolLength
                                                    + " at position " + i + "): "
                                                    + (protocols.length < 50
@@ -551,8 +581,8 @@ final class SSLUtils {
 
         // SSLv3 or TLS
         int packetLength = unsignedShort(buffer.getShort(pos + 3)) + SSL3_RT_HEADER_LENGTH;
-        if (packetLength <= SSL3_RT_HEADER_LENGTH) {
-            // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data)
+        if (packetLength <= SSL3_RT_HEADER_LENGTH || packetLength > SSL3_RT_MAX_PACKET_SIZE) {
+            // Neither SSLv3 or TLSv1 (i.e. SSLv2 or bad data) or oversized packet
             return -1;
         }
         return packetLength;

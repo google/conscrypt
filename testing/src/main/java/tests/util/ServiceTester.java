@@ -24,6 +24,7 @@ import java.security.Provider;
 import java.security.Security;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -44,25 +45,25 @@ public final class ServiceTester {
         void test(Provider p, String algorithm) throws Exception;
     }
 
-    private static Provider[] providersToTest = null;
+    private static Provider[] providersToTest;
 
-  /**
-   * Sets the list of providers to be returned by {@link #getProviders()}, {@link
-   * #getProviders(String)}, and {@link #getProviders(Map)}.
-   */
-  public static void setProviders(Provider[] providers) {
+    /**
+     * Sets the list of providers to be returned by {@link #getProviders()}, {@link
+     * #getProviders(String)}, and {@link #getProviders(Map)}.
+     */
+    public static void setProviders(Provider[] providers) {
         if (providers.length == 0) {
             throw new IllegalArgumentException("providers must not be empty");
         }
         providersToTest = providers.clone();
     }
 
-  /**
-   * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
-   * {@link Security.getProviders()}. Otherwise, returns the list of providers set by {@link
-   * #setProviders(Provider[])}.
-   */
-  public static Provider[] getProviders() {
+    /**
+     * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
+     * {@link Security#getProviders()}. Otherwise, returns the list of providers set by {@link
+     * #setProviders(Provider[])}.
+     */
+    public static Provider[] getProviders() {
         if (providersToTest != null) {
             return providersToTest.clone();
         } else {
@@ -70,12 +71,12 @@ public final class ServiceTester {
         }
     }
 
-  /**
-   * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
-   * {@link Security.getProviders(filter)}. Otherwise, returns the list of providers set by {@link
-   * #setProviders(Provider[])}.
-   */
-  public static Provider[] getProviders(String filter) {
+    /**
+     * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
+     * {@link Security#getProviders(String)}. Otherwise, returns the list of providers set by {@link
+     * #setProviders(Provider[])}.
+     */
+    public static Provider[] getProviders(String filter) {
         if (providersToTest != null) {
             return providersToTest.clone();
         } else {
@@ -83,19 +84,18 @@ public final class ServiceTester {
         }
     }
 
-  /**
-   * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
-   * {@link Security.getProviders(filter)} that support the given service and algorithm. Otherwise,
-   * returns the list of providers set by {@link #setProviders(Provider[])}.
-   */
-  public static Provider[] getProviders(Map<String, String> filter) {
+    /**
+     * If {@link #setProviders(Provider[])} has not been called, returns the list of providers from
+     * {@link Security#getProviders(Map)} that support the given service and algorithm. Otherwise,
+     * returns the list of providers set by {@link #setProviders(Provider[])}.
+     */
+    public static Provider[] getProviders(Map<String, String> filter) {
         if (providersToTest != null) {
             return providersToTest.clone();
         } else {
             return Security.getProviders(filter);
         }
     }
-
     private static final String SEPARATOR = "||";
     private final String service;
     private final Set<Provider> providers = new LinkedHashSet<>();
@@ -200,9 +200,7 @@ public final class ServiceTester {
      */
     public void run(Test test) {
         if (providersToTest != null) {
-            for (Provider p : providersToTest) {
-                providers.add(p);
-            }
+            Collections.addAll(providers, providersToTest);
         }
         if (providers.isEmpty()) {
             providers.addAll(Arrays.asList(Security.getProviders()));

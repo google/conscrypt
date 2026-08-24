@@ -70,6 +70,7 @@ import static javax.net.ssl.SSLEngineResult.Status.OK;
 import org.conscrypt.NativeRef.SSL_SESSION;
 import org.conscrypt.NativeSsl.BioWrapper;
 import org.conscrypt.SSLParametersImpl.AliasChooser;
+import org.conscrypt.metrics.TlsEncryptedClientHelloHandshake;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -167,12 +168,6 @@ final class ConscryptEngine extends AbstractConscryptEngine
                 }
             }));
 
-    /**
-     * Private key for the TLS Channel ID extension. This field is client-side only. Set during
-     * startHandshake.
-     */
-    private OpenSSLKey channelIdPrivateKey;
-
     private int maxSealOverhead;
 
     private HandshakeListener handshakeListener;
@@ -253,102 +248,6 @@ final class ConscryptEngine extends AbstractConscryptEngine
     @Override
     int maxSealOverhead() {
         return maxSealOverhead;
-    }
-
-    /**
-     * Enables/disables TLS Channel ID for this server engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @throws IllegalStateException if this is a client engine or if the handshake has already
-     *         started.
-     */
-    @Override
-    void setChannelIdEnabled(boolean enabled) {
-        synchronized (ssl) {
-            if (getUseClientMode()) {
-                throw new IllegalStateException("Not allowed in client mode");
-            }
-            if (isHandshakeStarted()) {
-                throw new IllegalStateException("Could not enable/disable Channel ID after the "
-                                                + "initial handshake has begun.");
-            }
-            sslParameters.channelIdEnabled = enabled;
-        }
-    }
-
-    /**
-     * Gets the TLS Channel ID for this server engine. Channel ID is only available once the
-     * handshake completes.
-     *
-     * @return channel ID or {@code null} if not available.
-     *
-     * @throws IllegalStateException if this is a client engine or if the handshake has not yet
-     * completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    @Override
-    byte[] getChannelId() throws SSLException {
-        synchronized (ssl) {
-            if (getUseClientMode()) {
-                throw new IllegalStateException("Not allowed in client mode");
-            }
-
-            if (isHandshakeStarted()) {
-                throw new IllegalStateException(
-                        "Channel ID is only available after handshake completes");
-            }
-            return ssl.getTlsChannelId();
-        }
-    }
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
-     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
-     *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
-     *
-     * @throws IllegalStateException if this is a server engine or if the handshake has already
-     *         started.
-     */
-    @Override
-    void setChannelIdPrivateKey(PrivateKey privateKey) {
-        if (!getUseClientMode()) {
-            throw new IllegalStateException("Not allowed in server mode");
-        }
-
-        synchronized (ssl) {
-            if (isHandshakeStarted()) {
-                throw new IllegalStateException("Could not change Channel ID private key "
-                                                + "after the initial handshake has begun.");
-            }
-
-            if (privateKey == null) {
-                sslParameters.channelIdEnabled = false;
-                channelIdPrivateKey = null;
-                return;
-            }
-
-            sslParameters.channelIdEnabled = true;
-            try {
-                ECParameterSpec ecParams = null;
-                if (privateKey instanceof ECKey) {
-                    ecParams = ((ECKey) privateKey).getParams();
-                }
-                if (ecParams == null) {
-                    // Assume this is a P-256 key, as specified in the contract of this method.
-                    ecParams =
-                            OpenSSLECGroupContext.getCurveByName("prime256v1").getECParameterSpec();
-                }
-                channelIdPrivateKey =
-                        OpenSSLKey.fromECPrivateKeyForTLSStackOnly(privateKey, ecParams);
-            } catch (InvalidKeyException e) {
-                // Will have error in startHandshake
-            }
-        }
     }
 
     /**
@@ -436,7 +335,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
         boolean releaseResources = true;
         try {
             // Prepare the SSL object for the handshake.
-            ssl.initialize(getHostname(), channelIdPrivateKey);
+            ssl.initialize(getHostname());
 
             // For clients, offer to resume a previously cached session to avoid the
             // full TLS handshake.
@@ -1137,9 +1036,22 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     private SSLException convertException(Throwable e) {
         if (e instanceof SSLHandshakeException || !handshakeFinished) {
+            if (e instanceof EchRejectedException) {
+                byte[] retryConfigs = ssl.getEchRetryConfigs();
+                ssl.getEchHandshakeMetricsBuilder().setRetryConfigs(retryConfigs);
+                return SSLUtils.toEchRejectedException(e, ssl.getEchNameOverride(), retryConfigs);
+            }
             return SSLUtils.toSSLHandshakeException(e);
         }
         return SSLUtils.toSSLException(e);
+    }
+
+    TlsEncryptedClientHelloHandshake getEchHandshakeForMetrics(
+            boolean handshakeSuccess, int durationMillis) {
+        return ssl.getEchHandshakeMetricsBuilder()
+                .setHandshakeSuccess(handshakeSuccess)
+                .setHandshakeDurationMillis(durationMillis)
+                .build();
     }
 
     /**
@@ -1751,6 +1663,11 @@ final class ConscryptEngine extends AbstractConscryptEngine
     @Override
     void setUseSessionTickets(boolean useSessionTickets) {
         sslParameters.setUseSessionTickets(useSessionTickets);
+    }
+
+    @Override
+    void setEchConfigList(byte[] echConfigList) {
+        sslParameters.setEchConfigList(echConfigList);
     }
 
     @Override

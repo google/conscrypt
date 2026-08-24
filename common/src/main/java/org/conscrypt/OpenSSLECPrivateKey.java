@@ -25,6 +25,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.ECKey;
@@ -213,7 +214,7 @@ final class OpenSSLECPrivateKey implements ECPrivateKey, OpenSSLKeyHolder {
         }
 
         final ECPrivateKey other = (ECPrivateKey) o;
-        if (!getPrivateKey().equals(other.getS())) {
+        if (!MessageDigest.isEqual(getPrivateKey().toByteArray(), other.getS().toByteArray())) {
             return false;
         }
 

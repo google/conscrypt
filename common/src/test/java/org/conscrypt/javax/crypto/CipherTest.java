@@ -22,8 +22,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+// android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+// android-add: import libcore.test.annotation.NonCts;
+// android-add: import libcore.test.reasons.NonCtsReasons;
 
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.conscrypt.Conscrypt;
@@ -32,7 +37,9 @@ import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -55,6 +62,7 @@ import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -83,10 +91,13 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)
 public final class CipherTest {
+    // android-add: Allow access to deprecated BC algorithms.
+
     @BeforeClass
     public static void setUp() {
         TestUtils.assumeAllowsUnsignedCrypto();
@@ -3822,16 +3833,17 @@ public final class CipherTest {
         for (CipherTestParam testVector : testVectors) {
             ArrayList<Provider> providers = new ArrayList<>();
 
-            Provider[] providerArray = ServiceTester.getProviders("Cipher." + testVector.transformation);
+            Provider[] providerArray =
+                    ServiceTester.getProviders("Cipher." + testVector.transformation);
             if (providerArray != null) {
                 Collections.addAll(providers, providerArray);
             }
 
             if (testVector.transformation.indexOf('/') > 0) {
-                Provider[] baseTransformProviderArray =
-                        ServiceTester.getProviders("Cipher."
-                                              + testVector.transformation.substring(
-                                                      0, testVector.transformation.indexOf('/')));
+                Provider[] baseTransformProviderArray = ServiceTester.getProviders(
+                        "Cipher."
+                        + testVector.transformation.substring(
+                                0, testVector.transformation.indexOf('/')));
                 if (baseTransformProviderArray != null) {
                     Collections.addAll(providers, baseTransformProviderArray);
                 }
@@ -4501,6 +4513,47 @@ public final class CipherTest {
     }
 
     @Test
+    public void testAES_doFinal_AfterFailedDoFinal_Success() throws Exception {
+        for (String provider : AES_PROVIDERS) {
+            testAES_doFinal_AfterFailedDoFinal_Success(provider);
+        }
+    }
+
+    private void testAES_doFinal_AfterFailedDoFinal_Success(String provider) throws Exception {
+        Cipher enc = Cipher.getInstance("AES/ECB/PKCS5Padding", provider);
+        enc.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(new byte[16], "AES"));
+        byte[] plaintext = "Hello World!".getBytes("UTF-8");
+        byte[] ciphertext = enc.doFinal(plaintext);
+
+        Cipher c = Cipher.getInstance("AES/ECB/PKCS5Padding", provider);
+        c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(new byte[16], "AES"));
+        byte[] badCiphertext = new byte[16]; // Zeros, invalid padding
+
+        try {
+            c.doFinal(badCiphertext);
+            fail("Should have thrown BadPaddingException");
+        } catch (BadPaddingException expected) {
+            // expected
+        }
+
+        // Cipher should be reset and usable again
+        byte[] decrypted = c.doFinal(ciphertext);
+        assertEquals(Arrays.toString(plaintext), Arrays.toString(decrypted));
+
+        // Test with output buffer
+        try {
+            c.doFinal(badCiphertext, 0, badCiphertext.length, new byte[16], 0);
+            fail("Should have thrown BadPaddingException");
+        } catch (BadPaddingException expected) {
+            // expected
+        }
+
+        byte[] decrypted2 = new byte[16];
+        int len = c.doFinal(ciphertext, 0, ciphertext.length, decrypted2, 0);
+        assertEquals(Arrays.toString(plaintext), Arrays.toString(Arrays.copyOf(decrypted2, len)));
+    }
+
+    @Test
     public void testAES_ECB_NoPadding_IncrementalUpdate_Success() throws Exception {
         for (String provider : AES_PROVIDERS) {
             testAES_ECB_NoPadding_IncrementalUpdate_Success(provider);
@@ -4588,7 +4641,6 @@ public final class CipherTest {
         /* Find all providers that provide ARC4. We must have at least one! */
         Map<String, String> filter = new HashMap<>();
         filter.put("Cipher.ARC4", "");
-        //?
         Provider[] providers = ServiceTester.getProviders(filter);
         assertTrue("There must be security providers of Cipher.ARC4", providers.length > 0);
 
@@ -4776,40 +4828,6 @@ public final class CipherTest {
         });
 
         assertEquals(Arrays.toString(c1.doFinal()), Arrays.toString(c2.doFinal()));
-    }
-
-    /*
-     * http://b/27224566
-     * http://b/27994930
-     * Check that a PBKDF2WITHHMACSHA1 secret key factory works well with a
-     * PBEWITHSHAAND128BITAES-CBC-BC cipher. The former is PKCS5 and the latter is PKCS12, and so
-     * mixing them is not recommended. However, until 1.52 BouncyCastle was accepting this mixture,
-     * assuming the IV was a 0 vector. Some apps still use this functionality. This
-     * compatibility is likely to be removed in later versions of Android.
-     * TODO(27995180): consider whether we keep this compatibility. Consider whether we only allow
-     * if an IV is passed in the parameters.
-     */
-    @Test
-    public void test_PBKDF2WITHHMACSHA1_SKFactory_and_PBEAESCBC_Cipher_noIV() throws Exception {
-        Assume.assumeNotNull(Security.getProvider("BC"));
-        byte[] plaintext =
-                new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
-        byte[] ciphertext = new byte[] {92,  -65, -128, 16,  -102, -115, -44, 52,  16,  124, -34,
-                                        -45, 58,  -70,  -17, 127,  119,  -67, 87,  91,  63,  -13,
-                                        -40, 9,   97,   -17, -71,  97,   10,  -61, -19, -73};
-        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WITHHMACSHA1");
-        PBEKeySpec pbeks = new PBEKeySpec("password".toCharArray(),
-                                          "salt".getBytes(TestUtils.UTF_8), 100, 128);
-        SecretKey secretKey = skf.generateSecret(pbeks);
-
-        Cipher cipher = Cipher.getInstance("PBEWITHSHAAND128BITAES-CBC-BC");
-        PBEParameterSpec paramSpec = new PBEParameterSpec("salt".getBytes(TestUtils.UTF_8), 100);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, paramSpec);
-        assertEquals(Arrays.toString(ciphertext), Arrays.toString(cipher.doFinal(plaintext)));
-
-        secretKey = skf.generateSecret(pbeks);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, paramSpec);
-        assertEquals(Arrays.toString(plaintext), Arrays.toString(cipher.doFinal(ciphertext)));
     }
 
     /*

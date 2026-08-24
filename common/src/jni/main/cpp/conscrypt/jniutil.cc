@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#include <conscrypt/compat.h>
+// clang-format off
 #include <conscrypt/jniutil.h>
-#include <conscrypt/trace.h>
-#include <errno.h>
 
+#include <conscrypt/compat.h>
+#include <conscrypt/trace.h>
 #include <cstdlib>
+#include <errno.h>
+// clang-format on
 
 namespace conscrypt {
 namespace jniutil {
@@ -93,10 +95,7 @@ void init(JavaVM* vm, JNIEnv* env) {
     openSslInputStreamClass = getGlobalRefToClass(
             env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/OpenSSLBIOInputStream");
     sslHandshakeCallbacksClass = getGlobalRefToClass(
-      env,
-      TO_STRING(
-          JNI_JARJAR_PREFIX) "org/conscrypt/"
-                             "NativeCrypto$SSLHandshakeCallbacks");
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeCrypto$SSLHandshakeCallbacks");
 
     nativeRef_address = getFieldRef(env, nativeRefClass, "address", "J");
 #if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
@@ -181,8 +180,8 @@ int jniGetFDFromFileDescriptor(JNIEnv* env, jobject fileDescriptor) {
 }
 
 extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer) {
-    // Some versions of ART do not check the buffer validity when handling
-    // GetDirectBufferAddress() and GetDirectBufferCapacity().
+    // Some versions of ART do not check the buffer validity when handling GetDirectBufferAddress()
+    // and GetDirectBufferCapacity().
     if (buffer == nullptr) {
         return false;
     }
@@ -194,8 +193,7 @@ extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer) {
 
 bool isGetByteArrayElementsLikelyToReturnACopy(size_t size) {
 #if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
-    // ART's GetByteArrayElements creates copies only for arrays smaller than 12
-    // kB.
+    // ART's GetByteArrayElements creates copies only for arrays smaller than 12 kB.
     return size <= 12 * 1024;
 #else
     (void)size;
@@ -347,6 +345,9 @@ int throwForCipherError(JNIEnv* env, int reason, const char* message,
         case CIPHER_R_BUFFER_TOO_SMALL:
             return throwShortBufferException(env, message);
             break;
+        case ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED:
+            return throwIllegalStateException(env, message);
+            break;
     }
     return defaultThrow(env, message);
 }
@@ -451,9 +452,8 @@ void throwExceptionFromBoringSSLError(JNIEnv* env, CONSCRYPT_UNUSED const char* 
         return;
     }
 
-    // If there's an error from BoringSSL it may have been caused by an exception
-    // in Java code, so ensure there isn't a pending exception before we throw a
-    // new one.
+    // If there's an error from BoringSSL it may have been caused by an exception in Java code, so
+    // ensure there isn't a pending exception before we throw a new one.
     if (!env->ExceptionCheck()) {
         char message[256];
         ERR_error_string_n(error, message, sizeof(message));
@@ -516,6 +516,12 @@ int throwSSLProtocolExceptionStr(JNIEnv* env, const char* message) {
     return conscrypt::jniutil::throwException(env, "javax/net/ssl/SSLProtocolException", message);
 }
 
+int throwEchRejectedException(JNIEnv* env, const char* message) {
+    JNI_TRACE("throwEchRejectedException %s", message);
+    return conscrypt::jniutil::throwException(
+            env, TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/EchRejectedException", message);
+}
+
 int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode, const char* message,
                                    int (*actualThrow)(JNIEnv*, const char*)) {
     if (message == nullptr) {
@@ -571,6 +577,7 @@ int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode, cons
     }
 
     char* allocStr = str;
+    unsigned long first_err = 0;
 
     // For protocol errors, SSL might have more information.
     if (sslErrorCode == SSL_ERROR_NONE || sslErrorCode == SSL_ERROR_SSL) {
@@ -583,6 +590,9 @@ int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode, cons
             int flags;
             // NOLINTNEXTLINE(runtime/int)
             unsigned long err = ERR_get_error_line_data(&file, &line, &data, &flags);
+            if (first_err == 0) {
+                first_err = err;
+            }
             if (err == 0) {
                 break;
             }
@@ -616,7 +626,12 @@ int throwSSLExceptionWithSslErrors(JNIEnv* env, SSL* ssl, int sslErrorCode, cons
 
     int ret;
     if (sslErrorCode == SSL_ERROR_SSL) {
-        ret = throwSSLProtocolExceptionStr(env, allocStr);
+        if (first_err != 0 && ERR_GET_LIB(first_err) == ERR_LIB_SSL &&
+            ERR_GET_REASON(first_err) == SSL_R_ECH_REJECTED) {
+            ret = throwEchRejectedException(env, allocStr);
+        } else {
+            ret = throwSSLProtocolExceptionStr(env, allocStr);
+        }
     } else {
         ret = actualThrow(env, allocStr);
     }

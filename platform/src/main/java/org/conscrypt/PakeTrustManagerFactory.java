@@ -34,7 +34,6 @@ import javax.net.ssl.TrustManagerFactorySpi;
 
 /**
  * A factory for creating {@link SpakeTrustManager} instances that use SPAKE2.
- * @hide This class is not part of the Android public SDK API
  */
 @Internal
 public class PakeTrustManagerFactory extends TrustManagerFactorySpi {

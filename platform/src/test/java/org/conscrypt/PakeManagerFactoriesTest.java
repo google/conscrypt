@@ -34,9 +34,6 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 
-/**
- * @hide This class is not part of the Android public SDK API
- */
 public class PakeManagerFactoriesTest {
     private static final byte[] CLIENT_ID = new byte[] {4, 5, 6};
     private static final byte[] SERVER_ID = new byte[] {7, 8, 9};

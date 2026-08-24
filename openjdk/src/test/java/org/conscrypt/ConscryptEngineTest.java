@@ -432,6 +432,28 @@ public class ConscryptEngineTest {
         assertEquals(alpnProtocol, Conscrypt.getApplicationProtocol(clientEngine));
     }
 
+    @Test
+    public void unwrapOversizedRecordHeaderThrowsSSLException() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+
+        // Generate ClientHello so clientEngine enters NEED_UNWRAP state
+        ByteBuffer clientPacketBuffer = bufferType.newBuffer(clientEngine.getSession().getPacketBufferSize());
+        ByteBuffer emptyAppBuffer = bufferType.newBuffer(0);
+        SSLEngineResult wrapResult = clientEngine.wrap(emptyAppBuffer, clientPacketBuffer);
+        assertEquals(HandshakeStatus.NEED_UNWRAP, wrapResult.getHandshakeStatus());
+
+        ByteBuffer src = ByteBuffer.allocate(100);
+        src.put((byte) 0x16); // Handshake
+        src.put((byte) 0x03); // Major 3
+        src.put((byte) 0x03); // Minor 3
+        src.putShort((short) 0xFFFF); // Length 65535 > SSL3_RT_MAX_PACKET_SIZE
+        src.flip();
+
+        ByteBuffer dst = bufferType.newBuffer(clientEngine.getSession().getApplicationBufferSize());
+
+        assertThrows(SSLException.class, () -> clientEngine.unwrap(src, dst));
+    }
+
     private void doMutualAuthHandshake(TestKeyStore clientKs, TestKeyStore serverKs,
                                        ClientAuth clientAuth) throws Exception {
         setupEngines(clientKs, serverKs);

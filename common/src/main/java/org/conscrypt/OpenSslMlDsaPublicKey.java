@@ -100,7 +100,7 @@ public class OpenSslMlDsaPublicKey implements PublicKey, OpenSSLKeyHolder {
         return key;
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }

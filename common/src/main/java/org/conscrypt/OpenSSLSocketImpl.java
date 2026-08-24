@@ -96,11 +96,9 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
 
     @Override public abstract void setUseSessionTickets(boolean useSessionTickets);
 
-    @Override public abstract void setChannelIdEnabled(boolean enabled);
+    @Override public abstract void setEchConfigList(byte[] echConfigList);
 
-    @Override public abstract byte[] getChannelId() throws SSLException;
-
-    @Override public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
+    public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
 
     /**
      * @deprecated NPN is not supported

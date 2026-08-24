@@ -27,6 +27,7 @@ import static javax.net.ssl.SSLEngineResult.Status.CLOSED;
 import static javax.net.ssl.SSLEngineResult.Status.OK;
 
 import org.conscrypt.metrics.StatsLog;
+import org.conscrypt.metrics.TlsEncryptedClientHelloHandshake;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -312,10 +313,19 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 case STATE_READY_HANDSHAKE_CUT_THROUGH:
                     if (handshakeStartedMillis > 0) {
                         StatsLog statsLog = Platform.getStatsLog();
+                        long duration =
+                                Platform.getMillisSinceBoot() - handshakeStartedMillis;
                         statsLog.countTlsHandshake(
                                 true, engine.getSession().getProtocol(),
-                                engine.getSession().getCipherSuite(),
-                                Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                                engine.getSession().getCipherSuite(), duration);
+                        if (getUseClientMode()) {
+                            TlsEncryptedClientHelloHandshake echHandshake =
+                                    engine.getEchHandshakeForMetrics(
+                                    /* handshakeSuccess= */ true, (int) duration);
+                            if (echHandshake.shouldReportEchHandshake()) {
+                                statsLog.reportTlsEchHandshake(echHandshake);
+                            }
+                        }
                         handshakeStartedMillis = 0;
                     }
                     notify = true;
@@ -328,10 +338,19 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
                 case STATE_CLOSED:
                     if (handshakeStartedMillis > 0) {
                         StatsLog statsLog = Platform.getStatsLog();
+                        long duration =
+                                Platform.getMillisSinceBoot() - handshakeStartedMillis;
                         // Handshake was in progress and so must have failed.
                         statsLog.countTlsHandshake(
-                                false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED",
-                                Platform.getMillisSinceBoot() - handshakeStartedMillis);
+                                false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED", duration);
+                        if (getUseClientMode()) {
+                            TlsEncryptedClientHelloHandshake echHandshake =
+                                    engine.getEchHandshakeForMetrics(
+                                    /* handshakeSuccess= */ false, (int) duration);
+                            if (echHandshake.shouldReportEchHandshake()) {
+                                statsLog.reportTlsEchHandshake(echHandshake);
+                            }
+                        }
                         handshakeStartedMillis = 0;
                     }
                     notify = true;
@@ -469,19 +488,12 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     }
 
     @Override
-    public final void setChannelIdEnabled(boolean enabled) {
-        engine.setChannelIdEnabled(enabled);
+    public final void setEchConfigList(byte[] echConfigList) {
+        engine.setEchConfigList(echConfigList);
     }
 
     @Override
-    public final byte[] getChannelId() throws SSLException {
-        return engine.getChannelId();
-    }
-
-    @Override
-    public final void setChannelIdPrivateKey(PrivateKey privateKey) {
-        engine.setChannelIdPrivateKey(privateKey);
-    }
+    public final void setChannelIdPrivateKey(PrivateKey privateKey) {}
 
     @Override
     byte[] getTlsUnique() {
@@ -920,6 +932,9 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
 
                 switch (engineResult.getStatus()) {
                     case BUFFER_UNDERFLOW: {
+                        if (fromSocket.position() == fromSocket.capacity()) {
+                            throw new SSLException("Encrypted packet exceeds buffer capacity");
+                        }
                         if (engineResult.bytesProduced() == 0) {
                             // Need to read more data from the socket.
                             break;

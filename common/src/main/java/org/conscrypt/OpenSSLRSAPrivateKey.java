@@ -22,6 +22,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.RSAKey;
@@ -203,6 +204,10 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
         return "RSA";
     }
 
+    boolean equalsBigInteger(BigInteger a, BigInteger b) {
+        return MessageDigest.isEqual(a.toByteArray(), b.toByteArray());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {
@@ -218,8 +223,8 @@ class OpenSSLRSAPrivateKey implements RSAPrivateKey, OpenSSLKeyHolder {
             ensureReadParams();
             RSAPrivateKey other = (RSAPrivateKey) o;
 
-            return modulus.equals(other.getModulus())
-                    && privateExponent.equals(other.getPrivateExponent());
+            return equalsBigInteger(modulus, other.getModulus())
+                    && equalsBigInteger(privateExponent, other.getPrivateExponent());
         }
 
         return false;

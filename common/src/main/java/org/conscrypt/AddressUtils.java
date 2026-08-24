@@ -18,7 +18,6 @@ package org.conscrypt;
 
 /** Utilities to check whether IP addresses meet some criteria. */
 final class AddressUtils {
-
     private static final int IPV4_OCTET_COUNT = 4;
     private static final int MAX_IPV4_OCTET_VALUE = 255;
     private static final int MAX_IPV4_OCTET_DIGITS = 3;
@@ -42,8 +41,7 @@ final class AddressUtils {
 
         // Must be a FQDN that does not have a trailing dot.
         return (asciiEqualsIgnoreCase(sniHostname, "localhost") || sniHostname.indexOf('.') != -1)
-                && !isLiteralIpAddress(sniHostname)
-                && !sniHostname.endsWith(".")
+                && !isLiteralIpAddress(sniHostname) && !sniHostname.endsWith(".")
                 && sniHostname.indexOf('\0') == -1;
     }
 
@@ -142,7 +140,7 @@ final class AddressUtils {
                     }
                     groupCount++;
                     if (groupCount > IPV6_TOTAL_GROUPS
-                            || (hasDoubleColon && groupCount >= IPV6_TOTAL_GROUPS)) {
+                        || (hasDoubleColon && groupCount >= IPV6_TOTAL_GROUPS)) {
                         return false;
                     }
                     groupLen = 0;
@@ -219,13 +217,8 @@ final class AddressUtils {
             //
             // We choose to reject them consistently on all platforms because they are control
             // characters and are not valid in a real network interface name (Zone ID).
-            if (c == '\n'
-                    || c == '\r'
-                    || c == '\u0085'
-                    || c == '\u2028'
-                    || c == '\u2029'
-                    || c == '\u000B'
-                    || c == '\u000C') {
+            if (c == '\n' || c == '\r' || c == '\u0085' || c == '\u2028' || c == '\u2029'
+                || c == '\u000B' || c == '\u000C') {
                 return false;
             }
         }
@@ -261,8 +254,16 @@ final class AddressUtils {
      * {@link String#equalsIgnoreCase(String)} to: 1. Avoid dependency on Guava's Ascii class. 2.
      * Avoid locale-dependent behavior of String.equalsIgnoreCase (e.g. Turkish 'I' mapping),
      * ensuring strictly ASCII comparison. 3. Avoid any object allocations.
+     *
+     * <p>Both input strings are allowed to be null.
      */
-    private static boolean asciiEqualsIgnoreCase(String s, String expected) {
+    static boolean asciiEqualsIgnoreCase(String s, String expected) {
+        if (s == null && expected == null) {
+            return true;
+        }
+        if (s == null || expected == null) {
+            return false;
+        }
         int len = s.length();
         if (len != expected.length()) {
             return false;

@@ -28,6 +28,7 @@ import static org.conscrypt.NativeConstants.SSL_VERIFY_PEER;
 import org.conscrypt.NativeCrypto.SSLHandshakeCallbacks;
 import org.conscrypt.SSLParametersImpl.AliasChooser;
 import org.conscrypt.SSLParametersImpl.PSKCallbacks;
+import org.conscrypt.metrics.TlsEncryptedClientHelloHandshake;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -63,6 +64,8 @@ final class NativeSsl {
     private X509Certificate[] localCertificates;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private volatile long ssl;
+    private final TlsEncryptedClientHelloHandshake.Builder echHandshakeBuilder =
+            new TlsEncryptedClientHelloHandshake.Builder();
 
     private NativeSsl(long ssl, SSLParametersImpl parameters,
                       SSLHandshakeCallbacks handshakeCallbacks, AliasChooser aliasChooser,
@@ -275,10 +278,6 @@ final class NativeSsl {
         return NativeCrypto.SSL_get_servername(ssl, this);
     }
 
-    byte[] getTlsChannelId() throws SSLException {
-        return NativeCrypto.SSL_get_tls_channel_id(ssl, this);
-    }
-
     private static int toBoringSslGroup(String javaNamedGroup) {
         switch (javaNamedGroup) {
             case "X25519":
@@ -295,8 +294,6 @@ final class NativeSsl {
                 return NativeConstants.NID_secp521r1;
             case "X25519MLKEM768":
                 return NativeConstants.NID_X25519MLKEM768;
-            case "X25519Kyber768Draft00":
-                return NativeConstants.NID_X25519Kyber768Draft00;
             case "MLKEM1024":
                 return NativeConstants.NID_ML_KEM_1024;
             default:
@@ -344,7 +341,7 @@ final class NativeSsl {
         NativeCrypto.SSL_set1_groups(ssl, sslHolder, new int[0]);
     }
 
-    void initialize(String hostname, OpenSSLKey channelIdPrivateKey) throws IOException {
+    void initialize(String hostname) throws IOException {
         boolean enableSessionCreation = parameters.getEnableSessionCreation();
         if (!enableSessionCreation) {
             NativeCrypto.SSL_set_session_creation_enabled(ssl, this, false);
@@ -363,6 +360,7 @@ final class NativeSsl {
             if (parameters.isCTVerificationEnabled(hostname)) {
                 NativeCrypto.SSL_enable_signed_cert_timestamps(ssl, this);
             }
+            enableEchBasedOnPolicy(hostname);
         } else {
             NativeCrypto.SSL_set_accept_state(ssl, this);
 
@@ -396,14 +394,14 @@ final class NativeSsl {
             NativeCrypto.SSL_set1_groups(ssl, this, toBoringSslGroups(paramsNamedGroups));
         } else {
             // Use default named group.
-            String namedGroupsProperty = System.getProperty("jdk.tls.namedGroups");
-            if (namedGroupsProperty == null || namedGroupsProperty.isEmpty()) {
-                // If the property is not set or empty, use the default named groups. See:
+            int[] parsedNamedGroups = getParsedTlsNamedGroupsPropertyOrNull();
+            if (parsedNamedGroups == null) {
+                // The jdk.tls.namedGroups property has not been set or is empty. We have to use the
+                // default named groups. See:
                 // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html
                 setDefaultNamedGroups(ssl, this);
             } else {
-                int[] groups = parseNamedGroupsProperty(namedGroupsProperty);
-                NativeCrypto.SSL_set1_groups(ssl, this, groups);
+                NativeCrypto.SSL_set1_groups(ssl, this, parsedNamedGroups);
             }
         }
 
@@ -449,7 +447,6 @@ final class NativeSsl {
         if (!parameters.isSpake()) {
             setCertificateValidation();
         }
-        setTlsChannelId(channelIdPrivateKey);
     }
 
     void configureServerCertificate() throws IOException {
@@ -490,54 +487,10 @@ final class NativeSsl {
         return keyTypes;
     }
 
-    // TODO(nathanmittler): Remove once after we switch to the engine socket.
-    void doHandshake(FileDescriptor fd, int timeoutMillis)
-            throws CertificateException, IOException {
-        lock.readLock().lock();
-        try {
-            if (isClosed() || fd == null || !fd.valid()) {
-                throw new SocketException("Socket is closed");
-            }
-            NativeCrypto.SSL_do_handshake(ssl, this, fd, handshakeCallbacks, timeoutMillis);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
     int doHandshake() throws IOException {
         lock.readLock().lock();
         try {
             return NativeCrypto.ENGINE_SSL_do_handshake(ssl, this, handshakeCallbacks);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    // TODO(nathanmittler): Remove once after we switch to the engine socket.
-    int read(FileDescriptor fd, byte[] buf, int offset, int len, int timeoutMillis)
-            throws IOException {
-        lock.readLock().lock();
-        try {
-            if (isClosed() || fd == null || !fd.valid()) {
-                throw new SocketException("Socket is closed");
-            }
-            return NativeCrypto.SSL_read(ssl, this, fd, handshakeCallbacks, buf, offset, len,
-                                         timeoutMillis);
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    // TODO(nathanmittler): Remove once after we switch to the engine socket.
-    void write(FileDescriptor fd, byte[] buf, int offset, int len, int timeoutMillis)
-            throws IOException {
-        lock.readLock().lock();
-        try {
-            if (isClosed() || fd == null || !fd.valid()) {
-                throw new SocketException("Socket is closed");
-            }
-            NativeCrypto.SSL_write(ssl, this, fd, handshakeCallbacks, buf, offset, len,
-                                   timeoutMillis);
         } finally {
             lock.readLock().unlock();
         }
@@ -567,21 +520,42 @@ final class NativeSsl {
         }
     }
 
-    private void setTlsChannelId(OpenSSLKey channelIdPrivateKey) throws SSLException {
-        if (!parameters.channelIdEnabled) {
+    private void enableEchBasedOnPolicy(String hostname) throws SSLException {
+        EchOptions opts = parameters.getEchOptions(hostname);
+        echHandshakeBuilder.setEchOptions(opts).setHostname(hostname).setPolicy(
+                parameters.getPolicy());
+
+        if (opts == null) {
             return;
         }
 
-        if (parameters.getUseClientMode()) {
-            // Client-side TLS Channel ID
-            if (channelIdPrivateKey == null) {
-                throw new SSLHandshakeException("Invalid TLS channel ID key specified");
+        byte[] configList = opts.getConfigList();
+        if (configList != null) {
+            try {
+                NativeCrypto.SSL_set1_ech_config_list(ssl, this, configList);
+            } catch (SSLException e) {
+                echHandshakeBuilder.setFailureReason(
+                        TlsEncryptedClientHelloHandshake.FailureReason.INVALID_CONFIG);
+                // The platform may provide a more specialized exception type for this error.
+                throw Platform.wrapInvalidEchDataException(e);
             }
-            NativeCrypto.SSL_set1_tls_channel_id(ssl, this, channelIdPrivateKey.getNativeRef());
-        } else {
-            // Server-side TLS Channel ID
-            NativeCrypto.SSL_enable_tls_channel_id(ssl, this);
         }
+
+        if (opts.isGreaseEnabled()) {
+            NativeCrypto.SSL_set_enable_ech_grease(ssl, this, /* enable= */ true);
+        }
+    }
+
+    TlsEncryptedClientHelloHandshake.Builder getEchHandshakeMetricsBuilder() {
+        return echHandshakeBuilder;
+    }
+
+    String getEchNameOverride() {
+        return NativeCrypto.SSL_get0_ech_name_override(ssl, this);
+    }
+
+    byte[] getEchRetryConfigs() {
+        return NativeCrypto.SSL_get0_ech_retry_configs(ssl, this);
     }
 
     private void setCertificateValidation() throws SSLException {
@@ -621,11 +595,6 @@ final class NativeSsl {
 
     void interrupt() {
         NativeCrypto.SSL_interrupt(ssl, this);
-    }
-
-    // TODO(nathanmittler): Remove once after we switch to the engine socket.
-    void shutdown(FileDescriptor fd) throws IOException {
-        NativeCrypto.SSL_shutdown(ssl, this, fd, handshakeCallbacks);
     }
 
     void shutdown() throws IOException {
@@ -797,5 +766,47 @@ final class NativeSsl {
                 lock.writeLock().unlock();
             }
         }
+    }
+
+    /**
+     * Returns the parsed value of the "jdk.tls.namedGroups" property.
+     *
+     * <p>Is null if the property is not set or empty.
+     */
+    static synchronized int[] getParsedTlsNamedGroupsPropertyOrNull() {
+        try {
+            parseTlsNamedGroupsProperty();
+        } catch (IllegalArgumentException e) {
+            // This may happen if the user set the property to an invalid value.
+            // Since the last time the property was parsed successfully. We ignore it
+            // and return the previously parsed value.
+        }
+        return parsedTlsNamedGroupsProperty;
+    }
+
+    private static int[] parsedTlsNamedGroupsProperty = null;
+    private static String unparsedTlsNamedGroupsProperty = "";
+
+    /**
+     * Parses the "jdk.tls.namedGroups" property and stores the result in {@code
+     * parsedTlsNamedGroupsProperty}.
+     *
+     * <p>May throw an {@link IllegalArgumentException} if the property contains invalid values.
+     */
+    static synchronized void parseTlsNamedGroupsProperty() {
+        String property = System.getProperty("jdk.tls.namedGroups");
+        if (property == null || property.isEmpty()) {
+            parsedTlsNamedGroupsProperty = null;
+            unparsedTlsNamedGroupsProperty = "";
+        } else {
+            if (!property.equals(unparsedTlsNamedGroupsProperty)) {
+                unparsedTlsNamedGroupsProperty = property;
+                parsedTlsNamedGroupsProperty = parseNamedGroupsProperty(property);
+            }
+        }
+    }
+
+    static {
+        parseTlsNamedGroupsProperty();
     }
 }

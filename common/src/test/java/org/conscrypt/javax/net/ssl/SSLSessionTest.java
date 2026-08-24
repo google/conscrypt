@@ -26,6 +26,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
@@ -513,7 +514,10 @@ public class SSLSessionTest {
     // http://b/35942385
     @Test
     public void test_SSLSession_getPeerHostFromInetAddress() throws Exception {
-        TestUtils.assumeAndroid();
+        // On Android, this test fails because Platform.getOriginalHostNameFromInetAddress
+        // and alterOriginalHostName use reflection on private members of InetAddressHolder,
+        // which is blocked by non-SDK interface restrictions (hidden API enforcement).
+        assumeFalse(TestUtils.isAndroid());
         InetAddress inetAddress = TestUtils.getLoopbackAddress();
         String oldOriginalHostName = alterOriginalHostName(inetAddress, "foobar");
         try {

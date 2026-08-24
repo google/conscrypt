@@ -43,7 +43,8 @@ import javax.net.ssl.SSLSocket;
 public class VeryBasicHttpServer {
     private final TestSSLContext context = TestSSLContext.create();
     private final ServerSocket tlsSocket = context.serverSocket;
-    private final ServerSocket plainSocket = new ServerSocket(0);
+    private final ServerSocket plainSocket =
+            new ServerSocket(0, 50, TestUtils.getLoopbackAddress());
 
     public VeryBasicHttpServer() throws IOException {}
 

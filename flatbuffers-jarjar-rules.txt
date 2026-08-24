@@ -1,0 +1,2 @@
+# Repackage flatbuffer library under an internal package.
+rule com.google.flatbuffers.** com.android.org.conscrypt.internal.flatbuffers.@1

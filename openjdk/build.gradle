@@ -278,6 +278,7 @@ jar.manifest {
     attributes ('BoringSSL-Version' : boringSslVersion,
                 'Automatic-Module-Name' : 'org.conscrypt',
                 'Bundle-SymbolicName': 'org.conscrypt',
+                'Import-Package': '!android.util,*',
                 '-exportcontents': 'org.conscrypt.*')
 }
 
@@ -291,7 +292,8 @@ dependencies {
     testImplementation project(':conscrypt-constants'),
             project(path: ':conscrypt-testing', configuration: 'shadow'),
             libs.junit,
-            libs.mockito
+            libs.mockito,
+            libs.truth
 
     testRuntimeOnly sourceSets["$preferredSourceSet"].output
 

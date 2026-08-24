@@ -34,6 +34,8 @@
 
 package org.conscrypt;
 
+import org.conscrypt.metrics.CertificateValidationFailureReason;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.Socket;
@@ -61,6 +63,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -72,15 +75,21 @@ import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
  * TrustManager implementation. The implementation is based on CertPathValidator
- * PKIX and CertificateFactory X509 implementations. This implementations should
+ * PKIX and CertificateFactory X509 implementations. These implementations should
  * be provided by some certification provider.
  *
  * @see javax.net.ssl.X509ExtendedTrustManager
+ * @see org.conscrypt.ConscryptX509TrustManager
  */
 @Internal
 @SuppressWarnings("CustomX509TrustManager")
-public final class TrustManagerImpl extends X509ExtendedTrustManager {
+public final class TrustManagerImpl
+        extends X509ExtendedTrustManager implements ConscryptX509TrustManager {
     private static final Logger logger = Logger.getLogger(TrustManagerImpl.class.getName());
+    /** RFC 5280 recommends maxPathLength defaults; 10 untrusted + anchors is generous. */
+    private static final int MAX_UNTRUSTED_CHAIN_LENGTH = 20;
+    /** Hard cap on DFS node visits across all backtracking branches. */
+    private static final int MAX_PATH_BUILD_ITERATIONS = 2048;
 
     /**
      * Comparator used for ordering trust anchors during certificate path building.
@@ -101,6 +110,15 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
      * The CertPinManager, which validates the chain against a host-to-pin mapping
      */
     private final CertPinManager pinManager;
+
+    /**
+     * The ConscryptNetworkSecurityPolicy associated with this TrustManager.
+     *
+     * The policy is used to decide if various mechanisms should be enabled,
+     * mostly based on the process configuration and the hostname queried. The
+     * policy is aligned with Android's libcore NetworkSecurityPolicy.
+     */
+    private ConscryptNetworkSecurityPolicy policy;
 
     /**
      * The backing store for the AndroidCAStore if non-null. This will
@@ -153,12 +171,6 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
 
     public TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
                             ConscryptCertStore certStore) {
-        this(keyStore, manager, certStore, null, null);
-    }
-
-    private TrustManagerImpl(KeyStore keyStore, CertPinManager manager,
-                             ConscryptCertStore certStore, CertBlocklist blocklist,
-                             org.conscrypt.ct.CertificateTransparency ct) {
         CertPathValidator validatorLocal = null;
         CertificateFactory factoryLocal = null;
         KeyStore rootKeyStoreLocal = null;
@@ -188,13 +200,6 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             errLocal = e;
         }
 
-        if (ct == null) {
-            ct = Platform.newDefaultCertificateTransparency();
-        }
-        if (blocklist == null) {
-            blocklist = Platform.newDefaultBlocklist();
-        }
-
         this.pinManager = manager;
         this.rootKeyStore = rootKeyStoreLocal;
         this.trustedCertificateStore = trustedCertificateStoreLocal;
@@ -204,8 +209,24 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         this.intermediateIndex = new TrustedCertificateIndex();
         this.acceptedIssuers = acceptedIssuersLocal;
         this.err = errLocal;
-        this.blocklist = blocklist;
-        this.ct = ct;
+        this.policy = ConscryptNetworkSecurityPolicy.getDefault();
+        this.blocklist = Platform.newDefaultBlocklist();
+        this.ct = Platform.newDefaultCertificateTransparency(new Supplier<NetworkSecurityPolicy>() {
+            @Override
+            public NetworkSecurityPolicy get() {
+                return policy;
+            }
+        });
+    }
+
+    @Override
+    public void setNetworkSecurityPolicy(ConscryptNetworkSecurityPolicy policy) {
+        this.policy = policy;
+    }
+
+    @Override
+    public ConscryptNetworkSecurityPolicy getNetworkSecurityPolicy() {
+        return policy;
     }
 
     @SuppressWarnings("JdkObsolete") // KeyStore#aliases is the only API available
@@ -298,10 +319,22 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
     /**
      * For backward compatibility with older Android API that used String for the hostname only.
      */
+    @Override
     public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, String authType,
                                                     String hostname) throws CertificateException {
         return checkTrusted(chain, null /* ocspData */, null /* tlsSctData */, authType, hostname,
                             false);
+    }
+
+    /**
+     * For compatibility with network stacks that cannot provide an SSLSession nor a
+     * Socket (e.g., Cronet).
+     */
+    @Override
+    public List<X509Certificate> checkServerTrusted(X509Certificate[] chain, byte[] ocspData,
+                                                    byte[] tlsSctData, String authType,
+                                                    String hostname) throws CertificateException {
+        return checkTrusted(chain, ocspData, tlsSctData, authType, hostname, false);
     }
 
     /**
@@ -472,8 +505,9 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             untrustedChain.add(leaf);
         }
         used.add(leaf);
-        return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth, untrustedChain,
-                                     trustedChain, used);
+        int[] budget = { MAX_PATH_BUILD_ITERATIONS };
+        return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
+                untrustedChain, trustedChain, used, budget);
     }
 
     /**
@@ -504,8 +538,16 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                                                         boolean clientAuth,
                                                         List<X509Certificate> untrustedChain,
                                                         List<TrustAnchor> trustAnchorChain,
-                                                        Set<X509Certificate> used)
+                                                        Set<X509Certificate> used,
+                                                        int[] budget)
             throws CertificateException {
+        if (--budget[0] < 0) {
+            throw new CertificateException("Path-building iteration limit exceeded");
+        }
+        if (untrustedChain.size() > MAX_UNTRUSTED_CHAIN_LENGTH) {
+            throw new CertificateException("Certificate chain too long");
+        }
+
         CertificateException lastException = null;
         X509Certificate current;
         if (trustAnchorChain.isEmpty()) {
@@ -541,7 +583,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             trustAnchorChain.add(anchor);
             try {
                 return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
-                                             untrustedChain, trustAnchorChain, used);
+                                             untrustedChain, trustAnchorChain, used, budget);
             } catch (CertificateException ex) {
                 lastException = ex;
             }
@@ -588,7 +630,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
                 untrustedChain.add(candidateIssuer);
                 try {
                     return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
-                                                 untrustedChain, trustAnchorChain, used);
+                                                 untrustedChain, trustAnchorChain, used, budget);
                 } catch (CertificateException ex) {
                     lastException = ex;
                 }
@@ -611,7 +653,7 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             untrustedChain.add(intermediateCert);
             try {
                 return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
-                                             untrustedChain, trustAnchorChain, used);
+                                             untrustedChain, trustAnchorChain, used, budget);
             } catch (CertificateException ex) {
                 lastException = ex;
             }
@@ -628,6 +670,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
         // 7. If no errors were encountered above then verifyChain was never called because it was
         // not possible to build a valid chain to a trusted certificate.
         CertPath certPath = factory.generateCertPath(untrustedChain);
+        Platform.getStatsLog().reportCertificationValidationFailure(
+                CertificateValidationFailureReason.NO_TRUST_ANCHOR, certs.length);
         throw new CertificateException(new CertPathValidatorException(
                 "Trust anchor for certification path not found.", null, certPath, -1));
     }
@@ -662,7 +706,8 @@ public final class TrustManagerImpl extends X509ExtendedTrustManager {
             }
 
             // Check Certificate Transparency (if required).
-            if (!clientAuth && host != null && ct != null && ct.isCTVerificationRequired(host)) {
+            if (!clientAuth && host != null && ct != null
+                && policy.isCertificateTransparencyVerificationRequired(host)) {
                 ct.checkCT(wholeChain, ocspData, tlsSctData, host);
             }
 

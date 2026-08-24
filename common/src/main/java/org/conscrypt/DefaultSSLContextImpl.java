@@ -24,7 +24,10 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.Provider;
 import java.security.SecureRandom;
+import java.security.Security;
+import java.util.Arrays;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -48,6 +51,9 @@ public class DefaultSSLContextImpl extends OpenSSLContextImpl {
      */
     private static TrustManager[] TRUST_MANAGERS;
 
+    // Cache the list of providers to detect changes
+    private static Provider[] LAST_PROVIDERS;
+
     /**
      * DefaultSSLContextImpl delegates the work to the super class since there
      * is no way to put a synchronized around both the call to super and the
@@ -58,8 +64,19 @@ public class DefaultSSLContextImpl extends OpenSSLContextImpl {
         super(protocols, true);
     }
 
+    private static synchronized void clearCacheIfProvidersChanged() {
+        Provider[] currentProviders = Security.getProviders();
+        if (!Arrays.equals(LAST_PROVIDERS, currentProviders)) {
+            KEY_MANAGERS = null;
+            TRUST_MANAGERS = null;
+            LAST_PROVIDERS = currentProviders;
+        }
+    }
+
     // TODO javax.net.ssl.keyStoreProvider system property
     KeyManager[] getKeyManagers() throws GeneralSecurityException, IOException {
+        clearCacheIfProvidersChanged();
+
         if (KEY_MANAGERS != null) {
             return KEY_MANAGERS;
         }
@@ -85,6 +102,8 @@ public class DefaultSSLContextImpl extends OpenSSLContextImpl {
 
     // TODO javax.net.ssl.trustStoreProvider system property
     TrustManager[] getTrustManagers() throws GeneralSecurityException, IOException {
+        clearCacheIfProvidersChanged();
+
         if (TRUST_MANAGERS != null) {
             return TRUST_MANAGERS;
         }

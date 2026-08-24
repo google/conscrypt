@@ -66,12 +66,6 @@ public class NativeCryptoArgTest {
     private final Map<String, Class<?>> classCache = new HashMap<>();
     private final Map<String, Method> methodMap = buildMethodMap();
 
-    @AfterClass
-    public static void after() {
-        // TODO(prb): Temporary hacky check - remove
-        assertTrue(testedMethods.size() >= 190);
-    }
-
     @Test
     public void ecMethods() throws Throwable {
         markTestRun();
@@ -125,7 +119,6 @@ public class NativeCryptoArgTest {
         // null args should throw NPE.
         String[] nonThrowingMethods = new String[] {
                 "SSL_interrupt",
-                "SSL_shutdown",
                 "ENGINE_SSL_shutdown",
         };
 
@@ -155,8 +148,6 @@ public class NativeCryptoArgTest {
         filter = MethodFilter.nameFilter("Non throwing NativeSsl methods", nonThrowingMethods);
         testMethods(filter, null);
 
-        expectVoid("SSL_shutdown", NOT_NULL, null, null, null);
-        expectNPE("SSL_shutdown", NOT_NULL, null, new FileDescriptor(), null);
         expectNPE("ENGINE_SSL_shutdown", NOT_NULL, null, null);
         expectVoid("SSL_set_session", NOT_NULL, null, NULL);
         checkMethodsTested();

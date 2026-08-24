@@ -17,6 +17,8 @@
 package org.conscrypt.metrics;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import android.util.StatsEvent;
 
@@ -30,6 +32,51 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class MetricsTest {
     public static final int TLS_HANDSHAKE_REPORTED = 317;
+
+    @Test
+    public void test_statsLogImpl_isSingleton() {
+        TestUtils.assumeStatsLogAvailable();
+        StatsLog instance1 = StatsLogImpl.getInstance();
+        StatsLog instance2 = StatsLogImpl.getInstance();
+        assertSame(instance1, instance2);
+    }
+
+    @Test
+    public void test_statsLogImpl_threadProcessesQueue() throws Exception {
+        TestUtils.assumeStatsLogAvailable();
+        StatsLog statsLog = StatsLogImpl.getInstance();
+        assertTrue("Expected StatsLogImpl instance", statsLog instanceof StatsLogImpl);
+        StatsLogImpl impl = (StatsLogImpl) statsLog;
+
+        java.lang.reflect.Field queueField = StatsLogImpl.class.getDeclaredField("logQueue");
+        queueField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.concurrent.BlockingQueue<Runnable> queue =
+                (java.util.concurrent.BlockingQueue<Runnable>) queueField.get(impl);
+
+        // Clear queue to start fresh
+        queue.clear();
+
+        // Log something to trigger queue insertion (only applies to SDK > 32)
+        impl.countTlsHandshake(true, "TLSv1.3", "TLS_AES_128_GCM_SHA256", 100);
+
+        if (Platform.isSdkGreater(32)) {
+            // Verify the background thread processes and empties the queue
+            long startTime = System.currentTimeMillis();
+            boolean empty = false;
+            while (System.currentTimeMillis() - startTime < 2000) { // 2s timeout
+                if (queue.isEmpty()) {
+                    empty = true;
+                    break;
+                }
+                Thread.sleep(10);
+            }
+            assertTrue("Queue was not processed (thread might be dead)", empty);
+        } else {
+            // For SDK <= 32, it writes directly, queue should remain empty
+            assertTrue("Queue should be empty for SDK <= 32", queue.isEmpty());
+        }
+    }
 
     // Tests that ReflexiveEvent produces the same event as framework's.
     @Test

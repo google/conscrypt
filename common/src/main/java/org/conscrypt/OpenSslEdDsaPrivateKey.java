@@ -21,6 +21,7 @@ import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
@@ -45,7 +46,7 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
 
     public OpenSslEdDsaPrivateKey(EncodedKeySpec keySpec) throws InvalidKeySpecException {
         try {
-            if (keySpec.getFormat().equalsIgnoreCase("raw")) {
+            if (AddressUtils.asciiEqualsIgnoreCase(keySpec.getFormat(), "raw")) {
                 key = getOpenSslKeyFromRaw(keySpec.getEncoded());
             } else if (keySpec.getFormat().equals("PKCS#8")) {
                 key = getOpenSslKeyFromPkcS8(keySpec.getEncoded());
@@ -89,7 +90,7 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
         return NativeCrypto.EVP_marshal_private_key(key.getNativeRef());
     }
 
-    byte[] getRaw() {
+    public byte[] getRaw() {
         if (key == null) {
             throw new IllegalStateException("key is destroyed");
         }
@@ -120,7 +121,7 @@ public class OpenSslEdDsaPrivateKey implements PrivateKey, OpenSSLKeyHolder {
             return false;
         }
         OpenSslEdDsaPrivateKey that = (OpenSslEdDsaPrivateKey) o;
-        return Arrays.equals(getRaw(), that.getRaw());
+        return MessageDigest.isEqual(getRaw(), that.getRaw());
     }
 
     @Override

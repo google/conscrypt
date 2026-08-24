@@ -50,5 +50,7 @@ public abstract class BufferAllocator {
     /**
      * Allocates a heap buffer with the given capacity.
      */
-    public abstract AllocatedBuffer allocateHeapBuffer(int capacity);
+    public AllocatedBuffer allocateHeapBuffer(int capacity) {
+        throw new UnsupportedOperationException("Heap buffer allocation is not supported");
+    }
 }

@@ -42,6 +42,7 @@ final class OidData {
         OID_TO_NAME_MAP.put("1.2.840.10045.4.1", "SHA1withECDSA");
 
         // RFC 4055
+        OID_TO_NAME_MAP.put("1.2.840.113549.1.1.10", "RSASSA-PSS");
         OID_TO_NAME_MAP.put("1.2.840.113549.1.1.14", "SHA224withRSA");
         OID_TO_NAME_MAP.put("1.2.840.113549.1.1.11", "SHA256withRSA");
         OID_TO_NAME_MAP.put("1.2.840.113549.1.1.12", "SHA384withRSA");
@@ -54,6 +55,14 @@ final class OidData {
         OID_TO_NAME_MAP.put("1.2.840.10045.4.3.2", "SHA256withECDSA");
         OID_TO_NAME_MAP.put("1.2.840.10045.4.3.3", "SHA384withECDSA");
         OID_TO_NAME_MAP.put("1.2.840.10045.4.3.4", "SHA512withECDSA");
+
+        // RFC 8410
+        OID_TO_NAME_MAP.put("1.3.101.112", "Ed25519");
+
+        // RFC 9881
+        OID_TO_NAME_MAP.put("2.16.840.1.101.3.4.3.17", "ML-DSA-44");
+        OID_TO_NAME_MAP.put("2.16.840.1.101.3.4.3.18", "ML-DSA-65");
+        OID_TO_NAME_MAP.put("2.16.840.1.101.3.4.3.19", "ML-DSA-87");
     }
 
     public static String oidToAlgorithmName(String oid) {

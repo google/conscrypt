@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
@@ -53,7 +54,7 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
             } catch (InvalidKeyException | ParsingException e) {
                 throw new InvalidKeySpecException(e);
             }
-        } else if ("raw".equalsIgnoreCase(keySpec.getFormat())) {
+        } else if (AddressUtils.asciiEqualsIgnoreCase(keySpec.getFormat(), "raw")) {
             uCoordinate = encoded;
         } else {
             throw new InvalidKeySpecException("Encoding must be in PKCS#8 or raw format");
@@ -116,7 +117,7 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
         if (!(o instanceof OpenSSLX25519PrivateKey))
             return false;
         OpenSSLX25519PrivateKey that = (OpenSSLX25519PrivateKey) o;
-        return Arrays.equals(uCoordinate, that.uCoordinate);
+        return MessageDigest.isEqual(uCoordinate, that.uCoordinate);
     }
 
     @Override

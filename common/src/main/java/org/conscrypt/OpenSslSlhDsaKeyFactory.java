@@ -69,7 +69,7 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
                                               + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if ("raw".equalsIgnoreCase(encodedKeySpec.getFormat())) {
+        if (AddressUtils.asciiEqualsIgnoreCase(encodedKeySpec.getFormat(), "raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
             return makePublicKeyFromRaw(raw);
         }
@@ -110,7 +110,7 @@ public final class OpenSslSlhDsaKeyFactory extends KeyFactorySpi {
                                               + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
-        if ("raw".equalsIgnoreCase(encodedKeySpec.getFormat())) {
+        if (AddressUtils.asciiEqualsIgnoreCase(encodedKeySpec.getFormat(), "raw")) {
             byte[] raw = encodedKeySpec.getEncoded();
             return makePrivateKeyFromRaw(raw);
         }
