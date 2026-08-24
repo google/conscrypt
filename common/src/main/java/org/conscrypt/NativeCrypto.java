@@ -316,8 +316,16 @@ public final class NativeCrypto {
     static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, int dataLen, byte[] privateKey);
 
     // android-add: @FastNative
+    static native byte[] SLHDSA_SHA2_128S_prehash_sign(byte[] data, int dataLen, int hashNid, byte[] privateKey);
+
+    // android-add: @FastNative
     static native int SLHDSA_SHA2_128S_verify(byte[] data, int dataLen, byte[] sig,
                                               byte[] publicKey);
+
+    // android-add: @FastNative
+    static native int SLHDSA_SHA2_128S_prehash_verify(byte[] data, int dataLen, byte[] sig,
+                                                      int hashNid, byte[] publicKey);
+
 
     // --- Curve25519 --------------
 
