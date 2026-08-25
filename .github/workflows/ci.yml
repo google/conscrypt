@@ -14,6 +14,31 @@ env:
   BORINGSSL_VERSION: 0.20260813.0
 
 jobs:
+  boringssl_version_check:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check BoringSSL version age
+        shell: bash
+        run: |
+          VERSION_DATE=$(echo "$BORINGSSL_VERSION" | grep -oE '[0-9]{8}')
+          if [ -z "$VERSION_DATE" ]; then
+            echo "Error: Unable to extract date from BORINGSSL_VERSION='$BORINGSSL_VERSION'"
+            exit 1
+          fi
+
+          VERSION_TIMESTAMP=$(date -u -d "$VERSION_DATE" +%s)
+          THRESHOLD_TIMESTAMP=$(date -u -d "2 months ago" +%s)
+
+          echo "BORINGSSL_VERSION: $BORINGSSL_VERSION (date: $(date -u -d "@$VERSION_TIMESTAMP" +'%Y-%m-%d'))"
+          echo "Two months ago threshold: $(date -u -d "@$THRESHOLD_TIMESTAMP" +'%Y-%m-%d')"
+
+          if [ "$VERSION_TIMESTAMP" -lt "$THRESHOLD_TIMESTAMP" ]; then
+            echo "Error: BORINGSSL_VERSION $BORINGSSL_VERSION is older than 2 months."
+            echo "See https://boringssl.googlesource.com/boringssl/ for the latest version."
+            exit 1
+          fi
+
   clang_format_check:
     # Only run on pull requests.
     if: ${{ startsWith(github.ref, 'refs/pull/') }}

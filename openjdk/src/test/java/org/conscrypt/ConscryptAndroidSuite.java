@@ -64,6 +64,7 @@ import org.conscrypt.javax.net.ssl.SSLServerSocketTest;
 import org.conscrypt.javax.net.ssl.SSLSessionContextTest;
 import org.conscrypt.javax.net.ssl.SSLSessionTest;
 import org.conscrypt.javax.net.ssl.SSLSocketTest;
+import org.conscrypt.javax.net.ssl.SslEngineAndSocketResumptionTest;
 import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
 import org.conscrypt.metrics.CipherSuiteTest;
 import org.conscrypt.metrics.OptionalMethodTest;
@@ -166,6 +167,7 @@ import tests.util.ServiceTester;
         SSLSessionContextTest.class,
         SSLSessionTest.class,
         SSLSocketTest.class,
+        SslEngineAndSocketResumptionTest.class,
         VeryBasicHttpServerTest.class,
         X509KeyManagerTest.class,
 })
