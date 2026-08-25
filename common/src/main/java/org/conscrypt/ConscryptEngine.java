@@ -76,13 +76,9 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
-import java.security.InvalidKeyException;
-import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.ECKey;
-import java.security.spec.ECParameterSpec;
 import java.util.Arrays;
 
 import javax.crypto.SecretKey;
@@ -132,20 +128,23 @@ final class ConscryptEngine extends AbstractConscryptEngine
      */
     private String peerHostname;
 
-    // @GuardedBy("ssl");
+    private final Object stateLock = new Object();
+
+    // @GuardedBy("stateLock");
     private int state = STATE_NEW;
     private boolean handshakeFinished;
 
     /**
      * Wrapper around the underlying SSL object.
      */
-    private final NativeSsl ssl;
+    // @GuardedBy("stateLock");
+    private NativeSsl ssl;
 
     /**
      * The BIO used for reading/writing encrypted bytes.
      */
-    // @GuardedBy("ssl");
-    private final BioWrapper networkBio;
+    // @GuardedBy("stateLock");
+    private BioWrapper networkBio;
 
     /**
      * Set during startHandshake.
@@ -175,10 +174,12 @@ final class ConscryptEngine extends AbstractConscryptEngine
     private final ByteBuffer[] singleSrcBuffer = new ByteBuffer[1];
     private final ByteBuffer[] singleDstBuffer = new ByteBuffer[1];
     private final PeerInfoProvider peerInfoProvider;
+    private final AliasChooser aliasChooser;
 
     ConscryptEngine(SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         peerInfoProvider = PeerInfoProvider.nullProvider();
+        this.aliasChooser = this;
         this.ssl = newSsl(sslParameters, this, this);
         this.networkBio = ssl.newBio();
     }
@@ -186,6 +187,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     ConscryptEngine(String host, int port, SSLParametersImpl sslParameters) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = PeerInfoProvider.forHostAndPort(host, port);
+        this.aliasChooser = this;
         this.ssl = newSsl(sslParameters, this, this);
         this.networkBio = ssl.newBio();
     }
@@ -194,6 +196,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
                     AliasChooser aliasChooser) {
         this.sslParameters = sslParameters;
         this.peerInfoProvider = checkNotNull(peerInfoProvider, "peerInfoProvider");
+        this.aliasChooser = aliasChooser;
         this.ssl = newSsl(sslParameters, this, aliasChooser);
         this.networkBio = ssl.newBio();
     }
@@ -233,7 +236,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     void setBufferAllocator(BufferAllocator bufferAllocator) {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Could not set buffer allocator after the initial handshake has begun.");
@@ -255,7 +258,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
      */
     @Override
     void setHandshakeListener(HandshakeListener handshakeListener) {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (isHandshakeStarted()) {
                 throw new IllegalStateException(
                         "Handshake listener must be set before starting the handshake.");
@@ -307,7 +310,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void beginHandshake() throws SSLException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             beginHandshakeInternal();
         }
     }
@@ -362,7 +365,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void closeInbound() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND) {
                 return;
             }
@@ -382,7 +385,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void closeOutbound() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND) {
                 return;
             }
@@ -437,7 +440,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public HandshakeStatus getHandshakeStatus() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             return getHandshakeStatusInternal();
         }
     }
@@ -488,7 +491,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
      */
     @Override
     SSLSession handshakeSession() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (state == STATE_HANDSHAKE_STARTED) {
                 return Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
                     @Override
@@ -507,7 +510,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     private ConscryptSession provideSession() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (state == STATE_CLOSED) {
                 return closedSession != null ? closedSession : SSLNullSession.getNullSession();
             }
@@ -520,7 +523,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     }
 
     private ConscryptSession provideHandshakeSession() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             return state == STATE_HANDSHAKE_STARTED ? activeSession
                                                     : SSLNullSession.getNullSession();
         }
@@ -555,7 +558,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public boolean isInboundDone() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             return (state == STATE_CLOSED || state == STATE_CLOSED_INBOUND
                     || ssl.wasShutdownReceived())
                     && (pendingInboundCleartextBytes() == 0);
@@ -564,7 +567,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public boolean isOutboundDone() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             return (state == STATE_CLOSED || state == STATE_CLOSED_OUTBOUND
                     || ssl.wasShutdownSent())
                     && (pendingOutboundEncryptedBytes() == 0);
@@ -593,13 +596,20 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void setUseClientMode(boolean mode) {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (isHandshakeStarted()) {
                 throw new IllegalArgumentException("Can not change mode after handshake: state == "
                                                    + state);
             }
             transitionTo(STATE_MODE_SET);
-            sslParameters.setUseClientMode(mode);
+            if (sslParameters.getUseClientMode() != mode) {
+                sslParameters.setUseClientMode(mode);
+                // Recreate native SSL object for the updated client/server session context
+                ssl.close();
+                networkBio.close();
+                ssl = newSsl(sslParameters, this, aliasChooser);
+                networkBio = ssl.newBio();
+            }
         }
     }
 
@@ -610,7 +620,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             try {
                 return unwrap(singleSrcBuffer(src), singleDstBuffer(dst));
             } finally {
@@ -622,7 +632,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public SSLEngineResult unwrap(ByteBuffer src, ByteBuffer[] dsts) throws SSLException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             try {
                 return unwrap(singleSrcBuffer(src), dsts);
             } finally {
@@ -634,7 +644,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     @Override
     public SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts, final int offset,
                                   final int length) throws SSLException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             try {
                 return unwrap(singleSrcBuffer(src), 0, 1, dsts, offset, length);
             } finally {
@@ -666,7 +676,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
         final int srcsEndOffset = srcsOffset + srcsLength;
         final long srcLength = calcSrcsLength(srcs, srcsOffset, srcsEndOffset);
 
-        synchronized (ssl) {
+        synchronized (stateLock) {
             switch (state) {
                 case STATE_MODE_SET:
                     // Begin the handshake implicitly.
@@ -1293,7 +1303,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             try {
                 return wrap(singleSrcBuffer(src), dst);
             } finally {
@@ -1317,7 +1327,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
         }
         BufferUtils.checkNotNull(srcs);
 
-        synchronized (ssl) {
+        synchronized (stateLock) {
             switch (state) {
                 case STATE_MODE_SET:
                     // Begin the handshake implicitly.
@@ -1483,7 +1493,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void onSSLStateChange(int type, int val) {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             switch (type) {
                 case SSL_CB_HANDSHAKE_START: {
                     // For clients, this will allow the NEED_UNWRAP status to be
@@ -1508,7 +1518,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public void serverCertificateRequested(int[] signatureAlgs) throws IOException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             String[] jsseAlgs = SSLUtils.mapSignatureAlgorithms(signatureAlgs);
             activeSession.onPeerSignatureAlgorithmsReceived(jsseAlgs);
             ssl.configureServerCertificate();
@@ -1604,12 +1614,8 @@ final class ConscryptEngine extends AbstractConscryptEngine
     @SuppressWarnings("Finalize")
     protected void finalize() throws Throwable {
         try {
-            // If ssl is null, object must not be fully constructed so nothing for us to do here.
-            if (ssl != null) {
-                // Otherwise closeAndFreeResources() and callees expect to synchronize on ssl.
-                synchronized (ssl) {
-                    closeAndFreeResources();
-                }
+            synchronized (stateLock) {
+                closeAndFreeResources();
             }
         } finally {
             super.finalize();
@@ -1693,7 +1699,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             if (state < STATE_HANDSHAKE_COMPLETED || state == STATE_CLOSED) {
                 return null;
             }
@@ -1721,7 +1727,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
 
     @Override
     public String getHandshakeApplicationProtocol() {
-        synchronized (ssl) {
+        synchronized (stateLock) {
             return state >= STATE_HANDSHAKE_STARTED ? getApplicationProtocol() : null;
         }
     }

@@ -74,12 +74,37 @@ def get_copybara_bin(custom_path: Optional[str]) -> str:
       return custom_path
     sys.exit(f"ERROR: Specified Copybara binary not found: {custom_path}")
 
-  if pathlib.Path(DEFAULT_COPYBARA_BIN).is_file():
-    return DEFAULT_COPYBARA_BIN
+  candidates = [
+      DEFAULT_COPYBARA_BIN,
+      "/google/bin/releases/copybara/public/copybara/copybara",
+      "/tmpfs/bin/copybara",
+  ]
+  for cand in candidates:
+    if pathlib.Path(cand).is_file():
+      return cand
 
   which_copybara = shutil.which("copybara")
   if which_copybara:
     return which_copybara
+
+  # Check Kokoro MPM location
+  artifacts_dir = os.environ.get("KOKORO_ARTIFACTS_DIR", "/tmpfs/src")
+  mpm_jar = (
+      pathlib.Path(artifacts_dir)
+      / "mpm/devtools/copybara/tool_kokoro/copybara_on_kokoro_deploy.jar"
+  )
+  if mpm_jar.is_file():
+    wrapper_path = pathlib.Path("/tmpfs/bin/copybara")
+    wrapper_path.parent.mkdir(parents=True, exist_ok=True)
+    runfiles_path = mpm_jar.parent / "google3"
+    wrapper_path.write_text(
+        "#!/bin/bash\n"
+        "exec java"
+        f' -Dcom.google.devtools.copybara.runfiles.path="{runfiles_path}"'
+        f' -jar "{mpm_jar}" "$@"\n'
+    )
+    wrapper_path.chmod(0o755)
+    return str(wrapper_path)
 
   sys.exit(
       f"ERROR: Copybara executable not found at '{DEFAULT_COPYBARA_BIN}' or in"
@@ -684,11 +709,11 @@ def main() -> None:
     sys.exit(f"ERROR: Copybara config file not found at {copybara_config}")
 
   copybara_bin = get_copybara_bin(args.copybara_bin)
-  android_dir, build_top, temp_dir_holder = resolve_android_and_build_top(
-      args.android_dir
-  )
-
   target_cl = args.cl or args.cl_pos
+
+  is_kokoro = bool(
+      os.environ.get("KOKORO_JOB_NAME") or os.environ.get("KOKORO_BUILD_NUMBER")
+  )
 
   print("=======================================================")
   print(" Conscrypt google3 -> Android Gerrit Automated Exporter")
@@ -699,11 +724,35 @@ def main() -> None:
       "CL / Revision      :"
       f" {target_cl if target_cl else '(Latest HEAD / default)'}"
   )
-  print(f"Android repo dir   : {android_dir}")
-  print(f"Android build top  : {build_top if build_top else '(None)'}")
+  print(f"Kokoro CI mode     : {is_kokoro}")
   print(f"Upload to Gerrit   : {args.upload}")
   print(f"Dry run mode       : {args.dry_run}")
   print("=======================================================\n")
+
+  if is_kokoro:
+    print("\n--- Running in Kokoro CI mode: Direct Copybara export ---")
+    copybara_cmd = [
+        copybara_bin,
+        str(copybara_config),
+        "export_to_ag",
+        "--force",
+        "--init-history",
+        "--ignore-noop",
+        "--verbose",
+    ]
+    if target_cl:
+      copybara_cmd.append(target_cl)
+    if args.dry_run:
+      copybara_cmd.append("--dry-run")
+    if extra_copybara_args:
+      copybara_cmd.extend(extra_copybara_args)
+    run_cmd(copybara_cmd)
+    print("\n[Kokoro] Direct Copybara export completed successfully.")
+    return
+
+  android_dir, build_top, temp_dir_holder = resolve_android_and_build_top(
+      args.android_dir
+  )
 
   try:
     # Step 0: Clean local Android repo

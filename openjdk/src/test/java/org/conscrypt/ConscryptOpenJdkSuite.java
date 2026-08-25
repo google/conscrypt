@@ -70,6 +70,7 @@ import org.conscrypt.javax.net.ssl.SSLSessionTest;
 import org.conscrypt.javax.net.ssl.SSLSocketFactoryTest;
 import org.conscrypt.javax.net.ssl.SSLSocketTest;
 import org.conscrypt.javax.net.ssl.SSLSocketVersionCompatibilityTest;
+import org.conscrypt.javax.net.ssl.SslEngineAndSocketResumptionTest;
 import org.conscrypt.javax.net.ssl.TrustManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
 import org.conscrypt.metrics.CipherSuiteTest;
@@ -181,6 +182,7 @@ import org.junit.runners.Suite;
         SSLSocketFactoryTest.class,
         SSLSocketTest.class,
         SSLSocketVersionCompatibilityTest.class,
+        SslEngineAndSocketResumptionTest.class,
         TrustManagerFactoryTest.class,
         VeryBasicHttpServerTest.class,
         X509KeyManagerTest.class,
