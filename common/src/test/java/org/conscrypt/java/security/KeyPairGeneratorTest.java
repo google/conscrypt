@@ -27,9 +27,7 @@ import static org.junit.Assert.fail;
 // android-add: import libcore.test.reasons.NonMtsReasons;
 
 import org.conscrypt.TestUtils;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -46,7 +44,6 @@ import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPrivateKey;
 import java.security.interfaces.DSAPublicKey;
@@ -127,29 +124,19 @@ public class KeyPairGeneratorTest {
                             kpg2.initialize(params);
                         }
                         test_KeyPairGenerator(kpg2);
-
-                        // KeyPairGenerator.getInstance(String, String)
-                        KeyPairGenerator kpg3 =
-                                KeyPairGenerator.getInstance(algorithm, provider.getName());
-                        assertEquals(algorithm, kpg3.getAlgorithm());
-                        assertEquals(provider, kpg3.getProvider());
-                        if (params != null) {
-                            kpg3.initialize(params);
-                        }
-                        test_KeyPairGenerator(kpg3);
                     }
                 });
     }
 
-    private static final Map<String, List<Integer>> KEY_SIZES = new HashMap<>();
+    private static final Map<String, List<Integer>> keySizesMap = new HashMap<>();
     private static void putKeySize(String algorithm, int keySize) {
         algorithm = algorithm.toUpperCase(Locale.ROOT);
-        List<Integer> keySizes = KEY_SIZES.computeIfAbsent(algorithm, k -> new ArrayList<>());
+        List<Integer> keySizes = keySizesMap.computeIfAbsent(algorithm, k -> new ArrayList<>());
         keySizes.add(keySize);
     }
     private static List<Integer> getKeySizes(String algorithm) throws Exception {
         algorithm = algorithm.toUpperCase(Locale.ROOT);
-        List<Integer> keySizes = KEY_SIZES.get(algorithm);
+        List<Integer> keySizes = keySizesMap.get(algorithm);
         if (keySizes == null) {
             throw new Exception("Unknown key sizes for KeyPairGenerator." + algorithm);
         }

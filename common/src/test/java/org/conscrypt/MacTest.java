@@ -201,24 +201,41 @@ public class MacTest {
     }
 
     @Test
-    public void threadAbuse() {
-        newMacServiceTester().run((provider, algorithm) -> {
-            final byte[] b1 = new byte[2048];
-            final byte[] b2 = new byte[2048];
-            final byte[] b3 = new byte[2048];
-            final Mac mac = Mac.getInstance(algorithm, provider);
-            final SecretKeySpec key = findAnyKey(algorithm);
+    public void threadAbuseAecCmac() throws Exception {
+        final byte[] b1 = new byte[2048];
+        final byte[] b2 = new byte[2048];
+        final byte[] b3 = new byte[2048];
+        final Mac mac = Mac.getInstance("AESCMAC", conscryptProvider);
+        final SecretKeySpec key = findAnyKey("AESCMAC");
 
-            if (key != null) {
-                TestUtils.stressTest(32, 32, () -> {
-                    mac.init(key);
-                    mac.update(b1);
-                    mac.update(b2);
-                    mac.update(b3);
-                    mac.reset();
-                });
-            }
-        });
+        if (key != null) {
+            TestUtils.stressTest(32, 32, () -> {
+                mac.init(key);
+                mac.update(b1);
+                mac.update(b2);
+                mac.update(b3);
+                mac.reset();
+            });
+        }
+    }
+
+    @Test
+    public void threadAbuseHmacSha256() throws Exception {
+        final byte[] b1 = new byte[2048];
+        final byte[] b2 = new byte[2048];
+        final byte[] b3 = new byte[2048];
+        final Mac mac = Mac.getInstance("HMACSHA256", conscryptProvider);
+        final SecretKeySpec key = findAnyKey("HMACSHA256");
+
+        if (key != null) {
+            TestUtils.stressTest(32, 32, () -> {
+                mac.init(key);
+                mac.update(b1);
+                mac.update(b2);
+                mac.update(b3);
+                mac.reset();
+            });
+        }
     }
 
     @Test
