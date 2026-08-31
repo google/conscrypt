@@ -94,12 +94,14 @@ def get_copybara_bin(custom_path: Optional[str]) -> str:
       / "mpm/devtools/copybara/tool_kokoro/copybara_on_kokoro_deploy.jar"
   )
   if mpm_jar.is_file():
+    jdk_java = pathlib.Path(artifacts_dir) / "mpm/java/jdk/bin/java"
+    java_bin = str(jdk_java) if jdk_java.is_file() else "java"
     wrapper_path = pathlib.Path("/tmpfs/bin/copybara")
     wrapper_path.parent.mkdir(parents=True, exist_ok=True)
     runfiles_path = mpm_jar.parent / "google3"
     wrapper_path.write_text(
         "#!/bin/bash\n"
-        "exec java"
+        f'exec "{java_bin}"'
         f' -Dcom.google.devtools.copybara.runfiles.path="{runfiles_path}"'
         f' -jar "{mpm_jar}" "$@"\n'
     )

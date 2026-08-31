@@ -1,257 +1,258 @@
-How to Create a Conscrypt Release
-====================================
+# How to: Release Conscrypt to Maven Central and GitHub
 
-One-Time Setup
---------------
+## One-Time Setup
 
-These steps need to be performed once by each person doing releases.
+#### Setup Maven Central
 
-### Platforms
+- You need to have an account on [Maven Central](https://central.sonatype.com/),
+  and have access to the namespace `org.conscrypt`. It should be listed in
+  [https://central.sonatype.com/publishing/namespaces]
+  (https://central.sonatype.com/publishing/namespaces). If you don't have access
+  to the namespace, contact a Conscrypt maintainer.
 
-Conscrypt is built on Linux, Mac, and Windows, so ensure you have access to machines
-running all three.  The 1.0.0 release was made with the following configuration:
+#### Setup GPG
 
-* Ubuntu 14.04
-* MacOS Sierra (10.12)
-* Windows Server 2016
-
-### Software
-
-The following software is necessary and may not be installed by default:
-
-<!-- TODO(flooey): Expand and link these, there's probably more -->
-* Linux: [Docker](https://www.docker.com/), [Android SDK](https://developer.android.com/studio/index.html)
-* MacOS: Java SDK
-* Windows: MSVC, git, NASM, Java
-
-### Setup OSSRH and GPG
-
-If you haven't deployed artifacts to Maven Central before, you need to setup
-your OSSRH (OSS Repository Hosting) account and signing keys.
-- Follow the instructions on [this
-  page](http://central.sonatype.org/pages/ossrh-guide.html) to set up an
-  account with OSSRH.
-  - You only need to create the account, not set up a new project
-  - Contact a Conscrypt maintainer to add your account after you have created it.
 - Install GnuPG and [generate your key
   pair](https://www.gnupg.org/documentation/howtos.html).
 - [Publish your public key](https://www.gnupg.org/gph/en/manual.html#AEN464)
   to make it visible to the Sonatype servers
   (e.g. `gpg --keyserver pgp.mit.edu --send-key <key ID>`).
 
-### Get the signing certificates
+## Make a New Release
 
-Contact an existing Conscrypt maintainer to get the keystore containing the
-code signing certificate.
+Create a new bug with the title "Release Conscrypt X.Y.Z", where X.Y.Z is the
+version you want to release. See for example b/555033517.
 
-### Set up gradle.properties
+Document all steps you do in that bug.
 
-Add your OSSRH credentials, GPG key information, and the code signing keystore details
-to `$HOME/.gradle/gradle.properties`.
+In this process here we assume that we release from the `master` branch, which
+should be the normal case, and makes releases easier. (If you need to create a
+patch release, you need to adapt this process yourself.)
+
+#### Sync with GitHub
+
+Make sure that the latest changes in google3 are exported to GitHub. Run:
 
 ```
-signing.keyId=<8-character-public-key-id>
-signing.password=<key-password>
-signing.secretKeyRingFile=<your-home-directory>/.gnupg/secring.gpg
-
-signingKeystore=<path-to-keystore>
-signingPassword=<keystore-password>
-
-ossrhUsername=<ossrh-username>
-ossrhPassword=<ossrh-password>
-checkstyle.ignoreFailures=false
+/google/data/ro/teams/copybara/copybara third_party/java/conscrypt/main_src/copy.bara.sky export
 ```
 
-Once Per Release Series Setup
------------------------------
+Make sure that the copybara transformation works. If it doesn't, it is possible
+that one of the transformation is out of date, because the code in google3 has
+changed. You need to update the transformation in this case.
 
-These steps need to be performed once per `X.Y` release series.
+This will create a commit in the `google3-export` branch, and overwrite previous
+commits in that branch. It also tries to create a pull request, but this may
+fail due to lack of permissions. This is not a problem, because we can create
+the pull request manually. Create a pull request on GitHub, add a reviewer, and
+once it is approved, merge it.
 
-### Create the release branch
+#### Commit the new version number
 
-We use a branch named `<major>.<minor>.x` for all releases in a series.
+Make a cl that changes the version number in
+`third_party/java/conscrypt/main_src/build.gradle` to the next version you want
+to release. (For example, from `2.7-SNAPSHOT` to `2.7.0`, see
+cl/973727647.) Submit this cl, and then merge it in github, again running
+copybara:
 
-Create the branch and push it to GitHub:
-
-```bash
-$ git checkout -b 1.0.x master
-$ git push upstream 1.0.x
+```
+/google/data/ro/teams/copybara/copybara third_party/java/conscrypt/main_src/copy.bara.sky export
 ```
 
-### Set the branch protection settings
+and again, create a pull request, add a reviewer, approve it, and merge it.
 
-In the GitHub UI, go to Settings -> Branches and mark the new branch as
-protected, with administrators included and restrict pushes to administrators.
+Now, the CI pipeline on GitHub should run with the new version number.
 
-### Update the master version
+#### Download the CI-generated repository
 
-Update the master branch's version to the next minor snapshot.
+Make sure that `/tmp/m2` is empty, and that `~/Downloads/m2repo-uber.zip` does
+not exist:
 
-```bash
-$ git checkout -b bump-version master
-# Change version in build.gradle to X.Y+1-SNAPSHOT
-$ git commit -a -m 'Start X.Y+1 development cycle'
-# Push to GitHub and get reviewed like normal
+```
+rm -rf /tmp/m2/*
+rm -rf ~/Downloads/m2repo-uber.zip
 ```
 
-Making a New Release
---------------------
+In the browser (if you are using a Chromebook, then do this in your cloudtop
+instance), go to:
+[https://github.com/google/conscrypt/actions](https://github.com/google/conscrypt/actions)
 
-### Cherry-pick changes from the master branch (optional)
+and click on your commit. Verify that all jobs pass,
+and if some fail, fix them or re-run the failed jobs.
 
-Cherry-pick any desired master changes since the branch was created.
+If everything passes, click on the job "uberjar", and open the tab
+"Upload maven repository". It will show a artifact link. Click on it to download
+the generated repository.
 
-```bash
-$ git checkout 1.0.x
-$ git cherry-pick <revision>
+Verify that the download worked by calling:
+
+```
+ls ~/Downloads/m2repo*
 ```
 
-### Tag the release
+it should show one entry:
 
-```bash
-# Change version in build.gradle to this version's number
-$ git commit -a -m 'Preparing version 1.0.0'
-$ git tag -a 1.0.0 -m 'Version 1.0.0'
+```
+m2repo-uber.zip
 ```
 
-### Push to GitHub
+#### Generate the signed jar files
 
-Push both the branch and the new tag to GitHub.
+Run this script. It will generate the checksums and signatures for all artifacts
+and create three zip files, one for each Conscrypt artifact we want to publish.
 
-```bash
-$ git push upstream 1.0.x
-$ git push upstream 1.0.0
+```
+#!/bin/bash
+
+mkdir /tmp/m2
+cp ~/Downloads/m2repo-uber.zip /tmp/m2/m2repo-uber.zip
+
+cd /tmp/m2
+unzip m2repo-uber.zip
+
+# remove some metadata files that are not needed
+rm /tmp/m2/org/conscrypt/conscrypt-android/maven-metadata-local.xml
+rm /tmp/m2/org/conscrypt/conscrypt-openjdk/maven-metadata-local.xml
+rm /tmp/m2/org/conscrypt/conscrypt-openjdk-uber/maven-metadata-local.xml
+
+# generate checksums and signatures for all artifacts
+for f in /tmp/m2/org/conscrypt/*/*/*; do
+  echo "Processing $f..."
+  md5sum "$f" | cut -d' ' -f1 > "$f.md5"
+  sha1sum "$f" | cut -d' ' -f1 > "$f.sha1"
+  sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"
+  sha512sum "$f" | cut -d' ' -f1 > "$f.sha512"
+  gpg --armor --detach-sign "$f"
+done
+
+echo "Zipping conscrypt-android.zip ..."
+mkdir -p /tmp/m2/conscrypt-android/org/conscrypt/conscrypt-android
+cp -r /tmp/m2/org/conscrypt/conscrypt-android /tmp/m2/conscrypt-android/org/conscrypt/
+cd /tmp/m2/conscrypt-android
+zip -r conscrypt-android.zip org
+mv conscrypt-android.zip ..
+cd /tmp/m2
+rm -rf /tmp/m2/conscrypt-android
+
+echo "Zipping conscrypt-openjdk.zip ..."
+mkdir -p /tmp/m2/conscrypt-openjdk/org/conscrypt/conscrypt-openjdk
+cp -r /tmp/m2/org/conscrypt/conscrypt-openjdk /tmp/m2/conscrypt-openjdk/org/conscrypt/
+cd /tmp/m2/conscrypt-openjdk
+zip -r conscrypt-openjdk.zip org
+mv conscrypt-openjdk.zip ..
+cd /tmp/m2
+rm -rf /tmp/m2/conscrypt-openjdk
+
+echo "Zipping conscrypt-openjdk-uber.zip ..."
+mkdir -p /tmp/m2/conscrypt-openjdk-uber/org/conscrypt/conscrypt-openjdk-uber
+cp -r /tmp/m2/org/conscrypt/conscrypt-openjdk-uber /tmp/m2/conscrypt-openjdk-uber/org/conscrypt/
+cd /tmp/m2/conscrypt-openjdk-uber
+zip -r conscrypt-openjdk-uber.zip org
+mv conscrypt-openjdk-uber.zip ..
+cd /tmp/m2
+rm -rf /tmp/m2/conscrypt-openjdk-uber
+
+# clean up the temporary directory
+rm -rf /tmp/m2/org
+
+echo "Finished creating zip files successfully!"
+
+echo "Listing contents of conscrypt-android.zip:"
+unzip -l conscrypt-android.zip
+
+echo "Listing contents of conscrypt-openjdk.zip:"
+unzip -l conscrypt-openjdk.zip
+
+echo "Listing contents of conscrypt-openjdk-uber.zip:"
+unzip -l conscrypt-openjdk-uber.zip
 ```
 
-### Build the Linux OpenJDK Release
+Check that the these zip files contain the expected files. For example, for `conscrypt-openjdk-uber.zip`, you should look like this:
 
-The deployment for Linux uses [Docker](https://www.docker.com/) running
-CentOS 6.6 in order to ensure that we have a consistent deployment environment
-on Linux.
+```
+Archive:  /tmp/m2/conscrypt-openjdk-uber.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  2026-08-24 13:11   org/
+        0  2026-08-24 13:11   org/conscrypt/
+        0  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/
+        0  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/
+      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.asc
+      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.sha512
+       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.sha256
+       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.sha1
+       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.md5
+      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.asc
+      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.sha512
+       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.sha256
+       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.sha1
+       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.md5
+      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.asc
+      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.sha512
+       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.sha256
+       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.sha1
+       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.md5
+      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.asc
+      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.sha512
+       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.sha256
+       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.sha1
+       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.md5
+     1269  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom
+  6846924  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar
+   421660  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar
+    39203  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar
+---------                     -------
+  7311040                     28 files
+```
 
-1. From the conscrypt source directory:
+#### Upload to Maven Central
 
-   ```bash
-   $ docker build -t conscrypt-deploy release
-   ```
-1. Start a Docker container that has the deploy environment set up for you. The
-   Conscrypt source is cloned into `/conscrypt`.
+Now, we can upload these zip files to Maven Central. Open
+https://central.sonatype.com/ in a browser, and log in.
 
-   ```bash
-   $ docker run -it --rm=true conscrypt-deploy
-   ```
+click on "Publish", and then "Publish Component".
 
-   Note that the container will be deleted after you exit. Any changes you have
-   made (e.g., copied configuration files) will be lost. If you want to keep the
-   container, remove `--rm=true` from the command line.
-1. Copy your OSSRH credentials and GnuPG keys to your docker container. In Docker:
-   ```
-   # mkdir /root/.gradle
-   ```
-   Find the container ID in your bash prompt, which is shown as `[root@<container-ID> ...]`.
-   In host:
-   ```
-   $ docker cp ~/.gnupg <container-ID>:/root/
-   $ docker cp ~/.gradle/gradle.properties <container-ID>:/root/.gradle/
-   $ docker cp <path to cert keystore> <container-ID>:/root/certkeystore
-   ```
+You get a form. For "Deployment Name", we write "conscrypt-openjdk-uber version
+2.7.0". As description, we also just use "conscrypt-openjdk-uber version
+2.7.0". Then click on "Choose File".
+Choose "/tmp/m2/conscrypt-openjdk-uber.zip".
 
-   You'll also need to update `signing.secretKeyRingFile` and `signingKeystore` in
-   `/root/.gradle/gradle.properties` to point to `/root/.gnupg/secring.gpg` and
-   `/root/certkeystore`, respectively.
-1. Create the initial build
-   ```bash
-   $ git checkout 1.0.x
-   $ ./gradlew conscrypt-openjdk:build
-   $ ./gradlew -Dorg.gradle.parallel=false publish
-   ```
-1. Note the BoringSSL commit used for this build.
-   ```bash
-   $ cd /usr/src/boringssl
-   $ git log -n 1
-   ```
-1. Go to the OSSRH UI and note the ID of the new staging repository.  It should be in the 
-   form of `orgconscrypt-NNNN`.
+Then, you get a pop-up and you have to say that you only share public data.
 
-### Build the Windows OpenJDK Release
+After the upload finished, click on "Publish Component".
 
-See [BUILDING](../BUILDING.md) for instructions for setting up the build environment.
+Do the same steps for the other zip files.
 
-1. Ensure BoringSSL is synced to the same revision as for the Linux build.
-   ```bash
-   $ git checkout <revision>
-   $ cd build64
-   $ ninja
-   ```
-1. Build the code and upload it to the staging repository noted previously.
-   ```bash
-   $ gradlew conscrypt-openjdk:build
-   $ gradlew conscrypt-openjdk:publish -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
-   ```
+It first shows "validating", and a minute later as "validated". Then, you can
+click on it, and then click on "Publish". Confirm the terms and again click
+"Publish".
 
-### Build the Mac and Windows OpenJDK Releases
+It then shows up as "publishing". A bit later, it will show up as "published".
 
-See [BUILDING](../BUILDING.md) for instructions for setting up the build environment.
+Do this for all three components.
 
-1. Ensure BoringSSL is synced to the same revision as for the Linux build.
-   ```bash
-   $ git checkout <revision>
-   $ cd build.x86
-   $ ninja
-   $ cd ../build.arm
-   $ ninja
-   ```
-1. Build the code and upload it to the staging repository noted previously.
-   ```bash
-   $ ./gradlew conscrypt-openjdk:build
-   $ ./gradlew conscrypt-openjdk:publish -Dorg.gradle.parallel=false -PrepositoryId=<repository-id>
-   ```
+#### Create the release tag on GitHub
 
-### Close and Release the Staging Repository
+Finally, create the release tag on GitHub.
 
-1. Navigate to the staging repository, open the contents, and ensure there are jars for
-   each supported build environment: linux-x86_64, osx-x86_64, windows-x86, and windows-x86_64.
-1. Click the `close` button at the top of the staging repo list.
-1. After the automated checks are done, click the `release` button at the top of the staging repo list.
+Go to
+https://github.com/google/conscrypt/releases/new
 
-You can see the complete process for releasing to Maven Central on the [OSSRH site]
-(http://central.sonatype.org/pages/releasing-the-deployment.html).
+"Select Tag", "Create new Tag". Write the tag name, for example, "2.7.0".
 
-It will take several hours for the jars to show up on [Maven Central](http://search.maven.org).
+Add a description. Check "Pre-release" if it is a "-alpha" release, and click
+the button to make the release.
 
-### Build the Android Release
+Github will create a new tag, such as:
+https://github.com/google/conscrypt/releases/tag/2.7.0.
 
-The Android build is not yet integrated into the Docker container, so on any machine with
-the Android SDK installed, do the following:
+#### Submit a commit with the next version number
 
-1. Build the code.
-   ```bash
-   $ ./gradlew conscrypt-android:build
-   $ ./gradlew conscrypt-android:publish -Dorg.gradle.parallel=false
-   ```
-1. Visit the OSSRH site and close and release the repository.
+Now, you should change the version number in `build.gradle` back to a snapshot
+version, with the `-SNAPSHOT` suffix. For example, from `2.7.0` to
+`2.7-SNAPSHOT`.
 
-### Build the Uber Jar
+#### Update the documentation
 
-Once the platform-specific jars have shown up on Maven Central, return to the Docker container
-and build the Uber jar.
-
-1. Build the code.
-   ```bash
-   # If you left the container, reattach to it
-   $ docker container attach {CONTAINER_ID}
-   $ ./gradlew conscrypt-openjdk-uber:build -Dorg.conscrypt.openjdk.buildUberJar=true
-   $ ./gradlew conscrypt-openjdk-uber:publish -Dorg.gradle.parallel=false -Dorg.conscrypt.openjdk.buildUberJar=true
-   ```
-1. Visit the OSSRH site and close and release the repository.
-
-### Notify the Community
-
-Finally, document and publicize the release.
-
-1. Add [Release Notes](https://github.com/google/conscrypt/releases) for the new tag.
-   The description should include any major fixes or features since the last release.
-   You may choose to add links to bugs, PRs, or commits if appropriate.
-2. Post a release announcement to [conscrypt](https://groups.google.com/forum/#!forum/conscrypt)
-   (`conscrypt@googlegroups.com`). The title should be something that clearly identifies
-   the release (e.g.`Conscrypt <tag> Released`).
+Update the documentation to reflect the new release. For example, the
+[README](https://github.com/google/conscrypt/blob/master/README.md).
