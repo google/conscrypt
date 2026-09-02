@@ -788,6 +788,7 @@ public final class OpenSSLProvider extends Provider {
         }
     }
 
+    @SuppressWarnings("UnusedMethod")
     private boolean classExists(String classname) {
         try {
             Class.forName(classname);

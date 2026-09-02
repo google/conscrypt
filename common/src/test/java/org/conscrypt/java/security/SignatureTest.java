@@ -69,7 +69,7 @@ import org.conscrypt.testing.BrokenProvider;
 import org.conscrypt.testing.OpaqueProvider;
 // android-add: import org.junit.ClassRule;
 import org.junit.Test;
-// android-add: import org.junit.TestRule;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import tests.util.ServiceTester;

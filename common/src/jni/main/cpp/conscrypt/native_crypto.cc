@@ -178,7 +178,7 @@ static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
     ScopedByteArrayRO sourceBytes(env, source);
     if (sourceBytes.get() == nullptr) {
         JNI_TRACE("arrayToBignum(%p, %p) => null", source, dest);
-        conscrypt::jniutil::throwOutOfMemory(env, "out of memory");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate source bytes");
         return false;
     }
     const unsigned char* tmp = reinterpret_cast<const unsigned char*>(sourceBytes.get());
@@ -9702,12 +9702,17 @@ static void NativeCrypto_SSL_set_signed_cert_timestamp_list(JNIEnv* env, jclass,
         return;
     }
 
-    ScopedByteArrayRO listBytes(env, list);
-    if (listBytes.get() == nullptr) {
+    if (list == nullptr) {
         JNI_TRACE(
                 "ssl=%p NativeCrypto_SSL_set_signed_cert_timestamp_list => list == "
                 "null",
                 ssl);
+        conscrypt::jniutil::throwNullPointerException(env, "list == null");
+        return;
+    }
+    ScopedByteArrayRO listBytes(env, list);
+    if (listBytes.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate list bytes");
         return;
     }
 
@@ -9781,9 +9786,14 @@ static void NativeCrypto_SSL_set_ocsp_response(JNIEnv* env, jclass, jlong ssl_ad
         return;
     }
 
+    if (response == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_ocsp_response => response == null", ssl);
+        conscrypt::jniutil::throwNullPointerException(env, "response == null");
+        return;
+    }
     ScopedByteArrayRO responseBytes(env, response);
     if (responseBytes.get() == nullptr) {
-        JNI_TRACE("ssl=%p NativeCrypto_SSL_set_ocsp_response => response == null", ssl);
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate response");
         return;
     }
 
@@ -9842,12 +9852,18 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
     if (ssl == nullptr) {
         return nullptr;
     }
-    ScopedByteArrayRO labelBytes(env, label);
-    if (labelBytes.get() == nullptr) {
+
+    if (label == nullptr) {
         JNI_TRACE(
                 "ssl=%p NativeCrypto_SSL_export_keying_material label == null => "
                 "exception",
                 ssl);
+        conscrypt::jniutil::throwNullPointerException(env, "label == null");
+        return nullptr;
+    }
+    ScopedByteArrayRO labelBytes(env, label);
+    if (labelBytes.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate label bytes");
         return nullptr;
     }
     std::unique_ptr<uint8_t[]> out(new uint8_t[num_bytes]);
@@ -9859,10 +9875,7 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
     } else {
         ScopedByteArrayRO contextBytes(env, context);
         if (contextBytes.get() == nullptr) {
-            JNI_TRACE(
-                    "ssl=%p NativeCrypto_SSL_export_keying_material context == null => "
-                    "exception",
-                    ssl);
+            conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate context bytes");
             return nullptr;
         }
         ret = SSL_export_keying_material(
@@ -10376,10 +10389,8 @@ static void NativeCrypto_setApplicationProtocols(JNIEnv* env, jclass, jlong ssl_
         if (client_mode) {
             ScopedByteArrayRO protosBytes(env, protocols);
             if (protosBytes.get() == nullptr) {
-                JNI_TRACE(
-                        "ssl=%p NativeCrypto_setApplicationProtocols protocols=%p => "
-                        "protosBytes == null",
-                        ssl, protocols);
+                conscrypt::jniutil::throwOutOfMemory(env,
+                                                     "Unable to allocate buffer for protocols");
                 return;
             }
 
@@ -11138,8 +11149,13 @@ static jbyteArray NativeCrypto_get_ocsp_single_extension(
         JNIEnv* env, jclass, jbyteArray ocspDataBytes, jstring oid, jlong x509Ref,
         CONSCRYPT_UNUSED jobject holder, jlong issuerX509Ref, CONSCRYPT_UNUSED jobject holder2) {
     CHECK_ERROR_QUEUE_ON_RETURN;
+    if (ocspDataBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "ocspDataBytes == null");
+        return nullptr;
+    }
     ScopedByteArrayRO ocspData(env, ocspDataBytes);
     if (ocspData.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to create ocspData");
         return nullptr;
     }
 
@@ -11792,16 +11808,27 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
     }
 
     jbyteArray key_bytes = env->NewByteArray(static_cast<jsize>(key_len));
+    if (key_bytes == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key_bytes");
+        return nullptr;
+    }
     ScopedByteArrayRW out_key(env, key_bytes);
     if (out_key.get() == nullptr) {
-        conscrypt::jniutil::throwNullPointerException(env, "out_key == null");
-        JNI_TRACE("Scrypt_generate_key() => out_key == null");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key");
         return nullptr;
     }
 
     size_t memory_limit = 1u << 29;
     ScopedByteArrayRO password_bytes(env, password);
+    if (password_bytes.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for password");
+        return nullptr;
+    }
     ScopedByteArrayRO salt_bytes(env, salt);
+    if (salt_bytes.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for salt");
+        return nullptr;
+    }
 
     int result = EVP_PBE_scrypt(
             reinterpret_cast<const char*>(password_bytes.get()), password_bytes.size(),
