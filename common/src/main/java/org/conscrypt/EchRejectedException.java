@@ -23,6 +23,8 @@ import javax.net.ssl.SSLHandshakeException;
  */
 @Internal
 public class EchRejectedException extends SSLHandshakeException {
+    private static final long serialVersionUID = 4793379339877337309L;
+
     public EchRejectedException(String message) {
         super(message);
     }

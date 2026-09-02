@@ -26,7 +26,9 @@ import static org.junit.Assert.fail;
 // android-add: import libcore.test.reasons.NonCtsReasons;
 // android-add: import libcore.test.reasons.NonMtsReasons;
 
+// android-add: import org.junit.ClassRule;
 import org.conscrypt.TestUtils;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;

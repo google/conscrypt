@@ -28,6 +28,8 @@ import java.util.Arrays;
 /** An implementation of a composite MLDSA public key. */
 @Internal
 public class OpenSslCompositeMlDsaPublicKey implements PublicKey {
+    private static final long serialVersionUID = 9131812741197458311L;
+
     private final CompositeMlDsaAlgorithm algorithm;
     private final OpenSslMlDsaPublicKey mlDsaPublicKey;
     private final PublicKey classicPublicKey;

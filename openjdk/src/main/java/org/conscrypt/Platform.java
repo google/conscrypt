@@ -718,7 +718,10 @@ final public class Platform {
         }
 
         if (version[0] == 1) {
-            assert version[1] >= 6;
+            if (version[1] < 6) {
+                throw new IllegalArgumentException(
+                        "Unsupported Java specification version: " + javaSpecVersion);
+            }
             return version[1];
         } else {
             return version[0];

@@ -31,6 +31,8 @@ public interface LogStore {
 
     /** Thrown when the LogStore was found to be unusable while retrieving a log's information. */
     public class InvalidLogException extends Exception {
+        private static final long serialVersionUID = 7160521638039726448L;
+
         public InvalidLogException(Throwable cause) {
             super(cause);
         }

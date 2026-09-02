@@ -28,6 +28,8 @@ import java.util.Arrays;
 /** An implementation of a composite ML-DSA private key. */
 @Internal
 public class OpenSslCompositeMlDsaPrivateKey implements PrivateKey {
+    private static final long serialVersionUID = -6825706662493561952L;
+
     private static final int ML_DSA_SEED_LENGTH = 32;
 
     private final CompositeMlDsaAlgorithm algorithm;

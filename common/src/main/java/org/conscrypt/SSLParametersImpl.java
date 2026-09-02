@@ -191,8 +191,7 @@ final class SSLParametersImpl implements Cloneable {
         }
         boolean x509CipherSuitesNeeded = (x509KeyManager != null) || (x509TrustManager != null);
         boolean pskCipherSuitesNeeded = pskKeyManager != null;
-        enabledCipherSuites =
-                getDefaultCipherSuites(x509CipherSuitesNeeded, pskCipherSuitesNeeded, isSpake());
+        enabledCipherSuites = getDefaultCipherSuites(x509CipherSuitesNeeded, pskCipherSuitesNeeded);
 
         // We ignore the SecureRandom passed in by the caller. The native code below
         // directly accesses /dev/urandom, which makes it irrelevant.
@@ -246,7 +245,8 @@ final class SSLParametersImpl implements Cloneable {
                 (sslParams.echConfigList == null) ? null : sslParams.echConfigList.clone();
         this.useSni = sslParams.useSni;
         this.namedGroups = (sslParams.namedGroups == null) ? null : sslParams.namedGroups.clone();
-        this.sniMatchers = (sslParams.sniMatchers == null) ? null : new ArrayList<>(sslParams.sniMatchers);
+        this.sniMatchers =
+                (sslParams.sniMatchers == null) ? null : new ArrayList<>(sslParams.sniMatchers);
         this.algorithmConstraints = sslParams.algorithmConstraints;
     }
 
@@ -805,8 +805,7 @@ final class SSLParametersImpl implements Cloneable {
     }
 
     private static String[] getDefaultCipherSuites(boolean x509CipherSuitesNeeded,
-                                                   boolean pskCipherSuitesNeeded,
-                                                   boolean spake2PlusCipherSuitesNeeded) {
+                                                   boolean pskCipherSuitesNeeded) {
         if (x509CipherSuitesNeeded) {
             // X.509 based cipher suites need to be listed.
             if (pskCipherSuitesNeeded) {

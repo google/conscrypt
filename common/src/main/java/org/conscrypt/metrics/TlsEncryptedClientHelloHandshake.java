@@ -27,16 +27,17 @@ import org.conscrypt.NetworkSecurityPolicy;
 @Internal
 public class TlsEncryptedClientHelloHandshake {
     enum Result {
-        UNKNOWN(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_UNKNOWN),
-        SUCCESS(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_SUCCESS),
+        UNKNOWN(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_UNKNOWN),
+        SUCCESS(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_SUCCESS),
         SUCCESS_WITH_GREASE(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_SUCCESS_GREASE),
-        FAILURE(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_FAILURE),
-        SKIPPED(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_SKIPPED);
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_SUCCESS_GREASE),
+        FAILURE(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_FAILURE),
+        SKIPPED(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__RESULT__ECH_RESULT_SKIPPED);
 
         private final int metricsValue;
 
@@ -50,16 +51,19 @@ public class TlsEncryptedClientHelloHandshake {
     }
 
     enum UsageReason {
-        UNKNOWN(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_UNKNOWN),
-        DEFAULT(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_DEFAULT),
+        UNKNOWN(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_UNKNOWN),
+        DEFAULT(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_DEFAULT),
         SDK_TARGET(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_SDK_TARGET),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_SDK_TARGET),
         NSC_APP_OPT_IN(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_NSC_APP_OPT_IN),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_NSC_APP_OPT_IN),
         NSC_DOMAIN_OPT_IN(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_NSC_DOMAIN_OPT_IN);
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__USAGE_REASON__ECH_REASON_NSC_DOMAIN_OPT_IN);
 
         private final int metricsValue;
 
@@ -73,20 +77,26 @@ public class TlsEncryptedClientHelloHandshake {
     }
 
     enum SkipReason {
-        UNKNOWN(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_UNKNOWN),
+        UNKNOWN(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_UNKNOWN),
         SDK_TARGET(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_SDK_TARGET),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_SDK_TARGET),
         NSC_APP_OPT_OUT(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_NSC_APP_OPT_OUT),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_NSC_APP_OPT_OUT),
         NSC_DOMAIN_OPT_OUT(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_NSC_DOMAIN_OPT_OUT),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_NSC_DOMAIN_OPT_OUT),
         NO_CONFIG(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_NO_CONFIG),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_NO_CONFIG),
         SERVER_SNI_MISMATCH(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_SERVER_SNI_MISMATCH),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_SERVER_SNI_MISMATCH),
         UNSUPPORTED_TLS_VERSION(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_UNSUPPORTED_TLS_VERSION);
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__SKIP_REASON__ECH_SKIP_REASON_UNSUPPORTED_TLS_VERSION);
 
         private final int metricsValue;
 
@@ -100,16 +110,20 @@ public class TlsEncryptedClientHelloHandshake {
     }
 
     public enum FailureReason {
-        UNKNOWN(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_UNKNOWN),
+        UNKNOWN(ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_UNKNOWN),
         SERVER_REJECTION(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_SERVER_REJECTION),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_SERVER_REJECTION),
         INVALID_CONFIG(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INVALID_CONFIG),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INVALID_CONFIG),
         INCONSISTENT_NEGOTIATION(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INCONSISTENT_NEGOTIATION),
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INCONSISTENT_NEGOTIATION),
         NO_RETRY_CONFIG(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_NO_RETRY_CONFIGS);
+                ConscryptStatsLog
+                        .TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_NO_RETRY_CONFIGS);
 
         private final int metricsValue;
 
@@ -129,7 +143,8 @@ public class TlsEncryptedClientHelloHandshake {
     private final int handshakeDurationMillis;
 
     private TlsEncryptedClientHelloHandshake(Result result, UsageReason usageReason,
-            SkipReason skipReason, FailureReason failureReason, int handshakeDurationMillis) {
+                                             SkipReason skipReason, FailureReason failureReason,
+                                             int handshakeDurationMillis) {
         this.result = result;
         this.usageReason = usageReason;
         this.skipReason = skipReason;
@@ -138,7 +153,6 @@ public class TlsEncryptedClientHelloHandshake {
     }
 
     public static final class Builder {
-        private Result result = Result.UNKNOWN;
         private EchOptions opts;
         private FailureReason failureReason = FailureReason.UNKNOWN;
         private NetworkSecurityPolicy policy;
@@ -147,8 +161,7 @@ public class TlsEncryptedClientHelloHandshake {
         private int handshakeDurationMillis;
         private boolean handshakeSuccess;
 
-        public Builder() {
-        }
+        public Builder() {}
 
         public Builder setEchOptions(EchOptions opts) {
             this.opts = opts;
@@ -196,8 +209,8 @@ public class TlsEncryptedClientHelloHandshake {
             }
 
             if (calculateSkipReason() != SkipReason.UNKNOWN) {
-                return (opts != null && opts.isGreaseEnabled())
-                    ? Result.SUCCESS_WITH_GREASE : Result.SKIPPED;
+                return (opts != null && opts.isGreaseEnabled()) ? Result.SUCCESS_WITH_GREASE
+                                                                : Result.SKIPPED;
             }
 
             return Result.SUCCESS;
@@ -211,10 +224,10 @@ public class TlsEncryptedClientHelloHandshake {
                 return UsageReason.UNKNOWN;
             }
 
-            if (policy.getDomainEncryptionMode("") == DomainEncryptionMode.OPPORTUNISTIC ||
-                policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.OPPORTUNISTIC ||
-                policy.getDomainEncryptionMode("") == DomainEncryptionMode.ENABLED ||
-                policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.ENABLED) {
+            if (policy.getDomainEncryptionMode("") == DomainEncryptionMode.OPPORTUNISTIC
+                || policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.OPPORTUNISTIC
+                || policy.getDomainEncryptionMode("") == DomainEncryptionMode.ENABLED
+                || policy.getDomainEncryptionMode(hostname) == DomainEncryptionMode.ENABLED) {
                 // ECH mode was default opportunistic for 26Q2, and default enabled for 26Q4 onwards
                 return UsageReason.DEFAULT;
             }
@@ -245,9 +258,9 @@ public class TlsEncryptedClientHelloHandshake {
         }
 
         public TlsEncryptedClientHelloHandshake build() {
-            return new TlsEncryptedClientHelloHandshake(
-                calculateResult(), calculateUsageReason(), calculateSkipReason(),
-                    failureReason, handshakeDurationMillis);
+            return new TlsEncryptedClientHelloHandshake(calculateResult(), calculateUsageReason(),
+                                                        calculateSkipReason(), failureReason,
+                                                        handshakeDurationMillis);
         }
     }
 

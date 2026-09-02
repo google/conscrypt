@@ -316,7 +316,8 @@ public final class NativeCrypto {
     static native byte[] SLHDSA_SHA2_128S_sign(byte[] data, int dataLen, byte[] privateKey);
 
     // android-add: @FastNative
-    static native byte[] SLHDSA_SHA2_128S_prehash_sign(byte[] data, int dataLen, int hashNid, byte[] privateKey);
+    static native byte[] SLHDSA_SHA2_128S_prehash_sign(byte[] data, int dataLen, int hashNid,
+                                                       byte[] privateKey);
 
     // android-add: @FastNative
     static native int SLHDSA_SHA2_128S_verify(byte[] data, int dataLen, byte[] sig,
@@ -325,7 +326,6 @@ public final class NativeCrypto {
     // android-add: @FastNative
     static native int SLHDSA_SHA2_128S_prehash_verify(byte[] data, int dataLen, byte[] sig,
                                                       int hashNid, byte[] publicKey);
-
 
     // --- Curve25519 --------------
 
@@ -1884,7 +1884,7 @@ public final class NativeCrypto {
     static native byte[] getApplicationProtocol(long ssl, NativeSsl ssl_holder);
 
     /**
-     * Variant of the {@link #SSL_do_handshake} used by {@link ConscryptEngine}. This differs
+     * Wrapper of {@code SSL_do_handshake} used by {@link ConscryptEngine}. This differs
      * slightly from the raw BoringSSL API in that it returns the SSL error code from the operation,
      * rather than the return value from {@code SSL_do_handshake}. This is done in order to allow to
      * properly handle SSL errors and propagate useful exceptions.
@@ -1897,7 +1897,7 @@ public final class NativeCrypto {
                                               SSLHandshakeCallbacks shc) throws IOException;
 
     /**
-     * Variant of the {@link #SSL_read} for a direct {@link java.nio.ByteBuffer} used by {@link
+     * Wrapper of {@code SSL_read} for a direct {@link java.nio.ByteBuffer} used by {@link
      * ConscryptEngine}.
      *
      * @return if positive, represents the number of bytes read into the given buffer. Returns
@@ -1914,7 +1914,7 @@ public final class NativeCrypto {
             throws IOException, CertificateException;
 
     /**
-     * Variant of the {@link #SSL_write} for a direct {@link java.nio.ByteBuffer} used by {@link
+     * Wrapper of {@code SSL_write} for a direct {@link java.nio.ByteBuffer} used by {@link
      * ConscryptEngine}. This version does not lock or and does no error pre-processing.
      */
     static native int ENGINE_SSL_write_direct(long ssl, NativeSsl ssl_holder, long address,
@@ -1942,7 +1942,7 @@ public final class NativeCrypto {
                                              SSLHandshakeCallbacks shc) throws IOException;
 
     /**
-     * Variant of the {@link #SSL_shutdown} used by {@link ConscryptEngine}. This version does not
+     * Wrapper of {@code SSL_shutdown} used by {@link ConscryptEngine}. This version does not
      * lock.
      */
     static native void ENGINE_SSL_shutdown(long ssl, NativeSsl ssl_holder,
