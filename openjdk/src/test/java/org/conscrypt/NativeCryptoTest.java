@@ -58,7 +58,6 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,7 +66,6 @@ import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -84,7 +82,6 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.ECPrivateKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -100,14 +97,12 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.BadPaddingException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLProtocolException;
 import javax.security.auth.x500.X500Principal;
 
 @RunWith(JUnit4.class)
 public class NativeCryptoTest {
     private static final long NULL = 0;
-    private static final FileDescriptor INVALID_FD = new FileDescriptor();
     private static final SSLHandshakeCallbacks DUMMY_CB =
             new TestSSLHandshakeCallbacks(null, 0, null, null);
 
@@ -893,9 +888,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_grease_only() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
@@ -944,9 +936,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_ech_client_server() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         final byte[] key = readTestFile("boringssl-ech-private-key.bin");
@@ -1927,9 +1916,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_normal() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // normal client and server case
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
@@ -1960,9 +1946,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_reusedSession() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // normal client and server case
         final ServerSocket listener = newServerSocket();
 
@@ -2047,9 +2030,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_optional_client_certificate() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // optional client certificate case
         final ServerSocket listener = newServerSocket();
 
@@ -2106,9 +2086,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_missing_required_certificate() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // required client certificate negative case
         final ServerSocket listener = newServerSocket();
         try {
@@ -2137,9 +2114,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_client_timeout() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // client timeout
         final ServerSocket listener = newServerSocket();
         Socket serverSocket = null;
@@ -2163,9 +2137,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_server_timeout() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // server timeout
         final ServerSocket listener = newServerSocket();
         Socket clientSocket = null;
@@ -2189,9 +2160,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_normal() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // normal TLS-PSK client and server case
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new ClientHooks();
@@ -2228,9 +2196,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // normal TLS-PSK client and server case where the server provides the client with a PSK
         // identity hint, and the client provides the server with a PSK identity.
         final ServerSocket listener = newServerSocket();
@@ -2272,9 +2237,6 @@ public class NativeCryptoTest {
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_do_handshake_with_psk_with_identity_and_hint_of_max_length()
             throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // normal TLS-PSK client and server case where the server provides the client with a PSK
         // identity hint, and the client provides the server with a PSK identity.
         final ServerSocket listener = newServerSocket();
@@ -2314,9 +2276,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_key_mismatch() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks();
         ServerHooks sHooks = new ServerHooks();
@@ -2338,9 +2297,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_with_no_client_key() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks();
         ServerHooks sHooks = new ServerHooks();
@@ -2362,9 +2318,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_psk_with_no_server_key() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks();
         ServerHooks sHooks = new ServerHooks();
@@ -2387,9 +2340,6 @@ public class NativeCryptoTest {
     @Test
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated but still needs testing.
     public void test_SSL_do_handshake_with_psk_key_too_long() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
         ClientHooks cHooks = new ClientHooks() {
             @Override
@@ -2417,9 +2367,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_ocsp_response() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final byte[] OCSP_TEST_DATA = new byte[] {1, 2, 3, 4};
 
         final ServerSocket listener = newServerSocket();
@@ -2462,9 +2409,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_do_handshake_with_sct_extension() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // Fake SCT extension has a length of overall extension (unsigned 16-bit).
         // Each SCT entry has a length (unsigned 16-bit) and data.
         final byte[] SCT_TEST_DATA = new byte[] {0, 6, 0, 4, 1, 2, 3, 4};
@@ -2546,9 +2490,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_set_session() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
         NativeCrypto.SSL_set_session(s, null, NULL);
@@ -2651,9 +2592,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_set_session_creation_enabled() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
         NativeCrypto.SSL_set_session_creation_enabled(s, null, false);
@@ -2764,9 +2702,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_set_tlsext_host_name() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final String hostname = "www.android.com";
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
@@ -2806,9 +2741,6 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithProtocolListShouldSucceed() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
         final byte[] serverAlpnProtocols =
@@ -2846,9 +2778,6 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithProtocolListShouldFail() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
         final byte[] serverAlpnProtocols =
@@ -2886,9 +2815,6 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithServerProtocolSelectorShouldSucceed() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
 
@@ -2931,9 +2857,6 @@ public class NativeCryptoTest {
 
     @Test
     public void alpnWithServerProtocolSelectorShouldFail() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final byte[] clientAlpnProtocols =
                 SSLUtils.encodeProtocols(new String[] {"http/1.1", "foo", "spdy/2"});
 
@@ -2998,9 +2921,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_get0_peer_certificates() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -3022,9 +2942,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_cipher_names() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
         Hooks cHooks = new Hooks();
         Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES);
@@ -3066,9 +2983,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_read() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         // normal case
@@ -3231,9 +3145,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_session_id() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -3261,9 +3172,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_get_time() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         // TODO(prb) seems to fail regularly on Windows with time < System.currentTimeMillis()
         assumeFalse("Skipping SSLSession_getCreationTime() test on Windows", isWindows());
 
@@ -3297,9 +3205,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_get_version() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -3326,9 +3231,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_SSL_SESSION_cipher() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -3367,9 +3269,6 @@ public class NativeCryptoTest {
 
     @Test
     public void test_i2d_SSL_SESSION() throws Exception {
-        // This test only works on older versions of Java, see b/502061834.
-        assumeFalse(TestUtils.isJavaVersion(17));
-
         final ServerSocket listener = newServerSocket();
 
         Hooks cHooks = new Hooks() {
@@ -4946,87 +4845,80 @@ public class NativeCryptoTest {
         assertEquals(48, digest.length);
         int hashNid = NativeConstants.NID_sha384;
 
-        byte[] signature =
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid, privateKey);
+        byte[] signature = NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length,
+                                                                      hashNid, privateKey);
         assertEquals(7856, signature.length);
 
-        int result =
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                        digest, digest.length, signature, hashNid, publicKey);
+        int result = NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(digest, digest.length, signature,
+                                                                  hashNid, publicKey);
         assertEquals(1, result);
 
-    // digest buffer is larger than digest
-    byte[] digestBuffer = Arrays.copyOf(digest, digest.length + 42);
-        assertEquals(
-                1,
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                        digestBuffer, digest.length, signature, hashNid, publicKey));
+        // digest buffer is larger than digest
+        byte[] digestBuffer = Arrays.copyOf(digest, digest.length + 42);
+        assertEquals(1,
+                     NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(digestBuffer, digest.length,
+                                                                  signature, hashNid, publicKey));
 
-    // digest too short
-    assertEquals(
-        0,
-        NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-            digest, digest.length - 1, signature, hashNid, publicKey));
+        // digest too short
+        assertEquals(0,
+                     NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(digest, digest.length - 1,
+                                                                  signature, hashNid, publicKey));
 
         byte[] signatureTooShort = Arrays.copyOf(signature, signature.length - 1);
-        assertEquals(
-                0,
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                        digest, digest.length, signatureTooShort, hashNid, publicKey));
+        assertEquals(0,
+                     NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                             digest, digest.length, signatureTooShort, hashNid, publicKey));
 
         byte[] signatureTooLong = Arrays.copyOf(signature, signature.length + 1);
-        assertEquals(
-                0,
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                        digest, digest.length, signatureTooLong, hashNid, publicKey));
+        assertEquals(0,
+                     NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                             digest, digest.length, signatureTooLong, hashNid, publicKey));
 
         byte[] modifiedSignature = signature.clone();
         modifiedSignature[0] = (byte) (modifiedSignature[0] ^ 0x01);
-        assertEquals(
-                0,
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                        digest, digest.length, modifiedSignature, hashNid, publicKey));
+        assertEquals(0,
+                     NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                             digest, digest.length, modifiedSignature, hashNid, publicKey));
 
         byte[] modifiedDigest = digest.clone();
         modifiedDigest[0] = (byte) (modifiedDigest[0] ^ 0x01);
-        assertEquals(
-                0,
-                NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                        modifiedDigest, modifiedDigest.length, signature, hashNid, publicKey));
+        assertEquals(0,
+                     NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                             modifiedDigest, modifiedDigest.length, signature, hashNid, publicKey));
 
         int invalidDigestLen = digest.length + 1;
-        assertThrows(
-                RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, invalidDigestLen, hashNid, privateKey));
-        assertThrows(
-                RuntimeException.class,
-                ()
-                        -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                                digest, invalidDigestLen, signature, hashNid, publicKey));
+        assertThrows(RuntimeException.class,
+                     ()
+                             -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, invalidDigestLen,
+                                                                           hashNid, privateKey));
+        assertThrows(RuntimeException.class,
+                     ()
+                             -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                                     digest, invalidDigestLen, signature, hashNid, publicKey));
 
         byte[] privateKeyTooShort = Arrays.copyOf(privateKey, privateKey.length - 1);
-        assertThrows(
-                RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid, privateKeyTooShort));
+        assertThrows(RuntimeException.class,
+                     ()
+                             -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(
+                                     digest, digest.length, hashNid, privateKeyTooShort));
 
         byte[] privateKeyTooLong = Arrays.copyOf(privateKey, privateKey.length + 1);
-        assertThrows(
-                RuntimeException.class,
-                () -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid, privateKeyTooLong));
+        assertThrows(RuntimeException.class,
+                     ()
+                             -> NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(
+                                     digest, digest.length, hashNid, privateKeyTooLong));
 
         byte[] publicKeyTooShort = Arrays.copyOf(publicKey, publicKey.length - 1);
-        assertThrows(
-                RuntimeException.class,
-                ()
-                        -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                                digest, digest.length, signature, hashNid, publicKeyTooShort));
+        assertThrows(RuntimeException.class,
+                     ()
+                             -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                                     digest, digest.length, signature, hashNid, publicKeyTooShort));
 
         byte[] publicKeyTooLong = Arrays.copyOf(publicKey, publicKey.length + 1);
-        assertThrows(
-                RuntimeException.class,
-                ()
-                        -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-                                digest, digest.length, signature, hashNid, publicKeyTooLong));
+        assertThrows(RuntimeException.class,
+                     ()
+                             -> NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
+                                     digest, digest.length, signature, hashNid, publicKeyTooLong));
     }
 
     @Test

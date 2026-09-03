@@ -31,19 +31,25 @@ public class NoopStatsLog implements StatsLog {
         return INSTANCE;
     }
 
+    @Override
     public void countTlsHandshake(boolean success, String protocol, String cipherSuite,
                                   long duration) {}
 
+    @Override
     public void updateCTLogListStatusChanged(LogStore logStore) {}
 
+    @Override
     public void reportCTVerificationResult(LogStore logStore, VerificationResult result,
                                            PolicyCompliance compliance,
                                            CertificateTransparencyVerificationReason reason) {}
 
+    @Override
     public void reportBlocklistHit(CertBlocklistEntry entry) {}
 
+    @Override
     public void reportCertificationValidationFailure(CertificateValidationFailureReason reason,
                                                      int chainLength) {}
 
+    @Override
     public void reportTlsEchHandshake(TlsEncryptedClientHelloHandshake handshake) {}
 }
