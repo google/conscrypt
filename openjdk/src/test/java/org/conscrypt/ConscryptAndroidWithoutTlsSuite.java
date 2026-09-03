@@ -82,6 +82,7 @@ import tests.util.ServiceTester;
         EdDsaTest.class,
         ExposedByteArrayOutputStreamTest.class,
         FileClientSessionCacheTest.class,
+        HkdfTest.class,
         HostnameVerifierTest.class,
         HpkeContextTest.class,
         HpkeContextRecipientTest.class,

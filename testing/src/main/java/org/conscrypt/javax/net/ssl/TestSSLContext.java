@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.KeyStore;
 import java.security.Principal;
 import java.security.SecureRandom;
@@ -193,6 +194,15 @@ public final class TestSSLContext {
     public void close() {
         try {
             serverSocket.close();
+        } catch (SocketException e) {
+            // Sockets on older Android runtimes (e.g. Android 8.0 / API 26) may throw
+            // "socket already closed" exceptions when closing.
+            if (TestUtils.isAndroid()
+                    && !TestUtils.isAndroidSdkGreater(27)
+                    && e.getMessage().contains("socket already closed")) {
+                return;
+            }
+            throw new RuntimeException(e);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
