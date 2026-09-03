@@ -1297,7 +1297,7 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void handshake_withX25519MLKEM768_works() throws Exception {
+    public void handshake_onlyX25519MLKEM768_works() throws Exception {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
                 context.host, context.port);
@@ -1321,6 +1321,45 @@ public class SSLSocketTest {
         if (sslParametersSupportsNamedGroups()) {
             assertEquals("X25519MLKEM768", getCurveName(client));
             assertEquals("X25519MLKEM768", getCurveName(server));
+        } else {
+            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+        }
+        client.close();
+        server.close();
+        context.close();
+    }
+
+    @Test
+    public void handshake_onlyMLKEM1024_works() throws Exception {
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                context.host, context.port);
+        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+        Future<Void> s = runAsync(() -> {
+            SSLParameters parameters = server.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"MLKEM1024"});
+            server.setSSLParameters(parameters);
+            server.startHandshake();
+            return null;
+        });
+        Future<Void> c = runAsync(() -> {
+            SSLParameters parameters = client.getSSLParameters();
+            setNamedGroups(parameters, new String[] {"MLKEM1024"});
+            client.setSSLParameters(parameters);
+            client.startHandshake();
+            return null;
+        });
+        s.get();
+        c.get();
+        if (sslParametersSupportsNamedGroups()) {
+            assertEquals("MLKEM1024", getCurveName(client));
+            assertEquals("MLKEM1024", getCurveName(server));
         } else {
             // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
             String clientCurve = getCurveName(client);
