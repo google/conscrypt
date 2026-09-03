@@ -711,7 +711,12 @@ def main() -> None:
     sys.exit(f"ERROR: Copybara config file not found at {copybara_config}")
 
   copybara_bin = get_copybara_bin(args.copybara_bin)
-  target_cl = args.cl or args.cl_pos
+  target_cl = (
+      args.cl
+      or args.cl_pos
+      or os.environ.get("KOKORO_PIPER_CHANGELIST")
+      or os.environ.get("KOKORO_PIPER_CL")
+  )
 
   is_kokoro = bool(
       os.environ.get("KOKORO_JOB_NAME") or os.environ.get("KOKORO_BUILD_NUMBER")
