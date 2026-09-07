@@ -44,10 +44,6 @@ public final class TestSSLEnginePair implements Closeable {
         this.client = client;
     }
 
-    public static TestSSLEnginePair create() throws IOException {
-        return create((Hooks) null);
-    }
-
     public static TestSSLEnginePair create(TestSSLContext c) throws IOException {
         return create(c, null);
     }
