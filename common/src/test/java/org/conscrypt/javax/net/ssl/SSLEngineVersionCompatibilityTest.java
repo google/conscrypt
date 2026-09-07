@@ -24,6 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -190,18 +191,16 @@ public class SSLEngineVersionCompatibilityTest {
                                    .clientProtocol(clientVersion)
                                    .serverProtocol(serverVersion)
                                    .build();
-
         try {
-            c.clientContext.createSSLEngine().beginHandshake();
-            fail();
-        } catch (IllegalStateException expected) {
-            // Ignored.
-        }
-        c.close();
+            assertThrows(IllegalStateException.class,
+                         () -> c.clientContext.createSSLEngine().beginHandshake());
 
-        TestSSLEnginePair p = TestSSLEnginePair.create();
-        assertConnected(p);
-        p.close();
+            try (TestSSLEnginePair p = TestSSLEnginePair.create(c)) {
+                assertConnected(p);
+            }
+        } finally {
+            c.close();
+        }
     }
 
     @Test
@@ -500,21 +499,24 @@ public class SSLEngineVersionCompatibilityTest {
                                    .clientProtocol(clientVersion)
                                    .serverProtocol(serverVersion)
                                    .build();
-        final TestSSLEnginePair pair = TestSSLEnginePair.create();
-        pair.close();
-        ByteBuffer out = ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
-        SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[] {0x01}), out);
-        assertEquals(Status.CLOSED, res.getStatus());
-        // The engine should have a close_notify alert pending, so it should ignore the
-        // proffered data and push the alert into out
-        assertEquals(0, res.bytesConsumed());
-        assertNotEquals(0, res.bytesProduced());
+        try {
+            final TestSSLEnginePair pair = TestSSLEnginePair.create(c);
+            pair.close();
+            ByteBuffer out = ByteBuffer.allocate(pair.client.getSession().getPacketBufferSize());
+            SSLEngineResult res = pair.client.wrap(ByteBuffer.wrap(new byte[] {0x01}), out);
+            assertEquals(Status.CLOSED, res.getStatus());
+            // The engine should have a close_notify alert pending, so it should ignore the
+            // proffered data and push the alert into out
+            assertEquals(0, res.bytesConsumed());
+            assertNotEquals(0, res.bytesProduced());
 
-        res = pair.client.unwrap(ByteBuffer.wrap(new byte[] {0x01}), out);
-        assertEquals(Status.CLOSED, res.getStatus());
-        assertEquals(0, res.bytesConsumed());
-        assertEquals(0, res.bytesProduced());
-        c.close();
+            res = pair.client.unwrap(ByteBuffer.wrap(new byte[] {0x01}), out);
+            assertEquals(Status.CLOSED, res.getStatus());
+            assertEquals(0, res.bytesConsumed());
+            assertEquals(0, res.bytesProduced());
+        } finally {
+            c.close();
+        }
     }
 
     @Test
@@ -902,20 +904,34 @@ public class SSLEngineVersionCompatibilityTest {
      */
     @Test
     public void multipleBuffersOfDifferentSizes() throws Exception {
-        TestSSLEnginePair pair = TestSSLEnginePair.create();
-        SSLSession session = pair.client.getSession();
-        int appBufSize = session.getApplicationBufferSize();
+        TestSSLContext c = TestSSLContext.create();
+        try {
+            TestSSLEnginePair pair = TestSSLEnginePair.create(c);
+            try {
+                SSLSession session = pair.client.getSession();
+                int appBufSize = session.getApplicationBufferSize();
 
-        int[] dataSizes = new int[] {12, 512, 555, 1500, 8192, appBufSize, 5 * appBufSize};
-        int[] bufferSizes = new int[] {
-                53, 512, 8192, appBufSize, appBufSize - 53, appBufSize + 53, 5 * appBufSize};
-        for (int dataSize : dataSizes) {
-            for (int bufSize : bufferSizes) {
-                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
-                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
-                sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
-                sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
+                int[] dataSizes = new int[] {12, 512, 555, 1500, 8192, appBufSize, 5 * appBufSize};
+                int[] bufferSizes = new int[] {53,
+                                               512,
+                                               8192,
+                                               appBufSize,
+                                               appBufSize - 53,
+                                               appBufSize + 53,
+                                               5 * appBufSize};
+                for (int dataSize : dataSizes) {
+                    for (int bufSize : bufferSizes) {
+                        sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
+                        sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
+                        sendAppDataInMultipleBuffers(pair.client, pair.server, dataSize, bufSize);
+                        sendAppDataInMultipleBuffers(pair.server, pair.client, dataSize, bufSize);
+                    }
+                }
+            } finally {
+                pair.close();
             }
+        } finally {
+            c.close();
         }
     }
 
