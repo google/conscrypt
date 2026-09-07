@@ -27,23 +27,28 @@ import org.junit.runners.JUnit4;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
-import javax.crypto.Mac;
-
 @RunWith(JUnit4.class)
 public class HkdfTest {
     private final String SHA256 = "HmacSHA256";
 
     @Test
-    public void constructor() throws Exception {
+    public void constructor_invalidHmacAlgorithm_throws() throws Exception {
         assertThrows(NullPointerException.class, () -> new Hkdf(null));
         assertThrows(NoSuchAlgorithmException.class, () -> new Hkdf("No such MAC"));
-
-        Hkdf hkdf = new Hkdf(SHA256);
-        assertEquals(Mac.getInstance(SHA256).getMacLength(), hkdf.getMacLength());
+        assertThrows(NoSuchAlgorithmException.class, () -> new Hkdf("AESCMAC"));
     }
 
     @Test
-    public void extract() throws Exception {
+    public void constructor_validHmacAlgorithm_works() throws Exception {
+        assertEquals(20, new Hkdf("HmacSHA1").getMacLength());
+        assertEquals(28, new Hkdf("HmacSHA224").getMacLength());
+        assertEquals(32, new Hkdf("HmacSHA256").getMacLength());
+        assertEquals(48, new Hkdf("HmacSHA384").getMacLength());
+        assertEquals(64, new Hkdf("HmacSHA512").getMacLength());
+    }
+
+    @Test
+    public void extract_invalidInput_throws() throws Exception {
         Hkdf hkdf = new Hkdf(SHA256);
         assertThrows(NullPointerException.class, () -> hkdf.extract(null, new byte[0]));
         assertThrows(NullPointerException.class, () -> hkdf.extract(new byte[0], null));
@@ -52,7 +57,7 @@ public class HkdfTest {
     }
 
     @Test
-    public void expand() throws Exception {
+    public void expand_invalidInput_throws() throws Exception {
         Hkdf hkdf = new Hkdf(SHA256);
         int macLen = hkdf.getMacLength();
         assertThrows(NullPointerException.class, () -> hkdf.expand(null, new byte[0], 1));
@@ -79,18 +84,18 @@ public class HkdfTest {
             String macName = vector.getString("hash");
             byte[] ikm = vector.getBytes("ikm");
             byte[] salt = vector.getBytesOrEmpty("salt");
-            byte[] prk_expected = vector.getBytes("prk");
+            byte[] prkExpected = vector.getBytes("prk");
 
             Hkdf hkdf = new Hkdf(macName);
             byte[] prk = hkdf.extract(salt, ikm);
-            assertArrayEquals(errMsg, prk_expected, prk);
+            assertArrayEquals(errMsg, prkExpected, prk);
 
             byte[] info = vector.getBytes("info");
             int length = vector.getInt("l");
-            byte[] okm_expected = vector.getBytes("okm");
+            byte[] okmExpected = vector.getBytes("okm");
 
             byte[] okm = hkdf.expand(prk, info, length);
-            assertArrayEquals(errMsg, okm_expected, okm);
+            assertArrayEquals(errMsg, okmExpected, okm);
         }
     }
 }
