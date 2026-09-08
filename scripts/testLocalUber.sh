@@ -12,23 +12,37 @@
 #  distributed under the License is distributed on an "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
-#
+#  limitations under the License.
 
-# Allows testing of a locally publish uber jar with against an
-# arbitrary Java version using the JUnit console test runner (which
-# will be downloaded if not present).
+# Tests a locally published uber jar against the current Java version using
+# the JUnit console test runner (which will be downloaded if not present).
 #
-# First build and locally publish an uber jar, e.g. using
-# publishLocalUber.sh
+# This script has two modes:
 #
-# Second set up the version of Java to be used for testing, e.g. by
-# setting JAVA_HOME
+# BUILD MODE (--build): Builds the test jar using Gradle.  Requires Java 11+.
+# Set JAVA_HOME or PATH to point at a Java 11+ JDK before running.
 #
-# Then run this script which will download the JUnit runner if needed,
-# build the Conscrypt testJar and then run the tests.
+#   ./scripts/testLocalUber.sh --build
 #
-# Essentially these are the same steps as the final test matrix in the
-# Github CI script.
+# TEST MODE (default): Runs the tests against whatever Java version is active.
+# The test jar must already have been built (via --build).  This mode does not
+# invoke Gradle, so any Java version can be used.
+#
+#   JAVA_HOME=/path/to/java21 ./scripts/testLocalUber.sh
+#
+# To pass extra JVM arguments to the test process (e.g. system properties),
+# set JAVA_OPTS before running:
+#
+#   JAVA_OPTS="-Djdk.tls.someFlag=false" ./scripts/testLocalUber.sh
+#
+# Typical workflow for testing against a non-default Java version:
+#
+#   # 1. Build artifacts (requires publishLocalUber.sh first)
+#   JAVA_HOME=/path/to/java11 ./scripts/publishLocalUber.sh
+#   JAVA_HOME=/path/to/java11 ./scripts/testLocalUber.sh --build
+#
+#   # 2. Run tests under the target Java version
+#   JAVA_HOME=/path/to/java21 ./scripts/testLocalUber.sh
 
 CONSCRYPT_HOME="${CONSCRYPT_HOME:-$HOME/src/conscrypt}"
 BUILD="$CONSCRYPT_HOME/build.gradle"
@@ -37,7 +51,7 @@ PUBLISH_DIR="${M2_REPO}/org/conscrypt"
 TMPDIR="${TMPDIR:-$HOME/tmp/conscrypt}"
 JUNITJAR="$TMPDIR/junit-platform-console-standalone.jar"
 
-die() {
+fail() {
 	echo "*** " $@
 	exit 1
 }
@@ -45,14 +59,35 @@ die() {
 usage() {
 	echo "testLocalUber.sh [args]"
 	echo ""
-	echo "-h, --help     Help"
-	echo "-v, --verbose  Verbose test output"
-	echo "-d, --debug    Wait for debugger on test startup"
+	echo "--build              Build the test jar using Gradle (requires Java 11+)"
+	echo "--tests CLASS[#METHOD]"
+	echo "                     Run a specific test class or method instead of the"
+	echo "                     full suite.  Use fully qualified class names, e.g.:"
+	echo "                     org.conscrypt.javax.net.ssl.KeyManagerFactoryTest"
+	echo "                     org.conscrypt.SSLEngineTest#test_SSLEngine_beginHandshake"
+	echo "                     Note: bypasses suite setup and so Conscrypt is not auto-installed"
+	echo "                     as default provider); many tests are unaffected by this."
+	echo "-h, --help           Help"
+	echo "-v, --verbose        Verbose test output"
+	echo "-d, --debug          Wait for debugger on test startup"
+	echo ""
+	echo "Environment variables:"
+	echo "JAVA_OPTS            Extra JVM arguments for the test process, e.g.:"
+	echo "                     JAVA_OPTS=\"-Dfoo=bar\" ./scripts/testLocalUber.sh"
 	exit 0
 }
 
+BUILD_ONLY=false
+
 while [ "$1" ]; do
 	case "$1" in
+		--build)
+			BUILD_ONLY=true
+			;;
+		--tests)
+			shift
+			TESTS="$1"
+			;;
 		-v|--verbose)
 			VERBOSE="--details=verbose"
 			;;
@@ -63,26 +98,44 @@ while [ "$1" ]; do
 			usage
 			;;
 		*)
-			die "Unknown argument $1 - try --help"
+			fail "Unknown argument $1 - try --help"
 			;;
 	esac
 	shift
 done
 
-mkdir -p "$TMPDIR" || die "Unable to create ${TMPDIR}."
+mkdir -p "$TMPDIR" || fail "Unable to create ${TMPDIR}."
 
-test -f "$BUILD" || die "Conscrypt build.gradle file not found.  Check CONSCRYPT_HOME."
+test -f "$BUILD" || fail "Conscrypt build.gradle file not found.  Check CONSCRYPT_HOME."
 VERSION=$(sed -nE 's/^ *version *= *"(.*)"/\1/p' $BUILD)
-test "$VERSION" || die "Unable to figure out Conscrypt version."
+test "$VERSION" || fail "Unable to figure out Conscrypt version."
 echo "Conscrypt version ${VERSION}."
-
-echo "Java version:"
-java -version || die "Cannot run Java."
 
 UBERJAR="${PUBLISH_DIR}/conscrypt-openjdk-uber/$VERSION/conscrypt-openjdk-uber-${VERSION}.jar"
 TESTJAR="${CONSCRYPT_HOME}/openjdk/build/libs/conscrypt-openjdk-${VERSION}-tests.jar"
-test -f "$UBERJAR" || die "Uber jar not found: ${UBERJAR}."
 
+if $BUILD_ONLY; then
+	echo "Java version:"
+	java -version || fail "Cannot run Java."
+	echo "Building test jar."
+	cd "$CONSCRYPT_HOME"
+	./gradlew :conscrypt-openjdk:testJar --console=plain || fail "Gradle build failed."
+	test -f "$TESTJAR" || fail "Test jar not built: ${TESTJAR}."
+	echo "Test jar built: ${TESTJAR}"
+	exit 0
+fi
+
+
+echo "Java version:"
+java -version || fail "Cannot run Java."
+
+test -f "$TESTJAR" || fail "Test jar not found: ${TESTJAR}.  Run: $0 --build"
+if find "$CONSCRYPT_HOME/common/src/test" \
+        "$CONSCRYPT_HOME/openjdk/src/test" \
+        -newer "$TESTJAR" -type f | grep -q .; then
+    fail "Test jar is out of date (source files changed).  Run: $0 --build"
+fi
+test -f "$UBERJAR" || fail "Uber jar not found: ${UBERJAR}."
 
 if [ -f "$JUNITJAR" ]; then
 	echo "JUnit console runner: ${JUNITJAR}."
@@ -92,14 +145,9 @@ else
 		-Dartifact=org.junit.platform:junit-platform-console-standalone:1.11.2 \
 		-DoutputDirectory="$TMPDIR" \
 		-Dmdep.stripVersion=true \
-		|| die "Maven download of junit failed."
+		|| fail "Maven download of junit failed."
 fi
-test -f "$JUNITJAR" || die "JUnit not found."
-
-echo "Building test jar."
-cd $CONSCRYPT_HOME
-./gradlew :conscrypt-openjdk:testJar --console=plain
-test -f "$TESTJAR" || die "Test jar not built."
+test -f "$JUNITJAR" || fail "JUnit not found."
 
 # SIGTERM handler, e.g. for when tests hang and time out.
 # Send SIGQUIT to test process to get thread dump, give it
@@ -113,10 +161,19 @@ dump_threads() {
     exit 1
 }
 
-echo "Running tests."
-java $JAVADEBUG -jar "$JUNITJAR" execute -cp "${UBERJAR}:${TESTJAR}" \
-     -n='org.conscrypt.ConscryptOpenJdkSuite' \
-     --scan-classpath --reports-dir=. \
+if [ -n "$TESTS" ]; then
+    case "$TESTS" in
+        *\#*) TESTSEL="--select-method=${TESTS}" ;;
+        *)    TESTSEL="--select-class=${TESTS}" ;;
+    esac
+    echo "Running test: ${TESTS}."
+else
+    TESTSEL="--scan-classpath -n=org.conscrypt.ConscryptOpenJdkSuite"
+    echo "Running tests."
+fi
+
+java $JAVADEBUG $JAVA_OPTS -jar "$JUNITJAR" execute -cp "${UBERJAR}:${TESTJAR}" \
+     $TESTSEL --reports-dir=. \
      --fail-if-no-tests $VERBOSE &
 
 case $(uname -s) in
