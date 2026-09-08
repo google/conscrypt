@@ -70,10 +70,10 @@ public class SSLEngineTest {
 
     @Test
     public void test_SSLEngine_getSupportedCipherSuites_returnsCopies() throws Exception {
-        TestSSLContext c = TestSSLContext.create();
-        SSLEngine e = c.clientContext.createSSLEngine();
-        assertNotSame(e.getSupportedCipherSuites(), e.getSupportedCipherSuites());
-        c.close();
+        try (TestSSLContext c = TestSSLContext.create()) {
+            SSLEngine e = c.clientContext.createSSLEngine();
+            assertNotSame(e.getSupportedCipherSuites(), e.getSupportedCipherSuites());
+        }
     }
 
     @Test
@@ -107,38 +107,31 @@ public class SSLEngineTest {
     @Test
     public void test_SSLEngine_underflowsOnEmptyBuffersAfterHandshake() throws Exception {
         // Note that create performs the handshake.
-        TestSSLContext c = TestSSLContext.create();
-        try {
-            final TestSSLEnginePair engines = TestSSLEnginePair.create(c);
+        try (TestSSLContext c = TestSSLContext.create();
+             TestSSLEnginePair engines = TestSSLEnginePair.create(c)) {
             ByteBuffer input = ByteBuffer.allocate(1024);
             input.flip();
             ByteBuffer output = ByteBuffer.allocate(1024);
             assertEquals(SSLEngineResult.Status.BUFFER_UNDERFLOW,
                          engines.client.unwrap(input, output).getStatus());
-        } finally {
-            c.close();
         }
     }
 
     @Test
     public void test_SSLEngine_wrap_overflowOnEmptyOutputBuffer() throws Exception {
-        TestSSLContext c = TestSSLContext.create();
-        try {
-            TestSSLEnginePair pair = TestSSLEnginePair.create(c);
+        try (TestSSLContext c = TestSSLContext.create();
+             TestSSLEnginePair pair = TestSSLEnginePair.create(c)) {
             ByteBuffer input = ByteBuffer.allocate(10);
             ByteBuffer output = ByteBuffer.allocate(1024);
             output.flip();
             assertEquals(Status.BUFFER_OVERFLOW, pair.client.wrap(input, output).getStatus());
-        } finally {
-            c.close();
         }
     }
 
     @Test
     public void test_SSLEngine_unwrap_overflowOnEmptyOutputBuffer() throws Exception {
-        TestSSLContext c = TestSSLContext.create();
-        try {
-            TestSSLEnginePair pair = TestSSLEnginePair.create(c);
+        try (TestSSLContext c = TestSSLContext.create();
+             TestSSLEnginePair pair = TestSSLEnginePair.create(c)) {
             ByteBuffer input = ByteBuffer.allocate(10);
             ByteBuffer wrapped = ByteBuffer.allocate(1024);
             assertEquals(Status.OK, pair.client.wrap(input, wrapped).getStatus());
@@ -146,8 +139,6 @@ public class SSLEngineTest {
             ByteBuffer output = ByteBuffer.allocate(1024);
             output.flip();
             assertEquals(Status.BUFFER_OVERFLOW, pair.server.unwrap(wrapped, output).getStatus());
-        } finally {
-            c.close();
         }
     }
 
@@ -395,21 +386,22 @@ public class SSLEngineTest {
 
     @Test
     public void test_SSLEngine_getEnabledCipherSuites_returnsCopies() throws Exception {
-        TestSSLContext c = TestSSLContext.create();
-        SSLEngine e = c.clientContext.createSSLEngine();
-        assertNotSame(e.getEnabledCipherSuites(), e.getEnabledCipherSuites());
-        c.close();
+        try (TestSSLContext c = TestSSLContext.create()) {
+            SSLEngine e = c.clientContext.createSSLEngine();
+            assertNotSame(e.getEnabledCipherSuites(), e.getEnabledCipherSuites());
+        }
     }
 
     @Test
     public void test_SSLEngine_setEnabledCipherSuites_storesCopy() throws Exception {
-        TestSSLContext c = TestSSLContext.create();
-        SSLEngine e = c.clientContext.createSSLEngine();
-        String[] array = new String[] {e.getEnabledCipherSuites()[0]};
-        String originalFirstElement = array[0];
-        e.setEnabledCipherSuites(array);
-        array[0] = "Modified after having been set";
-        assertEquals(originalFirstElement, e.getEnabledCipherSuites()[0]);
+        try (TestSSLContext c = TestSSLContext.create()) {
+            SSLEngine e = c.clientContext.createSSLEngine();
+            String[] array = new String[] {e.getEnabledCipherSuites()[0]};
+            String originalFirstElement = array[0];
+            e.setEnabledCipherSuites(array);
+            array[0] = "Modified after having been set";
+            assertEquals(originalFirstElement, e.getEnabledCipherSuites()[0]);
+        }
     }
 
     @Test

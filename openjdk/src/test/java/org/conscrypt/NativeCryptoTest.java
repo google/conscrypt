@@ -152,11 +152,6 @@ public class NativeCryptoTest {
         X500Principal principal = certificate.getIssuerX500Principal();
         CA_PRINCIPALS = new byte[][] {principal.getEncoded()};
 
-        // NIST P-256 aka SECG secp256r1 aka X9.62 prime256v1
-        OpenSSLECGroupContext openSslSpec = OpenSSLECGroupContext.getCurveByName("prime256v1");
-        BigInteger s = new BigInteger(
-                "229cdbbf489aea584828a261a23f9ff8b0f66f7ccac98bf2096ab3aee41497c5", 16);
-
         // RSA keys are slow to generate, so prefer to reuse the key when possible.
         TEST_RSA_KEY = generateRsaKey();
     }
@@ -208,11 +203,8 @@ public class NativeCryptoTest {
     }
 
     public static void assertEqualSessions(long expected, long actual) {
-        assertEqualByteArrays(NativeCrypto.SSL_SESSION_session_id(expected),
+        assertArrayEquals(NativeCrypto.SSL_SESSION_session_id(expected),
                               NativeCrypto.SSL_SESSION_session_id(actual));
-    }
-    public static void assertEqualByteArrays(byte[] expected, byte[] actual) {
-        assertEquals(Arrays.toString(expected), Arrays.toString(actual));
     }
 
     public static void assertEqualPrincipals(byte[][] expected, byte[][] actual) {
@@ -2382,7 +2374,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                                        FileDescriptor fd, SSLHandshakeCallbacks callback)
                     throws Exception {
-                assertEqualByteArrays(OCSP_TEST_DATA,
+                assertArrayEquals(OCSP_TEST_DATA,
                                       NativeCrypto.SSL_get_ocsp_response(ssl, null));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
@@ -2426,7 +2418,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                                        FileDescriptor fd, SSLHandshakeCallbacks callback)
                     throws Exception {
-                assertEqualByteArrays(SCT_TEST_DATA,
+                assertArrayEquals(SCT_TEST_DATA,
                                       NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, null));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
@@ -4059,7 +4051,7 @@ public class NativeCryptoTest {
                 ocspResponse, OCSP_SCT_LIST_OID, certificate.getContext(), certificate,
                 issuer.getContext(), issuer);
 
-        assertEqualByteArrays(expected, extension);
+        assertArrayEquals(expected, extension);
     }
 
     private static long getRawPkeyCtxForEncrypt() throws Exception {
