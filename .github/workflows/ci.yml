@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  BORINGSSL_VERSION: 0.20260813.0
+  BORINGSSL_VERSION: 0.20260903.0
 
 jobs:
   boringssl_version_check:
