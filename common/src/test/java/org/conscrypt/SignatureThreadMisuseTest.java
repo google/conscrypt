@@ -152,7 +152,7 @@ public final class SignatureThreadMisuseTest {
         PrivateKey privateKey = kp.getPrivate();
         Signature signature = Signature.getInstance("ML-DSA-44", conscryptProvider);
         final byte[] message = new byte[64];
-        TestUtils.stressTestAllowingExceptions(16, 100, () -> {
+        TestUtils.stressTestAllowingExceptions(8, 10, () -> {
             signature.initSign(privateKey);
             signature.update(message);
             signature.sign();

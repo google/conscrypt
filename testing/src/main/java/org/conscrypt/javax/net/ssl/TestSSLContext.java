@@ -22,6 +22,7 @@ import org.conscrypt.java.security.TestKeyStore;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
@@ -52,7 +53,7 @@ import javax.net.ssl.X509TrustManager;
  * want a canned SSLContext and related state for testing so they
  * don't have to duplicate the logic.
  */
-public final class TestSSLContext {
+public final class TestSSLContext implements Closeable {
     /**
      * The Android SSLSocket and SSLServerSocket implementations are
      * based on a version of OpenSSL which includes support for RFC
@@ -191,6 +192,8 @@ public final class TestSSLContext {
         this.host = host;
         this.port = port;
     }
+
+    @Override
     public void close() {
         try {
             serverSocket.close();

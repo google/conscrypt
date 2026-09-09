@@ -2156,7 +2156,14 @@ static jlong NativeCrypto_getRSAPrivateKeyWrapper(JNIEnv* env, jclass, jobject j
 
     auto ex_data = new KeyExData;
     ex_data->private_key = env->NewGlobalRef(javaKey);
-    RSA_set_ex_data(rsa.get(), g_rsa_exdata_index, ex_data);
+
+    if (!RSA_set_ex_data(rsa.get(), g_rsa_exdata_index, ex_data)) {
+        env->DeleteGlobalRef(ex_data->private_key);
+        delete ex_data;
+        conscrypt::jniutil::throwRuntimeException(env, "RSA_set_ex_data");
+        ERR_clear_error();
+        return 0;
+    }
 
     bssl::UniquePtr<EVP_PKEY> pkey(EVP_PKEY_new());
     if (pkey.get() == nullptr) {
