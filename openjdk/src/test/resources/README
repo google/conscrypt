@@ -5,6 +5,8 @@ This repository contains data used in various tests :
 
 - cert.pem / cert-key.pem: Certificate issued by ca-cert.pem, and its private key
 
+- crl.pem: CRL issued by ca-cert.pem revoking cert.pem
+
 - cert-ct-poisoned.pem: Same certificate as cert.pem, but with an extra CT Poison extension
 
 - cert-ct-embedded.pem: Same certificate as cert.pem, but with an embedded signed certificate

@@ -113,6 +113,7 @@ import org.junit.runners.Suite;
         NativeSslSessionTest.class,
         OpenSSLKeyTest.class,
         OpenSSLX509CertificateTest.class,
+        OpenSSLX509CRLTest.class,
         PlatformTest.class,
         SignatureThreadMisuseTest.class,
         SSLUtilsTest.class,
