@@ -204,7 +204,7 @@ public class NativeCryptoTest {
 
     public static void assertEqualSessions(long expected, long actual) {
         assertArrayEquals(NativeCrypto.SSL_SESSION_session_id(expected),
-                              NativeCrypto.SSL_SESSION_session_id(actual));
+                          NativeCrypto.SSL_SESSION_session_id(actual));
     }
 
     public static void assertEqualPrincipals(byte[][] expected, byte[][] actual) {
@@ -1820,8 +1820,6 @@ public class NativeCryptoTest {
     }
 
     // wrapper method added for ECH testing
-    // Note: This method only works for pre Java 17 as it uses FD sockets.
-    // TODO(b/502061834): Rewrite this for engine sockets to make it work on Java 17+.
     public static Future<TestSSLHandshakeCallbacks> handshake(
             final ServerSocket listener, final int timeout, final boolean client, final Hooks hooks,
             final byte[] alpnProtocols, final ApplicationProtocolSelectorAdapter alpnSelector) {
@@ -2374,8 +2372,7 @@ public class NativeCryptoTest {
             public void afterHandshake(long session, long ssl, long context, Socket socket,
                                        FileDescriptor fd, SSLHandshakeCallbacks callback)
                     throws Exception {
-                assertArrayEquals(OCSP_TEST_DATA,
-                                      NativeCrypto.SSL_get_ocsp_response(ssl, null));
+                assertArrayEquals(OCSP_TEST_DATA, NativeCrypto.SSL_get_ocsp_response(ssl, null));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
@@ -2419,7 +2416,7 @@ public class NativeCryptoTest {
                                        FileDescriptor fd, SSLHandshakeCallbacks callback)
                     throws Exception {
                 assertArrayEquals(SCT_TEST_DATA,
-                                      NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, null));
+                                  NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, null));
                 super.afterHandshake(session, ssl, context, socket, fd, callback);
             }
         };
