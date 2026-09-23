@@ -134,11 +134,13 @@ Key-restricted versions of the AES ciphers.
 The RC4 stream cipher.
 
 * `ChaCha20/NONE/NoPadding`
-* `ChaCha20/Poly1305/NoPadding`
+* `ChaCha20/Poly1305/NoPadding` (alias: `ChaCha20-Poly1305`)
+* `XChaCha20/Poly1305/NoPadding` (alias: `XChaCha20-Poly1305`)
 
 ChaCha with 20 rounds, 96-bit nonce, and 32-bit counter as described in
 [RFC 7539](https://tools.ietf.org/html/rfc7539), either with or without a Poly1305 AEAD
 authenticator.
+`XChaCha20/Poly1305/NoPadding` provides an extended 192-bit nonce for safer random generation (see [draft-irtf-cfrg-xchacha](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha)).
 
 * `DESEDE/CBC/NoPadding`
 * `DESEDE/CBC/PKCS5Padding`
@@ -165,6 +167,7 @@ should use `RSA/ECB/OAEPPadding` and initialize it with an
 
 * `AES`
 * `ChaCha20`
+* `XChaCha20`
 * `DESEDE`
 * `EC`
 * `GCM`
@@ -204,6 +207,7 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `AES`
 * `ARC4`
 * `ChaCha20`
+* `XChaCha20`
 * `DESEDE`
 * `HmacMD5`
 * `HmacSHA1`

@@ -45,9 +45,9 @@ public final class Hkdf {
      */
     public Hkdf(String hmacName) throws NoSuchAlgorithmException {
         Objects.requireNonNull(hmacName);
-        if (!hmacName.equals("HmacSHA1") &&
-            !hmacName.equals("HmacSHA224") && !hmacName.equals("HmacSHA256") &&
-            !hmacName.equals("HmacSHA384") && !hmacName.equals("HmacSHA512")) {
+        if (!hmacName.equals("HmacSHA1") && !hmacName.equals("HmacSHA224")
+            && !hmacName.equals("HmacSHA256") && !hmacName.equals("HmacSHA384")
+            && !hmacName.equals("HmacSHA512")) {
             throw new NoSuchAlgorithmException("HMAC algorithm not supported: " + hmacName);
         }
         this.hmacName = hmacName;

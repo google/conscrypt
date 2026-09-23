@@ -126,7 +126,7 @@ public class SslEngineAndSocketResumptionTest {
             // 2. Second handshake via SSLSocket using the same clientContext (same host and port)
             SSLSocket clientSocket =
                     (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                    context.host.getHostName(), context.port);
+                            context.host.getHostName(), context.port);
             SSLSocket serverSocket = (SSLSocket) context.serverSocket.accept();
 
             try {
@@ -151,7 +151,7 @@ public class SslEngineAndSocketResumptionTest {
             // 1. First handshake via SSLSocket
             SSLSocket clientSocket =
                     (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                    context.host.getHostName(), context.port);
+                            context.host.getHostName(), context.port);
             SSLSocket serverSocket = (SSLSocket) context.serverSocket.accept();
 
             connectSockets(clientSocket, serverSocket);

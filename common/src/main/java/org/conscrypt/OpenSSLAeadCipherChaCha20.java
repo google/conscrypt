@@ -70,4 +70,20 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
             return Math.max(0, bufCount + inputLen - 16);
         }
     }
+
+    public static class XChaCha20 extends OpenSSLAeadCipherChaCha20 {
+        @Override
+        String getBaseCipherName() {
+            return "XChaCha20";
+        }
+
+        @Override
+        long getEVP_AEAD(int keyLength) throws InvalidKeyException {
+            if (keyLength == 32) {
+                return NativeCrypto.EVP_aead_xchacha20_poly1305();
+            } else {
+                throw new RuntimeException("Unexpected key length: " + keyLength);
+            }
+        }
+    }
 }

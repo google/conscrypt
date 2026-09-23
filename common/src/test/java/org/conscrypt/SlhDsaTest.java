@@ -130,15 +130,13 @@ public class SlhDsaTest {
         PublicKey publicKey = keyPair.getPublic();
 
         byte[] msg = new byte[123];
-        Signature ss =
-                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        Signature ss = Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
         ss.initSign(privateKey);
         ss.update(msg);
         byte[] sig = ss.sign();
         assertEquals(7856, sig.length);
 
-        Signature sv =
-                Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
+        Signature sv = Signature.getInstance("SLH-DSA-SHA2-128S-WITH-SHA384", conscryptProvider);
         sv.initVerify(publicKey);
         sv.update(msg);
         boolean verified = sv.verify(sig);

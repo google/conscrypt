@@ -62,6 +62,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     private static final long serialVersionUID = 1992239142393372128L;
 
     private transient volatile long mContext;
+    private transient boolean mNativeAllocationRegistered;
     private transient Integer mHashCode;
 
     private final Date notBefore;
@@ -73,6 +74,7 @@ public final class OpenSSLX509Certificate extends X509Certificate {
         // parse them here because this is the only time we're allowed to throw ParsingException
         notBefore = toDate(NativeCrypto.X509_get_notBefore(mContext, this));
         notAfter = toDate(NativeCrypto.X509_get_notAfter(mContext, this));
+        mNativeAllocationRegistered = Platform.registerX509CertificateAllocation(this, ctx);
     }
 
     private static Date toDate(long asn1time) throws ParsingException {
@@ -572,10 +574,12 @@ public final class OpenSSLX509Certificate extends X509Certificate {
     @SuppressWarnings("Finalize")
     protected void finalize() throws Throwable {
         try {
-            long toFree = mContext;
-            if (toFree != 0) {
-                mContext = 0;
-                NativeCrypto.X509_free(toFree, this);
+            if (!mNativeAllocationRegistered) {
+                long toFree = mContext;
+                if (toFree != 0) {
+                    mContext = 0;
+                    NativeCrypto.X509_free(toFree, this);
+                }
             }
         } finally {
             super.finalize();

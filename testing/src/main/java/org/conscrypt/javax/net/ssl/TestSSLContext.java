@@ -200,9 +200,8 @@ public final class TestSSLContext implements Closeable {
         } catch (SocketException e) {
             // Sockets on older Android runtimes (e.g. Android 8.0 / API 26) may throw
             // "socket already closed" exceptions when closing.
-            if (TestUtils.isAndroid()
-                    && !TestUtils.isAndroidSdkGreater(27)
-                    && e.getMessage().contains("socket already closed")) {
+            if (TestUtils.isAndroid() && !TestUtils.isAndroidSdkGreater(27)
+                && e.getMessage().contains("socket already closed")) {
                 return;
             }
             throw new RuntimeException(e);

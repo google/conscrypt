@@ -544,6 +544,10 @@ final class NativeSsl {
         if (opts.isGreaseEnabled()) {
             NativeCrypto.SSL_set_enable_ech_grease(ssl, this, /* enable= */ true);
         }
+
+        if (opts.isFailClosed()) {
+            NativeCrypto.SSL_set_reject_unusable_ech_config(ssl, this, /* enable= */ true);
+        }
     }
 
     TlsEncryptedClientHelloHandshake.Builder getEchHandshakeMetricsBuilder() {

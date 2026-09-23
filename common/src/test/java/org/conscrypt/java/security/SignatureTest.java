@@ -29,6 +29,15 @@ import static org.junit.Assert.fail;
 // android-add: import libcore.test.reasons.NonCtsReasons;
 // android-add: import libcore.test.reasons.NonMtsReasons;
 
+import org.conscrypt.TestUtils;
+import org.conscrypt.testing.BrokenProvider;
+import org.conscrypt.testing.OpaqueProvider;
+// android-add: import org.junit.ClassRule;
+import org.junit.Test;
+// android-add: import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -64,14 +73,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.conscrypt.TestUtils;
-import org.conscrypt.testing.BrokenProvider;
-import org.conscrypt.testing.OpaqueProvider;
-// android-add: import org.junit.ClassRule;
-import org.junit.Test;
-// android-add: import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+
 import tests.util.ServiceTester;
 
 @RunWith(JUnit4.class)

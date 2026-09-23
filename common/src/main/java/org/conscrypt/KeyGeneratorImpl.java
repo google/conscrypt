@@ -178,6 +178,19 @@ public abstract class KeyGeneratorImpl extends KeyGeneratorSpi {
         }
     }
 
+    public static final class XChaCha20 extends KeyGeneratorImpl {
+        public XChaCha20() {
+            super("XChaCha20", 256);
+        }
+
+        @Override
+        protected void checkKeySize(int keySize) {
+            if (keySize != 256) {
+                throw new InvalidParameterException("Key size must be 256 bits");
+            }
+        }
+    }
+
     public static final class ARC4 extends KeyGeneratorImpl {
         public ARC4() {
             super("ARC4", 128);

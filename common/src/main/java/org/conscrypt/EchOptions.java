@@ -20,10 +20,16 @@ package org.conscrypt;
 public class EchOptions {
     private final byte[] configList;
     private final boolean enableGrease;
+    private final boolean failClosed;
 
     EchOptions(byte[] configList, boolean enableGrease) {
+        this(configList, enableGrease, false);
+    }
+
+    EchOptions(byte[] configList, boolean enableGrease, boolean failClosed) {
         this.configList = configList;
         this.enableGrease = enableGrease;
+        this.failClosed = failClosed;
     }
 
     public byte[] getConfigList() {
@@ -32,5 +38,9 @@ public class EchOptions {
 
     public boolean isGreaseEnabled() {
         return enableGrease;
+    }
+
+    public boolean isFailClosed() {
+        return failClosed;
     }
 }

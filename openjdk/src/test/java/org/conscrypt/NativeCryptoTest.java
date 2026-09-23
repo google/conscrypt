@@ -1004,6 +1004,18 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void test_SSL_set_reject_unusable_ech_config() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+
+        NativeCrypto.SSL_set_reject_unusable_ech_config(s, null, true);
+        NativeCrypto.SSL_set_reject_unusable_ech_config(s, null, false);
+
+        NativeCrypto.SSL_free(s, null);
+        NativeCrypto.SSL_CTX_free(c, null);
+    }
+
+    @Test
     public void test_SSL_set1_ech_valid_config_list() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
@@ -3949,7 +3961,7 @@ public class NativeCryptoTest {
 
     @Test
     public void EVP_CipherInit_ex_withNullCtxShouldThrow() throws Exception {
-        final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
+        final long evpCipher = NativeCrypto.EVP_aes_128_ecb();
         assertThrows(NullPointerException.class,
                      () -> NativeCrypto.EVP_CipherInit_ex(null, evpCipher, null, null, true));
     }
@@ -3958,7 +3970,7 @@ public class NativeCryptoTest {
     public void test_EVP_CipherInit_ex_Null_Failure() throws Exception {
         final NativeRef.EVP_CIPHER_CTX ctx =
                 new NativeRef.EVP_CIPHER_CTX(NativeCrypto.EVP_CIPHER_CTX_new());
-        final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
+        final long evpCipher = NativeCrypto.EVP_aes_128_ecb();
 
         /* Initialize encrypting. */
         NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, null, null, true);
@@ -3973,17 +3985,129 @@ public class NativeCryptoTest {
     public void test_EVP_CipherInit_ex_Success() throws Exception {
         final NativeRef.EVP_CIPHER_CTX ctx =
                 new NativeRef.EVP_CIPHER_CTX(NativeCrypto.EVP_CIPHER_CTX_new());
-        final long evpCipher = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
+        final long evpCipher = NativeCrypto.EVP_aes_128_ecb();
         NativeCrypto.EVP_CipherInit_ex(ctx, evpCipher, AES_128_KEY, null, true);
     }
 
     @Test
     public void test_EVP_CIPHER_iv_length() throws Exception {
-        long aes128ecb = NativeCrypto.EVP_get_cipherbyname("aes-128-ecb");
+        long aes128ecb = NativeCrypto.EVP_aes_128_ecb();
         assertEquals(0, NativeCrypto.EVP_CIPHER_iv_length(aes128ecb));
 
-        long aes128cbc = NativeCrypto.EVP_get_cipherbyname("aes-128-cbc");
+        long aes128cbc = NativeCrypto.EVP_aes_128_cbc();
         assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(aes128cbc));
+    }
+
+    @Test
+    public void test_EVP_rc4() throws Exception {
+        long cipher = NativeCrypto.EVP_rc4();
+        assertNotEquals(NULL, cipher);
+        assertEquals(0, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_des_cbc() throws Exception {
+        long cipher = NativeCrypto.EVP_des_cbc();
+        assertNotEquals(NULL, cipher);
+        assertEquals(8, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_des_ede_cbc() throws Exception {
+        long cipher = NativeCrypto.EVP_des_ede_cbc();
+        assertNotEquals(NULL, cipher);
+        assertEquals(8, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_des_ede3_cbc() throws Exception {
+        long cipher = NativeCrypto.EVP_des_ede3_cbc();
+        assertNotEquals(NULL, cipher);
+        assertEquals(8, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_128_ecb() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_128_ecb();
+        assertNotEquals(NULL, cipher);
+        assertEquals(0, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_128_cbc() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_128_cbc();
+        assertNotEquals(NULL, cipher);
+        assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_128_ctr() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_128_ctr();
+        assertNotEquals(NULL, cipher);
+        assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_128_gcm() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_128_gcm();
+        assertNotEquals(NULL, cipher);
+        assertEquals(12, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_192_ecb() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_192_ecb();
+        assertNotEquals(NULL, cipher);
+        assertEquals(0, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_192_cbc() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_192_cbc();
+        assertNotEquals(NULL, cipher);
+        assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_192_ctr() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_192_ctr();
+        assertNotEquals(NULL, cipher);
+        assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_192_gcm() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_192_gcm();
+        assertNotEquals(NULL, cipher);
+        assertEquals(12, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_256_ecb() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_256_ecb();
+        assertNotEquals(NULL, cipher);
+        assertEquals(0, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_256_cbc() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_256_cbc();
+        assertNotEquals(NULL, cipher);
+        assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_256_ctr() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_256_ctr();
+        assertNotEquals(NULL, cipher);
+        assertEquals(16, NativeCrypto.EVP_CIPHER_iv_length(cipher));
+    }
+
+    @Test
+    public void test_EVP_aes_256_gcm() throws Exception {
+        long cipher = NativeCrypto.EVP_aes_256_gcm();
+        assertNotEquals(NULL, cipher);
+        assertEquals(12, NativeCrypto.EVP_CIPHER_iv_length(cipher));
     }
 
     @Test

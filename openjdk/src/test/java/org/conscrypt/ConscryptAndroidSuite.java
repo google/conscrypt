@@ -85,6 +85,7 @@ import tests.util.ServiceTester;
         ApplicationProtocolSelectorAdapterTest.class,
         ArrayUtilsTest.class,
         CertPinManagerTest.class,
+        ChaCha20Poly1305Test.class,
         ChainStrengthAnalyzerTest.class,
         DuckTypedHpkeSpiTest.class,
         EdDsaTest.class,

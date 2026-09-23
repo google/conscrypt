@@ -18,7 +18,6 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Locale;
 
 import javax.crypto.NoSuchPaddingException;
 
@@ -59,8 +58,44 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
     }
 
     @Override
-    String getCipherName(int keyLength, Mode mode) {
-        return "aes-" + (keyLength * 8) + "-" + mode.toString().toLowerCase(Locale.US);
+    long getCipherType(int keyLength, Mode mode) {
+        switch (mode) {
+            case CBC:
+                switch (keyLength) {
+                    case 16:
+                        return NativeCrypto.EVP_aes_128_cbc();
+                    case 24:
+                        return NativeCrypto.EVP_aes_192_cbc();
+                    case 32:
+                        return NativeCrypto.EVP_aes_256_cbc();
+                    default:
+                        return 0;
+                }
+            case CTR:
+                switch (keyLength) {
+                    case 16:
+                        return NativeCrypto.EVP_aes_128_ctr();
+                    case 24:
+                        return NativeCrypto.EVP_aes_192_ctr();
+                    case 32:
+                        return NativeCrypto.EVP_aes_256_ctr();
+                    default:
+                        return 0;
+                }
+            case ECB:
+                switch (keyLength) {
+                    case 16:
+                        return NativeCrypto.EVP_aes_128_ecb();
+                    case 24:
+                        return NativeCrypto.EVP_aes_192_ecb();
+                    case 32:
+                        return NativeCrypto.EVP_aes_256_ecb();
+                    default:
+                        return 0;
+                }
+            default:
+                return 0;
+        }
     }
 
     @Override

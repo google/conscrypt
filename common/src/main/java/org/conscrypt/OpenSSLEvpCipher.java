@@ -63,8 +63,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
             iv = null;
         }
 
-        final long cipherType =
-                NativeCrypto.EVP_get_cipherbyname(getCipherName(encodedKey.length, mode));
+        final long cipherType = getCipherType(encodedKey.length, mode);
         if (cipherType == 0) {
             throw new InvalidAlgorithmParameterException("Cannot find name for key length = "
                                                          + (encodedKey.length * 8)
@@ -172,7 +171,8 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
             int bytesWritten;
             if (inputLen > 0) {
                 try {
-                    bytesWritten = updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
+                    bytesWritten =
+                            updateInternal(input, inputOffset, inputLen, output, 0, maximumLen);
                 } catch (ShortBufferException e) {
                     /* This should not happen since we sized our own buffer. */
                     throw new RuntimeException("our calculated buffer was too small", e);
@@ -206,8 +206,8 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output,
-            int outputOffset) throws ShortBufferException, IllegalBlockSizeException,
-            BadPaddingException {
+                                int outputOffset)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         // Assume we will need to reset unless we hit a ShortBufferException
         boolean resetNeeded = true;
         try {
@@ -220,7 +220,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
             final int bytesWritten;
             if (inputLen > 0) {
                 bytesWritten = updateInternal(input, inputOffset, inputLen, output, outputOffset,
-                        maximumLen);
+                                              maximumLen);
                 outputOffset += bytesWritten;
                 maximumLen -= bytesWritten;
             } else {
@@ -269,10 +269,10 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
     }
 
     /**
-     * Returns the OpenSSL cipher name for the particular {@code keySize}
-     * and cipher {@code mode}.
+     * Returns the OpenSSL cipher for the particular {@code keySize}
+     * and cipher {@code mode}, or 0 if the combination is not supported.
      */
-    abstract String getCipherName(int keySize, Mode mode);
+    abstract long getCipherType(int keySize, Mode mode);
 
     /**
      * Reset this Cipher instance state to process a new chunk of data.

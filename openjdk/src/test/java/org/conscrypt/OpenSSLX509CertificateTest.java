@@ -158,7 +158,7 @@ public class OpenSSLX509CertificateTest {
                 + "                20:31:54:1A:F2:5C:05:FF:D8:65:8B:68:43:79:4F:5E:90:36:F7:B4\n"
                 + "            X509v3 Authority Key Identifier:\n"
                 + "                "
-                  + "keyid:5F:9D:88:0D:C8:73:E6:54:D4:F8:0D:D8:E6:B0:C1:24:B4:47:C3:55\n"
+                + "keyid:5F:9D:88:0D:C8:73:E6:54:D4:F8:0D:D8:E6:B0:C1:24:B4:47:C3:55\n"
                 + "                DirName:/C=GB/O=Certificate Transparency CA/ST=Wales/L=Erw Wen\n"
                 + "                serial:0\n"
                 + "\n"

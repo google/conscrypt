@@ -230,6 +230,63 @@ public class TrustManagerImplTest {
         assertEquals(nsp, tm.getNetworkSecurityPolicy());
     }
 
+    @Test
+    public void testIntermediateExtendedKeyUsage() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
+
+        TestKeyStore rootCaStore = new TestKeyStore.Builder()
+                .aliasPrefix("root")
+                .subject("CN=Test Root Certificate Authority")
+                .ca(true)
+                .build();
+        KeyStore.PrivateKeyEntry rootEntry = rootCaStore.getPrivateKey("RSA", "RSA");
+        X509Certificate rootCert = (X509Certificate) rootEntry.getCertificate();
+
+        TestKeyStore clientOnlyIntermediateStore = new TestKeyStore.Builder()
+                .aliasPrefix("intermediate")
+                .subject("CN=Test Intermediate Certificate Authority")
+                .ca(true)
+                .signer(rootEntry)
+                .rootCa(rootCert)
+                .addExtendedKeyUsage(org.bouncycastle.asn1.x509.KeyPurposeId.id_kp_clientAuth, false)
+                .build();
+        KeyStore.PrivateKeyEntry intermediateEntry = clientOnlyIntermediateStore.getPrivateKey("RSA", "RSA");
+        X509Certificate intermediateCert = (X509Certificate) intermediateEntry.getCertificate();
+
+        TestKeyStore serverStore = new TestKeyStore.Builder()
+                .aliasPrefix("server")
+                .subject("CN=Test Server")
+                .signer(intermediateEntry)
+                .rootCa(rootCert)
+                .addExtendedKeyUsage(org.bouncycastle.asn1.x509.KeyPurposeId.id_kp_serverAuth, false)
+                .build();
+        KeyStore.PrivateKeyEntry serverEntry = serverStore.getPrivateKey("RSA", "RSA");
+        X509Certificate serverCert = (X509Certificate) serverEntry.getCertificate();
+
+        X509Certificate[] serverChain = new X509Certificate[] {serverCert, intermediateCert};
+        TrustManagerImpl tm = (TrustManagerImpl) trustManager(rootCert);
+
+        try {
+            tm.checkServerTrusted(serverChain, "RSA");
+            fail("Expected CertificateException when intermediate CA lacks serverAuth EKU");
+        } catch (CertificateException expected) {
+            // Expected
+        }
+
+        TestKeyStore clientStore = new TestKeyStore.Builder()
+                .aliasPrefix("client")
+                .subject("CN=Test Client")
+                .signer(intermediateEntry)
+                .rootCa(rootCert)
+                .addExtendedKeyUsage(org.bouncycastle.asn1.x509.KeyPurposeId.id_kp_clientAuth, false)
+                .build();
+        KeyStore.PrivateKeyEntry clientEntry = clientStore.getPrivateKey("RSA", "RSA");
+        X509Certificate clientCert = (X509Certificate) clientEntry.getCertificate();
+
+        X509Certificate[] clientChain = new X509Certificate[] {clientCert, intermediateCert};
+        tm.checkClientTrusted(clientChain, "RSA");
+    }
+
     private X509TrustManager trustManager(X509Certificate ca) throws Exception {
         KeyStore keyStore = TestKeyStore.createKeyStore();
         keyStore.setCertificateEntry("alias", ca);

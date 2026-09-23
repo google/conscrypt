@@ -18,7 +18,6 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Locale;
 
 import javax.crypto.NoSuchPaddingException;
 
@@ -54,15 +53,15 @@ public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     }
 
     @Override
-    String getCipherName(int keySize, Mode mode) {
-        final String baseCipherName;
-        if (keySize == 16) {
-            baseCipherName = "des-ede";
-        } else {
-            baseCipherName = "des-ede3";
+    long getCipherType(int keySize, Mode mode) {
+        if (mode == Mode.CBC) {
+            if (keySize == 16) {
+                return NativeCrypto.EVP_des_ede_cbc();
+            } else if (keySize == 24) {
+                return NativeCrypto.EVP_des_ede3_cbc();
+            }
         }
-
-        return baseCipherName + "-" + mode.toString().toLowerCase(Locale.US);
+        return 0;
     }
 
     @Override

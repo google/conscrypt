@@ -21,9 +21,9 @@ import static org.junit.Assert.assertTrue;
 // android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 
 import org.conscrypt.TestUtils;
-import org.junit.ClassRule;
+// android-add: import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
