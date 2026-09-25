@@ -1644,8 +1644,6 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     }
     ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_parse_private_key => threw exception", keyJavaBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1696,8 +1694,6 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_from_private_key_info => threw exception");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1708,6 +1704,9 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
         return 0;
     }
     ScopedIntArrayRO algs_ro(env, algs);
+    if (algs_ro.get() == nullptr) {
+      return 0;
+    }
     std::vector<const EVP_PKEY_ALG*> alg_pointers(num_algs);
     for (size_t i = 0; i < num_algs; ++i) {
         const EVP_PKEY_ALG* alg = GetAlg(algs_ro.get()[i]);
@@ -1745,9 +1744,6 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
-                  key_java_bytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1758,6 +1754,9 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
         return 0;
     }
     ScopedIntArrayRO algs_ro(env, algs);
+    if (algs_ro.get() == nullptr) {
+      return 0;
+    }
     std::vector<const EVP_PKEY_ALG*> alg_pointers(num_algs);
     for (size_t i = 0; i < num_algs; ++i) {
         const EVP_PKEY_ALG* alg = GetAlg(algs_ro.get()[i]);
@@ -1796,9 +1795,6 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jin
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception",
-                  key_java_bytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1847,14 +1843,10 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_private_key(JNIEnv* env, jclass,
                                              env->NewByteArray(static_cast<jsize>(key_length)));
 
     if (raw_key_array.get() == nullptr) {
-        JNI_TRACE("key=%p EVP_PKEY_get_raw_private_key: creating byte array failed", pkey);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
         return nullptr;
     }
     ScopedByteArrayRW raw_key(env, raw_key_array.get());
     if (raw_key.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key");
         return nullptr;
     }
 
@@ -1879,8 +1871,6 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => threw exception", key_java_bytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key_java_bytes");
         return 0;
     }
 
@@ -1922,14 +1912,10 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(JNIEnv* env, jclass, 
     ScopedLocalRef<jbyteArray> raw_key_array(env,
                                              env->NewByteArray(static_cast<jsize>(key_length)));
     if (raw_key_array.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_public_key: creating byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
         return nullptr;
     }
     ScopedByteArrayRW raw_key(env, raw_key_array.get());
     if (raw_key.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_public_key: using byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key");
         return nullptr;
     }
 
@@ -1954,8 +1940,6 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
 
     ScopedByteArrayRO seed(env, javaSeedBytes);
     if (seed.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return 0;
     }
 
@@ -2002,14 +1986,10 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass, jo
 
     ScopedLocalRef<jbyteArray> seedArray(env, env->NewByteArray(static_cast<jsize>(seed_length)));
     if (seedArray.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_private_key: creating byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seedArray");
         return nullptr;
     }
     ScopedByteArrayRW seed(env, seedArray.get());
     if (seed.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return nullptr;
     }
 
@@ -2039,15 +2019,11 @@ static jbyteArray NativeCrypto_EVP_raw_X25519_private_key(JNIEnv* env, jclass cl
     size_t key_length = X25519_PRIVATE_KEY_LEN;
     ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(key_length)));
     if (byteArray.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Allocating byte[]");
-        JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key: byte array creation failed");
         return nullptr;
     }
 
     ScopedByteArrayRW bytes(env, byteArray.get());
     if (bytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Allocating scoped byte array");
-        JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key: scoped byte array failed");
         return nullptr;
     }
 
@@ -2103,8 +2079,6 @@ static jlong NativeCrypto_EVP_parse_public_key(JNIEnv* env, jclass, jbyteArray k
     }
     ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_parse_public_key => threw exception", keyJavaBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -3717,9 +3691,6 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
     }
     ScopedByteArrayRW out(env, outArray);
     if (out.get() == nullptr) {
-        JNI_TRACE("X25519(%p, %p, %p) can't get output buffer", outArray, privkeyArray,
-                  pubkeyArray);
-        conscrypt::jniutil::throwOutOfMemory(env, "Can't get output buffer");
         return JNI_FALSE;
     }
     if (out.size() != 32) {
@@ -3734,8 +3705,6 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
     }
     ScopedByteArrayRO privkey(env, privkeyArray);
     if (privkey.get() == nullptr) {
-        JNI_TRACE("X25519(%p) => privkey == null", outArray);
-        conscrypt::jniutil::throwOutOfMemory(env, "Can't get private key buffer");
         return JNI_FALSE;
     }
     if (privkey.size() != 32) {
@@ -3750,8 +3719,6 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
     }
     ScopedByteArrayRO pubkey(env, pubkeyArray);
     if (pubkey.get() == nullptr) {
-        JNI_TRACE("X25519(%p) => pubkey == null", pubkeyArray);
-        conscrypt::jniutil::throwOutOfMemory(env, "Can't get public key buffer");
         return JNI_FALSE;
     }
     if (pubkey.size() != 32) {
@@ -4421,7 +4388,6 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
 
     ScopedLocalRef<jbyteArray> sigJavaBytes(env, env->NewByteArray(static_cast<jint>(actualLen)));
     if (sigJavaBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate signature byte[]");
         return nullptr;
     }
     env->SetByteArrayRegion(sigJavaBytes.get(), 0, static_cast<jint>(actualLen),
@@ -4506,7 +4472,6 @@ static jbyteArray NativeCrypto_EVP_DigestSign(JNIEnv* env, jclass, jobject evpMd
 
     ScopedByteArrayRO array_elements(env, inJavaBytes);
     if (array_elements.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to obtain elements of inBytes");
         return nullptr;
     }
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(array_elements.get());
@@ -4540,7 +4505,6 @@ static jbyteArray NativeCrypto_EVP_DigestSign(JNIEnv* env, jclass, jobject evpMd
 
     ScopedLocalRef<jbyteArray> sigJavaBytes(env, env->NewByteArray(static_cast<jint>(actualLen)));
     if (sigJavaBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate signature byte[]");
         return nullptr;
     }
     env->SetByteArrayRegion(sigJavaBytes.get(), 0, static_cast<jint>(actualLen),

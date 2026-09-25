@@ -379,7 +379,7 @@ def resolve_android_and_build_top(
     return p, build_top, None
 
   # Check explicit environment variables
-  for env_var in ["CONSCYPT_ANDROID_DIR", "ANDROID_BUILD_TOP"]:
+  for env_var in ["CONSCRYPT_ANDROID_DIR", "ANDROID_BUILD_TOP"]:
     val = os.environ.get(env_var)
     if val:
       p = (
@@ -1189,7 +1189,8 @@ def step_format_and_commit_android(
           ["git", "rev-parse", "HEAD"], cwd=android_dir, text=True
       ).strip()
     change_id = "I" + hashlib.sha1(seed.encode("utf-8")).hexdigest()
-    msg = f"{msg}\n\nChange-Id: {change_id}\n"
+    sep = "\n" if "PiperOrigin-RevId:" in msg.splitlines()[-1] else "\n\n"
+    msg = f"{msg}{sep}Change-Id: {change_id}\n"
 
   run_cmd(
       ["git", "commit", "--amend", "--allow-empty", "-m", msg],
