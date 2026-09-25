@@ -21,6 +21,9 @@ import static org.conscrypt.TestUtils.isJavaVersion;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.conscrypt.testing.FailingSniMatcher;
 import org.conscrypt.testing.RestrictedAlgorithmConstraints;
@@ -39,6 +42,7 @@ import java.util.List;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIMatcher;
 import javax.net.ssl.SNIServerName;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
 /**
@@ -213,5 +217,61 @@ public class PlatformTest {
                 // TODO(nmittler): Should we throw here?
             }
         }
+    }
+
+    @Test
+    public void test_wrapInvalidEchDataException() {
+        SSLException original = new SSLException("Invalid ECH data");
+        SSLException wrapped = Platform.wrapInvalidEchDataException(original);
+
+        assertTrue(wrapped instanceof InvalidEchDataException);
+        assertEquals("Invalid ECH data", wrapped.getMessage());
+        assertEquals(original, wrapped.getCause());
+    }
+
+    @Test
+    public void test_wrapEchRejectedException() {
+        byte[] retryConfigs = new byte[] {0x00, 0x02, 0x01, 0x02};
+        EchRejectedException cause = new EchRejectedException("Rejected");
+        SSLException wrapped =
+                Platform.wrapEchRejectedException(cause, "public.example.com", retryConfigs);
+
+        assertTrue(wrapped instanceof EchConfigMismatchException);
+        EchConfigMismatchException mismatchException = (EchConfigMismatchException) wrapped;
+        assertEquals("The ECH configuration has been rejected by the server",
+                mismatchException.getMessage());
+        assertEquals("public.example.com", mismatchException.getPublicHostname());
+        assertTrue(mismatchException.hasRetryConfigList());
+        assertNotNull(mismatchException.getRetryConfigList());
+        assertArrayEquals(retryConfigs, mismatchException.getRetryConfigList().toBytes());
+        assertEquals(cause, mismatchException.getCause());
+    }
+
+    @Test
+    public void test_wrapEchRejectedException_nullRetryConfigs() {
+        EchRejectedException cause = new EchRejectedException("Rejected");
+        SSLException wrapped = Platform.wrapEchRejectedException(cause, "public.example.com", null);
+
+        assertTrue(wrapped instanceof EchConfigMismatchException);
+        EchConfigMismatchException mismatchException = (EchConfigMismatchException) wrapped;
+        assertEquals("public.example.com", mismatchException.getPublicHostname());
+        assertFalse(mismatchException.hasRetryConfigList());
+        assertNull(mismatchException.getRetryConfigList());
+        assertEquals(cause, mismatchException.getCause());
+    }
+
+    @Test
+    public void test_wrapEchRejectedException_invalidRetryConfigs() {
+        byte[] invalidRetryConfigs = new byte[] {0x00};
+        EchRejectedException cause = new EchRejectedException("Rejected");
+        SSLException wrapped =
+                Platform.wrapEchRejectedException(cause, "public.example.com", invalidRetryConfigs);
+
+        assertTrue(wrapped instanceof EchConfigMismatchException);
+        EchConfigMismatchException mismatchException = (EchConfigMismatchException) wrapped;
+        assertEquals("public.example.com", mismatchException.getPublicHostname());
+        assertFalse(mismatchException.hasRetryConfigList());
+        assertNull(mismatchException.getRetryConfigList());
+        assertEquals(cause, mismatchException.getCause());
     }
 }

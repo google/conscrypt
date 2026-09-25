@@ -34,9 +34,9 @@ import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
-import org.junit.ClassRule;
+// android-add: import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 

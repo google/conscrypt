@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.libcore;
+package org.conscrypt;
 
-@SuppressWarnings({"unused", "DoNotCallSuggester"})
-public final class Flags {
-    private Flags() {}
+import javax.net.ssl.SSLException;
 
-    public static boolean networkSecurityPolicyEchApi() {
-        throw new RuntimeException("Stub!");
+/**
+ * Exception thrown when the ECH (Encrypted Client Hello) data is empty or invalid.
+ */
+public class InvalidEchDataException extends SSLException {
+    public InvalidEchDataException(String message) {
+        super(message);
     }
 }
+

@@ -57,7 +57,10 @@ public class AeadCipherTest {
                                 new GCMParameterSpec(128, new byte[12])),
                 new CipherParam("ChaCha20/Poly1305/NoPadding",
                                 new SecretKeySpec(new byte[32], "ChaCha20"),
-                                new IvParameterSpec(new byte[12])));
+                                new IvParameterSpec(new byte[12])),
+                new CipherParam("XChaCha20/Poly1305/NoPadding",
+                                new SecretKeySpec(new byte[32], "XChaCha20"),
+                                new IvParameterSpec(new byte[24])));
     }
 
     private final CipherParam param;

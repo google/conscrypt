@@ -874,18 +874,18 @@ public final class TrustManagerImpl
         @Override
         public void check(Certificate c, Collection<String> unresolvedCritExts)
                 throws CertPathValidatorException {
-            // We only want to validate the EKU on the leaf certificate.
-            if (c != leaf) {
+            if (!(c instanceof X509Certificate)) {
                 return;
             }
+            X509Certificate x509Cert = (X509Certificate) c;
             List<String> ekuOids;
             try {
-                ekuOids = leaf.getExtendedKeyUsage();
+                ekuOids = x509Cert.getExtendedKeyUsage();
             } catch (CertificateParsingException e) {
                 // A malformed EKU is bad news, consider it fatal.
                 throw new CertPathValidatorException(e);
             }
-            // We are here to check EKU, but there is none.
+            // If there is no EKU on this cert, it is unrestricted for EKU purposes.
             if (ekuOids == null) {
                 return;
             }
@@ -923,9 +923,11 @@ public final class TrustManagerImpl
             }
             if (goodExtendedKeyUsage) {
                 // Mark extendedKeyUsage as resolved if present.
-                unresolvedCritExts.remove(EKU_OID);
+                if (unresolvedCritExts != null) {
+                    unresolvedCritExts.remove(EKU_OID);
+                }
             } else {
-                throw new CertPathValidatorException("End-entity certificate does not have a valid "
+                throw new CertPathValidatorException("Certificate does not have a valid "
                                                      + "extendedKeyUsage.");
             }
         }

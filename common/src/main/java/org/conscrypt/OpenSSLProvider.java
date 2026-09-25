@@ -140,6 +140,7 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.AlgorithmParameters.2.16.840.1.101.3.4.1.42", "AES");
 
         put("AlgorithmParameters.ChaCha20", PREFIX + "IvParameters$ChaCha20");
+        put("AlgorithmParameters.XChaCha20", PREFIX + "IvParameters$XChaCha20");
 
         put("AlgorithmParameters.DESEDE", PREFIX + "IvParameters$DESEDE");
         put("Alg.Alias.AlgorithmParameters.TDEA", "DESEDE");
@@ -187,6 +188,7 @@ public final class OpenSSLProvider extends Provider {
         put("KeyGenerator.AES", PREFIX + "KeyGeneratorImpl$AES");
 
         put("KeyGenerator.ChaCha20", PREFIX + "KeyGeneratorImpl$ChaCha20");
+        put("KeyGenerator.XChaCha20", PREFIX + "KeyGeneratorImpl$XChaCha20");
 
         put("KeyGenerator.DESEDE", PREFIX + "KeyGeneratorImpl$DESEDE");
         put("Alg.Alias.KeyGenerator.TDEA", "DESEDE");
@@ -694,6 +696,9 @@ public final class OpenSSLProvider extends Provider {
         putSymmetricCipherImplClass("ChaCha20", "OpenSSLCipherChaCha20");
         putSymmetricCipherImplClass("ChaCha20/Poly1305/NoPadding", "OpenSSLAeadCipherChaCha20");
         put("Alg.Alias.Cipher.ChaCha20-Poly1305", "ChaCha20/Poly1305/NoPadding");
+        putSymmetricCipherImplClass("XChaCha20/Poly1305/NoPadding",
+                                    "OpenSSLAeadCipherChaCha20$XChaCha20");
+        put("Alg.Alias.Cipher.XChaCha20-Poly1305", "XChaCha20/Poly1305/NoPadding");
 
         /* === Mac === */
 

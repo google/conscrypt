@@ -117,4 +117,7 @@ public class IvParameters extends AlgorithmParametersSpi {
     public static class ChaCha20 extends IvParameters {
         public ChaCha20() {}
     }
+    public static class XChaCha20 extends IvParameters {
+        public XChaCha20() {}
+    }
 }

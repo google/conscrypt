@@ -28,106 +28,105 @@ import java.security.SignatureSpi;
  */
 @Internal
 public class OpenSslSignatureHashSlhDsa extends SignatureSpi {
-  private final int hashNid;
-  private OpenSSLMessageDigestJDK messageDigest;
+    private final int hashNid;
+    private OpenSSLMessageDigestJDK messageDigest;
 
-  /** The current OpenSSL key we're operating on. */
-  private OpenSslSlhDsaPrivateKey privateKey;
+    /** The current OpenSSL key we're operating on. */
+    private OpenSslSlhDsaPrivateKey privateKey;
 
-  private OpenSslSlhDsaPublicKey publicKey;
+    private OpenSslSlhDsaPublicKey publicKey;
 
-  protected OpenSslSignatureHashSlhDsa(int hashNid) {
-    this.hashNid = hashNid;
-  }
-
-  /** SHA-384 prehash SLH-DSA signature implementation. */
-  public static final class Sha384 extends OpenSslSignatureHashSlhDsa {
-    public Sha384() {
-      super(NativeConstants.NID_sha384);
+    protected OpenSslSignatureHashSlhDsa(int hashNid) {
+        this.hashNid = hashNid;
     }
-  }
 
-  private void resetDigest() {
-    try {
-      if (hashNid == NativeConstants.NID_sha384) {
-        messageDigest = new OpenSSLMessageDigestJDK.SHA384();
-      } else {
-        throw new IllegalStateException("Unsupported hash NID: " + hashNid);
-      }
-    } catch (NoSuchAlgorithmException e) {
-      throw new AssertionError("Failed to create message digest", e);
+    /** SHA-384 prehash SLH-DSA signature implementation. */
+    public static final class Sha384 extends OpenSslSignatureHashSlhDsa {
+        public Sha384() {
+            super(NativeConstants.NID_sha384);
+        }
     }
-  }
 
-  @Override
-  protected void engineUpdate(byte input) throws SignatureException {
-    if (messageDigest == null) {
-      throw new SignatureException("Not initialized");
+    private void resetDigest() {
+        try {
+            if (hashNid == NativeConstants.NID_sha384) {
+                messageDigest = new OpenSSLMessageDigestJDK.SHA384();
+            } else {
+                throw new IllegalStateException("Unsupported hash NID: " + hashNid);
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("Failed to create message digest", e);
+        }
     }
-    messageDigest.engineUpdate(input);
-  }
 
-  @Override
-  protected void engineUpdate(byte[] input, int offset, int len) throws SignatureException {
-    if (messageDigest == null) {
-      throw new SignatureException("Not initialized");
+    @Override
+    protected void engineUpdate(byte input) throws SignatureException {
+        if (messageDigest == null) {
+            throw new SignatureException("Not initialized");
+        }
+        messageDigest.engineUpdate(input);
     }
-    messageDigest.engineUpdate(input, offset, len);
-  }
 
-  @Override
-  // Deprecated in Java 9, but still required by SignatureSpi.
-  @SuppressWarnings("deprecation")
-  protected Object engineGetParameter(String param) {
-    return null;
-  }
-
-  @Override
-  @SuppressWarnings("PatternMatchingInstanceof")
-  protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
-    if (!(privateKey instanceof OpenSslSlhDsaPrivateKey)) {
-      throw new InvalidKeyException("Must be OpenSslSlhDsaPrivateKey");
+    @Override
+    protected void engineUpdate(byte[] input, int offset, int len) throws SignatureException {
+        if (messageDigest == null) {
+            throw new SignatureException("Not initialized");
+        }
+        messageDigest.engineUpdate(input, offset, len);
     }
-    this.privateKey = (OpenSslSlhDsaPrivateKey) privateKey;
-    this.publicKey = null;
-    resetDigest();
-  }
 
-  @Override
-  @SuppressWarnings("PatternMatchingInstanceof")
-  protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
-    if (!(publicKey instanceof OpenSslSlhDsaPublicKey)) {
-      throw new InvalidKeyException("Must be OpenSslSlhDsaPublicKey");
+    @Override
+    // Deprecated in Java 9, but still required by SignatureSpi.
+    @SuppressWarnings("deprecation")
+    protected Object engineGetParameter(String param) {
+        return null;
     }
-    this.publicKey = (OpenSslSlhDsaPublicKey) publicKey;
-    this.privateKey = null;
-    resetDigest();
-  }
 
-  @Override
-  // Deprecated in Java 9, but still required by SignatureSpi.
-  @SuppressWarnings("deprecation")
-  protected void engineSetParameter(String param, Object value) {}
-
-  @Override
-  protected byte[] engineSign() throws SignatureException {
-    if (privateKey == null || messageDigest == null) {
-      throw new SignatureException("Not initialized for signing");
+    @Override
+    @SuppressWarnings("PatternMatchingInstanceof")
+    protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
+        if (!(privateKey instanceof OpenSslSlhDsaPrivateKey)) {
+            throw new InvalidKeyException("Must be OpenSslSlhDsaPrivateKey");
+        }
+        this.privateKey = (OpenSslSlhDsaPrivateKey) privateKey;
+        this.publicKey = null;
+        resetDigest();
     }
-    byte[] digest = messageDigest.engineDigest();
-    return NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(
-        digest, digest.length, hashNid, privateKey.getRaw());
-  }
 
-  @Override
-  protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-    if (publicKey == null || messageDigest == null) {
-      throw new SignatureException("Not initialized for verification");
+    @Override
+    @SuppressWarnings("PatternMatchingInstanceof")
+    protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
+        if (!(publicKey instanceof OpenSslSlhDsaPublicKey)) {
+            throw new InvalidKeyException("Must be OpenSslSlhDsaPublicKey");
+        }
+        this.publicKey = (OpenSslSlhDsaPublicKey) publicKey;
+        this.privateKey = null;
+        resetDigest();
     }
-    byte[] digest = messageDigest.engineDigest();
-    int result =
-        NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(
-            digest, digest.length, sigBytes, hashNid, publicKey.getRaw());
-    return result == 1;
-  }
+
+    @Override
+    // Deprecated in Java 9, but still required by SignatureSpi.
+    @SuppressWarnings("deprecation")
+    protected void engineSetParameter(String param, Object value) {}
+
+    @Override
+    protected byte[] engineSign() throws SignatureException {
+        if (privateKey == null || messageDigest == null) {
+            throw new SignatureException("Not initialized for signing");
+        }
+        byte[] digest = messageDigest.engineDigest();
+        return NativeCrypto.SLHDSA_SHA2_128S_prehash_sign(digest, digest.length, hashNid,
+                                                          privateKey.getRaw());
+    }
+
+    @Override
+    protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
+        if (publicKey == null || messageDigest == null) {
+            throw new SignatureException("Not initialized for verification");
+        }
+        byte[] digest = messageDigest.engineDigest();
+        int result = NativeCrypto.SLHDSA_SHA2_128S_prehash_verify(digest, digest.length, sigBytes,
+                                                                  hashNid, publicKey.getRaw());
+        return result == 1;
+    }
 }

@@ -890,7 +890,7 @@ final class SSLParametersImpl implements Cloneable {
                 if (echConfigList == null) {
                     throw new SSLException("No ECH config provided when required");
                 }
-                return new EchOptions(echConfigList, /* enableGrease= */ false);
+                return new EchOptions(echConfigList, /* enableGrease= */ false, /* failClosed= */ true);
             default:
                 return null;
         }

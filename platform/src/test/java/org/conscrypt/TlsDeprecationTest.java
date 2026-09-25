@@ -29,7 +29,7 @@ import libcore.junit.util.SwitchTargetSdkVersionRule.TargetSdkVersion;
 import org.conscrypt.javax.net.ssl.TestSSLContext;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 

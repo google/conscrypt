@@ -104,7 +104,6 @@ final public class Platform {
     private static boolean FILTERED_TLS_V1 = false;
 
     static {
-        NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
         Method getCurveNameMethod = null;
         try {
             getCurveNameMethod = ECParameterSpec.class.getDeclaredMethod("getCurveName");
@@ -581,12 +580,23 @@ final public class Platform {
     }
 
     static SSLException wrapInvalidEchDataException(SSLException e) {
-        return e;
+        SSLException exception = new InvalidEchDataException(e.getMessage());
+        exception.initCause(e);
+        return exception;
     }
 
     static SSLException wrapEchRejectedException(EchRejectedException e, String hostname,
                                                  byte[] retryConfigs) {
-        return e;
+        EchConfigList configs;
+        try {
+            configs = (retryConfigs != null) ? EchConfigList.fromBytes(retryConfigs) : null;
+        } catch (InvalidEchDataException ignored) {
+            configs = null;
+        }
+        SSLException exception = new EchConfigMismatchException(
+                "The ECH configuration has been rejected by the server", hostname, configs);
+        exception.initCause(e);
+        return exception;
     }
 
     static boolean supportsConscryptCertStore() {
@@ -719,8 +729,8 @@ final public class Platform {
 
         if (version[0] == 1) {
             if (version[1] < 6) {
-                throw new IllegalArgumentException(
-                        "Unsupported Java specification version: " + javaSpecVersion);
+                throw new IllegalArgumentException("Unsupported Java specification version: "
+                                                   + javaSpecVersion);
             }
             return version[1];
         } else {
@@ -785,6 +795,12 @@ final public class Platform {
     }
 
     public static boolean isSdkGreater(int sdk) {
+        return false;
+    }
+
+    public static boolean registerX509CertificateAllocation(
+            OpenSSLX509Certificate cert, long nativePtr) {
+        // On OpenJDK, finalize() is used as fallback.
         return false;
     }
 }

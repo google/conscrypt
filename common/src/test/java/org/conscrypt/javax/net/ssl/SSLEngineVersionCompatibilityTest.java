@@ -267,19 +267,19 @@ public class SSLEngineVersionCompatibilityTest {
 
             // TODO Fix KnownFailure "init - invalid private key"
             try (TestSSLContext clientAuthContext =
-                            new TestSSLContext.Builder()
-                                    .client(TestKeyStore.getClientCertificate())
-                                    .server(TestKeyStore.getServer())
-                                    .clientProtocol(clientVersion)
-                                    .serverProtocol(serverVersion)
-                                    .build();
+                         new TestSSLContext.Builder()
+                                 .client(TestKeyStore.getClientCertificate())
+                                 .server(TestKeyStore.getServer())
+                                 .clientProtocol(clientVersion)
+                                 .serverProtocol(serverVersion)
+                                 .build();
                  TestSSLEnginePair p =
-                            TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
-                                @Override
-                                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                                    server.setWantClientAuth(true);
-                                }
-                            })) {
+                         TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
+                             @Override
+                             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                                 server.setWantClientAuth(true);
+                             }
+                         })) {
                 assertConnected(p);
                 assertNotNull(p.client.getSession().getLocalCertificates());
                 TestKeyStore.assertChainLength(p.client.getSession().getLocalCertificates());
@@ -296,20 +296,19 @@ public class SSLEngineVersionCompatibilityTest {
      */
     @Test
     public void test_SSLEngine_clientAuthWantedNoClientCert() throws Exception {
-        try (TestSSLContext clientAuthContext =
-                        new TestSSLContext.Builder()
-                                .client(TestKeyStore.getClient())
-                                .server(TestKeyStore.getServer())
-                                .clientProtocol(clientVersion)
-                                .serverProtocol(serverVersion)
-                                .build();
+        try (TestSSLContext clientAuthContext = new TestSSLContext.Builder()
+                                                        .client(TestKeyStore.getClient())
+                                                        .server(TestKeyStore.getServer())
+                                                        .clientProtocol(clientVersion)
+                                                        .serverProtocol(serverVersion)
+                                                        .build();
              TestSSLEnginePair p =
-                        TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
-                            @Override
-                            void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                                server.setWantClientAuth(true);
-                            }
-                        })) {
+                     TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
+                         @Override
+                         void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                             server.setWantClientAuth(true);
+                         }
+                     })) {
             assertConnected(p);
         }
     }
@@ -322,20 +321,19 @@ public class SSLEngineVersionCompatibilityTest {
      */
     @Test
     public void test_SSLEngine_clientAuthNeededNoClientCert() throws Exception {
-        try (TestSSLContext clientAuthContext =
-                        new TestSSLContext.Builder()
-                                .client(TestKeyStore.getClient())
-                                .server(TestKeyStore.getServer())
-                                .clientProtocol(clientVersion)
-                                .serverProtocol(serverVersion)
-                                .build()) {
+        try (TestSSLContext clientAuthContext = new TestSSLContext.Builder()
+                                                        .client(TestKeyStore.getClient())
+                                                        .server(TestKeyStore.getServer())
+                                                        .clientProtocol(clientVersion)
+                                                        .serverProtocol(serverVersion)
+                                                        .build()) {
             try (TestSSLEnginePair p =
-                            TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
-                                @Override
-                                void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
-                                    server.setNeedClientAuth(true);
-                                }
-                            })) {
+                         TestSSLEnginePair.create(clientAuthContext, new TestSSLEnginePair.Hooks() {
+                             @Override
+                             void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
+                                 server.setNeedClientAuth(true);
+                             }
+                         })) {
                 fail();
             } catch (SSLException expected) {
                 // Ignored.
@@ -679,11 +677,10 @@ public class SSLEngineVersionCompatibilityTest {
             }
             ThrowingTrustManager trustManager = new ThrowingTrustManager();
             try (TestSSLContext c = TestSSLContext.newBuilder()
-                                             .clientProtocol(clientVersion)
-                                             .serverProtocol(serverVersion)
-                                             .clientTrustManager(trustManager)
-                                             .build()) {
-
+                                            .clientProtocol(clientVersion)
+                                            .serverProtocol(serverVersion)
+                                            .clientTrustManager(trustManager)
+                                            .build()) {
                 // The following code is taken from TestSSLEnginePair.connect()
                 SSLSession session = c.clientContext.createSSLEngine().getSession();
 
@@ -703,16 +700,18 @@ public class SSLEngineVersionCompatibilityTest {
 
                 try {
                     while (true) {
-                        boolean clientDone = client.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
-                        boolean serverDone = server.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
+                        boolean clientDone =
+                                client.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
+                        boolean serverDone =
+                                server.getHandshakeStatus() == HandshakeStatus.NOT_HANDSHAKING;
                         if (clientDone && serverDone) {
                             break;
                         }
 
                         boolean progress = TestSSLEnginePair.handshakeStep(
                                 client, clientToServer, serverToClient, scratch, new boolean[1]);
-                        progress |= TestSSLEnginePair.handshakeStep(server, serverToClient, clientToServer,
-                                                                    scratch, new boolean[1]);
+                        progress |= TestSSLEnginePair.handshakeStep(
+                                server, serverToClient, clientToServer, scratch, new boolean[1]);
                         assertFalse(trustManager.threw);
                         if (!progress) {
                             break;
@@ -761,32 +760,33 @@ public class SSLEngineVersionCompatibilityTest {
         final AtomicReference<String> serverHost = new AtomicReference<>();
         final AtomicBoolean serverAliasCalled = new AtomicBoolean(false);
 
-        try (TestSSLContext c =
-                        TestSSLContext.newBuilder()
-                                .clientProtocol(clientVersion)
-                                .serverProtocol(serverVersion)
-                                .server(addServerCertListener(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        assertEquals("cert is loaded after sni", host, serverHost.get());
-                                        serverAliasCalled.set(true);
-                                    }
-                                }))
-                                .build();
+        try (TestSSLContext c = TestSSLContext.newBuilder()
+                                        .clientProtocol(clientVersion)
+                                        .serverProtocol(serverVersion)
+                                        .server(addServerCertListener(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                assertEquals("cert is loaded after sni", host,
+                                                             serverHost.get());
+                                                serverAliasCalled.set(true);
+                                            }
+                                        }))
+                                        .build();
              TestSSLEnginePair pair = TestSSLEnginePair.create(c, new TestSSLEnginePair.Hooks() {
                  @Override
                  void beforeBeginHandshake(SSLEngine client, SSLEngine server) {
                      Conscrypt.setHostname(client, host);
 
                      SSLParameters sslParameters = server.getSSLParameters();
-                     sslParameters.setSNIMatchers(Collections.<SNIMatcher>singleton(new SNIMatcher(0) {
-                         @Override
-                         public boolean matches(SNIServerName sniServerName) {
-                             String host = ((SNIHostName) sniServerName).getAsciiName();
-                             serverHost.set(host);
-                             return true;
-                         }
-                     }));
+                     sslParameters.setSNIMatchers(
+                             Collections.<SNIMatcher>singleton(new SNIMatcher(0) {
+                                 @Override
+                                 public boolean matches(SNIServerName sniServerName) {
+                                     String host = ((SNIHostName) sniServerName).getAsciiName();
+                                     serverHost.set(host);
+                                     return true;
+                                 }
+                             }));
                      server.setSSLParameters(sslParameters);
                  }
              })) {

@@ -34,8 +34,8 @@ public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
     }
 
     @Override
-    String getCipherName(int keySize, Mode mode) {
-        return "rc4";
+    long getCipherType(int keySize, Mode mode) {
+        return NativeCrypto.EVP_rc4();
     }
 
     @Override

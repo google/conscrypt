@@ -30,7 +30,7 @@ import android.net.ssl.PakeServerKeyManagerParameters;
 import org.conscrypt.Spake2PlusKeyManager;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 

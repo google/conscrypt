@@ -249,13 +249,12 @@ jobs:
           mkdir -p "$ANDROID_HOME"
           unzip -q android-tools.zip -d "$ANDROID_HOME"
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses || true
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" tools
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" platform-tools
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'build-tools;30.0.3'
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'platforms;android-26'
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'extras;android;m2repository'
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'ndk;27.3.13750724'
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" 'cmake;3.22.1'
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+            platform-tools \
+            'build-tools;30.0.3' \
+            'platforms;android-26' \
+            'ndk;27.3.13750724' \
+            'cmake;3.22.1'
 
       - name: Build with Gradle
         shell: bash

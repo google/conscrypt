@@ -20,10 +20,8 @@ package org.conscrypt;
 // android-add: import dalvik.annotation.optimization.FastNative;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
@@ -473,7 +471,52 @@ public final class NativeCrypto {
 
     // These return const references
     // android-add: @FastNative
-    static native long EVP_get_cipherbyname(String string);
+    static native long EVP_rc4();
+
+    // android-add: @FastNative
+    static native long EVP_des_cbc();
+
+    // android-add: @FastNative
+    static native long EVP_des_ede_cbc();
+
+    // android-add: @FastNative
+    static native long EVP_des_ede3_cbc();
+
+    // android-add: @FastNative
+    static native long EVP_aes_128_ecb();
+
+    // android-add: @FastNative
+    static native long EVP_aes_128_cbc();
+
+    // android-add: @FastNative
+    static native long EVP_aes_128_ctr();
+
+    // android-add: @FastNative
+    static native long EVP_aes_128_gcm();
+
+    // android-add: @FastNative
+    static native long EVP_aes_192_ecb();
+
+    // android-add: @FastNative
+    static native long EVP_aes_192_cbc();
+
+    // android-add: @FastNative
+    static native long EVP_aes_192_ctr();
+
+    // android-add: @FastNative
+    static native long EVP_aes_192_gcm();
+
+    // android-add: @FastNative
+    static native long EVP_aes_256_ecb();
+
+    // android-add: @FastNative
+    static native long EVP_aes_256_cbc();
+
+    // android-add: @FastNative
+    static native long EVP_aes_256_ctr();
+
+    // android-add: @FastNative
+    static native long EVP_aes_256_gcm();
 
     // android-add: @FastNative
     static native void EVP_CipherInit_ex(NativeRef.EVP_CIPHER_CTX ctx, long evpCipher, byte[] key,
@@ -522,6 +565,9 @@ public final class NativeCrypto {
 
     // android-add: @FastNative
     static native long EVP_aead_chacha20_poly1305();
+
+    // android-add: @FastNative
+    static native long EVP_aead_xchacha20_poly1305();
 
     // android-add: @FastNative
     static native long EVP_aead_aes_128_gcm_siv();
@@ -715,6 +761,8 @@ public final class NativeCrypto {
 
     // android-add: @FastNative
     static native long[] ASN1_seq_unpack_X509_bio(long bioRef) throws ParsingException;
+
+    static native long get_X509_free_func();
 
     static native void X509_free(long x509ctx, OpenSSLX509Certificate holder);
 
@@ -1961,6 +2009,8 @@ public final class NativeCrypto {
     /* ECH */
 
     static native void SSL_set_enable_ech_grease(long ssl, NativeSsl ssl_holder, boolean enable);
+
+    static native void SSL_set_reject_unusable_ech_config(long ssl, NativeSsl ssl_holder, boolean enable);
 
     static native boolean SSL_set1_ech_config_list(long ssl, NativeSsl ssl_holder, byte[] echConfig)
             throws SSLException;

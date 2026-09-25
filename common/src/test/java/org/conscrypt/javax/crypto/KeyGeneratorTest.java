@@ -24,9 +24,9 @@ import static org.junit.Assert.assertNotNull;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
+// android-add: import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TestRule;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -114,6 +114,7 @@ public class KeyGeneratorTest {
         putKeySize("Blowfish", 32 + 8);
         putKeySize("Blowfish", 448);
         putKeySize("ChaCha20", 256);
+        putKeySize("XChaCha20", 256);
         putKeySize("DES", 56);
         putKeySize("DESede", 112);
         putKeySize("DESede", 168);

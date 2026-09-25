@@ -85,7 +85,6 @@ final public class Platform {
 
     private static Method m_getCurveName;
     static {
-        NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
         try {
             m_getCurveName = ECParameterSpec.class.getDeclaredMethod("getCurveName");
             m_getCurveName.setAccessible(true);
@@ -885,5 +884,55 @@ final public class Platform {
 
     public static boolean isSdkGreater(int sdk) {
         return Build.VERSION.SDK_INT > sdk;
+    }
+
+    private static class X509NativeAllocationRegistryHolder {
+        private static final Object REGISTRY;
+        private static final Method REGISTER_METHOD;
+
+        static {
+            Object registry = null;
+            Method registerMethod = null;
+            try {
+                Class<?> narClass = Class.forName("libcore.util.NativeAllocationRegistry");
+                Method createMethod =
+                        narClass.getMethod("createMalloced", ClassLoader.class, long.class);
+                ClassLoader classLoader = OpenSSLX509Certificate.class.getClassLoader();
+                if (classLoader == null) {
+                    classLoader = ClassLoader.getSystemClassLoader();
+                }
+                registry = createMethod.invoke(null,
+                        classLoader,
+                        NativeCrypto.get_X509_free_func());
+                registerMethod =
+                        narClass.getMethod("registerNativeAllocation", Object.class, long.class);
+            } catch (ReflectiveOperationException ignored) {
+                registry = null;
+                registerMethod = null;
+            } catch (Throwable t) {
+                registry = null;
+                registerMethod = null;
+                Log.w(TAG, "Could not initialize NativeAllocationRegistry", t);
+            }
+            REGISTRY = registry;
+            REGISTER_METHOD = registerMethod;
+        }
+    }
+
+    public static boolean registerX509CertificateAllocation(
+            OpenSSLX509Certificate cert, long nativePtr) {
+        if (X509NativeAllocationRegistryHolder.REGISTRY != null
+                && X509NativeAllocationRegistryHolder.REGISTER_METHOD != null) {
+            try {
+                X509NativeAllocationRegistryHolder.REGISTER_METHOD.invoke(
+                        X509NativeAllocationRegistryHolder.REGISTRY, cert, nativePtr);
+                return true;
+            } catch (ReflectiveOperationException ignored) {
+                // Do nothing.
+            } catch (Throwable t) {
+                Log.w(TAG, "Could not register native allocation", t);
+            }
+        }
+        return false;
     }
 }

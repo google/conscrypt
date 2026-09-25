@@ -90,6 +90,12 @@ android {
                     "${rootDir}/common/src/test/java",
                     "${rootDir}/openjdk/src/test/java",
             ]
+            excludes = [
+                    'org/conscrypt/ConscryptOpenJdkSuite.java',
+                    'org/conscrypt/EchConfigListTest.java',
+                    'org/conscrypt/EchConfigMismatchExceptionTest.java',
+                    'org/conscrypt/PlatformTest.java',
+            ]
         }
         resources {
             srcDirs = [

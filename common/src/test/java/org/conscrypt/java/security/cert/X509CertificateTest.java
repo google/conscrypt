@@ -26,7 +26,9 @@ import static org.junit.Assert.fail;
 // android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
 
 import org.conscrypt.TestUtils;
+// android-add: import org.junit.ClassRule;
 import org.junit.Test;
+// android-add: import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -911,15 +913,12 @@ public class X509CertificateTest {
 
     @Test
     public void testRsaPssCert() throws Exception {
-    ServiceTester.test("CertificateFactory")
-        .withAlgorithm("X509")
-        .run(
-            (p, algorithm) -> {
-              X509Certificate c = certificateFromPEM(p, CERT_WITH_RSA_PSS);
-              assertEquals("1.2.840.113549.1.1.10", c.getSigAlgOID());
-              assertEquals("RSASSA-PSS", c.getSigAlgName());
-              c.verify(c.getPublicKey());
-            });
+        ServiceTester.test("CertificateFactory").withAlgorithm("X509").run((p, algorithm) -> {
+            X509Certificate c = certificateFromPEM(p, CERT_WITH_RSA_PSS);
+            assertEquals("1.2.840.113549.1.1.10", c.getSigAlgOID());
+            assertEquals("RSASSA-PSS", c.getSigAlgName());
+            c.verify(c.getPublicKey());
+        });
     }
 
     @Test

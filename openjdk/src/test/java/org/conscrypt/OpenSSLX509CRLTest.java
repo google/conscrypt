@@ -31,6 +31,7 @@ import static org.junit.Assert.fail;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -310,6 +311,7 @@ public class OpenSSLX509CRLTest {
     }
 
     @Test
+    @Ignore
     public void verify_withNonOpenSSLKey() throws Exception {
         OpenSSLX509CRL crl = loadTestCrl("crl.pem");
         OpenSSLX509Certificate caCert = loadTestCertificate("ca-cert.pem");

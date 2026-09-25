@@ -63,7 +63,7 @@ public class XDHKeyAgreementTest {
             // SunEC in OpenJDK 11 has a bug where the format specified in RFC 8410
             // Section 7.
             if (p.getName().equals("SunEC")
-                    && System.getProperty("java.specification.version").equals("11")) {
+                && System.getProperty("java.specification.version").equals("11")) {
                 continue;
             }
             KeyFactory kf = KeyFactory.getInstance("XDH", p);
@@ -89,7 +89,7 @@ public class XDHKeyAgreementTest {
             // SunEC in OpenJDK 11 has a bug where the format specified in RFC 8410
             // Section 7.
             if (p.getName().equals("SunEC")
-                    && System.getProperty("java.specification.version").equals("11")) {
+                && System.getProperty("java.specification.version").equals("11")) {
                 continue;
             }
             KeyFactory kf = KeyFactory.getInstance("X25519", p);

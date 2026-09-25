@@ -28,6 +28,8 @@ import dalvik.system.CloseGuard;
 import dalvik.system.VMRuntime;
 import dalvik.system.ZygoteHooks;
 
+import libcore.util.NativeAllocationRegistry;
+
 import org.conscrypt.NativeCrypto;
 import org.conscrypt.ct.CertificateTransparency;
 import org.conscrypt.ct.LogStore;
@@ -99,7 +101,6 @@ final public class Platform {
     static {
         canProbeZygote = isSdkGreater(32);
         canCallZygoteMethod = isSdkGreater(36);
-        NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
     }
 
     /**
@@ -697,5 +698,38 @@ final public class Platform {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static class X509NativeAllocationRegistryHolder {
+        private static final NativeAllocationRegistry REGISTRY;
+
+        static {
+            NativeAllocationRegistry registry = null;
+            try {
+                ClassLoader classLoader = OpenSSLX509Certificate.class.getClassLoader();
+                if (classLoader == null) {
+                    classLoader = ClassLoader.getSystemClassLoader();
+                }
+                registry = NativeAllocationRegistry.createMalloced(
+                        classLoader, NativeCrypto.get_X509_free_func());
+            } catch (Throwable ignored) {
+                registry = null;
+            }
+            REGISTRY = registry;
+        }
+    }
+
+    public static boolean registerX509CertificateAllocation(
+            OpenSSLX509Certificate cert, long nativePtr) {
+        if (X509NativeAllocationRegistryHolder.REGISTRY != null) {
+            try {
+                X509NativeAllocationRegistryHolder.REGISTRY.registerNativeAllocation(
+                        cert, nativePtr);
+                return true;
+            } catch (IllegalArgumentException ignored) {
+                // Do nothing.
+            }
+        }
+        return false;
     }
 }

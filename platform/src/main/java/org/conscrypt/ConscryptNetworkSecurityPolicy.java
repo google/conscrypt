@@ -47,8 +47,7 @@ public class ConscryptNetworkSecurityPolicy implements NetworkSecurityPolicy {
     @Override
     public CertificateTransparencyVerificationReason getCertificateTransparencyVerificationReason(
             String hostname) {
-        if (Platform.isSdkGreater(33)
-            && com.android.libcore.Flags.networkSecurityPolicyReasonCtEnabledApi()) {
+        if (Platform.isSdkGreater(36)) {
             CertificateTransparencyVerificationReason reason = plaformCtReasonToConscryptReason(
                     policy.getCertificateTransparencyVerificationReason(hostname));
             if (reason != CertificateTransparencyVerificationReason.UNKNOWN) {
