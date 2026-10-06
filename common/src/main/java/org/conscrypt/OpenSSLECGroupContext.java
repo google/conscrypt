@@ -44,10 +44,21 @@ final class OpenSSLECGroupContext {
         ALIASES.put("1.2.840.10045.3.1.7", "prime256v1");
     }
 
+    static final OpenSSLECGroupContext SECP224R1 = new OpenSSLECGroupContext(
+            new NativeRef.EC_GROUP(NativeCrypto.EC_GROUP_new_by_curve_name("secp224r1")));
+    static final OpenSSLECGroupContext PRIME256V1 = new OpenSSLECGroupContext(
+            new NativeRef.EC_GROUP(NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1")));
+    static final OpenSSLECGroupContext SECP384R1 = new OpenSSLECGroupContext(
+            new NativeRef.EC_GROUP(NativeCrypto.EC_GROUP_new_by_curve_name("secp384r1")));
+    static final OpenSSLECGroupContext SECP521R1 = new OpenSSLECGroupContext(
+            new NativeRef.EC_GROUP(NativeCrypto.EC_GROUP_new_by_curve_name("secp521r1")));
+
     private final NativeRef.EC_GROUP groupCtx;
+    private final ECParameterSpec ecParameterSpec;
 
     OpenSSLECGroupContext(NativeRef.EC_GROUP groupCtx) {
         this.groupCtx = groupCtx;
+        this.ecParameterSpec = createECParameterSpec(groupCtx);
     }
 
     static OpenSSLECGroupContext getCurveByName(String curveName) {
@@ -55,13 +66,18 @@ final class OpenSSLECGroupContext {
             curveName = ALIASES.get(curveName);
         }
 
-        final long ctx = NativeCrypto.EC_GROUP_new_by_curve_name(curveName);
-        if (ctx == 0) {
-            return null;
+        switch (curveName) {
+            case "secp224r1":
+                return SECP224R1;
+            case "prime256v1":
+                return PRIME256V1;
+            case "secp384r1":
+                return SECP384R1;
+            case "secp521r1":
+                return SECP521R1;
+            default:
+                return null;
         }
-        NativeRef.EC_GROUP groupRef = new NativeRef.EC_GROUP(ctx);
-
-        return new OpenSSLECGroupContext(groupRef);
     }
 
     @Override
@@ -115,7 +131,7 @@ final class OpenSSLECGroupContext {
                             "b70e0cbd6bb4bf7f321390b94a03c1d356c21122343280d6115c1d21")
                     && y.toString(16).equals(
                             "bd376388b5f723fb4c22dfe6cd4375a05a07476444d5819985007e34")) {
-                    curveName = "secp224r1";
+                    return SECP224R1;
                 }
                 break;
             case 256:
@@ -127,7 +143,7 @@ final class OpenSSLECGroupContext {
                             "6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296")
                     && y.toString(16).equals(
                             "4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5")) {
-                    curveName = "prime256v1";
+                    return PRIME256V1;
                 }
                 break;
             case 384:
@@ -139,7 +155,7 @@ final class OpenSSLECGroupContext {
                                              + "1e082542a385502f25dbf55296c3a545e3872760ab7")
                     && y.toString(16).equals("3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3"
                                              + "113b5f0b8c00a60b1ce1d7e819d7a431d7c90ea0e5f")) {
-                    curveName = "secp384r1";
+                    return SECP384R1;
                 }
                 break;
             case 521:
@@ -155,13 +171,11 @@ final class OpenSSLECGroupContext {
                     && y.toString(16).equals(
                             "11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e662c97e"
                             + "e72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650")) {
-                    curveName = "secp521r1";
+                    return SECP521R1;
                 }
                 break;
-        }
-
-        if (curveName != null) {
-            return OpenSSLECGroupContext.getCurveByName(curveName);
+            default:
+                break;
         }
 
         final BigInteger a = curve.getA();
@@ -191,7 +205,7 @@ final class OpenSSLECGroupContext {
         return NativeCrypto.EC_GROUP_get_curve_name(groupCtx);
     }
 
-    ECParameterSpec getECParameterSpec() {
+    ECParameterSpec createECParameterSpec(NativeRef.EC_GROUP groupCtx) {
         final String curveName = NativeCrypto.EC_GROUP_get_curve_name(groupCtx);
 
         final byte[][] curveParams = NativeCrypto.EC_GROUP_get_curve(groupCtx);
@@ -214,4 +228,9 @@ final class OpenSSLECGroupContext {
         Platform.setCurveName(spec, curveName);
         return spec;
     }
+
+    ECParameterSpec getECParameterSpec() {
+        return ecParameterSpec;
+    }
+
 }

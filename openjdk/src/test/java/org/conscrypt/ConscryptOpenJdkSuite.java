@@ -112,6 +112,7 @@ import org.junit.runners.Suite;
         NativeSslTest.class,
         NativeRefTest.class,
         NativeSslSessionTest.class,
+        OpenSSLECGroupContextTest.class,
         OpenSSLKeyTest.class,
         OpenSSLX509CertificateTest.class,
         OpenSSLX509CRLTest.class,

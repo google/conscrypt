@@ -131,7 +131,13 @@ def setup_kokoro_git_env() -> None:
   )
   if res_name.returncode != 0 or not res_name.stdout.strip():
     subprocess.run(
-        [real_git, "config", "--global", "user.name", "Conscrypt Team"],
+        [
+            real_git,
+            "config",
+            "--global",
+            "user.name",
+            "Conscrypt Kokoro Export Bot",
+        ],
         capture_output=True,
         check=False,
     )
@@ -143,7 +149,13 @@ def setup_kokoro_git_env() -> None:
   )
   if res_email.returncode != 0 or not res_email.stdout.strip():
     subprocess.run(
-        [real_git, "config", "--global", "user.email", "no-reply@google.com"],
+        [
+            real_git,
+            "config",
+            "--global",
+            "user.email",
+            "kokoro-instances@conscrypt-kokoro.iam.gserviceaccount.com",
+        ],
         capture_output=True,
         check=False,
     )
@@ -379,7 +391,7 @@ def resolve_android_and_build_top(
     return p, build_top, None
 
   # Check explicit environment variables
-  for env_var in ["CONSCYPT_ANDROID_DIR", "ANDROID_BUILD_TOP"]:
+  for env_var in ["CONSCRYPT_ANDROID_DIR", "ANDROID_BUILD_TOP"]:
     val = os.environ.get(env_var)
     if val:
       p = (
@@ -1165,16 +1177,41 @@ def step_format_and_commit_android(
 
   print("Amending Copybara commit with repackaged and formatted changes...")
   # Ensure git user identity is configured in repository (needed in Kokoro VMs)
-  subprocess.run(
-      ["git", "config", "user.name", "Conscrypt Team"],
+  res_name = subprocess.run(
+      ["git", "config", "--get", "user.name"],
       cwd=android_dir,
+      capture_output=True,
+      text=True,
       check=False,
   )
-  subprocess.run(
-      ["git", "config", "user.email", "no-reply@google.com"],
+  if res_name.returncode != 0 or not res_name.stdout.strip():
+    subprocess.run(
+        ["git", "config", "user.name", "Conscrypt Kokoro Export Bot"],
+        cwd=android_dir,
+        check=False,
+    )
+  res_email = subprocess.run(
+      ["git", "config", "--get", "user.email"],
       cwd=android_dir,
+      capture_output=True,
+      text=True,
       check=False,
   )
+  if (
+      res_email.returncode != 0
+      or not res_email.stdout.strip()
+      or res_email.stdout.strip() == "no-reply@google.com"
+  ):
+    subprocess.run(
+        [
+            "git",
+            "config",
+            "user.email",
+            "kokoro-instances@conscrypt-kokoro.iam.gserviceaccount.com",
+        ],
+        cwd=android_dir,
+        check=False,
+    )
 
   msg = subprocess.check_output(
       ["git", "log", "-1", "--format=%B"], cwd=android_dir, text=True
@@ -1189,10 +1226,19 @@ def step_format_and_commit_android(
           ["git", "rev-parse", "HEAD"], cwd=android_dir, text=True
       ).strip()
     change_id = "I" + hashlib.sha1(seed.encode("utf-8")).hexdigest()
-    msg = f"{msg}\n\nChange-Id: {change_id}\n"
+    sep = "\n" if "PiperOrigin-RevId:" in msg.splitlines()[-1] else "\n\n"
+    msg = f"{msg}{sep}Change-Id: {change_id}\n"
 
   run_cmd(
-      ["git", "commit", "--amend", "--allow-empty", "-m", msg],
+      [
+          "git",
+          "commit",
+          "--amend",
+          "--reset-author",
+          "--allow-empty",
+          "-m",
+          msg,
+      ],
       cwd=android_dir,
       check=False,
   )

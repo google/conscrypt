@@ -157,39 +157,36 @@ static T* fromContextObject(JNIEnv* env, jobject contextObject) {
 }
 
 /**
- * Converts a Java byte[] two's complement to an OpenSSL BIGNUM. This will
- * allocate the BIGNUM if *dest == nullptr. Returns true on success. If the
- * return value is false, there is a pending exception.
+ * Converts a Java byte[] two's complement to an OpenSSL BIGNUM. Returns a
+ * non-null BIGNUM on success. If the return value is nullptr, there is a
+ * pending exception.
  */
-static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
-    JNI_TRACE("arrayToBignum(%p, %p)", source, dest);
-    if (dest == nullptr) {
-        JNI_TRACE("arrayToBignum(%p, %p) => dest is null!", source, dest);
-        conscrypt::jniutil::throwNullPointerException(env, "dest == null");
-        return false;
-    }
-    JNI_TRACE("arrayToBignum(%p, %p) *dest == %p", source, dest, *dest);
+static bssl::UniquePtr<BIGNUM> arrayToBignum(JNIEnv* env, jbyteArray source) {
+    JNI_TRACE("arrayToBignum(%p)", source);
 
     if (source == nullptr) {
-        JNI_TRACE("arrayToBignum(%p, %p) => source is null!", source, dest);
+        JNI_TRACE("arrayToBignum(%p) => source is null!", source);
         conscrypt::jniutil::throwNullPointerException(env, "source == null");
-        return false;
+        return nullptr;
     }
     ScopedByteArrayRO sourceBytes(env, source);
     if (sourceBytes.get() == nullptr) {
-        JNI_TRACE("arrayToBignum(%p, %p) => null", source, dest);
-        return false;
+        JNI_TRACE("arrayToBignum(%p) => null", source);
+        return nullptr;
     }
     const unsigned char* tmp = reinterpret_cast<const unsigned char*>(sourceBytes.get());
     size_t tmpSize = sourceBytes.size();
 
     /* if the array is empty, it is zero. */
     if (tmpSize == 0) {
-        if (*dest == nullptr) {
-            *dest = BN_new();
+        bssl::UniquePtr<BIGNUM> ret(BN_new());
+        if (ret == nullptr) {
+            conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate BIGNUM");
+            ERR_clear_error();
+            return nullptr;
         }
-        BN_zero(*dest);
-        return true;
+        BN_zero(ret.get());
+        return ret;
     }
 
     std::unique_ptr<unsigned char[]> twosComplement;
@@ -209,26 +206,17 @@ static bool arrayToBignum(JNIEnv* env, jbyteArray source, BIGNUM** dest) {
             }
         }
     }
-    BIGNUM* ret = BN_bin2bn(tmp, tmpSize, *dest);
+    bssl::UniquePtr<BIGNUM> ret(BN_bin2bn(tmp, tmpSize, nullptr));
     if (ret == nullptr) {
         conscrypt::jniutil::throwRuntimeException(env, "Conversion to BIGNUM failed");
         ERR_clear_error();
-        JNI_TRACE("arrayToBignum(%p, %p) => threw exception", source, dest);
-        return false;
-    }
-    BN_set_negative(ret, negative ? 1 : 0);
-
-    *dest = ret;
-    JNI_TRACE("arrayToBignum(%p, %p) => *dest = %p", source, dest, ret);
-    return true;
-}
-
-static bssl::UniquePtr<BIGNUM> arrayToBignum(JNIEnv* env, jbyteArray source) {
-    BIGNUM* bn = nullptr;
-    if (!arrayToBignum(env, source, &bn)) {
+        JNI_TRACE("arrayToBignum(%p) => threw exception", source);
         return nullptr;
     }
-    return bssl::UniquePtr<BIGNUM>(bn);
+    BN_set_negative(ret.get(), negative ? 1 : 0);
+
+    JNI_TRACE("arrayToBignum(%p) => %p", source, ret.get());
+    return ret;
 }
 
 /**
@@ -244,6 +232,10 @@ static jbyteArray bignumToArray(JNIEnv* env, const BIGNUM* source, const char* s
 
     size_t numBytes = BN_num_bytes(source) + 1;
     jbyteArray javaBytes = env->NewByteArray(static_cast<jsize>(numBytes));
+    if (javaBytes == nullptr) {
+        JNI_TRACE("bignumToArray(%p, %s) => null", source, sourceName);
+        return nullptr;
+    }
     ScopedByteArrayRW bytes(env, javaBytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("bignumToArray(%p, %s) => null", source, sourceName);
@@ -1644,8 +1636,6 @@ static jlong NativeCrypto_EVP_parse_private_key(JNIEnv* env, jclass, jbyteArray 
     }
     ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_parse_private_key => threw exception", keyJavaBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1696,8 +1686,6 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_from_private_key_info => threw exception");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1708,6 +1696,9 @@ static jlong NativeCrypto_EVP_PKEY_from_private_key_info(JNIEnv* env, jclass,
         return 0;
     }
     ScopedIntArrayRO algs_ro(env, algs);
+    if (algs_ro.get() == nullptr) {
+        return 0;
+    }
     std::vector<const EVP_PKEY_ALG*> alg_pointers(num_algs);
     for (size_t i = 0; i < num_algs; ++i) {
         const EVP_PKEY_ALG* alg = GetAlg(algs_ro.get()[i]);
@@ -1745,9 +1736,6 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_subject_public_key_info => threw exception",
-                  key_java_bytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1758,6 +1746,9 @@ static jlong NativeCrypto_EVP_PKEY_from_subject_public_key_info(JNIEnv* env, jcl
         return 0;
     }
     ScopedIntArrayRO algs_ro(env, algs);
+    if (algs_ro.get() == nullptr) {
+        return 0;
+    }
     std::vector<const EVP_PKEY_ALG*> alg_pointers(num_algs);
     for (size_t i = 0; i < num_algs; ++i) {
         const EVP_PKEY_ALG* alg = GetAlg(algs_ro.get()[i]);
@@ -1796,9 +1787,6 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_private_key(JNIEnv* env, jclass, jin
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("key_java_bytes=%p EVP_PKEY_from_raw_private_key => threw exception",
-                  key_java_bytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -1847,14 +1835,10 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_private_key(JNIEnv* env, jclass,
                                              env->NewByteArray(static_cast<jsize>(key_length)));
 
     if (raw_key_array.get() == nullptr) {
-        JNI_TRACE("key=%p EVP_PKEY_get_raw_private_key: creating byte array failed", pkey);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
         return nullptr;
     }
     ScopedByteArrayRW raw_key(env, raw_key_array.get());
     if (raw_key.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key");
         return nullptr;
     }
 
@@ -1879,8 +1863,6 @@ static jlong NativeCrypto_EVP_PKEY_from_raw_public_key(JNIEnv* env, jclass, jint
 
     ScopedByteArrayRO bytes(env, key_java_bytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_raw_public_key => threw exception", key_java_bytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key_java_bytes");
         return 0;
     }
 
@@ -1922,14 +1904,10 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_raw_public_key(JNIEnv* env, jclass, 
     ScopedLocalRef<jbyteArray> raw_key_array(env,
                                              env->NewByteArray(static_cast<jsize>(key_length)));
     if (raw_key_array.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_public_key: creating byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key_array");
         return nullptr;
     }
     ScopedByteArrayRW raw_key(env, raw_key_array.get());
     if (raw_key.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_public_key: using byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for raw_key");
         return nullptr;
     }
 
@@ -1954,8 +1932,6 @@ static jlong NativeCrypto_EVP_PKEY_from_private_seed(JNIEnv* env, jclass, jint p
 
     ScopedByteArrayRO seed(env, javaSeedBytes);
     if (seed.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_PKEY_from_private_seed => threw exception", javaSeedBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return 0;
     }
 
@@ -2002,14 +1978,10 @@ static jbyteArray NativeCrypto_EVP_PKEY_get_private_seed(JNIEnv* env, jclass, jo
 
     ScopedLocalRef<jbyteArray> seedArray(env, env->NewByteArray(static_cast<jsize>(seed_length)));
     if (seedArray.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_private_key: creating byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seedArray");
         return nullptr;
     }
     ScopedByteArrayRW seed(env, seedArray.get());
     if (seed.get() == nullptr) {
-        JNI_TRACE("EVP_PKEY_get_raw_private_key: using byte array failed");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seed");
         return nullptr;
     }
 
@@ -2039,15 +2011,11 @@ static jbyteArray NativeCrypto_EVP_raw_X25519_private_key(JNIEnv* env, jclass cl
     size_t key_length = X25519_PRIVATE_KEY_LEN;
     ScopedLocalRef<jbyteArray> byteArray(env, env->NewByteArray(static_cast<jsize>(key_length)));
     if (byteArray.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Allocating byte[]");
-        JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key: byte array creation failed");
         return nullptr;
     }
 
     ScopedByteArrayRW bytes(env, byteArray.get());
     if (bytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Allocating scoped byte array");
-        JNI_TRACE("NativeCrypto_EVP_raw_X25519_private_key: scoped byte array failed");
         return nullptr;
     }
 
@@ -2103,8 +2071,6 @@ static jlong NativeCrypto_EVP_parse_public_key(JNIEnv* env, jclass, jbyteArray k
     }
     ScopedByteArrayRO bytes(env, keyJavaBytes);
     if (bytes.get() == nullptr) {
-        JNI_TRACE("bytes=%p EVP_parse_public_key => threw exception", keyJavaBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for bytes");
         return 0;
     }
 
@@ -2666,6 +2632,12 @@ static jobjectArray NativeCrypto_EC_GROUP_get_curve(JNIEnv* env, jclass, jobject
     bssl::UniquePtr<BIGNUM> p(BN_new());
     bssl::UniquePtr<BIGNUM> a(BN_new());
     bssl::UniquePtr<BIGNUM> b(BN_new());
+    if (p.get() == nullptr || a.get() == nullptr || b.get() == nullptr) {
+        JNI_TRACE("EC_GROUP_get_curve(%p) => can't create BN", group);
+        conscrypt::jniutil::throwOutOfMemory(env, "BN_new");
+        ERR_clear_error();
+        return nullptr;
+    }
 
     int ret = EC_GROUP_get_curve_GFp(group, p.get(), a.get(), b.get(), nullptr);
     if (ret != 1) {
@@ -3091,11 +3063,14 @@ static jlong NativeCrypto_EC_KEY_parse_curve_name(JNIEnv* env, jclass, jbyteArra
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE("EC_KEY_parse_curve_name(%p)", curveNameBytes);
 
-    ScopedByteArrayRO bytes(env, curveNameBytes);
-    if (bytes.get() == nullptr) {
-        env->ExceptionClear();
+    if (curveNameBytes == nullptr) {
         conscrypt::jniutil::throwIOException(env, "Null EC curve name");
         JNI_TRACE("bytes=%p EC_KEY_parse_curve_name => curveNameBytes == null ", curveNameBytes);
+        return 0;
+    }
+
+    ScopedByteArrayRO bytes(env, curveNameBytes);
+    if (bytes.get() == nullptr) {
         return 0;
     }
 
@@ -3717,9 +3692,6 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
     }
     ScopedByteArrayRW out(env, outArray);
     if (out.get() == nullptr) {
-        JNI_TRACE("X25519(%p, %p, %p) can't get output buffer", outArray, privkeyArray,
-                  pubkeyArray);
-        conscrypt::jniutil::throwOutOfMemory(env, "Can't get output buffer");
         return JNI_FALSE;
     }
     if (out.size() != 32) {
@@ -3734,8 +3706,6 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
     }
     ScopedByteArrayRO privkey(env, privkeyArray);
     if (privkey.get() == nullptr) {
-        JNI_TRACE("X25519(%p) => privkey == null", outArray);
-        conscrypt::jniutil::throwOutOfMemory(env, "Can't get private key buffer");
         return JNI_FALSE;
     }
     if (privkey.size() != 32) {
@@ -3750,8 +3720,6 @@ static jboolean NativeCrypto_X25519(JNIEnv* env, jclass, jbyteArray outArray,
     }
     ScopedByteArrayRO pubkey(env, pubkeyArray);
     if (pubkey.get() == nullptr) {
-        JNI_TRACE("X25519(%p) => pubkey == null", pubkeyArray);
-        conscrypt::jniutil::throwOutOfMemory(env, "Can't get public key buffer");
         return JNI_FALSE;
     }
     if (pubkey.size() != 32) {
@@ -4325,7 +4293,6 @@ static void evpUpdate(JNIEnv* env, jobject evpMdCtxRef, jbyteArray inJavaBytes, 
         // another approach.
         jbyte* array_elements = env->GetByteArrayElements(inJavaBytes, nullptr);
         if (array_elements == nullptr) {
-            conscrypt::jniutil::throwOutOfMemory(env, "Unable to obtain elements of inBytes");
             return;
         }
         const unsigned char* buf = reinterpret_cast<const unsigned char*>(array_elements);
@@ -4421,7 +4388,6 @@ static jbyteArray NativeCrypto_EVP_DigestSignFinal(JNIEnv* env, jclass, jobject 
 
     ScopedLocalRef<jbyteArray> sigJavaBytes(env, env->NewByteArray(static_cast<jint>(actualLen)));
     if (sigJavaBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate signature byte[]");
         return nullptr;
     }
     env->SetByteArrayRegion(sigJavaBytes.get(), 0, static_cast<jint>(actualLen),
@@ -4506,7 +4472,6 @@ static jbyteArray NativeCrypto_EVP_DigestSign(JNIEnv* env, jclass, jobject evpMd
 
     ScopedByteArrayRO array_elements(env, inJavaBytes);
     if (array_elements.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to obtain elements of inBytes");
         return nullptr;
     }
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(array_elements.get());
@@ -4540,7 +4505,6 @@ static jbyteArray NativeCrypto_EVP_DigestSign(JNIEnv* env, jclass, jobject evpMd
 
     ScopedLocalRef<jbyteArray> sigJavaBytes(env, env->NewByteArray(static_cast<jint>(actualLen)));
     if (sigJavaBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate signature byte[]");
         return nullptr;
     }
     env->SetByteArrayRegion(sigJavaBytes.get(), 0, static_cast<jint>(actualLen),
@@ -5331,7 +5295,6 @@ static jint evp_aead_ctx_op_common(JNIEnv* env, jlong evpAeadRef, jbyteArray key
     }
     ScopedByteArrayRO keyBytes(env, keyArray);
     if (keyBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate key buffer");
         return 0;
     }
 
@@ -5353,7 +5316,6 @@ static jint evp_aead_ctx_op_common(JNIEnv* env, jlong evpAeadRef, jbyteArray key
     }
     ScopedByteArrayRO nonceBytes(env, nonceArray);
     if (nonceBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate nonce buffer");
         return 0;
     }
 
@@ -5396,7 +5358,6 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     }
     ScopedByteArrayRW outBytes(env, outArray);
     if (outBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate out buffer");
         return 0;
     }
 
@@ -5416,7 +5377,6 @@ static jint evp_aead_ctx_op(JNIEnv* env, jlong evpAeadRef, jbyteArray keyArray, 
     }
     ScopedByteArrayRO inBytes(env, inArray);
     if (inBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate in buffer");
         return 0;
     }
 
@@ -6248,7 +6208,6 @@ static void NativeCrypto_HMAC_Init_ex(JNIEnv* env, jclass, jobject hmacCtxRef, j
     }
     ScopedByteArrayRO keyBytes(env, keyArray);
     if (keyBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate memory for keyBytes");
         return;
     }
 
@@ -6299,7 +6258,6 @@ static void NativeCrypto_HMAC_Update(JNIEnv* env, jclass, jobject hmacCtxRef, jb
     }
     ScopedByteArrayRO inBytes(env, inArray);
     if (inBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Failed to allocate memory for inBytes");
         return;
     }
 
@@ -8030,7 +7988,6 @@ static jlong NativeCrypto_d2i_X509(JNIEnv* env, jclass, jbyteArray certBytes) {
     ScopedByteArrayRO bytes(env, certBytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("NativeCrypto_d2i_X509(%p) => using byte array failed", certBytes);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate byte array for cert");
         return 0;
     }
 
@@ -8168,6 +8125,10 @@ static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsAr
     STACK_OF(X509)* stack = sk_X509_new_null();
 
     ScopedLongArrayRO certs(env, certsArray);
+    if (certs.get() == nullptr) {
+        sk_X509_free(stack);
+        return nullptr;
+    }
     for (size_t i = 0; i < certs.size(); i++) {
         X509* item = reinterpret_cast<X509*>(certs[i]);
         if (sk_X509_push(stack, item) == 0) {
@@ -8350,7 +8311,6 @@ static jbyteArray NativeCrypto_ASN1_seq_pack_X509(JNIEnv* env, jclass, jlongArra
     ScopedLongArrayRO certsArray(env, certs);
     if (certsArray.get() == nullptr) {
         JNI_TRACE("ASN1_seq_pack_X509(%p) => failed to get certs array", certs);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to get certs array");
         return nullptr;
     }
 
@@ -8723,7 +8683,7 @@ static jint NativeCrypto_get_X509_ex_pathlen(JNIEnv* env, jclass, jlong x509Ref,
         return -1;
     }
 
-    if (basic_constraints->pathlen->type == V_ASN1_NEG_INTEGER) {
+    if (ASN1_STRING_type(basic_constraints->pathlen) == V_ASN1_NEG_INTEGER) {
         // Path length constraints may not be negative.
         // TODO(https://github.com/google/conscrypt/issues/916): Treat this as an
         // error condition.
@@ -9494,8 +9454,6 @@ static void NativeCrypto_SSL_CTX_set_session_id_context(JNIEnv* env, jclass, jlo
                 "ssl_ctx=%p NativeCrypto_SSL_CTX_set_session_id_context => threw "
                 "exception",
                 ssl_ctx);
-        conscrypt::jniutil::throwOutOfMemory(
-                env, "NativeCrypto_SSL_CTX_set_session_id_context buffer allocation failed");
         return;
     }
 
@@ -9824,7 +9782,6 @@ static void NativeCrypto_SSL_set_signed_cert_timestamp_list(JNIEnv* env, jclass,
     }
     ScopedByteArrayRO listBytes(env, list);
     if (listBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate list bytes");
         return;
     }
 
@@ -9905,7 +9862,6 @@ static void NativeCrypto_SSL_set_ocsp_response(JNIEnv* env, jclass, jlong ssl_ad
     }
     ScopedByteArrayRO responseBytes(env, response);
     if (responseBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate response");
         return;
     }
 
@@ -9975,7 +9931,6 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
     }
     ScopedByteArrayRO labelBytes(env, label);
     if (labelBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate label bytes");
         return nullptr;
     }
     std::unique_ptr<uint8_t[]> out(new uint8_t[num_bytes]);
@@ -9987,7 +9942,6 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
     } else {
         ScopedByteArrayRO contextBytes(env, context);
         if (contextBytes.get() == nullptr) {
-            conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate context bytes");
             return nullptr;
         }
         ret = SSL_export_keying_material(
@@ -10003,7 +9957,6 @@ static jbyteArray NativeCrypto_SSL_export_keying_material(JNIEnv* env, jclass, j
     }
     jbyteArray result = env->NewByteArray(static_cast<jsize>(num_bytes));
     if (result == nullptr) {
-        conscrypt::jniutil::throwSSLExceptionStr(env, "Could not create result array");
         JNI_TRACE(
                 "ssl=%p NativeCrypto_SSL_export_keying_material => could not create "
                 "array",
@@ -10501,8 +10454,6 @@ static void NativeCrypto_setApplicationProtocols(JNIEnv* env, jclass, jlong ssl_
         if (client_mode) {
             ScopedByteArrayRO protosBytes(env, protocols);
             if (protosBytes.get() == nullptr) {
-                conscrypt::jniutil::throwOutOfMemory(env,
-                                                     "Unable to allocate buffer for protocols");
                 return;
             }
 
@@ -10585,7 +10536,6 @@ static void NativeCrypto_SSL_set1_groups(JNIEnv* env, jclass, jlong sslAddress,
     ScopedIntArrayRO groups_ro(env, groups);
     if (groups_ro.get() == nullptr) {
         JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_groups => threw exception", ssl);
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for groups");
         return;
     }
     std::vector<int> groups_vector;
@@ -10985,12 +10935,12 @@ static jlong NativeCrypto_d2i_SSL_SESSION(JNIEnv* env, jclass, jbyteArray javaBy
     ScopedByteArrayRO bytes(env, javaBytes);
     if (bytes.get() == nullptr) {
         JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => threw exception");
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to get byte array");
         return 0;
     }
     const unsigned char* ucp = reinterpret_cast<const unsigned char*>(bytes.get());
     // NOLINTNEXTLINE(runtime/int)
-    SSL_SESSION* ssl_session = d2i_SSL_SESSION(nullptr, &ucp, static_cast<long>(bytes.size()));
+    bssl::UniquePtr<SSL_SESSION> ssl_session(
+            d2i_SSL_SESSION(nullptr, &ucp, static_cast<long>(bytes.size())));
 
     if (ssl_session == nullptr ||
         ucp != (reinterpret_cast<const unsigned char*>(bytes.get()) + bytes.size())) {
@@ -11000,8 +10950,8 @@ static jlong NativeCrypto_d2i_SSL_SESSION(JNIEnv* env, jclass, jbyteArray javaBy
         return 0L;
     }
 
-    JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => %p", ssl_session);
-    return reinterpret_cast<uintptr_t>(ssl_session);
+    JNI_TRACE("NativeCrypto_d2i_SSL_SESSION => %p", ssl_session.get());
+    return reinterpret_cast<uintptr_t>(ssl_session.release());
 }
 
 static jstring NativeCrypto_SSL_CIPHER_get_kx_name(JNIEnv* env, jclass, jlong cipher_address) {
@@ -11267,7 +11217,6 @@ static jbyteArray NativeCrypto_get_ocsp_single_extension(
     }
     ScopedByteArrayRO ocspData(env, ocspDataBytes);
     if (ocspData.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to create ocspData");
         return nullptr;
     }
 
@@ -11921,24 +11870,20 @@ static jbyteArray NativeCrypto_Scrypt_generate_key(JNIEnv* env, jclass, jbyteArr
 
     jbyteArray key_bytes = env->NewByteArray(static_cast<jsize>(key_len));
     if (key_bytes == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key_bytes");
         return nullptr;
     }
     ScopedByteArrayRW out_key(env, key_bytes);
     if (out_key.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for key");
         return nullptr;
     }
 
     size_t memory_limit = 1u << 29;
     ScopedByteArrayRO password_bytes(env, password);
     if (password_bytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for password");
         return nullptr;
     }
     ScopedByteArrayRO salt_bytes(env, salt);
     if (salt_bytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for salt");
         return nullptr;
     }
 
@@ -11969,7 +11914,7 @@ static void NativeCrypto_SSL_CTX_set_spake_credential(
 
     SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
     if (ssl_ctx == nullptr) {
-         return;
+        return;
     }
 
     JNI_TRACE("SSL_CTX_set_spake_credential(%p, %p, %p, %p, %d, %d, %p)", context, pw_array,
@@ -12256,7 +12201,6 @@ static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
     if (configBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate config bytes");
         JNI_TRACE("NativeCrypto_SSL_set1_ech_config_list => could not read config bytes");
         return JNI_FALSE;
     }
@@ -12395,7 +12339,6 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
     }
     ScopedByteArrayRO keyBytes(env, keyJavaBytes);
     if (keyBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate key bytes");
         JNI_TRACE(
                 "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
                 "could not read key bytes");
@@ -12403,7 +12346,6 @@ static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlon
     }
     ScopedByteArrayRO configBytes(env, configJavaBytes);
     if (configBytes.get() == nullptr) {
-        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate config bytes");
         JNI_TRACE(
                 "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
                 "could not read config bytes");
