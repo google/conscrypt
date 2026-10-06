@@ -192,8 +192,10 @@ extern bool isDirectByteBufferInstance(JNIEnv* env, jobject buffer) {
 }
 
 bool isGetByteArrayElementsLikelyToReturnACopy(size_t size) {
-#if defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)
+#if (defined(ANDROID) && !defined(CONSCRYPT_OPENJDK)) || defined(CONSCRYPT_JNI_TESTING)
     // ART's GetByteArrayElements creates copies only for arrays smaller than 12 kB.
+    // CONSCRYPT_JNI_TESTING is also included so that C++ unit tests (jni_testing) on Linux can
+    // exercise both the true (<= 12 kB) and false (> 12 kB) code paths.
     return size <= 12 * 1024;
 #else
     (void)size;
