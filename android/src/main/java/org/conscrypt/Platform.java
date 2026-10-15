@@ -882,6 +882,28 @@ final public class Platform {
         return false;
     }
 
+    public static boolean isPqcKemKdfSupported() {
+        return false;
+    }
+
+    /**
+     * Returns true if PQC key exchange (X25519MLKEM768) should be enabled by default.
+     *
+     * <p>{@code android.compat.Compatibility.isChangeEnabled(long)} is {@code @IntraCoreApi} /
+     * {@code @SystemApi(client = MODULE_LIBRARIES)} and is blocked by hiddenapi restrictions for
+     * unbundled Conscrypt running in regular application classloaders, so per-app compat gating is
+     * only performed in the platform module ({@code platform/src/main/java/org/conscrypt/Platform.java}).
+     */
+    private static volatile boolean pqcDefaultEnabled = true;
+
+    public static boolean isPqcDefaultEnabled() {
+        return pqcDefaultEnabled;
+    }
+
+    public static void setPqcDefaultEnabledForTesting(boolean enabled) {
+        pqcDefaultEnabled = enabled;
+    }
+
     public static boolean isSdkGreater(int sdk) {
         return Build.VERSION.SDK_INT > sdk;
     }

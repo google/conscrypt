@@ -177,8 +177,8 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     }
 
     @Override
-    void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-        if (mode != Mode.NONE) {
+    protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+        if (!modeStr.equalsIgnoreCase("NONE")) {
             throw new NoSuchAlgorithmException("Mode must be NONE");
         }
     }

@@ -19,6 +19,8 @@ package org.conscrypt;
 import static android.system.OsConstants.SOL_SOCKET;
 import static android.system.OsConstants.SO_SNDTIMEO;
 
+import android.compat.Compatibility;
+import android.compat.annotation.ChangeId;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.StructTimeval;
@@ -642,6 +644,38 @@ final public class Platform {
 
     public static boolean isPakeSupported() {
         return true;
+    }
+
+    /**
+     * Controls whether Post-Quantum Cryptography (X25519MLKEM768) is included in the default
+     * TLS named groups for this application.
+     */
+    @ChangeId
+    public static final long ENABLE_TLS_PQC_DEFAULT_GROUPS = 556729260L;
+
+    /**
+     * Returns true if PQC key exchange (X25519MLKEM768) should be enabled by default.
+     *
+     * <p>Note: Do not cache the result of {@link Compatibility#isChangeEnabled(long)} in a static
+     * field. Conscrypt classes are preloaded in Zygote ({@link #RUNNING_IN_ZYGOTE}), where
+     * {@code Compatibility.isChangeEnabled} always returns true. This check must be evaluated
+     * dynamically per connection post-fork inside the application process.
+     *
+     * <p>Unlike {@code @EnabledAfter}/{@code @EnabledSince} targetSdk-gated changes,
+     * {@link #ENABLE_TLS_PQC_DEFAULT_GROUPS} is enabled by default across all targetSdkVersions, so
+     * {@code PlatformCompat} evaluates it to {@code true} for both app and non-app processes on
+     * older Android releases as well, while still allowing per-app overrides on debuggable builds
+     * and via Developer Options.
+     */
+    public static boolean isPqcDefaultEnabled() {
+        if (!Flags.tlsPqcDefaultNamedGroups()) {
+            return false;
+        }
+        try {
+            return Compatibility.isChangeEnabled(ENABLE_TLS_PQC_DEFAULT_GROUPS);
+        } catch (Throwable ignored) {
+            return true;
+        }
     }
 
     private static boolean inZygote() {

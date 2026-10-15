@@ -1692,19 +1692,30 @@ final class ConscryptEngine extends AbstractConscryptEngine
                 selector == null ? null : new ApplicationProtocolSelectorAdapter(this, selector));
     }
 
+    // @GuardedBy("stateLock")
+    private boolean isHandshakeCompletedAndNotClosed() {
+        return state >= STATE_HANDSHAKE_COMPLETED && state != STATE_CLOSED
+                && state != STATE_CLOSED_OUTBOUND && !ssl.isClosed();
+    }
+
     @Override
     byte[] getTlsUnique() {
-        return ssl.getTlsUnique();
+        synchronized (stateLock) {
+            if (!isHandshakeCompletedAndNotClosed()) {
+                return null;
+            }
+            return ssl.getTlsUnique();
+        }
     }
 
     @Override
     byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
         synchronized (stateLock) {
-            if (state < STATE_HANDSHAKE_COMPLETED || state == STATE_CLOSED) {
+            if (!isHandshakeCompletedAndNotClosed()) {
                 return null;
             }
+            return ssl.exportKeyingMaterial(label, context, length);
         }
-        return ssl.exportKeyingMaterial(label, context, length);
     }
 
     void setApplicationProtocolSelector(ApplicationProtocolSelectorAdapter adapter) {

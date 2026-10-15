@@ -21,6 +21,7 @@ import static org.conscrypt.TestUtils.readTestFile;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -60,6 +61,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -763,5 +765,57 @@ public class ConscryptSocketTest {
         byte[] buffer = new byte[size];
         random.nextBytes(buffer);
         return buffer;
+    }
+
+    @Test
+    public void exportKeyingMaterial_afterClose() throws Exception {
+        TestConnection connection = new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+        connection.doHandshakeSuccess();
+        byte[] ekm = Conscrypt.exportKeyingMaterial(connection.client, "label", null, 32);
+        assertNotNull(ekm);
+        assertEquals(32, ekm.length);
+
+        connection.client.close();
+        assertNull(Conscrypt.exportKeyingMaterial(connection.client, "label", null, 32));
+    }
+
+    @Test
+    public void exportKeyingMaterial_concurrentClose() throws Exception {
+        for (int i = 0; i < 50; i++) {
+            TestConnection connection =
+                    new TestConnection(new X509Certificate[] {cert, ca}, certKey);
+            connection.doHandshakeSuccess();
+            final SSLSocket clientSocket = connection.client;
+
+            final AtomicReference<Throwable> error = new AtomicReference<>();
+            Thread getterThread = new Thread(() -> {
+                try {
+                    for (int k = 0; k < 500; k++) {
+                        Conscrypt.exportKeyingMaterial(clientSocket, "label", null, 32);
+                        Conscrypt.getTlsUnique(clientSocket);
+                    }
+                } catch (Throwable t) {
+                    error.set(t);
+                }
+            });
+
+            Thread closerThread = new Thread(() -> {
+                try {
+                    clientSocket.close();
+                } catch (Throwable t) {
+                    error.set(t);
+                }
+            });
+
+            getterThread.start();
+            closerThread.start();
+            getterThread.join();
+            closerThread.join();
+
+            connection.server.close();
+            if (error.get() != null) {
+                throw new AssertionError("Exception in concurrent EKM/close", error.get());
+            }
+        }
     }
 }

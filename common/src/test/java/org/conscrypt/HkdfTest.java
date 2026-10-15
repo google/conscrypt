@@ -36,6 +36,7 @@ public class HkdfTest {
         assertThrows(NullPointerException.class, () -> new Hkdf(null));
         assertThrows(NoSuchAlgorithmException.class, () -> new Hkdf("No such MAC"));
         assertThrows(NoSuchAlgorithmException.class, () -> new Hkdf("AESCMAC"));
+        assertThrows(NoSuchAlgorithmException.class, () -> new Hkdf("SHA256"));
     }
 
     @Test

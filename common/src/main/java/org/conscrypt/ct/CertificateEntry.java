@@ -18,6 +18,7 @@ package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
 import org.conscrypt.OpenSSLX509Certificate;
+import org.conscrypt.util.SerializationException;
 
 import java.io.OutputStream;
 import java.security.MessageDigest;

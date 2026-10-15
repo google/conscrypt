@@ -794,6 +794,21 @@ final public class Platform {
         return false;
     }
 
+    public static boolean isPqcKemKdfSupported() {
+        return true;
+    }
+
+    public static final long ENABLE_TLS_PQC_DEFAULT_GROUPS = 556729260L;
+    private static volatile boolean pqcDefaultEnabled = true;
+
+    public static boolean isPqcDefaultEnabled() {
+        return pqcDefaultEnabled;
+    }
+
+    public static void setPqcDefaultEnabledForTesting(boolean enabled) {
+        pqcDefaultEnabled = enabled;
+    }
+
     public static boolean isSdkGreater(int sdk) {
         return false;
     }

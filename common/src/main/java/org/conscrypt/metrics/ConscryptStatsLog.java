@@ -254,6 +254,7 @@ public final class ConscryptStatsLog {
     public static final int TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INVALID_CONFIG = 2;
     public static final int TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INCONSISTENT_NEGOTIATION = 3;
     public static final int TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_NO_RETRY_CONFIGS = 4;
+    public static final int TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_FAILED_TLS_HANDSHAKE = 5;
 
     // Write methods
     public static void write(int code, boolean arg1, int arg2, int arg3, int arg4, int arg5, int[] arg6) {

@@ -31,7 +31,6 @@ import static org.junit.Assert.fail;
 // android-add: import libcore.test.reasons.NonCtsReasons;
 
 import org.bouncycastle.asn1.x509.KeyUsage;
-import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -1088,7 +1087,7 @@ public final class CipherTest {
                                  || baseCipherName.equals("XCHACHA20"))) {
                             seenCiphersWithModeAndPadding.add(baseCipherName);
                         }
-                        if (!Conscrypt.isConscrypt(provider)) {
+                        if (!TestUtils.isConscrypt(provider)) {
                             continue;
                         }
                     }
@@ -4773,7 +4772,7 @@ public final class CipherTest {
                                           "DESEDE/CBC/PKCS5PADDING", "DESEDE/CBC/PKCS7PADDING"};
         for (String c : androidOpenSSLCiphers) {
             Cipher cipher = Cipher.getInstance(c);
-            assertTrue(Conscrypt.isConscrypt(cipher.getProvider()));
+            assertTrue(TestUtils.isConscrypt(cipher.getProvider()));
             if (c.contains("/CBC/")) {
                 cipher.init(
                         Cipher.DECRYPT_MODE,

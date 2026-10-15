@@ -208,6 +208,11 @@ extern int throwOutOfMemory(JNIEnv* env, const char* message);
 extern int throwIllegalArgumentException(JNIEnv* env, const char* message);
 
 /**
+ * Throws an IllegalStateException with the given string as a message.
+ */
+extern int throwIllegalStateException(JNIEnv* env, const char* message);
+
+/**
  * Throws a BadPaddingException with the given string as a message.
  */
 extern int throwBadPaddingException(JNIEnv* env, const char* message);

@@ -22,7 +22,7 @@ import java.security.NoSuchAlgorithmException;
 @Internal
 public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     public OpenSSLAeadCipherChaCha20() {
-        super(Mode.POLY1305);
+        super();
     }
 
     @Override
@@ -44,8 +44,8 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     }
 
     @Override
-    void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-        if (mode != Mode.POLY1305) {
+    protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+        if (!modeStr.equalsIgnoreCase("Poly1305")) {
             throw new NoSuchAlgorithmException("Mode must be Poly1305");
         }
     }

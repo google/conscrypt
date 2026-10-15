@@ -25,7 +25,7 @@ import javax.crypto.NoSuchPaddingException;
 public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
     public OpenSSLEvpCipherARC4() {
         // Modes and padding don't make sense for ARC4.
-        super(Mode.ECB, Padding.NOPADDING);
+        super(Padding.NOPADDING);
     }
 
     @Override
@@ -34,7 +34,7 @@ public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
     }
 
     @Override
-    long getCipherType(int keySize, Mode mode) {
+    long getCipherType(int keySize) {
         return NativeCrypto.EVP_rc4();
     }
 
@@ -42,9 +42,9 @@ public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
     void checkSupportedKeySize(int keySize) throws InvalidKeyException {}
 
     @Override
-    void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-        if (mode != Mode.NONE && mode != Mode.ECB) {
-            throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+    protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+        if (!modeStr.equalsIgnoreCase("NONE") && !modeStr.equalsIgnoreCase("ECB")) {
+            throw new NoSuchAlgorithmException("Unsupported mode " + modeStr);
         }
     }
 

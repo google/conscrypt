@@ -27,7 +27,6 @@ import static org.junit.Assert.fail;
 
 import junit.framework.AssertionFailedError;
 
-import org.conscrypt.Conscrypt;
 import org.conscrypt.TestUtils;
 import org.junit.BeforeClass;
 // android-add: import org.junit.ClassRule;
@@ -390,7 +389,7 @@ public class ECDHKeyAgreementTest {
             assertTrue(Arrays.equals(KAT_SECRET, key.getEncoded()));
         } catch (NoSuchAlgorithmException e) {
             // This provider doesn't support AES, that's fine as long as it's not Conscrypt
-            assertFalse(Conscrypt.isConscrypt(provider));
+            assertFalse(TestUtils.isConscrypt(provider));
         }
     }
 

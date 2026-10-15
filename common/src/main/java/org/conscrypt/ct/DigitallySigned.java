@@ -17,6 +17,7 @@
 package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
+import org.conscrypt.util.SerializationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

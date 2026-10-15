@@ -791,6 +791,23 @@ public final class OpenSSLProvider extends Provider {
             put("TrustManagerFactory.PAKE", PREFIX + "PakeTrustManagerFactory");
             put("KeyManagerFactory.PAKE", PREFIX + "PakeKeyManagerFactory");
         }
+
+        /* === KDF === */
+        if (classExists("javax.crypto.KDF") && Platform.isPqcKemKdfSupported()) {
+            // Standard JCA KDF algorithm names per Java Security Standard Algorithm Names spec.
+            put("KDF.HKDF-SHA256", PREFIX + "OpenSslHkdf$HkdfSha256");
+            put("KDF.HKDF-SHA384", PREFIX + "OpenSslHkdf$HkdfSha384");
+            put("KDF.HKDF-SHA512", PREFIX + "OpenSslHkdf$HkdfSha512");
+            put("KDF.HKDF-SHA1", PREFIX + "OpenSslHkdf$HkdfSha1");
+        }
+
+        /* === KEM === */
+        if (classExists("javax.crypto.KEM") && Platform.isPqcKemKdfSupported()) {
+            // Standard JCA KEM algorithm names per Java Security Standard Algorithm Names spec.
+            put("KEM.ML-KEM", PREFIX + "OpenSslMlKem$MlKem");
+            put("KEM.ML-KEM-768", PREFIX + "OpenSslMlKem$MlKem768");
+            put("KEM.ML-KEM-1024", PREFIX + "OpenSslMlKem$MlKem1024");
+        }
     }
 
     @SuppressWarnings("UnusedMethod")

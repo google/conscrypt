@@ -34,9 +34,9 @@ public interface ConscryptX509TrustManager {
     /**
      * Verifies the given certificate chain.
      *
-     * <p>See {@link X509TrustManager#checkServerTrusted(X509Certificate[], String)} for a
-     * description of the chain and authType parameters. The final parameter, host, should be the
-     * hostname of the server.</p>
+     * <p>See {@link javax.net.ssl.X509TrustManager#checkServerTrusted(X509Certificate[], String)}
+     * for a description of the chain and authType parameters. The final parameter, host, should be
+     * the hostname of the server.</p>
      *
      * @throws CertificateException if the chain does not verify correctly.
      * @return the properly ordered chain used for verification as a list of X509Certificates.
@@ -47,9 +47,9 @@ public interface ConscryptX509TrustManager {
     /**
      * Verifies the given certificate chain.
      *
-     * <p>See {@link X509TrustManager#checkServerTrusted(X509Certificate[], String)} for a
-     * description of the chain and authType parameters. The final parameter, host, should be the
-     * hostname of the server.
+     * <p>See {@link javax.net.ssl.X509TrustManager#checkServerTrusted(X509Certificate[], String)}
+     * for a description of the chain and authType parameters. The final parameter, host, should be
+     * the hostname of the server.
      *
      * <p>ocspData and tlsSctData may be provided to verify any Signed Certificate Timestamp (SCT)
      * attached to the connection. These are ASN.1 octet strings (SignedCertificateTimestampList) as

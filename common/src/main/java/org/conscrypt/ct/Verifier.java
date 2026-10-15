@@ -19,6 +19,8 @@ package org.conscrypt.ct;
 import org.conscrypt.Internal;
 import org.conscrypt.NativeCrypto;
 import org.conscrypt.OpenSSLX509Certificate;
+import org.conscrypt.util.DerUtils;
+import org.conscrypt.util.SerializationException;
 
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -231,9 +233,8 @@ public class Verifier {
         }
 
         try {
-            return getSCTsFromSCTList(
-                    Serialization.readDEROctetString(Serialization.readDEROctetString(extData)),
-                    SignedCertificateTimestamp.Origin.OCSP_RESPONSE);
+            return getSCTsFromSCTList(DerUtils.readOctetString(DerUtils.readOctetString(extData)),
+                                      SignedCertificateTimestamp.Origin.OCSP_RESPONSE);
         } catch (SerializationException e) {
             return Collections.emptyList();
         }
@@ -252,9 +253,8 @@ public class Verifier {
         }
 
         try {
-            return getSCTsFromSCTList(
-                    Serialization.readDEROctetString(Serialization.readDEROctetString(extData)),
-                    SignedCertificateTimestamp.Origin.EMBEDDED);
+            return getSCTsFromSCTList(DerUtils.readOctetString(DerUtils.readOctetString(extData)),
+                                      SignedCertificateTimestamp.Origin.EMBEDDED);
         } catch (SerializationException e) {
             return Collections.emptyList();
         }

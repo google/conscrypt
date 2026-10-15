@@ -16,11 +16,11 @@
 
 package org.conscrypt;
 
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
-import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -28,7 +28,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <p>
  * Instances should be instantiated using the standard JCA name for the required HMAC.
  * <p>
- * Each invocation of expand or extract uses a new Mac instance and so instances
+ * Each invocation of expand or extract uses a new OpenSSLMac.Hmac instance and so instances
  * of Hkdf are thread-safe.</p>
  */
 public final class Hkdf {
@@ -38,10 +38,10 @@ public final class Hkdf {
 
     /**
      * Creates an Hkdf instance which will use hmacName as the name for the underlying
-     * HMAC algorithm, which will be located using normal JCA precedence rules.
+     * HMAC algorithm, directly using Conscrypt's OpenSSLMac implementation.
      * <p>
      * @param hmacName the name of the HMAC algorithm to use
-     * @throws NoSuchAlgorithmException if hmacName is not a valid HMAC name
+     * @throws NoSuchAlgorithmException if hmacName is not a supported HMAC name
      */
     public Hkdf(String hmacName) throws NoSuchAlgorithmException {
         Objects.requireNonNull(hmacName);
@@ -53,7 +53,25 @@ public final class Hkdf {
         this.hmacName = hmacName;
 
         // Stash the MAC length with the bonus that we'll fail fast here if no such algorithm.
-        macLength = Mac.getInstance(hmacName).getMacLength();
+        OpenSSLMac.Hmac mac = createMac(hmacName);
+        macLength = mac.engineGetMacLength();
+    }
+
+    private static OpenSSLMac.Hmac createMac(String hmacName) throws NoSuchAlgorithmException {
+        if ("HmacSHA256".equalsIgnoreCase(hmacName)) {
+            return new OpenSSLMac.HmacSHA256();
+        } else if ("HmacSHA384".equalsIgnoreCase(hmacName)) {
+            return new OpenSSLMac.HmacSHA384();
+        } else if ("HmacSHA512".equalsIgnoreCase(hmacName)) {
+            return new OpenSSLMac.HmacSHA512();
+        } else if ("HmacSHA1".equalsIgnoreCase(hmacName)) {
+            return new OpenSSLMac.HmacSHA1();
+        } else if ("HmacSHA224".equalsIgnoreCase(hmacName)) {
+            return new OpenSSLMac.HmacSHA224();
+        } else if ("HmacMD5".equalsIgnoreCase(hmacName)) {
+            return new OpenSSLMac.HmacMD5();
+        }
+        throw new NoSuchAlgorithmException("Unsupported HMAC algorithm: " + hmacName);
     }
 
     // Visible for testing.
@@ -68,9 +86,8 @@ public final class Hkdf {
      * @param ikm initial keying material
      * @return a pseudorandom key suitable for use in expand operations
      * @throws InvalidKeyException if the salt is not suitable for use as an HMAC key
-     * @throws NoSuchAlgorithmException if the Mac algorithm is no longer available
+     * @throws NoSuchAlgorithmException if the Mac algorithm is not available
      */
-
     public byte[] extract(byte[] salt, byte[] ikm)
             throws InvalidKeyException, NoSuchAlgorithmException {
         Objects.requireNonNull(salt);
@@ -79,7 +96,9 @@ public final class Hkdf {
         if (salt.length == 0) {
             salt = new byte[getMacLength()];
         }
-        return getMac(salt).doFinal(ikm);
+        OpenSSLMac.Hmac mac = getMac(salt);
+        mac.engineUpdate(ikm, 0, ikm.length);
+        return mac.engineDoFinal();
     }
 
     /**
@@ -92,7 +111,7 @@ public final class Hkdf {
      * @return output of keying material of length bytes
      * @throws InvalidKeyException if prk is not suitable for use as an HMAC key
      * @throws IllegalArgumentException if length is out of the allowed range
-     * @throws NoSuchAlgorithmException if the Mac algorithm is no longer available
+     * @throws NoSuchAlgorithmException if the Mac algorithm is not available
      */
     public byte[] expand(byte[] prk, byte[] info, int length)
             throws InvalidKeyException, NoSuchAlgorithmException {
@@ -100,7 +119,7 @@ public final class Hkdf {
         Objects.requireNonNull(info);
         Preconditions.checkArgument(length >= 0, "Negative length");
         Preconditions.checkArgument(length <= 255 * getMacLength(), "Length too long");
-        Mac mac = getMac(prk);
+        OpenSSLMac.Hmac mac = getMac(prk);
         int macLength = getMacLength();
 
         byte[] t = new byte[0];
@@ -109,9 +128,10 @@ public final class Hkdf {
         byte[] counter = new byte[] {0x00};
         while (outputOffset < length) {
             counter[0]++;
-            mac.update(t);
-            mac.update(info);
-            t = mac.doFinal(counter);
+            mac.engineUpdate(t, 0, t.length);
+            mac.engineUpdate(info, 0, info.length);
+            mac.engineUpdate(counter, 0, 1);
+            t = mac.engineDoFinal();
             int size = Math.min(macLength, length - outputOffset);
             System.arraycopy(t, 0, output, outputOffset, size);
             outputOffset += size;
@@ -119,11 +139,14 @@ public final class Hkdf {
         return output;
     }
 
-    private Mac getMac(byte[] key) throws InvalidKeyException, NoSuchAlgorithmException {
-        // Can potentially throw NoSuchAlgorithmException if the there has been a change
-        // in installed Providers.
-        Mac mac = Mac.getInstance(hmacName);
-        mac.init(new SecretKeySpec(key, "RAW"));
-        return mac; // https://www.youtube.com/watch?v=uB1D9wWxd2w
+    private OpenSSLMac.Hmac getMac(byte[] key)
+            throws InvalidKeyException, NoSuchAlgorithmException {
+        OpenSSLMac.Hmac mac = createMac(hmacName);
+        try {
+            mac.engineInit(new SecretKeySpec(key, "RAW"), null);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new AssertionError(e);
+        }
+        return mac;
     }
 }
