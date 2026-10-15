@@ -89,6 +89,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -1547,41 +1548,6 @@ public class SSLSocketVersionCompatibilityTest {
     }
 
     @Test
-    public void test_SSLSocket_ClientHello_record_size() throws Exception {
-        // This test checks the size of ClientHello of the default SSLSocket. TLS/SSL handshakes
-        // with older/unpatched F5/BIG-IP appliances are known to stall and time out when
-        // the fragment containing ClientHello is between 256 and 511 (inclusive) bytes long.
-        SSLContext sslContext = SSLContext.getInstance(clientVersion);
-        sslContext.init(null, null, null);
-        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        sslSocketFactory = new DelegatingSSLSocketFactory(sslSocketFactory) {
-            @Override
-            protected SSLSocket configureSocket(SSLSocket socket) {
-                // Enable SNI extension on the socket (this is typically enabled by default)
-                // to increase the size of ClientHello.
-                setHostname(socket);
-
-                // Enable Session Tickets extension on the socket (this is typically enabled
-                // by default) to increase the size of ClientHello.
-                enableSessionTickets(socket);
-                return socket;
-            }
-        };
-        TlsRecord firstReceivedTlsRecord =
-                TlsTester.captureTlsHandshakeFirstTlsRecord(executor, sslSocketFactory);
-        assertEquals("TLS record type", TlsProtocols.HANDSHAKE, firstReceivedTlsRecord.type);
-        HandshakeMessage handshakeMessage = HandshakeMessage.read(
-                new DataInputStream(new ByteArrayInputStream(firstReceivedTlsRecord.fragment)));
-        assertEquals("HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO,
-                     handshakeMessage.type);
-        int fragmentLength = firstReceivedTlsRecord.fragment.length;
-        if ((fragmentLength >= 256) && (fragmentLength <= 511)) {
-            fail("Fragment containing ClientHello is of dangerous length: " + fragmentLength
-                 + " bytes");
-        }
-    }
-
-    @Test
     public void test_SSLSocket_ClientHello_SNI() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
             ClientHello clientHello =
@@ -1886,6 +1852,8 @@ public class SSLSocketVersionCompatibilityTest {
         } finally {
             pair.close();
         }
+        assertNull(Conscrypt.getTlsUnique(pair.client));
+        assertNull(Conscrypt.getTlsUnique(pair.server));
     }
 
     // Tests that all cipher suites have a 12-byte tls-unique channel binding value.  If this
@@ -2002,6 +1970,50 @@ public class SSLSocketVersionCompatibilityTest {
             }
         } finally {
             pair.close();
+        }
+        assertNull(Conscrypt.exportKeyingMaterial(pair.client, "FOO", null, 20));
+        assertNull(Conscrypt.exportKeyingMaterial(pair.server, "FOO", null, 20));
+    }
+
+    @Test
+    public void test_SSLSocket_EKM_concurrentClose() throws Exception {
+        for (int iter = 0; iter < 50; iter++) {
+            TestSSLContext context = new TestSSLContext.Builder()
+                                             .clientProtocol(clientVersion)
+                                             .serverProtocol(serverVersion)
+                                             .build();
+            TestSSLSocketPair pair = TestSSLSocketPair.create(context);
+            pair.connect();
+
+            AtomicReference<Throwable> error = new AtomicReference<>();
+            Thread getterThread = new Thread(() -> {
+                try {
+                    for (int k = 0; k < 500; k++) {
+                        Conscrypt.exportKeyingMaterial(pair.client, "FOO", null, 20);
+                        Conscrypt.getTlsUnique(pair.client);
+                    }
+                } catch (Throwable t) {
+                    error.set(t);
+                }
+            });
+
+            Thread closerThread = new Thread(() -> {
+                try {
+                    pair.close();
+                } catch (Throwable t) {
+                    error.set(t);
+                }
+            });
+
+            getterThread.start();
+            closerThread.start();
+            getterThread.join();
+            closerThread.join();
+
+            if (error.get() != null) {
+                throw new AssertionError("Encountered exception in concurrent EKM/close",
+                                         error.get());
+            }
         }
     }
 

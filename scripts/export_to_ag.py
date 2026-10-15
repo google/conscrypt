@@ -163,28 +163,42 @@ def setup_kokoro_git_env() -> None:
   # If git-remote-sso is missing (e.g. in Kokoro GCP Docker container),
   # set up git-cookie-authdaemon and HTTPS URL rewrites.
   if not shutil.which("git-remote-sso"):
-    artifacts_dir = pathlib.Path(
-        os.environ.get("KOKORO_ARTIFACTS_DIR", "/tmpfs/src")
+    res_cookie = subprocess.run(
+        [real_git, "config", "--get", "http.cookiefile"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    gcompute_dir = artifacts_dir / "gcompute-tools"
-    if not gcompute_dir.is_dir():
-      subprocess.run(
-          [
-              real_git,
-              "clone",
-              "--depth",
-              "1",
-              "https://gerrit.googlesource.com/gcompute-tools",
-              str(gcompute_dir),
-          ],
-          capture_output=True,
-          check=False,
+    cookie_file = (
+        res_cookie.stdout.strip() if res_cookie.returncode == 0 else ""
+    )
+    if not cookie_file or not pathlib.Path(cookie_file).is_file():
+      artifacts_dir = pathlib.Path(
+          os.environ.get("KOKORO_ARTIFACTS_DIR", "/tmpfs/src")
       )
-    auth_daemon = gcompute_dir / "git-cookie-authdaemon"
-    if auth_daemon.is_file():
-      subprocess.run(
-          [sys.executable, str(auth_daemon)], capture_output=True, check=False
-      )
+      gcompute_dir = artifacts_dir / "gcompute-tools"
+      if not gcompute_dir.is_dir():
+        subprocess.run(
+            [
+                real_git,
+                "clone",
+                "--depth",
+                "1",
+                "https://gerrit.googlesource.com/gcompute-tools",
+                str(gcompute_dir),
+            ],
+            capture_output=True,
+            check=False,
+        )
+      auth_daemon = gcompute_dir / "git-cookie-authdaemon"
+      if auth_daemon.is_file():
+        subprocess.run(
+            [sys.executable, str(auth_daemon)],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
 
     subprocess.run(
         [
@@ -433,7 +447,7 @@ def resolve_android_and_build_top(
             "git",
             "clone",
             "--branch",
-            "master",
+            "main",
             url,
             str(temp_path),
         ],
@@ -441,6 +455,20 @@ def resolve_android_and_build_top(
         text=True,
         check=False,
     )
+    if res.returncode != 0:
+      res = subprocess.run(
+          [
+              "git",
+              "clone",
+              "--branch",
+              "master",
+              url,
+              str(temp_path),
+          ],
+          capture_output=True,
+          text=True,
+          check=False,
+      )
     if res.returncode != 0:
       res = subprocess.run(
           [
@@ -587,7 +615,7 @@ def step_copybara_export(
           "git",
           "fetch",
           remote_name,
-          f"+refs/heads/master:refs/remotes/{remote_name}/master",
+          f"+refs/heads/main:refs/remotes/{remote_name}/master",
       ],
       cwd=android_dir,
       capture_output=True,
@@ -600,7 +628,7 @@ def step_copybara_export(
             "git",
             "fetch",
             remote_name,
-            f"+refs/heads/main:refs/remotes/{remote_name}/master",
+            f"+refs/heads/master:refs/remotes/{remote_name}/master",
         ],
         cwd=android_dir,
         capture_output=True,
@@ -1111,6 +1139,52 @@ def step_repackage_android(
   print("[Notice] Could not run currysrc repackaging.")
 
 
+def _fetch_android_clang_format() -> Tuple[Optional[str], Optional[str]]:
+  """Downloads Android clang-stable git-clang-format and clang-format from Gitiles if missing locally."""
+  cache_dir = pathlib.Path("/tmpfs/bin")
+  if not cache_dir.is_dir() or not os.access(cache_dir, os.W_OK):
+    cache_dir = pathlib.Path(
+        f"/tmp/conscrypt_clang_format_{os.environ.get('USER', 'kokoro')}"
+    )
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+  gcf_path = cache_dir / "git-clang-format"
+  cf_path = cache_dir / "clang-format"
+  if gcf_path.is_file() and cf_path.is_file():
+    return str(gcf_path), str(cf_path)
+
+  hosts = [
+      "https://android.googlesource.com",
+      "https://googleplex-android.googlesource.com",
+  ]
+  for fname, dest in (
+      ("git-clang-format", gcf_path),
+      ("clang-format", cf_path),
+  ):
+    if dest.is_file() and dest.stat().st_size > 0:
+      continue
+    fetched = None
+    for host in hosts:
+      url = (
+          f"{host}/platform/prebuilts/clang/host/linux-x86/+/refs/heads/main/"
+          f"clang-stable/bin/{fname}?format=TEXT"
+      )
+      try:
+        b64_data = urllib.request.urlopen(url, timeout=30).read()
+        fetched = base64.b64decode(b64_data)
+        if fetched:
+          break
+      except Exception:  # pylint: disable=broad-except
+        continue
+    if not fetched:
+      print(f"Failed to download {fname} from Android Gitiles.")
+      return None, None
+    dest.write_bytes(fetched)
+    dest.chmod(0o755)
+  print(f"Downloaded Android clang-format tools to {cache_dir}.")
+  return str(gcf_path), str(cf_path)
+
+
 def step_format_and_commit_android(
     android_dir: pathlib.Path,
     build_top: Optional[pathlib.Path],
@@ -1162,11 +1236,18 @@ def step_format_and_commit_android(
       if git_clang_format and clang_format:
         break
 
+    if not git_clang_format or not clang_format:
+      dl_gcf, dl_cf = _fetch_android_clang_format()
+      if dl_gcf and not git_clang_format:
+        git_clang_format = dl_gcf
+      if dl_cf and not clang_format:
+        clang_format = dl_cf
+
     if not git_clang_format:
       git_clang_format = shutil.which("git-clang-format")
 
     if git_clang_format:
-      cmd = [git_clang_format]
+      cmd = [sys.executable, git_clang_format]
       if clang_format:
         cmd.extend(["--binary", clang_format])
       cmd.append("HEAD~1")
@@ -1219,7 +1300,16 @@ def step_format_and_commit_android(
 
   # Ensure Gerrit Change-Id footer is present
   if "Change-Id:" not in msg:
-    if cl:
+    base_res = subprocess.run(
+        ["git", "rev-parse", "HEAD~1"],
+        cwd=android_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if base_res.returncode == 0 and base_res.stdout.strip():
+      seed = f"conscrypt-export-base-{base_res.stdout.strip()}"
+    elif cl:
       seed = f"conscrypt-export-{cl}"
     else:
       seed = subprocess.check_output(
@@ -1255,30 +1345,52 @@ def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
 
     uploaded = False
     last_err = ""
+    label_opt_sets = [
+        ["-o", "l=Presubmit-Ready+1"],
+        [],
+    ]
     for url in push_urls:
-      print(f"==> Attempting push to {url}...")
-      res = subprocess.run(
-          [
-              "git",
-              "push",
-              "-o",
-              "nokeycheck",
-              url,
-              "HEAD:refs/for/master",
-          ],
-          cwd=android_dir,
-          capture_output=True,
-          text=True,
-          check=False,
-      )
-      if res.stdout:
-        print(res.stdout)
-      if res.stderr:
-        print(res.stderr, file=sys.stderr)
-      if res.returncode == 0:
-        uploaded = True
+      for target_branch in ("main", "master"):
+        for label_opts in label_opt_sets:
+          label_desc = " with Presubmit-Ready+1" if label_opts else ""
+          print(
+              f"==> Attempting push to {url}"
+              f" (HEAD:refs/for/{target_branch}){label_desc}..."
+          )
+          res = subprocess.run(
+              [
+                  "git",
+                  "push",
+                  "-o",
+                  "nokeycheck",
+                  *label_opts,
+                  url,
+                  f"HEAD:refs/for/{target_branch}",
+              ],
+              cwd=android_dir,
+              capture_output=True,
+              text=True,
+              check=False,
+          )
+          if res.stdout:
+            print(res.stdout)
+          if res.stderr:
+            print(res.stderr, file=sys.stderr)
+          if res.returncode == 0:
+            uploaded = True
+            break
+          last_err = res.stderr.strip()
+          if label_opts and "Presubmit-Ready" in last_err:
+            print(
+                "Notice: Presubmit-Ready+1 label not permitted yet for this"
+                " account; retrying upload without label..."
+            )
+            continue
+          break
+        if uploaded:
+          break
+      if uploaded:
         break
-      last_err = res.stderr.strip()
 
     if not uploaded:
       sys.exit(
@@ -1299,7 +1411,7 @@ def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
     print("To upload to Gerrit, run:")
     print(
         f"  cd {android_dir} && git push -o nokeycheck {GERRIT_SSO_URL}"
-        " HEAD:refs/for/master"
+        " HEAD:refs/for/main"
     )
 
 

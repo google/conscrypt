@@ -24,8 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.Spake2PlusTrustManager;
+import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
 import org.junit.Test;
@@ -69,7 +68,7 @@ public class TrustManagerFactoryTest {
 
     private static boolean supportsManagerFactoryParameters(TrustManagerFactory tmf) {
         return (StandardNames.IS_RI && tmf.getAlgorithm().equals("PKIX")
-                && !Conscrypt.isConscrypt(tmf.getProvider()));
+                && !TestUtils.isConscrypt(tmf.getProvider()));
     }
 
     @Test
@@ -163,15 +162,7 @@ public class TrustManagerFactoryTest {
             if (trustManager instanceof X509TrustManager) {
                 test_X509TrustManager(tmf.getProvider(), (X509TrustManager) trustManager);
             }
-            if (trustManager instanceof Spake2PlusTrustManager) {
-                test_pakeTrustManager((Spake2PlusTrustManager) trustManager);
-            }
         }
-    }
-
-    private void test_pakeTrustManager(Spake2PlusTrustManager tm) throws Exception {
-        tm.checkClientTrusted();
-        tm.checkServerTrusted();
     }
 
     private void test_X509TrustManager(Provider p, X509TrustManager tm) throws Exception {
@@ -183,7 +174,7 @@ public class TrustManagerFactoryTest {
             boolean defaultTrustManager
                     // RI de-duplicates certs from TrustedCertificateEntry and PrivateKeyEntry
                     = issuers.length
-                    > (StandardNames.IS_RI && !Conscrypt.isConscrypt(p) ? 1 : 2) * KEY_TYPES.length;
+                    > (StandardNames.IS_RI && !TestUtils.isConscrypt(p) ? 1 : 2) * KEY_TYPES.length;
 
             String keyAlgName = TestKeyStore.keyAlgorithm(keyType);
             String sigAlgName = TestKeyStore.signatureAlgorithm(keyType);

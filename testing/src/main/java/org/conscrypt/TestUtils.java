@@ -150,12 +150,16 @@ public final class TestUtils {
 
     static Provider getNonConscryptProviderFor(String type, String algorithm) {
         for (Provider p : Security.getProviders()) {
-            if (!p.getClass().getPackage().getName().contains("conscrypt")
-                && (p.getService(type, algorithm) != null)) {
+            if (!isConscrypt(p) && (p.getService(type, algorithm) != null)) {
                 return p;
             }
         }
         return null;
+    }
+
+    // Conscrypt.isConscrypt(Provider) is not part of conscrypt.module.platform.api.stubs.
+    public static boolean isConscrypt(Provider provider) {
+        return provider != null && provider.getClass().getPackage().getName().contains("conscrypt");
     }
 
     static Provider getJdkProvider() {

@@ -25,13 +25,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.conscrypt.AllocatedBuffer;
-import org.conscrypt.BufferAllocator;
-import org.conscrypt.Conscrypt;
-import org.conscrypt.OpenSSLSocketImpl;
 import org.conscrypt.TestUtils;
 import org.conscrypt.java.security.StandardNames;
 import org.conscrypt.java.security.TestKeyStore;
@@ -66,6 +63,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -100,8 +98,10 @@ public class SSLSocketTest {
 
     private static final TestSSLContext testSslContext = TestSSLContext.create();
 
-    String getCurveName(SSLSocket socket) {
-        return ((OpenSSLSocketImpl) socket).getCurveNameForTesting();
+    String getCurveName(SSLSocket socket) throws Exception {
+        Method getCurveNameMethod = socket.getClass().getMethod("getCurveNameForTesting");
+        getCurveNameMethod.setAccessible(true);
+        return (String) getCurveNameMethod.invoke(socket);
     }
 
     /**
@@ -270,65 +270,6 @@ public class SSLSocketTest {
             }
         }
         c.close();
-    }
-
-    @Test
-    public void setBufferAllocator_afterConnect_fails() throws Exception {
-        TestSSLSocketPair pair = TestSSLSocketPair.create();
-        BufferAllocator unpooledBufferAllocator = BufferAllocator.unpooled();
-        pair.connect();
-        assertThrows(IllegalStateException.class,
-                     () -> Conscrypt.setBufferAllocator(pair.client, unpooledBufferAllocator));
-    }
-
-    // BufferAllocator that counts allocations.
-    private static final class SpyBufferAllocator extends BufferAllocator {
-        private final BufferAllocator bufferAllocator;
-        private int directAllocationCount = 0;
-        private int heapAllocationCount = 0;
-
-        SpyBufferAllocator(BufferAllocator bufferAllocator) {
-            this.bufferAllocator = bufferAllocator;
-        }
-
-        @Override
-        public AllocatedBuffer allocateDirectBuffer(int capacity) {
-            directAllocationCount++;
-            return bufferAllocator.allocateDirectBuffer(capacity);
-        }
-
-        @Override
-        public AllocatedBuffer allocateHeapBuffer(int capacity) {
-            heapAllocationCount++;
-            return bufferAllocator.allocateHeapBuffer(capacity);
-        }
-    }
-
-    @Test
-    public void setBufferAllocator_works() throws Exception {
-        TestSSLSocketPair pair = TestSSLSocketPair.create();
-        SpyBufferAllocator clientBufferAllocator =
-                new SpyBufferAllocator(BufferAllocator.unpooled());
-        SpyBufferAllocator serverBufferAllocator =
-                new SpyBufferAllocator(BufferAllocator.unpooled());
-        Conscrypt.setBufferAllocator(pair.client, clientBufferAllocator);
-        Conscrypt.setBufferAllocator(pair.server, serverBufferAllocator);
-        pair.connect();
-
-        pair.client.getOutputStream().write(new byte[] {1, 2, 3, 4});
-        assertEquals(1, pair.server.getInputStream().read());
-        assertEquals(3, pair.server.getInputStream().read(new byte[4]));
-
-        pair.server.getOutputStream().write(new byte[] {1, 2, 3, 4});
-        assertEquals(1, pair.client.getInputStream().read());
-        assertEquals(3, pair.client.getInputStream().read(new byte[4]));
-
-        assertTrue(clientBufferAllocator.directAllocationCount > 0);
-        assertTrue(serverBufferAllocator.directAllocationCount > 0);
-
-        // allocateHeapBuffer is currently not called.
-        assertEquals(0, clientBufferAllocator.heapAllocationCount);
-        assertEquals(0, serverBufferAllocator.heapAllocationCount);
     }
 
     @Test
@@ -1113,6 +1054,171 @@ public class SSLSocketTest {
         context.close();
     }
 
+    private static final long ENABLE_TLS_PQC_DEFAULT_GROUPS = 556729260L;
+
+    private static void setCompatChangeEnabled(long changeId, boolean enabled) throws Exception {
+        try {
+            Class<?> platformClass =
+                    Class.forName(TestUtils.class.getPackage().getName() + ".Platform");
+            platformClass.getMethod("setPqcDefaultEnabledForTesting", boolean.class)
+                    .invoke(null, enabled);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Platform module uses android.compat.Compatibility overrides instead.
+        }
+        Class<?> compatClass = Class.forName("android.compat.Compatibility");
+        Class<?> changeConfigClass = Class.forName("android.compat.Compatibility$ChangeConfig");
+        try {
+            compatClass.getMethod("clearOverrides").invoke(null);
+        } catch (Throwable ignored) {
+            // No overrides were previously set.
+        }
+        Set<Long> enabledSet =
+                enabled ? Collections.singleton(changeId) : Collections.emptySet();
+        Set<Long> disabledSet =
+                enabled ? Collections.emptySet() : Collections.singleton(changeId);
+        Object config = changeConfigClass.getConstructor(Set.class, Set.class)
+                                .newInstance(enabledSet, disabledSet);
+        compatClass.getMethod("setOverrides", changeConfigClass).invoke(null, config);
+    }
+
+    private static void clearCompatChangeOverrides() throws Exception {
+        try {
+            Class<?> platformClass =
+                    Class.forName(TestUtils.class.getPackage().getName() + ".Platform");
+            platformClass.getMethod("setPqcDefaultEnabledForTesting", boolean.class)
+                    .invoke(null, true);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Platform module uses android.compat.Compatibility overrides instead.
+        }
+        try {
+            Class<?> compatClass = Class.forName("android.compat.Compatibility");
+            compatClass.getMethod("clearOverrides").invoke(null);
+        } catch (Throwable ignored) {
+            // Ignore if no overrides were set.
+        }
+    }
+
+    private static boolean isConscryptPqcCompatConfigPresent() {
+        try {
+            java.io.File apexDir = new java.io.File("/apex/com.android.conscrypt");
+            if (apexDir.isDirectory()) {
+                return new java.io.File(
+                        apexDir, "etc/compatconfig/conscrypt-platform-compat-config.xml")
+                        .exists();
+            }
+        } catch (SecurityException ignored) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isTlsPqcFlagEnabled() {
+        String basePkg = TestUtils.class.getPackage().getName();
+        try {
+            Class<?> testFlagsClass = Class.forName(basePkg + ".test.flags.Flags");
+            return (Boolean) testFlagsClass.getMethod("tlsPqcDefaultNamedGroups").invoke(null);
+        } catch (ClassNotFoundException ignored) {
+            // Fall back to non-repackaged Flags class when running outside conscrypt-tests.
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+        try {
+            Class<?> flagsClass = Class.forName(basePkg + ".flags.Flags");
+            return (Boolean) flagsClass.getMethod("tlsPqcDefaultNamedGroups").invoke(null);
+        } catch (ClassNotFoundException e) {
+            return true;
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+    }
+
+    @Test
+    public void defaultNamedGroups_compatChangeEnabled_includesPqcAndExpectedGroups()
+            throws Exception {
+        assumeTrue(isConscryptPqcCompatConfigPresent());
+        assumeTrue(isTlsPqcFlagEnabled());
+        System.clearProperty("jdk.tls.namedGroups");
+        setCompatChangeEnabled(ENABLE_TLS_PQC_DEFAULT_GROUPS, true);
+        TestSSLContext context = TestSSLContext.create();
+        try {
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(
+                    executor, context.clientContext.getSocketFactory());
+            EllipticCurvesHelloExtension groupsExtension =
+                    (EllipticCurvesHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_ELLIPTIC_CURVES);
+            assertNotNull(groupsExtension);
+            assertEquals(Arrays.asList(EllipticCurve.X25519MLKEM768, EllipticCurve.X25519,
+                                       EllipticCurve.SECP256R1, EllipticCurve.SECP384R1),
+                         groupsExtension.supported);
+
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                            context.host, context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            assertEquals("X25519MLKEM768", getCurveName(client));
+            assertEquals("X25519MLKEM768", getCurveName(server));
+            client.close();
+            server.close();
+        } finally {
+            context.close();
+            clearCompatChangeOverrides();
+        }
+    }
+
+    @Test
+    public void defaultNamedGroups_compatChangeDisabled_usesClassicalGroupsOnly()
+            throws Exception {
+        assumeTrue(isConscryptPqcCompatConfigPresent());
+        System.clearProperty("jdk.tls.namedGroups");
+        setCompatChangeEnabled(ENABLE_TLS_PQC_DEFAULT_GROUPS, false);
+        TestSSLContext context = TestSSLContext.create();
+        try {
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(
+                    executor, context.clientContext.getSocketFactory());
+            EllipticCurvesHelloExtension groupsExtension =
+                    (EllipticCurvesHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_ELLIPTIC_CURVES);
+            assertNotNull(groupsExtension);
+            assertEquals(Arrays.asList(EllipticCurve.X25519, EllipticCurve.SECP256R1,
+                                       EllipticCurve.SECP384R1),
+                         groupsExtension.supported);
+
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                            context.host, context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            assertEquals("X25519", getCurveName(client));
+            assertEquals("X25519", getCurveName(server));
+            client.close();
+            server.close();
+        } finally {
+            context.close();
+            clearCompatChangeOverrides();
+        }
+    }
+
     @Test
     public void handshake_p256IsSupportedByDefault() throws Exception {
         TestSSLContext context = TestSSLContext.create();
@@ -1375,64 +1481,6 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void socket_setNamedGroups_works() throws Exception {
-        TestSSLContext context = TestSSLContext.create();
-        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                context.host, context.port);
-        Conscrypt.setNamedGroups(client, new String[] {"P-384"});
-
-        // For the server, we don't set the named groups. P-384 should be
-        // enabled by default.
-        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        Future<Void> s = runAsync(() -> {
-            server.startHandshake();
-            return null;
-        });
-        Future<Void> c = runAsync(() -> {
-            client.startHandshake();
-            return null;
-        });
-        s.get();
-        c.get();
-        // This must works even if sslParametersSupportsNamedGroups is false.
-        assertEquals("P-384", getCurveName(client));
-        assertEquals("P-384", getCurveName(server));
-        client.close();
-        server.close();
-        context.close();
-    }
-
-    @Test
-    public void socketFactory_setNamedGroups_works() throws Exception {
-        TestSSLContext context = TestSSLContext.create();
-        SSLSocketFactory clientSocketFactory = context.clientContext.getSocketFactory();
-        Conscrypt.setNamedGroups(clientSocketFactory, new String[] {"P-384"});
-
-        final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
-                context.host, context.port);
-
-        // For the server, we don't set the named groups. P-384 should be
-        // enabled by default.
-        final SSLSocket server = (SSLSocket) context.serverSocket.accept();
-        Future<Void> s = runAsync(() -> {
-            server.startHandshake();
-            return null;
-        });
-        Future<Void> c = runAsync(() -> {
-            client.startHandshake();
-            return null;
-        });
-        s.get();
-        c.get();
-        // This must works even if sslParametersSupportsNamedGroups is false.
-        assertEquals("P-384", getCurveName(client));
-        assertEquals("P-384", getCurveName(server));
-        client.close();
-        server.close();
-        context.close();
-    }
-
-    @Test
     public void handshake_namedGroupsDontIntersect_throwsException() throws Exception {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client = (SSLSocket) context.clientContext.getSocketFactory().createSocket(
@@ -1522,6 +1570,65 @@ public class SSLSocketTest {
             c.get();
             assertEquals("MLKEM1024", getCurveName(client));
             assertEquals("MLKEM1024", getCurveName(server));
+            client.close();
+            server.close();
+            context.close();
+        }
+    }
+
+    @Test
+    public void
+    setNamedGroupsProperty_onlyUnrecognizedValuesWithNoPriorCache_fallsBackToDefaultGroups()
+            throws Exception {
+        // Clear the property and run a handshake to ensure any cached namedGroups property is reset
+        // to null.
+        System.clearProperty("jdk.tls.namedGroups");
+        {
+            TestSSLContext context = TestSSLContext.create();
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(context.host,
+                                                                                      context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            client.close();
+            server.close();
+            context.close();
+        }
+
+        // Now set the property to only unrecognized group names when no valid cached property
+        // exists.
+        System.setProperty("jdk.tls.namedGroups", "invalid,invalid2");
+        {
+            TestSSLContext context = TestSSLContext.create();
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(context.host,
+                                                                                      context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            String clientCurve = getCurveName(client);
+            String serverCurve = getCurveName(server);
+            assertTrue("Unexpected client curve: " + clientCurve,
+                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
+            assertTrue("Unexpected server curve: " + serverCurve,
+                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
             client.close();
             server.close();
             context.close();

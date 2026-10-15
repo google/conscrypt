@@ -48,8 +48,8 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
      */
     private int modeBlockSize;
 
-    protected OpenSSLEvpCipher(Mode mode, Padding padding) {
-        super(mode, padding);
+    protected OpenSSLEvpCipher(Padding padding) {
+        super(padding);
     }
 
     @Override
@@ -63,11 +63,10 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
             iv = null;
         }
 
-        final long cipherType = getCipherType(encodedKey.length, mode);
+        final long cipherType = getCipherType(encodedKey.length);
         if (cipherType == 0) {
             throw new InvalidAlgorithmParameterException("Cannot find name for key length = "
-                                                         + (encodedKey.length * 8)
-                                                         + " and mode = " + mode);
+                                                         + (encodedKey.length * 8));
         }
 
         final boolean encrypting = isEncrypting();
@@ -75,8 +74,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         final int expectedIvLength = NativeCrypto.EVP_CIPHER_iv_length(cipherType);
         if (iv == null && expectedIvLength != 0) {
             if (!encrypting) {
-                throw new InvalidAlgorithmParameterException("IV must be specified in " + mode
-                                                             + " mode");
+                throw new InvalidAlgorithmParameterException("IV must be specified");
             }
 
             iv = new byte[expectedIvLength];
@@ -86,7 +84,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
                 NativeCrypto.RAND_bytes(iv);
             }
         } else if (expectedIvLength == 0 && iv != null) {
-            throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
+            throw new InvalidAlgorithmParameterException("IV not used");
         } else if (iv != null && iv.length != expectedIvLength) {
             throw new InvalidAlgorithmParameterException("expected IV length of " + expectedIvLength
                                                          + " but was " + iv.length);
@@ -269,10 +267,10 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
     }
 
     /**
-     * Returns the OpenSSL cipher for the particular {@code keySize}
-     * and cipher {@code mode}, or 0 if the combination is not supported.
+     * Returns the OpenSSL cipher for the particular {@code keySize},
+     * or 0 if it is not supported.
      */
-    abstract long getCipherType(int keySize, Mode mode);
+    abstract long getCipherType(int keySize);
 
     /**
      * Reset this Cipher instance state to process a new chunk of data.

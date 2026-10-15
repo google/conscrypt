@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2026 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,13 @@
  * limitations under the License.
  */
 
-package org.conscrypt.ct;
+package android.compat.annotation;
 
-import org.conscrypt.Internal;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Internal
-public class SerializationException extends Exception {
-    private static final long serialVersionUID = -5317873136664833411L;
-
-    public SerializationException() {}
-
-    public SerializationException(String message) {
-        super(message);
-    }
-
-    public SerializationException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public SerializationException(Throwable cause) {
-        super(cause);
-    }
-}
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.FIELD})
+public @interface ChangeId {}

@@ -16,7 +16,7 @@
 
 package org.conscrypt.javax.net.ssl;
 
-import static org.conscrypt.Conscrypt.isConscrypt;
+import static org.conscrypt.TestUtils.isConscrypt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

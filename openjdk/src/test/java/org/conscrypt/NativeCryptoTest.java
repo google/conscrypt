@@ -4565,6 +4565,131 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void mlKem768EncapDecap_roundtrip_success() throws Exception {
+        byte[] privateKeySeed = new byte[64];
+        NativeCrypto.RAND_bytes(privateKeySeed);
+        byte[] publicKey = NativeCrypto.MLKEM768_public_key_from_seed(privateKeySeed);
+        assertEquals(1184, publicKey.length);
+
+        byte[] outCiphertext = new byte[1088];
+        byte[] outSharedSecretSender = new byte[32];
+        NativeCrypto.MLKEM768_encap(publicKey, outCiphertext, outSharedSecretSender);
+
+        byte[] outSharedSecretRecipient =
+                NativeCrypto.MLKEM768_decap(outCiphertext, privateKeySeed);
+        assertEquals(32, outSharedSecretRecipient.length);
+        assertArrayEquals(outSharedSecretSender, outSharedSecretRecipient);
+
+        // Null argument checks
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM768_encap(null, outCiphertext, outSharedSecretSender));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM768_encap(publicKey, null, outSharedSecretSender));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM768_encap(publicKey, outCiphertext, null));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM768_decap(null, privateKeySeed));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM768_decap(outCiphertext, null));
+
+        // Invalid encap lengths (length - 1 and length + 1)
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM768_encap(new byte[1183], outCiphertext,
+                                                            outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM768_encap(new byte[1185], outCiphertext,
+                                                            outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM768_encap(publicKey, new byte[1087],
+                                                            outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM768_encap(publicKey, new byte[1089],
+                                                            outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.MLKEM768_encap(publicKey, outCiphertext, new byte[31]));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.MLKEM768_encap(publicKey, outCiphertext, new byte[33]));
+
+        // Invalid ciphertext length (length - 1 and length + 1)
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM768_decap(new byte[1087], privateKeySeed));
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM768_decap(new byte[1089], privateKeySeed));
+        // Invalid seed length (length - 1 and length + 1)
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM768_decap(outCiphertext, new byte[63]));
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM768_decap(outCiphertext, new byte[65]));
+    }
+
+    @Test
+    public void mlKem1024EncapDecap_roundtrip_success() throws Exception {
+        byte[] privateKeySeed = new byte[64];
+        NativeCrypto.RAND_bytes(privateKeySeed);
+        byte[] publicKey = NativeCrypto.MLKEM1024_public_key_from_seed(privateKeySeed);
+        assertEquals(1568, publicKey.length);
+
+        byte[] outCiphertext = new byte[1568];
+        byte[] outSharedSecretSender = new byte[32];
+        NativeCrypto.MLKEM1024_encap(publicKey, outCiphertext, outSharedSecretSender);
+
+        byte[] outSharedSecretRecipient =
+                NativeCrypto.MLKEM1024_decap(outCiphertext, privateKeySeed);
+        assertEquals(32, outSharedSecretRecipient.length);
+        assertArrayEquals(outSharedSecretSender, outSharedSecretRecipient);
+
+        // Null argument checks
+        assertThrows(
+                NullPointerException.class,
+                () -> NativeCrypto.MLKEM1024_encap(null, outCiphertext, outSharedSecretSender));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM1024_encap(publicKey, null, outSharedSecretSender));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM1024_encap(publicKey, outCiphertext, null));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM1024_decap(null, privateKeySeed));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLKEM1024_decap(outCiphertext, null));
+
+        // Invalid encap lengths (length - 1 and length + 1)
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM1024_encap(new byte[1567], outCiphertext,
+                                                             outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM1024_encap(new byte[1569], outCiphertext,
+                                                             outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM1024_encap(publicKey, new byte[1567],
+                                                             outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.MLKEM1024_encap(publicKey, new byte[1569],
+                                                             outSharedSecretSender));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.MLKEM1024_encap(publicKey, outCiphertext, new byte[31]));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.MLKEM1024_encap(publicKey, outCiphertext, new byte[33]));
+
+        // Invalid ciphertext length (length - 1 and length + 1)
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM1024_decap(new byte[1567], privateKeySeed));
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM1024_decap(new byte[1569], privateKeySeed));
+        // Invalid seed length (length - 1 and length + 1)
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM1024_decap(outCiphertext, new byte[63]));
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.MLKEM1024_decap(outCiphertext, new byte[65]));
+    }
+
+    @Test
     public void xwingPublicKeyFromSeed_returnsPublicKeyIfPrivateKeyIsValid() throws Exception {
         // test vector from
         // https://datatracker.ietf.org/doc/html/draft-connolly-cfrg-xwing-kem-06#appendix-C

@@ -35,12 +35,15 @@ import org.conscrypt.java.security.KeyFactoryTestDH;
 import org.conscrypt.java.security.KeyFactoryTestDSA;
 import org.conscrypt.java.security.KeyFactoryTestEC;
 import org.conscrypt.java.security.KeyFactoryTestRSACrt;
+import org.conscrypt.java.security.KeyFactoryTestRSACustom;
+import org.conscrypt.java.security.KeyFactoryTestXDH;
 import org.conscrypt.java.security.KeyPairGeneratorTest;
 import org.conscrypt.java.security.KeyPairGeneratorTestDH;
 import org.conscrypt.java.security.KeyPairGeneratorTestDSA;
 import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
 import org.conscrypt.java.security.KeyPairGeneratorTestXDH;
 import org.conscrypt.java.security.MessageDigestTest;
+import org.conscrypt.java.security.SecureRandomTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.java.security.cert.X509CRLTest;
@@ -61,6 +64,8 @@ import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
 import org.conscrypt.metrics.CipherSuiteTest;
 import org.conscrypt.metrics.OptionalMethodTest;
 import org.conscrypt.metrics.ProtocolTest;
+import org.conscrypt.util.DerUtilsTest;
+import org.conscrypt.util.MtcUtilsTest;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -79,6 +84,7 @@ import tests.util.ServiceTester;
         CertPinManagerTest.class,
         ChaCha20Poly1305Test.class,
         ChainStrengthAnalyzerTest.class,
+        CompositeMlDsaTest.class,
         DuckTypedHpkeSpiTest.class,
         EdDsaTest.class,
         ExposedByteArrayOutputStreamTest.class,
@@ -90,17 +96,23 @@ import tests.util.ServiceTester;
         HpkeContextSenderTest.class,
         HpkeSuiteTest.class,
         HpkeTestVectorsTest.class,
+        KeyManagerFactoryImplTest.class,
         KeySpecUtilTest.class,
         MlDsaTest.class,
+        MlKemTest.class,
         NativeCryptoArgTest.class,
         NativeCryptoTest.class,
         NativeSslTest.class,
         NativeRefTest.class,
         NativeSslSessionTest.class,
+        OpenSSLCipherTest.class,
         OpenSSLECGroupContextTest.class,
         OpenSSLKeyTest.class,
         OpenSSLX509CertificateTest.class,
         OpenSSLX509CRLTest.class,
+        OpenSslCompositeMlDsaKeyFactoryTest.class,
+        OpenSslCompositeMlDsaPrivateKeyTest.class,
+        OpenSslCompositeMlDsaPublicKeyTest.class,
         SignatureThreadMisuseTest.class,
         SSLUtilsTest.class,
         SlhDsaTest.class,
@@ -111,6 +123,9 @@ import tests.util.ServiceTester;
         // org.conscrypt.ct tests
         VerifierTest.class,
         SerializationTest.class,
+        // org.conscrypt.util tests
+        DerUtilsTest.class,
+        MtcUtilsTest.class,
         // java.security tests
         CertificateFactoryTest.class,
         X509CertificateTest.class,
@@ -132,12 +147,15 @@ import tests.util.ServiceTester;
         KeyFactoryTestDSA.class,
         KeyFactoryTestEC.class,
         KeyFactoryTestRSACrt.class,
+        KeyFactoryTestRSACustom.class,
+        KeyFactoryTestXDH.class,
         KeyPairGeneratorTest.class,
         KeyPairGeneratorTestDH.class,
         KeyPairGeneratorTestDSA.class,
         KeyPairGeneratorTestRSA.class,
         KeyPairGeneratorTestXDH.class,
         MessageDigestTest.class,
+        SecureRandomTest.class,
         SignatureTest.class,
         // javax.crypto tests
         AeadCipherTest.class,

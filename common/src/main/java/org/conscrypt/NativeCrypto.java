@@ -18,10 +18,13 @@ package org.conscrypt;
 
 // android-add: import dalvik.annotation.optimization.CriticalNative;
 // android-add: import dalvik.annotation.optimization.FastNative;
+
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
@@ -344,7 +347,22 @@ public final class NativeCrypto {
     // --- ML-KEM --------------
 
     static native byte[] MLKEM768_public_key_from_seed(byte[] privateKeySeed);
+
+    // android-add: @FastNative
+    static native void MLKEM768_encap(byte[] publicKeyBytes, byte[] outCiphertext,
+                                      byte[] outSharedSecret);
+
+    // android-add: @FastNative
+    static native byte[] MLKEM768_decap(byte[] ciphertext, byte[] privateKeySeed);
+
     static native byte[] MLKEM1024_public_key_from_seed(byte[] privateKeySeed);
+
+    // android-add: @FastNative
+    static native void MLKEM1024_encap(byte[] publicKeyBytes, byte[] outCiphertext,
+                                       byte[] outSharedSecret);
+
+    // android-add: @FastNative
+    static native byte[] MLKEM1024_decap(byte[] ciphertext, byte[] privateKeySeed);
 
     // --- Message digest functions --------------
 

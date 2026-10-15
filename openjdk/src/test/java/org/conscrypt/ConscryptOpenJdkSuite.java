@@ -36,12 +36,15 @@ import org.conscrypt.java.security.KeyFactoryTestDSA;
 import org.conscrypt.java.security.KeyFactoryTestEC;
 import org.conscrypt.java.security.KeyFactoryTestRSA;
 import org.conscrypt.java.security.KeyFactoryTestRSACrt;
+import org.conscrypt.java.security.KeyFactoryTestRSACustom;
+import org.conscrypt.java.security.KeyFactoryTestXDH;
 import org.conscrypt.java.security.KeyPairGeneratorTest;
 import org.conscrypt.java.security.KeyPairGeneratorTestDH;
 import org.conscrypt.java.security.KeyPairGeneratorTestDSA;
 import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
 import org.conscrypt.java.security.KeyPairGeneratorTestXDH;
 import org.conscrypt.java.security.MessageDigestTest;
+import org.conscrypt.java.security.SecureRandomTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
 import org.conscrypt.java.security.cert.X509CRLTest;
@@ -68,6 +71,7 @@ import org.conscrypt.javax.net.ssl.SSLServerSocketTest;
 import org.conscrypt.javax.net.ssl.SSLSessionContextTest;
 import org.conscrypt.javax.net.ssl.SSLSessionTest;
 import org.conscrypt.javax.net.ssl.SSLSocketFactoryTest;
+import org.conscrypt.javax.net.ssl.SSLSocketImplTest;
 import org.conscrypt.javax.net.ssl.SSLSocketTest;
 import org.conscrypt.javax.net.ssl.SSLSocketVersionCompatibilityTest;
 import org.conscrypt.javax.net.ssl.SslEngineAndSocketResumptionTest;
@@ -76,6 +80,8 @@ import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
 import org.conscrypt.metrics.CipherSuiteTest;
 import org.conscrypt.metrics.OptionalMethodTest;
 import org.conscrypt.metrics.ProtocolTest;
+import org.conscrypt.util.DerUtilsTest;
+import org.conscrypt.util.MtcUtilsTest;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -90,10 +96,13 @@ import org.junit.runners.Suite;
         ChaCha20Poly1305Test.class,
         ChainStrengthAnalyzerTest.class,
         ClientSessionContextTest.class,
+        CompositeMlDsaTest.class,
         ConscryptSocketTest.class,
         ConscryptTest.class,
         DuckTypedHpkeSpiTest.class,
         DuckTypedPSKKeyManagerTest.class,
+        EchConfigListTest.class,
+        EchConfigMismatchExceptionTest.class,
         EdDsaTest.class,
         ExposedByteArrayOutputStreamTest.class,
         FileClientSessionCacheTest.class,
@@ -104,6 +113,7 @@ import org.junit.runners.Suite;
         HpkeContextSenderTest.class,
         HpkeSuiteTest.class,
         HpkeTestVectorsTest.class,
+        KeyManagerFactoryImplTest.class,
         KeySpecUtilTest.class,
         MlDsaTest.class,
         MlKemTest.class,
@@ -112,10 +122,14 @@ import org.junit.runners.Suite;
         NativeSslTest.class,
         NativeRefTest.class,
         NativeSslSessionTest.class,
+        OpenSSLCipherTest.class,
         OpenSSLECGroupContextTest.class,
         OpenSSLKeyTest.class,
         OpenSSLX509CertificateTest.class,
         OpenSSLX509CRLTest.class,
+        OpenSslCompositeMlDsaKeyFactoryTest.class,
+        OpenSslCompositeMlDsaPrivateKeyTest.class,
+        OpenSslCompositeMlDsaPublicKeyTest.class,
         PlatformTest.class,
         SignatureThreadMisuseTest.class,
         SSLUtilsTest.class,
@@ -128,6 +142,9 @@ import org.junit.runners.Suite;
         // org.conscrypt.ct tests
         VerifierTest.class,
         SerializationTest.class,
+        // org.conscrypt.util tests
+        DerUtilsTest.class,
+        MtcUtilsTest.class,
         // java.security tests
         CertificateFactoryTest.class,
         X509CertificateTest.class,
@@ -150,12 +167,15 @@ import org.junit.runners.Suite;
         KeyFactoryTestEC.class,
         KeyFactoryTestRSA.class,
         KeyFactoryTestRSACrt.class,
+        KeyFactoryTestRSACustom.class,
+        KeyFactoryTestXDH.class,
         KeyPairGeneratorTest.class,
         KeyPairGeneratorTestDH.class,
         KeyPairGeneratorTestDSA.class,
         KeyPairGeneratorTestRSA.class,
         KeyPairGeneratorTestXDH.class,
         MessageDigestTest.class,
+        SecureRandomTest.class,
         SignatureTest.class,
         // javax.crypto tests
         AeadCipherTest.class,
@@ -184,6 +204,7 @@ import org.junit.runners.Suite;
         SSLSessionContextTest.class,
         SSLSessionTest.class,
         SSLSocketFactoryTest.class,
+        SSLSocketImplTest.class,
         SSLSocketTest.class,
         SSLSocketVersionCompatibilityTest.class,
         SslEngineAndSocketResumptionTest.class,

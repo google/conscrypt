@@ -109,7 +109,9 @@ public class TlsEncryptedClientHelloHandshake {
         INCONSISTENT_NEGOTIATION(
             ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_INCONSISTENT_NEGOTIATION),
         NO_RETRY_CONFIG(
-            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_NO_RETRY_CONFIGS);
+            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_NO_RETRY_CONFIGS),
+        FAILED_TLS_HANDSHAKE(
+            ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED__FAILURE_REASON__ECH_FAILURE_REASON_FAILED_TLS_HANDSHAKE);
 
         private final int metricsValue;
 
@@ -244,10 +246,18 @@ public class TlsEncryptedClientHelloHandshake {
             return SkipReason.UNKNOWN;
         }
 
+        private FailureReason calculateFailureReason() {
+            if (!handshakeSuccess && failureReason == FailureReason.UNKNOWN) {
+                return FailureReason.FAILED_TLS_HANDSHAKE;
+            }
+
+            return failureReason;
+        }
+
         public TlsEncryptedClientHelloHandshake build() {
             return new TlsEncryptedClientHelloHandshake(
                 calculateResult(), calculateUsageReason(), calculateSkipReason(),
-                    failureReason, handshakeDurationMillis);
+                    calculateFailureReason(), handshakeDurationMillis);
         }
     }
 

@@ -27,8 +27,8 @@ import java.security.spec.InvalidParameterSpecException;
 public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
     private static final int AES_BLOCK_SIZE = 16;
 
-    OpenSSLAeadCipherAES(Mode mode) {
-        super(mode);
+    OpenSSLAeadCipherAES() {
+        super();
     }
 
     @Override
@@ -108,12 +108,12 @@ public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
 
     public static class GCM extends OpenSSLAeadCipherAES {
         public GCM() {
-            super(Mode.GCM);
+            super();
         }
 
         @Override
-        void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-            if (mode != Mode.GCM) {
+        protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+            if (!modeStr.equalsIgnoreCase("GCM")) {
                 throw new NoSuchAlgorithmException("Mode must be GCM");
             }
         }
@@ -156,12 +156,12 @@ public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
 
     public static class GCM_SIV extends OpenSSLAeadCipherAES {
         public GCM_SIV() {
-            super(Mode.GCM_SIV);
+            super();
         }
 
         @Override
-        void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-            if (mode != Mode.GCM_SIV) {
+        protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+            if (!modeStr.equalsIgnoreCase("GCM-SIV")) {
                 throw new NoSuchAlgorithmException("Mode must be GCM-SIV");
             }
         }

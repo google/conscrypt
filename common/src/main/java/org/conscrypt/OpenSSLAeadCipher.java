@@ -86,8 +86,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      */
     int tagLengthInBytes;
 
-    protected OpenSSLAeadCipher(Mode mode) {
-        super(mode, Padding.NOPADDING);
+    protected OpenSSLAeadCipher() {
+        super(Padding.NOPADDING);
     }
 
     private void checkInitialization() {
@@ -165,8 +165,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
         final int expectedIvLength = NativeCrypto.EVP_AEAD_nonce_length(evpAead);
         if (iv == null && expectedIvLength != 0) {
             if (!encrypting) {
-                throw new InvalidAlgorithmParameterException("IV must be specified in " + mode
-                                                             + " mode");
+                throw new InvalidAlgorithmParameterException("IV must be specified");
             }
 
             iv = new byte[expectedIvLength];
@@ -176,7 +175,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
                 NativeCrypto.RAND_bytes(iv);
             }
         } else if (expectedIvLength == 0 && iv != null) {
-            throw new InvalidAlgorithmParameterException("IV not used in " + mode + " mode");
+            throw new InvalidAlgorithmParameterException("IV not used");
         } else if (iv != null && iv.length != expectedIvLength) {
             throw new InvalidAlgorithmParameterException("Expected IV length of " + expectedIvLength
                                                          + " but was " + iv.length);

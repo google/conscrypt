@@ -48,33 +48,6 @@ import javax.crypto.spec.SecretKeySpec;
 @Internal
 public abstract class OpenSSLCipher extends CipherSpi {
     /**
-     * Modes that a block cipher may support.
-     */
-    enum Mode {
-        NONE,
-        CBC,
-        CTR,
-        ECB,
-        GCM,
-        GCM_SIV,
-        POLY1305,
-        ;
-
-        public static Mode getNormalized(String modeString) {
-            modeString = modeString.toUpperCase(Locale.US);
-            // We use GCM-SIV as the mode string, but - isn't a valid identifier character, so
-            // we need to ensure GCM-SIV is recognized and GCM_SIV isn't.
-            if (modeString.equals("GCM-SIV")) {
-                return GCM_SIV;
-            } else if (modeString.equals("GCM_SIV")) {
-                throw new IllegalArgumentException("Invalid mode");
-            } else {
-                return Mode.valueOf(modeString);
-            }
-        }
-    }
-
-    /**
      * Paddings that a block cipher may support.
      */
     enum Padding {
@@ -91,11 +64,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
             return p;
         }
     }
-
-    /**
-     * The current cipher mode.
-     */
-    Mode mode = Mode.ECB;
 
     /**
      * The current cipher padding.
@@ -125,8 +93,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     OpenSSLCipher() {}
 
-    OpenSSLCipher(Mode mode, Padding padding) {
-        this.mode = mode;
+    OpenSSLCipher(Padding padding) {
         this.padding = padding;
         blockSize = getCipherBlockSize();
     }
@@ -163,12 +130,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
     abstract void checkSupportedKeySize(int keySize) throws InvalidKeyException;
 
     /**
-     * Checks whether the cipher supports this particular cipher {@code mode}
-     * and throws {@code NoSuchAlgorithmException} if it doesn't.
-     */
-    abstract void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException;
-
-    /**
      * Checks whether the cipher supports this particular cipher {@code padding}
      * and throws {@code NoSuchPaddingException} if it doesn't.
      */
@@ -182,21 +143,6 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     boolean supportsVariableSizeIv() {
         return false;
-    }
-
-    @Override
-    protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
-        final Mode mode;
-        try {
-            mode = Mode.getNormalized(modeStr);
-        } catch (IllegalArgumentException e) {
-            NoSuchAlgorithmException newE =
-                    new NoSuchAlgorithmException("No such mode: " + modeStr);
-            newE.initCause(e);
-            throw newE;
-        }
-        checkSupportedMode(mode);
-        this.mode = mode;
     }
 
     @Override

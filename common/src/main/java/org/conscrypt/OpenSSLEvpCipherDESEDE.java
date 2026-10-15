@@ -25,13 +25,13 @@ import javax.crypto.NoSuchPaddingException;
 public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     private static final int DES_BLOCK_SIZE = 8;
 
-    OpenSSLEvpCipherDESEDE(Mode mode, Padding padding) {
-        super(mode, padding);
+    OpenSSLEvpCipherDESEDE(Padding padding) {
+        super(padding);
     }
 
     public static class CBC extends OpenSSLEvpCipherDESEDE {
         CBC(Padding padding) {
-            super(Mode.CBC, padding);
+            super(padding);
         }
 
         public static class NoPadding extends CBC {
@@ -53,13 +53,11 @@ public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     }
 
     @Override
-    long getCipherType(int keySize, Mode mode) {
-        if (mode == Mode.CBC) {
-            if (keySize == 16) {
-                return NativeCrypto.EVP_des_ede_cbc();
-            } else if (keySize == 24) {
-                return NativeCrypto.EVP_des_ede3_cbc();
-            }
+    long getCipherType(int keySize) {
+        if (keySize == 16) {
+            return NativeCrypto.EVP_des_ede_cbc();
+        } else if (keySize == 24) {
+            return NativeCrypto.EVP_des_ede3_cbc();
         }
         return 0;
     }
@@ -72,9 +70,9 @@ public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     }
 
     @Override
-    void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-        if (mode != Mode.CBC) {
-            throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+    protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+        if (!modeStr.equalsIgnoreCase("CBC")) {
+            throw new NoSuchAlgorithmException("Unsupported mode " + modeStr);
         }
     }
 

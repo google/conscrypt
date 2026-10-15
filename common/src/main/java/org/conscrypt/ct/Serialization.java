@@ -17,6 +17,7 @@
 package org.conscrypt.ct;
 
 import org.conscrypt.Internal;
+import org.conscrypt.util.SerializationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -27,30 +28,6 @@ import java.util.ArrayList;
 @Internal
 public class Serialization {
     private Serialization() {}
-
-    private static final int DER_TAG_MASK = 0x3f;
-    private static final int DER_TAG_OCTET_STRING = 0x4;
-    private static final int DER_LENGTH_LONG_FORM_FLAG = 0x80;
-
-    public static byte[] readDEROctetString(byte[] input) throws SerializationException {
-        return readDEROctetString(new ByteArrayInputStream(input));
-    }
-
-    public static byte[] readDEROctetString(InputStream input) throws SerializationException {
-        int tag = readByte(input) & DER_TAG_MASK;
-        if (tag != DER_TAG_OCTET_STRING) {
-            throw new SerializationException("Wrong DER tag, expected OCTET STRING, got " + tag);
-        }
-        int length;
-        int width = readNumber(input, 1);
-        if ((width & DER_LENGTH_LONG_FORM_FLAG) != 0) {
-            length = readNumber(input, width & ~DER_LENGTH_LONG_FORM_FLAG);
-        } else {
-            length = width;
-        }
-
-        return readFixedBytes(input, length);
-    }
 
     public static byte[][] readList(byte[] input, int listWidth, int elemWidth)
             throws SerializationException {

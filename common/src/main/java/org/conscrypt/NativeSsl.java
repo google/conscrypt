@@ -97,32 +97,74 @@ final class NativeSsl {
     }
 
     byte[] getSessionId() {
-        return NativeCrypto.SSL_session_id(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_session_id(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     long getTime() {
-        return NativeCrypto.SSL_get_time(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? 0L : NativeCrypto.SSL_get_time(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     long getTimeout() {
-        return NativeCrypto.SSL_get_timeout(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? 0L : NativeCrypto.SSL_get_timeout(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     void setTimeout(long millis) {
-        NativeCrypto.SSL_set_timeout(ssl, this, millis);
+        lock.readLock().lock();
+        try {
+            if (!isClosed()) {
+                NativeCrypto.SSL_set_timeout(ssl, this, millis);
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     String getCipherSuite() {
-        return NativeCrypto.cipherSuiteToJava(NativeCrypto.SSL_get_current_cipher(ssl, this));
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null
+                              : NativeCrypto.cipherSuiteToJava(
+                                        NativeCrypto.SSL_get_current_cipher(ssl, this));
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     String getCurveNameForTesting() {
-        return NativeCrypto.SSL_get_curve_name(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get_curve_name(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     X509Certificate[] getPeerCertificates() throws CertificateException {
-        byte[][] encoded = NativeCrypto.SSL_get0_peer_certificates(ssl, this);
-        return encoded == null ? null : SSLUtils.decodeX509CertificateChain(encoded);
+        lock.readLock().lock();
+        try {
+            if (isClosed()) {
+                return null;
+            }
+            byte[][] encoded = NativeCrypto.SSL_get0_peer_certificates(ssl, this);
+            return encoded == null ? null : SSLUtils.decodeX509CertificateChain(encoded);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     X509Certificate[] getLocalCertificates() {
@@ -130,11 +172,24 @@ final class NativeSsl {
     }
 
     byte[] getPeerCertificateOcspData() {
-        return NativeCrypto.SSL_get_ocsp_response(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get_ocsp_response(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     byte[] getTlsUnique() {
-        return NativeCrypto.SSL_get_tls_unique(ssl, this);
+        lock.readLock().lock();
+        try {
+            if (isClosed()) {
+                return null;
+            }
+            return NativeCrypto.SSL_get_tls_unique(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     byte[] exportKeyingMaterial(String label, byte[] context, int length) throws SSLException {
@@ -142,11 +197,24 @@ final class NativeSsl {
             throw new NullPointerException("Label is null");
         }
         byte[] labelBytes = label.getBytes(StandardCharsets.US_ASCII);
-        return NativeCrypto.SSL_export_keying_material(ssl, this, labelBytes, context, length);
+        lock.readLock().lock();
+        try {
+            if (isClosed()) {
+                return null;
+            }
+            return NativeCrypto.SSL_export_keying_material(ssl, this, labelBytes, context, length);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     byte[] getPeerTlsSctData() {
-        return NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get_signed_cert_timestamp_list(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     /*
@@ -271,11 +339,21 @@ final class NativeSsl {
     }
 
     String getVersion() {
-        return NativeCrypto.SSL_get_version(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get_version(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     String getRequestedServerName() {
-        return NativeCrypto.SSL_get_servername(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get_servername(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     private static int toBoringSslGroup(String javaNamedGroup) {
@@ -336,9 +414,19 @@ final class NativeSsl {
         return toBoringSslGroups(namedGroups);
     }
 
+    private static final int[] DEFAULT_BORINGSSL_NAMED_GROUPS = new int[0];
+
+    private static final int[] DEFAULT_CLASSICAL_NAMED_GROUPS =
+            toBoringSslGroups(new String[] {"X25519", "P-256", "P-384"});
+
     private static void setDefaultNamedGroups(long ssl, NativeSsl sslHolder) {
-        // When the groups list is empty, the default named groups are used.
-        NativeCrypto.SSL_set1_groups(ssl, sslHolder, new int[0]);
+        if (Platform.isPqcDefaultEnabled()) {
+            // When the groups list is empty, BoringSSL's default named groups
+            // (DefaultSupportedGroupIds()) are used as the single source of truth.
+            NativeCrypto.SSL_set1_groups(ssl, sslHolder, DEFAULT_BORINGSSL_NAMED_GROUPS);
+        } else {
+            NativeCrypto.SSL_set1_groups(ssl, sslHolder, DEFAULT_CLASSICAL_NAMED_GROUPS);
+        }
     }
 
     void initialize(String hostname) throws IOException {
@@ -555,11 +643,21 @@ final class NativeSsl {
     }
 
     String getEchNameOverride() {
-        return NativeCrypto.SSL_get0_ech_name_override(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get0_ech_name_override(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     byte[] getEchRetryConfigs() {
-        return NativeCrypto.SSL_get0_ech_retry_configs(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.SSL_get0_ech_retry_configs(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     private void setCertificateValidation() throws SSLException {
@@ -692,11 +790,21 @@ final class NativeSsl {
     }
 
     int getError(int result) {
-        return NativeCrypto.SSL_get_error(ssl, this, result);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? 0 : NativeCrypto.SSL_get_error(ssl, this, result);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     byte[] getApplicationProtocol() {
-        return NativeCrypto.getApplicationProtocol(ssl, this);
+        lock.readLock().lock();
+        try {
+            return isClosed() ? null : NativeCrypto.getApplicationProtocol(ssl, this);
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     private boolean isClient() {
@@ -804,13 +912,13 @@ final class NativeSsl {
             unparsedTlsNamedGroupsProperty = "";
         } else {
             if (!property.equals(unparsedTlsNamedGroupsProperty)) {
-                unparsedTlsNamedGroupsProperty = property;
                 parsedTlsNamedGroupsProperty = parseNamedGroupsProperty(property);
+                unparsedTlsNamedGroupsProperty = property;
             }
         }
     }
 
     static {
-        parseTlsNamedGroupsProperty();
+        getParsedTlsNamedGroupsPropertyOrNull();
     }
 }

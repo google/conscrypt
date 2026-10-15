@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 
 import javax.crypto.NoSuchPaddingException;
 
@@ -25,19 +26,28 @@ import javax.crypto.NoSuchPaddingException;
 public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
     private static final int AES_BLOCK_SIZE = 16;
 
+    enum Mode {
+        CBC,
+        CTR,
+        ECB,
+    }
+
+    private Mode mode;
+
     OpenSSLEvpCipherAES(Mode mode, Padding padding) {
-        super(mode, padding);
+        super(padding);
+        this.mode = mode;
     }
 
     @Override
-    void checkSupportedMode(Mode mode) throws NoSuchAlgorithmException {
-        switch (mode) {
-            case CBC:
-            case CTR:
-            case ECB:
-                return;
-            default:
-                throw new NoSuchAlgorithmException("Unsupported mode " + mode.toString());
+    protected void engineSetMode(String modeStr) throws NoSuchAlgorithmException {
+        try {
+            this.mode = Mode.valueOf(modeStr.toUpperCase(Locale.US));
+        } catch (IllegalArgumentException e) {
+            NoSuchAlgorithmException newE =
+                    new NoSuchAlgorithmException("No such mode: " + modeStr);
+            newE.initCause(e);
+            throw newE;
         }
     }
 
@@ -58,7 +68,7 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
     }
 
     @Override
-    long getCipherType(int keyLength, Mode mode) {
+    long getCipherType(int keyLength) {
         switch (mode) {
             case CBC:
                 switch (keyLength) {

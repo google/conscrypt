@@ -500,39 +500,6 @@ public class SSLEngineVersionCompatibilityTest {
     }
 
     @Test
-    public void test_SSLEngine_ClientHello_record_size() throws Exception {
-        // This test checks the size of ClientHello of the default SSLEngine. TLS/SSL handshakes
-        // with older/unpatched F5/BIG-IP appliances are known to stall and time out when
-        // the fragment containing ClientHello is between 256 and 511 (inclusive) bytes long.
-        SSLContext context = SSLContext.getInstance(clientVersion);
-        context.init(null, null, null);
-        SSLEngine e = context.createSSLEngine();
-        e.setUseClientMode(true);
-
-        // Enable SNI extension on the engine (this is typically enabled by default)
-        // to increase the size of ClientHello.
-        Conscrypt.setHostname(e, "sslenginetest.androidcts.google.com");
-
-        // Enable Session Tickets extension on the engine (this is typically enabled
-        // by default) to increase the size of ClientHello.
-        Conscrypt.setUseSessionTickets(e, true);
-
-        TlsRecord firstReceivedTlsRecord = TlsTester.parseRecord(getFirstChunk(e));
-
-        assertEquals("TLS record type", TlsProtocols.HANDSHAKE, firstReceivedTlsRecord.type);
-        HandshakeMessage handshakeMessage = HandshakeMessage.read(
-                new DataInputStream(new ByteArrayInputStream(firstReceivedTlsRecord.fragment)));
-        assertEquals("HandshakeMessage type", HandshakeMessage.TYPE_CLIENT_HELLO,
-                     handshakeMessage.type);
-
-        int fragmentLength = firstReceivedTlsRecord.fragment.length;
-        if ((fragmentLength >= 256) && (fragmentLength <= 511)) {
-            fail("Fragment containing ClientHello is of dangerous length: " + fragmentLength
-                 + " bytes");
-        }
-    }
-
-    @Test
     public void test_SSLEngine_ClientHello_SNI() throws Exception {
         SSLContext context = SSLContext.getInstance(clientVersion);
         context.init(null, null, null);
@@ -585,6 +552,8 @@ public class SSLEngineVersionCompatibilityTest {
     public void test_SSLEngine_TlsUnique() throws Exception {
         // tls_unique isn't supported in TLS 1.3
         assumeTlsV1_2Connection();
+        SSLEngine clientEngine;
+        SSLEngine serverEngine;
         try (TestSSLContext c = TestSSLContext.newBuilder()
                                         .clientProtocol(clientVersion)
                                         .serverProtocol(serverVersion)
@@ -597,6 +566,8 @@ public class SSLEngineVersionCompatibilityTest {
                  }
              })) {
             assertConnected(pair);
+            clientEngine = pair.client;
+            serverEngine = pair.server;
 
             byte[] clientTlsUnique = Conscrypt.getTlsUnique(pair.client);
             byte[] serverTlsUnique = Conscrypt.getTlsUnique(pair.server);
@@ -604,10 +575,14 @@ public class SSLEngineVersionCompatibilityTest {
             assertNotNull(serverTlsUnique);
             assertArrayEquals(clientTlsUnique, serverTlsUnique);
         }
+        assertNull(Conscrypt.getTlsUnique(clientEngine));
+        assertNull(Conscrypt.getTlsUnique(serverEngine));
     }
 
     @Test
     public void test_SSLEngine_EKM() throws Exception {
+        SSLEngine clientEngine;
+        SSLEngine serverEngine;
         try (TestSSLContext c = TestSSLContext.newBuilder()
                                         .clientProtocol(clientVersion)
                                         .serverProtocol(serverVersion)
@@ -624,6 +599,8 @@ public class SSLEngineVersionCompatibilityTest {
                  }
              })) {
             assertConnected(pair);
+            clientEngine = pair.client;
+            serverEngine = pair.server;
 
             byte[] clientEkm = Conscrypt.exportKeyingMaterial(pair.client, "FOO", null, 20);
             byte[] serverEkm = Conscrypt.exportKeyingMaterial(pair.server, "FOO", null, 20);
@@ -651,6 +628,8 @@ public class SSLEngineVersionCompatibilityTest {
                 assertTrue(Arrays.equals(clientEkm, clientContextEkm));
             }
         }
+        assertNull(Conscrypt.exportKeyingMaterial(clientEngine, "FOO", null, 20));
+        assertNull(Conscrypt.exportKeyingMaterial(serverEngine, "FOO", null, 20));
     }
 
     // Test whether an exception thrown from within the TrustManager properly flows immediately

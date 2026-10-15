@@ -3967,6 +3967,272 @@ static jbyteArray NativeCrypto_MLKEM1024_public_key_from_seed(JNIEnv* env, jclas
     return publicKeyRef.release();
 }
 
+static void NativeCrypto_MLKEM768_encap(JNIEnv* env, jclass, jbyteArray publicKeyBytes,
+                                        jbyteArray outCiphertext, jbyteArray outSharedSecret) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("MLKEM768_encap(%p, %p, %p)", publicKeyBytes, outCiphertext, outSharedSecret);
+
+    if (publicKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "publicKeyBytes == null");
+        return;
+    }
+    if (outCiphertext == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "outCiphertext == null");
+        return;
+    }
+    if (outSharedSecret == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "outSharedSecret == null");
+        return;
+    }
+
+    ScopedByteArrayRO pkArray(env, publicKeyBytes);
+    if (pkArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for pkArray");
+        return;
+    }
+    if (pkArray.size() != MLKEM768_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "publicKeyBytes length != 1184");
+        return;
+    }
+
+    ScopedByteArrayRW ctArray(env, outCiphertext);
+    if (ctArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ctArray");
+        return;
+    }
+    if (ctArray.size() != MLKEM768_CIPHERTEXT_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "outCiphertext length != 1088");
+        return;
+    }
+
+    ScopedByteArrayRW ssArray(env, outSharedSecret);
+    if (ssArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ssArray");
+        return;
+    }
+    if (ssArray.size() != MLKEM_SHARED_SECRET_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "outSharedSecret length != 32");
+        return;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(pkArray.get()), pkArray.size());
+    MLKEM768_public_key publicKey;
+    if (!MLKEM768_parse_public_key(&publicKey, &cbs) || CBS_len(&cbs) != 0) {
+        JNI_TRACE("MLKEM768_parse_public_key failed");
+        ERR_clear_error();
+        conscrypt::jniutil::throwIllegalArgumentException(env, "MLKEM768_parse_public_key failed");
+        return;
+    }
+
+    MLKEM768_encap(reinterpret_cast<uint8_t*>(ctArray.get()),
+                   reinterpret_cast<uint8_t*>(ssArray.get()), &publicKey);
+    JNI_TRACE("MLKEM768_encap(%p, %p, %p) => success", publicKeyBytes, outCiphertext,
+              outSharedSecret);
+}
+
+static jbyteArray NativeCrypto_MLKEM768_decap(JNIEnv* env, jclass, jbyteArray ciphertext,
+                                              jbyteArray privateKeySeed) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("MLKEM768_decap(%p, %p)", ciphertext, privateKeySeed);
+
+    if (ciphertext == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "ciphertext == null");
+        return nullptr;
+    }
+    if (privateKeySeed == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "privateKeySeed == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO ctArray(env, ciphertext);
+    if (ctArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ctArray");
+        return nullptr;
+    }
+    if (ctArray.size() != MLKEM768_CIPHERTEXT_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "ciphertext length != 1088");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO seedArray(env, privateKeySeed);
+    if (seedArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seedArray");
+        return nullptr;
+    }
+    if (seedArray.size() != MLKEM_SEED_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "privateKeySeed length != 64");
+        return nullptr;
+    }
+
+    MLKEM768_private_key privateKey;
+    if (!MLKEM768_private_key_from_seed(
+                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
+        JNI_TRACE("MLKEM768_private_key_from_seed failed");
+        ERR_clear_error();
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "MLKEM768_private_key_from_seed failed");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> ssRef(
+            env, env->NewByteArray(static_cast<jsize>(MLKEM_SHARED_SECRET_BYTES)));
+    if (ssRef.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ssRef");
+        return nullptr;
+    }
+    ScopedByteArrayRW ssArray(env, ssRef.get());
+    if (ssArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ssArray");
+        return nullptr;
+    }
+
+    if (!MLKEM768_decap(reinterpret_cast<uint8_t*>(ssArray.get()),
+                        reinterpret_cast<const uint8_t*>(ctArray.get()), ctArray.size(),
+                        &privateKey)) {
+        JNI_TRACE("MLKEM768_decap failed");
+        ERR_clear_error();
+        conscrypt::jniutil::throwIllegalStateException(env, "MLKEM768_decap failed");
+        return nullptr;
+    }
+
+    JNI_TRACE("MLKEM768_decap(%p, %p) => %p", ciphertext, privateKeySeed, ssRef.get());
+    return ssRef.release();
+}
+
+static void NativeCrypto_MLKEM1024_encap(JNIEnv* env, jclass, jbyteArray publicKeyBytes,
+                                         jbyteArray outCiphertext, jbyteArray outSharedSecret) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("MLKEM1024_encap(%p, %p, %p)", publicKeyBytes, outCiphertext, outSharedSecret);
+
+    if (publicKeyBytes == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "publicKeyBytes == null");
+        return;
+    }
+    if (outCiphertext == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "outCiphertext == null");
+        return;
+    }
+    if (outSharedSecret == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "outSharedSecret == null");
+        return;
+    }
+
+    ScopedByteArrayRO pkArray(env, publicKeyBytes);
+    if (pkArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for pkArray");
+        return;
+    }
+    if (pkArray.size() != MLKEM1024_PUBLIC_KEY_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "publicKeyBytes length != 1568");
+        return;
+    }
+
+    ScopedByteArrayRW ctArray(env, outCiphertext);
+    if (ctArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ctArray");
+        return;
+    }
+    if (ctArray.size() != MLKEM1024_CIPHERTEXT_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "outCiphertext length != 1568");
+        return;
+    }
+
+    ScopedByteArrayRW ssArray(env, outSharedSecret);
+    if (ssArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ssArray");
+        return;
+    }
+    if (ssArray.size() != MLKEM_SHARED_SECRET_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "outSharedSecret length != 32");
+        return;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(pkArray.get()), pkArray.size());
+    MLKEM1024_public_key publicKey;
+    if (!MLKEM1024_parse_public_key(&publicKey, &cbs) || CBS_len(&cbs) != 0) {
+        JNI_TRACE("MLKEM1024_parse_public_key failed");
+        ERR_clear_error();
+        conscrypt::jniutil::throwIllegalArgumentException(env, "MLKEM1024_parse_public_key failed");
+        return;
+    }
+
+    MLKEM1024_encap(reinterpret_cast<uint8_t*>(ctArray.get()),
+                    reinterpret_cast<uint8_t*>(ssArray.get()), &publicKey);
+    JNI_TRACE("MLKEM1024_encap(%p, %p, %p) => success", publicKeyBytes, outCiphertext,
+              outSharedSecret);
+}
+
+static jbyteArray NativeCrypto_MLKEM1024_decap(JNIEnv* env, jclass, jbyteArray ciphertext,
+                                               jbyteArray privateKeySeed) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    JNI_TRACE("MLKEM1024_decap(%p, %p)", ciphertext, privateKeySeed);
+
+    if (ciphertext == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "ciphertext == null");
+        return nullptr;
+    }
+    if (privateKeySeed == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "privateKeySeed == null");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO ctArray(env, ciphertext);
+    if (ctArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ctArray");
+        return nullptr;
+    }
+    if (ctArray.size() != MLKEM1024_CIPHERTEXT_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "ciphertext length != 1568");
+        return nullptr;
+    }
+
+    ScopedByteArrayRO seedArray(env, privateKeySeed);
+    if (seedArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for seedArray");
+        return nullptr;
+    }
+    if (seedArray.size() != MLKEM_SEED_BYTES) {
+        conscrypt::jniutil::throwIllegalArgumentException(env, "privateKeySeed length != 64");
+        return nullptr;
+    }
+
+    MLKEM1024_private_key privateKey;
+    if (!MLKEM1024_private_key_from_seed(
+                &privateKey, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size())) {
+        JNI_TRACE("MLKEM1024_private_key_from_seed failed");
+        ERR_clear_error();
+        conscrypt::jniutil::throwIllegalArgumentException(env,
+                                                          "MLKEM1024_private_key_from_seed failed");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> ssRef(
+            env, env->NewByteArray(static_cast<jsize>(MLKEM_SHARED_SECRET_BYTES)));
+    if (ssRef.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ssRef");
+        return nullptr;
+    }
+    ScopedByteArrayRW ssArray(env, ssRef.get());
+    if (ssArray.get() == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate buffer for ssArray");
+        return nullptr;
+    }
+
+    if (!MLKEM1024_decap(reinterpret_cast<uint8_t*>(ssArray.get()),
+                         reinterpret_cast<const uint8_t*>(ctArray.get()), ctArray.size(),
+                         &privateKey)) {
+        JNI_TRACE("MLKEM1024_decap failed");
+        ERR_clear_error();
+        conscrypt::jniutil::throwIllegalStateException(env, "MLKEM1024_decap failed");
+        return nullptr;
+    }
+
+    JNI_TRACE("MLKEM1024_decap(%p, %p) => %p", ciphertext, privateKeySeed, ssRef.get());
+    return ssRef.release();
+}
+
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE_MD("EVP_MD_CTX_create()");
@@ -5773,6 +6039,11 @@ static jobject NativeCrypto_EVP_HPKE_CTX_setup_base_mode_recipient(
     }
 
     bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
+    if (ctx == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate EVP_HPKE_CTX");
+        ERR_clear_error();
+        return nullptr;
+    }
     ScopedByteArrayRO enc(env, encArray);
     if (enc.get() == nullptr) {
         return nullptr;
@@ -5848,6 +6119,11 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender(JNIEnv* env
     uint8_t encapsulatedSharedSecret[EVP_HPKE_MAX_ENC_LENGTH];
 
     bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
+    if (ctx == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate EVP_HPKE_CTX");
+        ERR_clear_error();
+        return {};
+    }
 
     if (!EVP_HPKE_CTX_setup_sender(
                 /* ctx= */ ctx.get(),
@@ -5947,6 +6223,11 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender_with_seed_f
     uint8_t encapsulatedSharedSecret[EVP_HPKE_MAX_ENC_LENGTH];
 
     bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
+    if (ctx == nullptr) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate EVP_HPKE_CTX");
+        ERR_clear_error();
+        return nullptr;
+    }
 
     if (!EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
                 /* ctx= */ ctx.get(),
@@ -8123,6 +8404,10 @@ static jlongArray X509_CRLs_to_ItemArray(JNIEnv* env, STACK_OF(X509_CRL)* crls) 
 static jbyteArray NativeCrypto_i2d_PKCS7(JNIEnv* env, jclass, jlongArray certsArray) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     STACK_OF(X509)* stack = sk_X509_new_null();
+    if (stack == nullptr) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "sk_X509_new_null");
+        return nullptr;
+    }
 
     ScopedLongArrayRO certs(env, certsArray);
     if (certs.get() == nullptr) {
@@ -8633,6 +8918,11 @@ static jobjectArray NativeCrypto_get_X509_ex_xkusage(JNIEnv* env, jclass, jlong 
     for (size_t i = 0; i < size; i++) {
         ScopedLocalRef<jstring> oidStr(
                 env, ASN1_OBJECT_to_OID_string(env, sk_ASN1_OBJECT_value(objArray.get(), i)));
+        if (oidStr.get() == nullptr) {
+            // When ASN1_OBJECT_to_OID_string fails, it returns nullptr and adds
+            // a pending exception.
+            return nullptr;
+        }
         env->SetObjectArrayElement(exKeyUsage.get(), static_cast<jsize>(i), oidStr.get());
     }
 
@@ -9515,7 +9805,13 @@ static jlong NativeCrypto_SSL_new(JNIEnv* env, jclass, jlong ssl_ctx_address,
         JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new appData => 0", ssl_ctx);
         return 0;
     }
-    SSL_set_app_data(ssl.get(), reinterpret_cast<char*>(appData));
+    if (SSL_set_app_data(ssl.get(), reinterpret_cast<char*>(appData)) != 1) {
+        delete appData;
+        conscrypt::jniutil::throwSSLExceptionWithSslErrors(env, ssl.get(), SSL_ERROR_NONE,
+                                                           "Unable to set application data");
+        JNI_TRACE("ssl_ctx=%p NativeCrypto_SSL_new SSL_set_app_data => 0", ssl_ctx);
+        return 0;
+    }
 
     SSL_set_custom_verify(ssl.get(), SSL_VERIFY_PEER, cert_verify_callback);
 
@@ -12487,7 +12783,11 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(ED25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(XWING_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLKEM768_public_key_from_seed, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(MLKEM768_encap, "([B[B[B)V"),
+        CONSCRYPT_NATIVE_METHOD(MLKEM768_decap, "([B[B)[B"),
         CONSCRYPT_NATIVE_METHOD(MLKEM1024_public_key_from_seed, "([B)[B"),
+        CONSCRYPT_NATIVE_METHOD(MLKEM1024_encap, "([B[B[B)V"),
+        CONSCRYPT_NATIVE_METHOD(MLKEM1024_decap, "([B[B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_create, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_destroy, "(J)V"),
