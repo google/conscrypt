@@ -28,6 +28,8 @@
 #include <conscrypt/netutil.h>
 #include <conscrypt/scoped_ssl_bio.h>
 #include <conscrypt/ssl_error.h>
+#include <conscrypt/trace.h>
+#include <jni.h>
 #include <limits.h>
 #include <nativehelper/scoped_primitive_array.h>
 #include <nativehelper/scoped_utf_chars.h>
@@ -39,6 +41,7 @@
 #include <openssl/cmac.h>
 #include <openssl/crypto.h>
 #include <openssl/curve25519.h>
+#include <openssl/digest.h>
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -48,6 +51,7 @@
 #include <openssl/mlkem.h>
 #include <openssl/pkcs7.h>
 #include <openssl/pkcs8.h>
+#include <openssl/pool.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/slhdsa.h>
@@ -55,6 +59,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/xwing.h>
 
+#include <cstdint>
 #include <limits>
 #include <optional>
 #include <string>
@@ -65,7 +70,6 @@ using conscrypt::AppData;
 using conscrypt::BioInputStream;
 using conscrypt::BioOutputStream;
 using conscrypt::BioStream;
-using conscrypt::CompatibilityCloseMonitor;
 using conscrypt::NativeCrypto;
 using conscrypt::SslError;
 
@@ -155,6 +159,22 @@ static T* fromContextObject(JNIEnv* env, jobject contextObject) {
     }
     return ref;
 }
+
+namespace {
+
+template <typename T>
+jobject createNativeRef(JNIEnv* env, jclass clazz, jmethodID ctor, bssl::UniquePtr<T> obj) {
+    if (obj == nullptr) {
+        return nullptr;
+    }
+    jobject ref = env->NewObject(clazz, ctor, reinterpret_cast<jlong>(obj.get()));
+    if (ref != nullptr) {
+        OWNERSHIP_TRANSFERRED(obj);
+    }
+    return ref;
+}
+
+}  // namespace
 
 /**
  * Converts a Java byte[] two's complement to an OpenSSL BIGNUM. Returns a
@@ -4413,11 +4433,9 @@ static jint NativeCrypto_EVP_MD_size(JNIEnv* env, jclass, jlong evpMdRef) {
     return result;
 }
 
-static jlong evpDigestSignVerifyInit(JNIEnv* env,
-                                     int (*init_func)(EVP_MD_CTX*, EVP_PKEY_CTX**, const EVP_MD*,
-                                                      ENGINE*, EVP_PKEY*),
-                                     const char* jniName, jobject evpMdCtxRef, jlong evpMdRef,
-                                     jobject pkeyRef) {
+template <typename InitFunc>
+static jlong evpDigestSignVerifyInit(JNIEnv* env, InitFunc init_func, const char* jniName,
+                                     jobject evpMdCtxRef, jlong evpMdRef, jobject pkeyRef) {
     EVP_MD_CTX* mdCtx = fromContextObject<EVP_MD_CTX>(env, evpMdCtxRef);
     if (mdCtx == nullptr) {
         JNI_TRACE("%s => mdCtx == null", jniName);
@@ -6038,14 +6056,15 @@ static jobject NativeCrypto_EVP_HPKE_CTX_setup_base_mode_recipient(
         infoLen = optionalInfo->size();
     }
 
+    ScopedByteArrayRO enc(env, encArray);
+    if (enc.get() == nullptr) {
+        return nullptr;
+    }
+
     bssl::UniquePtr<EVP_HPKE_CTX> ctx(EVP_HPKE_CTX_new());
     if (ctx == nullptr) {
         conscrypt::jniutil::throwOutOfMemory(env, "Unable to allocate EVP_HPKE_CTX");
         ERR_clear_error();
-        return nullptr;
-    }
-    ScopedByteArrayRO enc(env, encArray);
-    if (enc.get() == nullptr) {
         return nullptr;
     }
     if (!EVP_HPKE_CTX_setup_recipient(
@@ -6061,15 +6080,8 @@ static jobject NativeCrypto_EVP_HPKE_CTX_setup_base_mode_recipient(
         return nullptr;
     }
 
-    ScopedLocalRef<jobject> ctxObject(
-            env, env->NewObject(conscrypt::jniutil::nativeRefHpkeCtxClass,
-                                conscrypt::jniutil::nativeRefHpkeCtxClass_constructor,
-                                reinterpret_cast<jlong>(ctx.get())));
-    if (ctxObject.get() == nullptr) {
-        return nullptr;
-    }
-    ctx.release();
-    return ctxObject.release();
+    return createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
+                           conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx));
 }
 
 static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender(JNIEnv* env, jclass,
@@ -6160,15 +6172,13 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender(JNIEnv* env
         return {};
     }
     ScopedLocalRef<jobject> ctxObject(
-            env, env->NewObject(conscrypt::jniutil::nativeRefHpkeCtxClass,
-                                conscrypt::jniutil::nativeRefHpkeCtxClass_constructor,
-                                reinterpret_cast<jlong>(ctx.get())));
+            env, createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
+                                 conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx)));
     if (ctxObject.get() == nullptr) {
         return {};
     }
-    ctx.release();
-    env->SetObjectArrayElement(result.get(), 0, ctxObject.release());
-    env->SetObjectArrayElement(result.get(), 1, encArray.release());
+    env->SetObjectArrayElement(result.get(), 0, ctxObject.get());
+    env->SetObjectArrayElement(result.get(), 1, encArray.get());
 
     return result.release();
 }
@@ -6268,16 +6278,14 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender_with_seed_f
     }
 
     ScopedLocalRef<jobject> ctxObject(
-            env, env->NewObject(conscrypt::jniutil::nativeRefHpkeCtxClass,
-                                conscrypt::jniutil::nativeRefHpkeCtxClass_constructor,
-                                reinterpret_cast<jlong>(ctx.get())));
+            env, createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
+                                 conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx)));
     if (ctxObject.get() == nullptr) {
         return nullptr;
     }
-    ctx.release();
 
-    env->SetObjectArrayElement(result.get(), 0, ctxObject.release());
-    env->SetObjectArrayElement(result.get(), 1, encArray.release());
+    env->SetObjectArrayElement(result.get(), 0, ctxObject.get());
+    env->SetObjectArrayElement(result.get(), 1, encArray.get());
 
     return result.release();
 }

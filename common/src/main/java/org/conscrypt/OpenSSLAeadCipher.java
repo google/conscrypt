@@ -24,6 +24,7 @@ import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -86,9 +87,7 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
      */
     int tagLengthInBytes;
 
-    protected OpenSSLAeadCipher() {
-        super(Padding.NOPADDING);
-    }
+    protected OpenSSLAeadCipher() {}
 
     private void checkInitialization() {
         if (mustInitialize) {
@@ -432,8 +431,8 @@ public abstract class OpenSSLAeadCipher extends OpenSSLCipher {
     }
 
     @Override
-    void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-        if (padding != Padding.NOPADDING) {
+    protected void engineSetPadding(String paddingStr) throws NoSuchPaddingException {
+        if (!paddingStr.toUpperCase(Locale.US).equals("NOPADDING")) {
             throw new NoSuchPaddingException("Must be NoPadding for AEAD ciphers");
         }
     }

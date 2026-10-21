@@ -23,7 +23,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
-import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.cert.X509Certificate;
 import java.util.Properties;
@@ -379,6 +378,22 @@ public final class Conscrypt {
      */
     public static void setNamedGroups(SSLSocket socket, String[] namedGroups) {
         toConscrypt(socket).setNamedGroups(namedGroups);
+    }
+
+    /**
+     * Returns the name of the curve or named group used during the TLS handshake, or {@code null}
+     * if the handshake has not completed.
+     */
+    public static String getGroupName(SSLSocket socket) {
+        return toConscrypt(socket).getGroupName();
+    }
+
+    /**
+     * Returns the name of the curve or named group used during the TLS handshake, or {@code null}
+     * if the handshake has not completed.
+     */
+    public static String getGroupName(SSLEngine engine) {
+        return toConscrypt(engine).getGroupName();
     }
 
     /**

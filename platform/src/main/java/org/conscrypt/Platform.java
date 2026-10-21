@@ -646,6 +646,10 @@ final public class Platform {
         return true;
     }
 
+    public static boolean isPqcKemKdfSupported() {
+        return Flags.pqcKemKdfApi();
+    }
+
     /**
      * Controls whether Post-Quantum Cryptography (X25519MLKEM768) is included in the default
      * TLS named groups for this application.

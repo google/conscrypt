@@ -214,8 +214,9 @@ final class ConscryptEngine extends AbstractConscryptEngine
         sslParameters.setNamedGroups(namedGroups);
     }
 
-    String getCurveNameForTesting() {
-        return ssl.getCurveNameForTesting();
+    @Override
+    String getGroupName() {
+        return ssl.getGroupName();
     }
 
     /**

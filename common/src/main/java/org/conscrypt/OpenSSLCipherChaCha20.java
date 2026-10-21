@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -184,14 +185,14 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     }
 
     @Override
-    void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-        if (padding != Padding.NOPADDING) {
+    protected void engineSetPadding(String paddingStr) throws NoSuchPaddingException {
+        if (!paddingStr.toUpperCase(Locale.US).equals("NOPADDING")) {
             throw new NoSuchPaddingException("Must be NoPadding");
         }
     }
 
     @Override
-    int getCipherBlockSize() {
+    protected int engineGetBlockSize() {
         return 0;
     }
 

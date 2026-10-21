@@ -29,7 +29,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SocketChannel;
-import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -515,7 +514,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
 
     public abstract void setNamedGroups(String[] namedGroups);
 
-    abstract String getCurveNameForTesting();
+    abstract String getGroupName();
 
     /**
      * Returns the hostname that was supplied during socket creation. No DNS resolution is

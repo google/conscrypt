@@ -23,7 +23,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.security.PrivateKey;
 
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
 /**
@@ -146,5 +145,5 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
 
     @Override public abstract void setNamedGroups(String[] namedGroups);
 
-    @Override public abstract String getCurveNameForTesting();
+    @Override public abstract String getGroupName();
 }

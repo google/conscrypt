@@ -127,12 +127,12 @@ public class OpenSSLCipherTest {
         TestUtils.assumeAllowsUnsignedCrypto();
     }
 
-    private static void assertDecryptsToExpectedPlaintext(
-            String transformation, String keyAlg, byte[] keyBytes, AlgorithmParameterSpec paramSpec,
-            byte[] ciphertext, byte[] expectedPlaintext) throws Exception {
-        Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+    private static void assertDecryptsToExpectedPlaintext(Cipher cipher, SecretKey key,
+                                                          AlgorithmParameterSpec paramSpec,
+                                                          byte[] ciphertext,
+                                                          byte[] expectedPlaintext)
+            throws Exception {
         assertEquals(CONSCRYPT_PROVIDER, cipher.getProvider());
-        SecretKey key = new SecretKeySpec(keyBytes, keyAlg);
         if (paramSpec == null) {
             cipher.init(Cipher.DECRYPT_MODE, key);
         } else {
@@ -165,13 +165,18 @@ public class OpenSSLCipherTest {
 
     @Test
     public void decrypt_aesEcbNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES/ECB/NoPadding", "AES", key16, null,
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), null,
                                           ciphertextAes128EcbNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("AES/ECB/NoPadding", "AES", key24, null,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "AES"), null,
                                           ciphertextAes192EcbNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("AES/ECB/NoPadding", "AES", key32, null,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), null,
                                           ciphertextAes256EcbNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("Aes/EcB/noPadDing", "aEs", key32, null,
+
+        Cipher cipherMixedCase = Cipher.getInstance("Aes/EcB/noPadDing", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"), null,
                                           ciphertextAes256EcbNopad, plaintext16);
     }
 
@@ -179,13 +184,15 @@ public class OpenSSLCipherTest {
     public void decrypt_aesEcbPkcs5Padding_andAliases() throws Exception {
         for (String transformation : new String[] {"AES/ECB/PKCS5Padding", "AES/ECB/PKCS7Padding",
                                                    "Aes/EcB/pkcs5Padding"}) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key16, null,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), null,
                                               ciphertextAes128EcbPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key24, null,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "AES"), null,
                                               ciphertextAes192EcbPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key32, null,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), null,
                                               ciphertextAes256EcbPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "aEs", key16, null,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "aEs"), null,
                                               ciphertextAes128EcbPkcs5, plaintextVar);
         }
     }
@@ -193,13 +200,18 @@ public class OpenSSLCipherTest {
     @Test
     public void decrypt_aesCbcNoPadding() throws Exception {
         IvParameterSpec iv = new IvParameterSpec(iv16);
-        assertDecryptsToExpectedPlaintext("AES/CBC/NoPadding", "AES", key16, iv,
+        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), iv,
                                           ciphertextAes128CbcNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("AES/CBC/NoPadding", "AES", key24, iv,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "AES"), iv,
                                           ciphertextAes192CbcNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("AES/CBC/NoPadding", "AES", key32, iv,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), iv,
                                           ciphertextAes256CbcNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("Aes/CbC/noPadding", "aEs", key32, iv,
+
+        Cipher cipherMixedCase = Cipher.getInstance("Aes/CbC/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"), iv,
                                           ciphertextAes256CbcNopad, plaintext16);
     }
 
@@ -208,13 +220,15 @@ public class OpenSSLCipherTest {
         IvParameterSpec iv = new IvParameterSpec(iv16);
         for (String transformation : new String[] {"AES/CBC/PKCS5Padding", "AES/CBC/PKCS7Padding",
                                                    "Aes/CbC/pkcs5Padding"}) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key16, iv,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), iv,
                                               ciphertextAes128CbcPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key24, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "AES"), iv,
                                               ciphertextAes192CbcPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key32, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), iv,
                                               ciphertextAes256CbcPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "aEs", key16, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "aEs"), iv,
                                               ciphertextAes128CbcPkcs5, plaintextVar);
         }
     }
@@ -222,21 +236,31 @@ public class OpenSSLCipherTest {
     @Test
     public void decrypt_aesCtrNoPadding() throws Exception {
         IvParameterSpec iv = new IvParameterSpec(iv16);
-        assertDecryptsToExpectedPlaintext("AES/CTR/NoPadding", "AES", key16, iv,
+        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), iv,
                                           ciphertextAes128CtrNopad, plaintextVar);
-        assertDecryptsToExpectedPlaintext("AES/CTR/NoPadding", "AES", key24, iv,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "AES"), iv,
                                           ciphertextAes192CtrNopad, plaintextVar);
-        assertDecryptsToExpectedPlaintext("AES/CTR/NoPadding", "AES", key32, iv,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), iv,
                                           ciphertextAes256CtrNopad, plaintextVar);
-        assertDecryptsToExpectedPlaintext("aEs/CtR/noPadding", "aEs", key32, iv,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs/CtR/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"), iv,
                                           ciphertextAes256CtrNopad, plaintextVar);
     }
 
     @Test
     public void decrypt_aes128EcbNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_128/ECB/NoPadding", "AES", key16, null,
+        Cipher cipher = Cipher.getInstance("AES_128/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), null,
                                           ciphertextAes128EcbNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("aEs_128/EcB/noPadding", "aEs", key16, null,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs_128/EcB/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key16, "aEs"), null,
                                           ciphertextAes128EcbNopad, plaintext16);
     }
 
@@ -245,19 +269,26 @@ public class OpenSSLCipherTest {
         for (String transformation :
              new String[] {"AES_128/ECB/PKCS5Padding", "AES_128/ECB/PKCS7Padding",
                            "aEs_128/EcB/pkcs5Padding"}) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key16, null,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), null,
                                               ciphertextAes128EcbPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "aEs", key16, null,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "aEs"), null,
                                               ciphertextAes128EcbPkcs5, plaintextVar);
         }
     }
 
     @Test
     public void decrypt_aes128CbcNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_128/CBC/NoPadding", "AES", key16,
+        Cipher cipher = Cipher.getInstance("AES_128/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"),
                                           new IvParameterSpec(iv16), ciphertextAes128CbcNopad,
                                           plaintext16);
-        assertDecryptsToExpectedPlaintext("aEs_128/CbC/noPadding", "aEs", key16,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs_128/CbC/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key16, "aEs"),
                                           new IvParameterSpec(iv16), ciphertextAes128CbcNopad,
                                           plaintext16);
     }
@@ -280,9 +311,11 @@ public class OpenSSLCipherTest {
 
         };
         for (String transformation : transformations) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key16, iv,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), iv,
                                               ciphertextAes128CbcPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "aEs", key16, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "aEs"), iv,
                                               ciphertextAes128CbcPkcs5, plaintextVar);
         }
     }
@@ -294,23 +327,47 @@ public class OpenSSLCipherTest {
         // PBEWithHmacSHA1AndAES_128/ECB/PKCS5Padding is an alias for
         // AES_128/ECB/PKCS5Padding and PBEWithHmacSHA1AndAES_128/ECB/NoPadding is an alias for
         // AES_128/ECB/NoPadding.
-        assertDecryptsToExpectedPlaintext("PBEWithHmacSHA1AndAES_128/ECB/PKCS5Padding", "AES",
-                                          key16, null, ciphertextAes128EcbPkcs5, plaintextVar);
-        assertDecryptsToExpectedPlaintext("PBEWithHmacSHA1AndAES_128/ECB/PKCS7Padding", "AES",
-                                          key16, null, ciphertextAes128EcbPkcs5, plaintextVar);
-        assertDecryptsToExpectedPlaintext("PBEWithHmacSHA1AndAES_128/ECB/NoPadding", "AES",
-                                          key16, null, ciphertextAes128EcbNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("pbeWithHmacSHA1AndAES_128/ecb/pkcs5Padding", "aEs",
-                                          key16, null, ciphertextAes128EcbPkcs5, plaintextVar);
-        assertDecryptsToExpectedPlaintext("pbeWithHmacSHA1AndAES_128/ecb/nopadding", "aEs",
-                                          key16, null, ciphertextAes128EcbNopad, plaintext16);
+        Cipher cipher1 = Cipher.getInstance("PBEWithHmacSHA1AndAES_128/ECB/PKCS5Padding",
+                                            CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher1.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher1, new SecretKeySpec(key16, "AES"), null,
+                                          ciphertextAes128EcbPkcs5, plaintextVar);
+
+        Cipher cipher2 = Cipher.getInstance("PBEWithHmacSHA1AndAES_128/ECB/PKCS7Padding",
+                                            CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher2.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher2, new SecretKeySpec(key16, "AES"), null,
+                                          ciphertextAes128EcbPkcs5, plaintextVar);
+
+        Cipher cipher3 =
+                Cipher.getInstance("PBEWithHmacSHA1AndAES_128/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher3.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher3, new SecretKeySpec(key16, "AES"), null,
+                                          ciphertextAes128EcbNopad, plaintext16);
+
+        Cipher cipher4 = Cipher.getInstance("pbeWithHmacSHA1AndAES_128/ecb/pkcs5Padding",
+                                            CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher4.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher4, new SecretKeySpec(key16, "aEs"), null,
+                                          ciphertextAes128EcbPkcs5, plaintextVar);
+
+        Cipher cipher5 =
+                Cipher.getInstance("pbeWithHmacSHA1AndAES_128/ecb/nopadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher5.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher5, new SecretKeySpec(key16, "aEs"), null,
+                                          ciphertextAes128EcbNopad, plaintext16);
     }
 
     @Test
     public void decrypt_aes256EcbNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_256/ECB/NoPadding", "AES", key32, null,
+        Cipher cipher = Cipher.getInstance("AES_256/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), null,
                                           ciphertextAes256EcbNopad, plaintext16);
-        assertDecryptsToExpectedPlaintext("aEs_256/EcB/noPadding", "aEs", key32, null,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs_256/EcB/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"), null,
                                           ciphertextAes256EcbNopad, plaintext16);
     }
 
@@ -319,19 +376,26 @@ public class OpenSSLCipherTest {
         for (String transformation :
              new String[] {"AES_256/ECB/PKCS5Padding", "AES_256/ECB/PKCS7Padding",
                            "aEs_256/EcB/pkcs5Padding"}) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key32, null,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), null,
                                               ciphertextAes256EcbPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "aEs", key32, null,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "aEs"), null,
                                               ciphertextAes256EcbPkcs5, plaintextVar);
         }
     }
 
     @Test
     public void decrypt_aes256CbcNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_256/CBC/NoPadding", "AES", key32,
+        Cipher cipher = Cipher.getInstance("AES_256/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"),
                                           new IvParameterSpec(iv16), ciphertextAes256CbcNopad,
                                           plaintext16);
-        assertDecryptsToExpectedPlaintext("aEs_256/CbC/noPadding", "aEs", key32,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs_256/CbC/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"),
                                           new IvParameterSpec(iv16), ciphertextAes256CbcNopad,
                                           plaintext16);
     }
@@ -347,9 +411,11 @@ public class OpenSSLCipherTest {
                                     "PBEWithHmacSHA1AndAES_256/CBC/PKCS5Padding",
                                     "pbeWithHmacSHA1AndAES_256/cbc/pkcs5Padding"};
         for (String transformation : transformations) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key32, iv,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), iv,
                                               ciphertextAes256CbcPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "aEs", key32, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "aEs"), iv,
                                               ciphertextAes256CbcPkcs5, plaintextVar);
         }
     }
@@ -358,16 +424,21 @@ public class OpenSSLCipherTest {
     public void decrypt_pbeWithHmacSHA1AndAES256_withEcbMode() throws Exception {
         // PBEWithHmacSHA1AndAES_256 is an alias for AES_256/CBC/PKCS5PADDING, but
         // the Cipher.getInstance allows to use a different mode/padding.
-        assertDecryptsToExpectedPlaintext("PBEWithHmacSHA1AndAES_256/ECB/PKCS5Padding", "AES",
-                                          key32, null, ciphertextAes256EcbPkcs5, plaintextVar);
+        Cipher cipher = Cipher.getInstance("PBEWithHmacSHA1AndAES_256/ECB/PKCS5Padding",
+                                           CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), null,
+                                          ciphertextAes256EcbPkcs5, plaintextVar);
     }
 
     @Test
     public void decrypt_desedeCbcNoPadding() throws Exception {
         IvParameterSpec iv = new IvParameterSpec(iv8);
-        assertDecryptsToExpectedPlaintext("DESEDE/CBC/NoPadding", "DESEDE", key16, iv,
+        Cipher cipher = Cipher.getInstance("DESEDE/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(8, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "DESEDE"), iv,
                                           ciphertextDesede16CbcNopad, plaintext8);
-        assertDecryptsToExpectedPlaintext("DESEDE/CBC/NoPadding", "DESEDE", key24, iv,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "DESEDE"), iv,
                                           ciphertextDesede24CbcNopad, plaintext8);
     }
 
@@ -376,9 +447,11 @@ public class OpenSSLCipherTest {
         IvParameterSpec iv = new IvParameterSpec(iv8);
         for (String transformation :
              new String[] {"DESEDE/CBC/PKCS5Padding", "DESEDE/CBC/PKCS7Padding"}) {
-            assertDecryptsToExpectedPlaintext(transformation, "DESEDE", key16, iv,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(8, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "DESEDE"), iv,
                                               ciphertextDesede16CbcPkcs5, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "DESEDE", key24, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key24, "DESEDE"), iv,
                                               ciphertextDesede24CbcPkcs5, plaintextVar);
         }
     }
@@ -402,8 +475,10 @@ public class OpenSSLCipherTest {
                 "OID.1.2.840.113549.3.4/ECB/NoPadding",
         };
         for (String transformation : transformations) {
-            assertDecryptsToExpectedPlaintext(transformation, "ARC4", key16, null, ciphertextArc4,
-                                              plaintextVar);
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(0, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "ARC4"), null,
+                                              ciphertextArc4, plaintextVar);
         }
     }
 
@@ -428,26 +503,35 @@ public class OpenSSLCipherTest {
                 "2.16.840.1.101.3.4.1.46/GCM/NoPadding",
         };
         for (String transformation : transformations) {
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key16, spec,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(16, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), spec,
                                               ciphertextAes128Gcm, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "AES", key32, spec,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), spec,
                                               ciphertextAes256Gcm, plaintextVar);
         }
     }
 
     @Test
     public void decrypt_aes128GcmNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_128/GCM/NoPadding", "AES", key16,
+        Cipher cipher = Cipher.getInstance("AES_128/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes128Gcm,
                                           plaintextVar);
     }
 
     @Test
     public void decrypt_aes256GcmNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_256/GCM/NoPadding", "AES", key32,
+        Cipher cipher = Cipher.getInstance("AES_256/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes256Gcm,
                                           plaintextVar);
-        assertDecryptsToExpectedPlaintext("aEs_256/gcm/noPadding", "aEs", key32,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs_256/gcm/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes256Gcm,
                                           plaintextVar);
     }
@@ -455,42 +539,66 @@ public class OpenSSLCipherTest {
     @Test
     public void decrypt_aesGcmSivNoPadding() throws Exception {
         GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
-        assertDecryptsToExpectedPlaintext("AES/GCM-SIV/NoPadding", "AES", key16, spec,
+        Cipher cipher = Cipher.getInstance("AES/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"), spec,
                                           ciphertextAes128GcmSiv, plaintextVar);
-        assertDecryptsToExpectedPlaintext("AES/GCM-SIV/NoPadding", "AES", key32, spec,
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"), spec,
                                           ciphertextAes256GcmSiv, plaintextVar);
-        assertDecryptsToExpectedPlaintext("aEs/gcm-siv/noPadding", "aEs", key16, spec,
+
+        Cipher cipherMixedCase = Cipher.getInstance("aEs/gcm-siv/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key16, "aEs"), spec,
                                           ciphertextAes128GcmSiv, plaintextVar);
-        assertDecryptsToExpectedPlaintext("aEs/gcm-siv/noPadding", "aEs", key32, spec,
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"), spec,
                                           ciphertextAes256GcmSiv, plaintextVar);
     }
 
     @Test
     public void decrypt_aes128GcmSivNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_128/GCM-SIV/NoPadding", "AES", key16,
+        Cipher cipher = Cipher.getInstance("AES_128/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key16, "AES"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes128GcmSiv,
                                           plaintextVar);
-        assertDecryptsToExpectedPlaintext("aEs_128/gcm-siv/noPadding", "aEs", key16,
+
+        Cipher cipherMixedCase =
+                Cipher.getInstance("aEs_128/gcm-siv/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key16, "aEs"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes128GcmSiv,
                                           plaintextVar);
     }
 
     @Test
     public void decrypt_aes256GcmSivNoPadding() throws Exception {
-        assertDecryptsToExpectedPlaintext("AES_256/GCM-SIV/NoPadding", "AES", key32,
+        Cipher cipher = Cipher.getInstance("AES_256/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "AES"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes256GcmSiv,
                                           plaintextVar);
-        assertDecryptsToExpectedPlaintext("aEs_256/gcm-siv/noPadding", "aEs", key32,
+
+        Cipher cipherMixedCase =
+                Cipher.getInstance("aEs_256/gcm-siv/noPadding", CONSCRYPT_PROVIDER);
+        assertEquals(16, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "aEs"),
                                           new GCMParameterSpec(128, iv12), ciphertextAes256GcmSiv,
                                           plaintextVar);
     }
 
     @Test
     public void decrypt_chaCha20() throws Exception {
-        assertDecryptsToExpectedPlaintext("ChaCha20", "ChaCha20", key32, new IvParameterSpec(iv12),
-                                          ciphertextChaCha20, plaintextVar);
-        assertDecryptsToExpectedPlaintext("cHaCha20", "cHaCha20", key32, new IvParameterSpec(iv12),
-                                          ciphertextChaCha20, plaintextVar);
+        Cipher cipher = Cipher.getInstance("ChaCha20", CONSCRYPT_PROVIDER);
+        assertEquals(0, cipher.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "ChaCha20"),
+                                          new IvParameterSpec(iv12), ciphertextChaCha20,
+                                          plaintextVar);
+
+        Cipher cipherMixedCase = Cipher.getInstance("cHaCha20", CONSCRYPT_PROVIDER);
+        assertEquals(0, cipherMixedCase.getBlockSize());
+        assertDecryptsToExpectedPlaintext(cipherMixedCase, new SecretKeySpec(key32, "cHaCha20"),
+                                          new IvParameterSpec(iv12), ciphertextChaCha20,
+                                          plaintextVar);
     }
 
     @Test
@@ -504,9 +612,11 @@ public class OpenSSLCipherTest {
                      "ChaCha20-Poly1305/Poly1305/NoPadding",
                      "chacha20-poly1305/poly1305/nopadding",
              }) {
-            assertDecryptsToExpectedPlaintext(transformation, "ChaCha20", key32, iv,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(0, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "ChaCha20"), iv,
                                               ciphertextChaCha20Poly1305, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "chacha20", key32, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "chacha20"), iv,
                                               ciphertextChaCha20Poly1305, plaintextVar);
         }
     }
@@ -522,9 +632,11 @@ public class OpenSSLCipherTest {
                      "XChaCha20-Poly1305/Poly1305/NoPadding",
                      "xchacha20-poly1305/poly1305/nopadding",
              }) {
-            assertDecryptsToExpectedPlaintext(transformation, "XChaCha20", key32, iv,
+            Cipher cipher = Cipher.getInstance(transformation, CONSCRYPT_PROVIDER);
+            assertEquals(0, cipher.getBlockSize());
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "XChaCha20"), iv,
                                               ciphertextXChaCha20Poly1305, plaintextVar);
-            assertDecryptsToExpectedPlaintext(transformation, "xchacha20", key32, iv,
+            assertDecryptsToExpectedPlaintext(cipher, new SecretKeySpec(key32, "xchacha20"), iv,
                                               ciphertextXChaCha20Poly1305, plaintextVar);
         }
     }
@@ -674,5 +786,527 @@ public class OpenSSLCipherTest {
              new String[] {"XChaCha20/Poly1305/NoPadding", "XChaCha20-Poly1305"}) {
             assertRejectsKey(transformation, "XChaCha20", key24, iv);
         }
+    }
+
+    // =========================================================================
+    // 3. Cipher.getOutputSize Tests
+    // =========================================================================
+
+    @Test
+    public void getOutputSize_aesEcbNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aesEcbPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aesCbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aesCbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aesCtrNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes128EcbNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes128EcbPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/ECB/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes128CbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes128CbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes256EcbNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes256EcbPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/ECB/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes256CbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes256CbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(16, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(80, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_desedeCbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("DESEDE/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key24, "DESEDE");
+        IvParameterSpec iv = new IvParameterSpec(iv8);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_desedeCbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("DESEDE/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key24, "DESEDE");
+        IvParameterSpec iv = new IvParameterSpec(iv8);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(8, cipher.getOutputSize(0));
+        assertEquals(8, cipher.getOutputSize(5));
+        assertEquals(24, cipher.getOutputSize(16));
+        assertEquals(72, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(8, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(72, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_arc4() throws Exception {
+        Cipher cipher = Cipher.getInstance("ARC4", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "ARC4");
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aesGcmNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes128GcmNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes256GcmNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aesGcmSivNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes128GcmSivNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_aes256GcmSivNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_chaCha20() throws Exception {
+        Cipher cipher = Cipher.getInstance("ChaCha20", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "ChaCha20");
+        IvParameterSpec iv = new IvParameterSpec(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(5, cipher.getOutputSize(5));
+        assertEquals(16, cipher.getOutputSize(16));
+        assertEquals(67, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_chaCha20Poly1305() throws Exception {
+        Cipher cipher = Cipher.getInstance("ChaCha20/Poly1305/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "ChaCha20");
+        IvParameterSpec iv = new IvParameterSpec(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    @Test
+    public void getOutputSize_xChaCha20Poly1305() throws Exception {
+        Cipher cipher = Cipher.getInstance("XChaCha20/Poly1305/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "XChaCha20");
+        IvParameterSpec iv = new IvParameterSpec(iv24);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(16, cipher.getOutputSize(0));
+        assertEquals(21, cipher.getOutputSize(5));
+        assertEquals(32, cipher.getOutputSize(16));
+        assertEquals(83, cipher.getOutputSize(67));
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        assertThrows(IllegalArgumentException.class, () -> cipher.getOutputSize(-67));
+        assertEquals(0, cipher.getOutputSize(0));
+        assertEquals(0, cipher.getOutputSize(5));
+        assertEquals(0, cipher.getOutputSize(16));
+        assertEquals(51, cipher.getOutputSize(67));
     }
 }

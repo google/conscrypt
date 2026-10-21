@@ -99,9 +99,9 @@ public class SSLSocketTest {
     private static final TestSSLContext testSslContext = TestSSLContext.create();
 
     String getCurveName(SSLSocket socket) throws Exception {
-        Method getCurveNameMethod = socket.getClass().getMethod("getCurveNameForTesting");
-        getCurveNameMethod.setAccessible(true);
-        return (String) getCurveNameMethod.invoke(socket);
+        Method getGroupNameMethod = socket.getClass().getMethod("getGroupName");
+        getGroupNameMethod.setAccessible(true);
+        return (String) getGroupNameMethod.invoke(socket);
     }
 
     /**

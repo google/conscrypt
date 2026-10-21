@@ -49,7 +49,7 @@ public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
     }
 
     @Override
-    int getCipherBlockSize() {
+    protected int engineGetBlockSize() {
         return AES_BLOCK_SIZE;
     }
 

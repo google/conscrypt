@@ -19,7 +19,6 @@ package org.conscrypt;
 import static org.conscrypt.Preconditions.checkNotNull;
 
 import java.nio.ByteBuffer;
-import java.security.PrivateKey;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -70,6 +69,11 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     @Override
     void setBufferAllocator(BufferAllocator bufferAllocator) {
         delegate.setBufferAllocator(bufferAllocator);
+    }
+
+    @Override
+    String getGroupName() {
+        return delegate.getGroupName();
     }
 
     @Override

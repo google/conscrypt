@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import org.conscrypt.AllocatedBuffer;
 import org.conscrypt.BufferAllocator;
 import org.conscrypt.Conscrypt;
-import org.conscrypt.OpenSSLSocketImpl;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,8 +49,8 @@ public class SSLSocketImplTest {
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
     }
 
-    String getCurveName(SSLSocket socket) {
-        return ((OpenSSLSocketImpl) socket).getCurveNameForTesting();
+    String getGroupName(SSLSocket socket) {
+        return Conscrypt.getGroupName(socket);
     }
 
     private <T> Future<T> runAsync(Callable<T> callable) {
@@ -138,8 +137,8 @@ public class SSLSocketImplTest {
         s.get();
         c.get();
         // This must works even if sslParametersSupportsNamedGroups is false.
-        assertEquals("P-384", getCurveName(client));
-        assertEquals("P-384", getCurveName(server));
+        assertEquals("P-384", getGroupName(client));
+        assertEquals("P-384", getGroupName(server));
         client.close();
         server.close();
         context.close();
@@ -168,8 +167,8 @@ public class SSLSocketImplTest {
         s.get();
         c.get();
         // This must works even if sslParametersSupportsNamedGroups is false.
-        assertEquals("P-384", getCurveName(client));
-        assertEquals("P-384", getCurveName(server));
+        assertEquals("P-384", getGroupName(client));
+        assertEquals("P-384", getGroupName(server));
         client.close();
         server.close();
         context.close();

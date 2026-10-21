@@ -17,7 +17,6 @@
 package org.conscrypt;
 
 import java.nio.ByteBuffer;
-import java.security.PrivateKey;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -29,6 +28,8 @@ import javax.net.ssl.SSLSession;
  */
 abstract class AbstractConscryptEngine extends SSLEngine {
     abstract void setBufferAllocator(BufferAllocator bufferAllocator);
+
+    abstract String getGroupName();
 
     /**
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
