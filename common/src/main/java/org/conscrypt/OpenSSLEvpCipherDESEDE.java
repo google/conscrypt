@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 
 import javax.crypto.NoSuchPaddingException;
 
@@ -77,18 +78,20 @@ public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     }
 
     @Override
-    void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-        switch (padding) {
-            case NOPADDING:
-            case PKCS5PADDING:
-                return;
-            default:
-                throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
+    protected void engineSetPadding(String paddingStr) throws NoSuchPaddingException {
+        String upperPaddingStr = paddingStr.toUpperCase(Locale.US);
+        if (upperPaddingStr.equals("NOPADDING")) {
+            padding = Padding.NOPADDING;
+        } else if (upperPaddingStr.equals("PKCS5PADDING")
+                   || upperPaddingStr.equals("PKCS7PADDING")) {
+            padding = Padding.PKCS5PADDING;
+        } else {
+            throw new NoSuchPaddingException("No such padding: " + paddingStr);
         }
     }
 
     @Override
-    int getCipherBlockSize() {
+    protected int engineGetBlockSize() {
         return DES_BLOCK_SIZE;
     }
 }

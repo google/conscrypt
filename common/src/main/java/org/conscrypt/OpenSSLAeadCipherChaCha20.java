@@ -39,7 +39,7 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     }
 
     @Override
-    int getCipherBlockSize() {
+    protected int engineGetBlockSize() {
         return 0;
     }
 

@@ -32,9 +32,22 @@ import javax.crypto.spec.IvParameterSpec;
 @Internal
 public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
     /**
+     * Paddings that a block cipher may support.
+     */
+    enum Padding {
+        NOPADDING,
+        PKCS5PADDING,
+    }
+
+    /**
      * Native pointer for the OpenSSL EVP_CIPHER context.
      */
     private final EVP_CIPHER_CTX cipherCtx = new EVP_CIPHER_CTX(NativeCrypto.EVP_CIPHER_CTX_new());
+
+    /**
+     * The current cipher padding.
+     */
+    Padding padding;
 
     /**
      * Whether the cipher has processed any data yet. EVP_CIPHER doesn't
@@ -49,7 +62,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
     private int modeBlockSize;
 
     protected OpenSSLEvpCipher(Padding padding) {
-        super(padding);
+        this.padding = padding;
     }
 
     @Override
@@ -101,7 +114,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         }
 
         // OpenSSL only supports PKCS5 Padding.
-        NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx, getPadding() == Padding.PKCS5PADDING);
+        NativeCrypto.EVP_CIPHER_CTX_set_padding(cipherCtx, padding == Padding.PKCS5PADDING);
         modeBlockSize = NativeCrypto.EVP_CIPHER_CTX_block_size(cipherCtx);
         calledUpdate = false;
     }
@@ -245,7 +258,7 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
         } else {
             final int buffered = NativeCrypto.get_EVP_CIPHER_CTX_buf_len(cipherCtx);
 
-            if (getPadding() == Padding.NOPADDING) {
+            if (padding == Padding.NOPADDING) {
                 return buffered + inputLen;
             } else {
                 final boolean finalUsed = NativeCrypto.get_EVP_CIPHER_CTX_final_used(cipherCtx);

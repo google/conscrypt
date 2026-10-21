@@ -30,9 +30,7 @@ import org.conscrypt.SSLParametersImpl.AliasChooser;
 import org.conscrypt.SSLParametersImpl.PSKCallbacks;
 import org.conscrypt.metrics.TlsEncryptedClientHelloHandshake;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
@@ -145,7 +143,7 @@ final class NativeSsl {
         }
     }
 
-    String getCurveNameForTesting() {
+    String getGroupName() {
         lock.readLock().lock();
         try {
             return isClosed() ? null : NativeCrypto.SSL_get_curve_name(ssl, this);

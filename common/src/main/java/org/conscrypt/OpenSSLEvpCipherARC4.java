@@ -18,6 +18,7 @@ package org.conscrypt;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 
 import javax.crypto.NoSuchPaddingException;
 
@@ -49,14 +50,14 @@ public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
     }
 
     @Override
-    void checkSupportedPadding(Padding padding) throws NoSuchPaddingException {
-        if (padding != Padding.NOPADDING) {
-            throw new NoSuchPaddingException("Unsupported padding " + padding.toString());
+    protected void engineSetPadding(String paddingStr) throws NoSuchPaddingException {
+        if (!paddingStr.toUpperCase(Locale.US).equals("NOPADDING")) {
+            throw new NoSuchPaddingException("Unsupported padding " + paddingStr);
         }
     }
 
     @Override
-    int getCipherBlockSize() {
+    protected int engineGetBlockSize() {
         return 0;
     }
 

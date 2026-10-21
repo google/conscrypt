@@ -291,6 +291,27 @@ public class ConscryptEngineTest {
         exchangeMessage(inputBuffer, clientEngine, serverEngine);
     }
 
+    String getGroupName(SSLEngine engine) {
+        return Conscrypt.getGroupName(engine);
+    }
+
+    @Test
+    public void getGroupName_works() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+
+        assertNull(getGroupName(clientEngine));
+        assertNull(getGroupName(serverEngine));
+
+        doHandshake(true);
+
+        String clientGroupName = getGroupName(clientEngine);
+        String serverGroupName = getGroupName(serverEngine);
+        assertTrue("Unexpected client group: " + clientGroupName,
+                   clientGroupName.equals("X25519") || clientGroupName.equals("X25519MLKEM768"));
+        assertTrue("Unexpected server group: " + serverGroupName,
+                   serverGroupName.equals("X25519") || serverGroupName.equals("X25519MLKEM768"));
+    }
+
     @Test
     public void alpnWithProtocolListShouldSucceed() throws Exception {
         setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());

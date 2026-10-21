@@ -30,13 +30,11 @@ import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
-import java.util.Locale;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherSpi;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
@@ -47,29 +45,6 @@ import javax.crypto.spec.SecretKeySpec;
  */
 @Internal
 public abstract class OpenSSLCipher extends CipherSpi {
-    /**
-     * Paddings that a block cipher may support.
-     */
-    enum Padding {
-        NOPADDING,
-        PKCS5PADDING,
-        PKCS7PADDING,
-        ;
-
-        public static Padding getNormalized(String value) {
-            Padding p = Padding.valueOf(value.toUpperCase(Locale.US));
-            if (p == PKCS7PADDING) {
-                return PKCS5PADDING;
-            }
-            return p;
-        }
-    }
-
-    /**
-     * The current cipher padding.
-     */
-    private Padding padding = Padding.PKCS5PADDING;
-
     /**
      * May be used when reseting the cipher instance after calling
      * {@code doFinal}.
@@ -86,16 +61,8 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     private boolean encrypting;
 
-    /**
-     * The block size of the current cipher.
-     */
-    private int blockSize;
 
-    OpenSSLCipher() {}
-
-    OpenSSLCipher(Padding padding) {
-        this.padding = padding;
-        blockSize = getCipherBlockSize();
+    OpenSSLCipher() {
     }
 
     /**
@@ -129,47 +96,12 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     abstract void checkSupportedKeySize(int keySize) throws InvalidKeyException;
 
-    /**
-     * Checks whether the cipher supports this particular cipher {@code padding}
-     * and throws {@code NoSuchPaddingException} if it doesn't.
-     */
-    abstract void checkSupportedPadding(Padding padding) throws NoSuchPaddingException;
-
-    abstract int getCipherBlockSize();
-
     boolean supportsVariableSizeKey() {
         return false;
     }
 
     boolean supportsVariableSizeIv() {
         return false;
-    }
-
-    @Override
-    protected void engineSetPadding(String paddingStr) throws NoSuchPaddingException {
-        final Padding padding;
-        try {
-            padding = Padding.getNormalized(paddingStr);
-        } catch (IllegalArgumentException e) {
-            NoSuchPaddingException newE =
-                    new NoSuchPaddingException("No such padding: " + paddingStr);
-            newE.initCause(e);
-            throw newE;
-        }
-        checkSupportedPadding(padding);
-        this.padding = padding;
-    }
-
-    /**
-     * Returns the padding type for which this cipher is initialized.
-     */
-    Padding getPadding() {
-        return padding;
-    }
-
-    @Override
-    protected int engineGetBlockSize() {
-        return blockSize;
     }
 
     /**
