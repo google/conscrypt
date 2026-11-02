@@ -48,10 +48,14 @@ public class TlsDeprecationTest {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        assertThrows(IllegalArgumentException.class,
-                     () -> client.setEnabledProtocols(new String[] {"SSLv3"}));
-        assertThrows(IllegalArgumentException.class,
-                     () -> client.setEnabledProtocols(new String[] {"SSL"}));
+        IllegalArgumentException e = assertThrows(
+                IllegalArgumentException.class,
+                () -> client.setEnabledProtocols(new String[] {"SSLv3"}));
+        assertEquals("protocol SSLv3 is not supported", e.getMessage());
+        e = assertThrows(
+                IllegalArgumentException.class,
+                () -> client.setEnabledProtocols(new String[] {"SSL"}));
+        assertEquals("protocol SSL is not supported", e.getMessage());
     }
 
     @Test
@@ -98,9 +102,22 @@ public class TlsDeprecationTest {
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
-        assertThrows(
+        IllegalArgumentException e = assertThrows(
                 IllegalArgumentException.class,
                 () -> client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1", "TLSv1.2"}));
+        assertEquals(
+                "protocol TLSv1 is not supported: TLSv1 and TLSv1.1 are deprecated and can no"
+                        + " longer be enabled for apps targeting API level 36 or higher; remove"
+                        + " them from the requested protocols",
+                e.getMessage());
+        e = assertThrows(
+                IllegalArgumentException.class,
+                () -> client.setEnabledProtocols(new String[] {"TLSv1.1", "TLSv1.2"}));
+        assertEquals(
+                "protocol TLSv1.1 is not supported: TLSv1 and TLSv1.1 are deprecated and can no"
+                        + " longer be enabled for apps targeting API level 36 or higher; remove"
+                        + " them from the requested protocols",
+                e.getMessage());
     }
 
     @Test

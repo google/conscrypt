@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
@@ -30,8 +31,8 @@ public class OpenSSLEvpCipherARC4 extends OpenSSLEvpCipher {
     }
 
     @Override
-    String getBaseCipherName() {
-        return "ARCFOUR";
+    protected AlgorithmParameters engineGetParameters() {
+        return null;
     }
 
     @Override

@@ -232,5 +232,4 @@ final class OpenSSLECGroupContext {
     ECParameterSpec getECParameterSpec() {
         return ecParameterSpec;
     }
-
 }

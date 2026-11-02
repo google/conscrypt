@@ -274,4 +274,9 @@ public class PlatformTest {
         assertNull(mismatchException.getRetryConfigList());
         assertEquals(cause, mismatchException.getCause());
     }
+
+    @Test
+    public void test_getTlsV1DeprecationNote() {
+        assertEquals("", Platform.getTlsV1DeprecationNote());
+    }
 }

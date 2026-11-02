@@ -1039,6 +1039,12 @@ def run_direct_repackage(
       / "openjdk/src/main/java/dalvik/annotation/optimization/FastNative.java",
       repackaged_dir
       / "openjdk/src/main/java/dalvik/annotation/optimization/CriticalNative.java",
+      repackaged_dir
+      / "platform/src/main/java/com/android/org/conscrypt/CertBlocklistImpl.java",
+      repackaged_dir
+      / "platform/src/main/java/com/android/org/conscrypt/Hex.java",
+      repackaged_dir
+      / "platform/src/test/java/com/android/org/conscrypt/CertBlocklistTest.java",
   ]
   for r in removals:
     if r.is_file():

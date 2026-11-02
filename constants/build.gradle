@@ -56,8 +56,11 @@ model {
         // Runs generateNativeConstants to create build/NativeConstants.java
         runGen(Exec) {
             def gen = $.binaries.get("genExecutable")
+            File blocklistAwk = project.file("src/gen/java/generate_blocklist.awk")
+            File blocklistInc = project.file("src/gen/java/cert_verify_proc_blocklist.inc")
 
             dependsOn gen
+            inputs.files(blocklistAwk, blocklistInc)
             outputs.dir genDir
             File genDir = new File("${genDir}/org/conscrypt")
 
@@ -70,6 +73,12 @@ model {
             doLast {
                 if (standardOutput != null) {
                     standardOutput.close();
+                }
+                new File(genDir, "StaticBlocklist.java").withOutputStream { out ->
+                    project.exec { spec ->
+                        spec.commandLine "awk", "-f", blocklistAwk, blocklistInc
+                        spec.standardOutput = out
+                    }
                 }
             }
         }

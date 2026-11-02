@@ -61,9 +61,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
      */
     private boolean encrypting;
 
-
-    OpenSSLCipher() {
-    }
+    OpenSSLCipher() {}
 
     /**
      * API-specific implementation of initializing the cipher. The
@@ -86,23 +84,10 @@ public abstract class OpenSSLCipher extends CipherSpi {
                                 int outputOffset, int maximumLen) throws ShortBufferException;
 
     /**
-     * Returns the standard name for the particular algorithm.
-     */
-    abstract String getBaseCipherName();
-
-    /**
      * Checks whether the cipher supports this particular {@code keySize} (in
      * bytes) and throws {@code InvalidKeyException} if it doesn't.
      */
     abstract void checkSupportedKeySize(int keySize) throws InvalidKeyException;
-
-    boolean supportsVariableSizeKey() {
-        return false;
-    }
-
-    boolean supportsVariableSizeIv() {
-        return false;
-    }
 
     /**
      * The size of output if {@code doFinal()} is called with this
@@ -125,23 +110,7 @@ public abstract class OpenSSLCipher extends CipherSpi {
 
     @Override
     protected byte[] engineGetIV() {
-        return iv;
-    }
-
-    @Override
-    protected AlgorithmParameters engineGetParameters() {
-        if (iv != null && iv.length > 0) {
-            try {
-                AlgorithmParameters params = AlgorithmParameters.getInstance(getBaseCipherName());
-                params.init(new IvParameterSpec(iv));
-                return params;
-            } catch (NoSuchAlgorithmException e) {
-                return null;
-            } catch (InvalidParameterSpecException e) {
-                return null;
-            }
-        }
-        return null;
+        return (iv != null) ? iv.clone() : null;
     }
 
     protected AlgorithmParameterSpec getParameterSpec(AlgorithmParameters params)

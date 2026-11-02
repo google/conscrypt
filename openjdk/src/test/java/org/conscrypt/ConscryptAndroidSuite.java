@@ -90,6 +90,7 @@ import tests.util.ServiceTester;
         AddressUtilsTest.class,
         ApplicationProtocolSelectorAdapterTest.class,
         ArrayUtilsTest.class,
+        CertBlocklistTest.class,
         CertPinManagerTest.class,
         ChaCha20Poly1305Test.class,
         ChainStrengthAnalyzerTest.class,

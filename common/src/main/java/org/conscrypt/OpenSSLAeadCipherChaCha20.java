@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -34,8 +35,8 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
     }
 
     @Override
-    String getBaseCipherName() {
-        return "ChaCha20";
+    protected AlgorithmParameters engineGetParameters() {
+        return InternalProvider.getIvParameters("ChaCha20", iv);
     }
 
     @Override
@@ -73,8 +74,8 @@ public class OpenSSLAeadCipherChaCha20 extends OpenSSLAeadCipher {
 
     public static class XChaCha20 extends OpenSSLAeadCipherChaCha20 {
         @Override
-        String getBaseCipherName() {
-            return "XChaCha20";
+        protected AlgorithmParameters engineGetParameters() {
+            return InternalProvider.getIvParameters("XChaCha20", iv);
         }
 
         @Override

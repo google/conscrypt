@@ -802,7 +802,7 @@ final public class Platform {
     }
 
     static CertBlocklist newDefaultBlocklist() {
-        return null;
+        return CertBlocklistImpl.getDefault();
     }
 
     static CertificateTransparency newDefaultCertificateTransparency(
@@ -877,6 +877,10 @@ final public class Platform {
 
     public static synchronized boolean isTlsV1Supported() {
         return ENABLED_TLS_V1;
+    }
+
+    public static String getTlsV1DeprecationNote() {
+        return "";
     }
     public static boolean isPakeSupported() {
         return false;

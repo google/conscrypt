@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
@@ -65,8 +66,8 @@ public abstract class OpenSSLEvpCipherAES extends OpenSSLEvpCipher {
     }
 
     @Override
-    String getBaseCipherName() {
-        return "AES";
+    protected AlgorithmParameters engineGetParameters() {
+        return InternalProvider.getIvParameters("AES", iv);
     }
 
     @Override
