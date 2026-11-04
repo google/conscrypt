@@ -90,9 +90,6 @@ import javax.net.ssl.X509TrustManager;
 
 @Internal
 final public class Platform {
-    private static class NoPreloadHolder {
-        public static final Platform MAPPER = new Platform();
-    }
     private static boolean DEPRECATED_TLS_V1 = true;
     private static boolean ENABLED_TLS_V1 = false;
     private static boolean FILTERED_TLS_V1 = true;
@@ -112,15 +109,9 @@ final public class Platform {
         DEPRECATED_TLS_V1 = deprecatedTlsV1;
         ENABLED_TLS_V1 = enabledTlsV1;
         FILTERED_TLS_V1 = !enabledTlsV1;
-        NoPreloadHolder.MAPPER.ping();
         NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
         RUNNING_IN_ZYGOTE = inZygote();
     }
-
-    /**
-     * Just a placeholder to make sure the class is initialized.
-     */
-    private void ping() {}
 
     private Platform() {}
 
@@ -640,6 +631,16 @@ final public class Platform {
 
     public static synchronized boolean isTlsV1Supported() {
         return ENABLED_TLS_V1;
+    }
+
+    public static String getTlsV1DeprecationNote() {
+        Object targetSdkVersion = getTargetSdkVersion();
+        if ((targetSdkVersion != null) && ((int) targetSdkVersion > 35)
+                && ((int) targetSdkVersion < 100)) {
+            return ": TLSv1 and TLSv1.1 are deprecated and can no longer be enabled for apps"
+                    + " targeting API level 36 or higher; remove them from the requested protocols";
+        }
+        return "";
     }
 
     public static boolean isPakeSupported() {

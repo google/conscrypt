@@ -13,54 +13,121 @@
 # limitations under the License.
 
 BEGIN {
-  inSPKIBlockList = 0
-  inKnownInterceptionList = 0
-  currentHash = 0
+  currentList = ""
+  braceDepth = 0
+  foundSPKIBlockList = 0
+  foundKnownInterceptionList = 0
+  spkiEntries = 0
+  interceptionEntries = 0
+  orderCount = 0
+  failed = 0
   if (! package) {
     package = "org.conscrypt"
   }
 }
 
-# Keep track of which block definition we are in now.
-/kSPKIBlockList\[\]\[crypto::kSHA256Length\] = {/ {
-  inSPKIBlockList = 1
-}
-/kKnownInterceptionList\[\]\[crypto::kSHA256Length\] = {/ {
-  inKnownInterceptionList = 1
-}
-/};/ {
-  if (inSPKIBlockList)
-    inSPKIBlockList = 0
-  if (inKnownInterceptionList)
-    inKnownInterceptionList= 0
-}
+{
+  line = $0
+  sub(/\r$/, "", line)
+  sub(/\/\/.*/, "", line)
 
-# Extract the bytes from the public key hashes.
-/\{0x/ { currentHash = "" }
-/0x/ {
-  newLine = $0
-  gsub(/[ {}]/, "", newLine)
-  gsub(/0x/, "", newLine)
-  currentHash = currentHash newLine
-}
-/\},/ {
-  if (inSPKIBlockList)
-    hashes[currentHash] = 1
-  if (inKnownInterceptionList)
-    hashes[currentHash] = 0
-  currentHash = 0
+  if (braceDepth == 0) {
+    if (line ~ /kSPKIBlockList/) {
+      currentList = "spki"
+      foundSPKIBlockList = 1
+    } else if (line ~ /kKnownInterceptionList/) {
+      currentList = "interception"
+      foundKnownInterceptionList = 1
+    }
+  }
+
+  if (currentList != "") {
+    len = length(line)
+    pos = 1
+    while (pos <= len) {
+      ch = substr(line, pos, 1)
+      if (ch == "{") {
+        braceDepth++
+        if (braceDepth == 2) {
+          currentHash = ""
+          byteCount = 0
+        } else if (braceDepth > 2) {
+          failed = 1
+          exit 1
+        }
+        pos++
+      } else if (ch == "}") {
+        if (braceDepth == 2) {
+          if (byteCount != 32) {
+            failed = 1
+            exit 1
+          }
+          if (!(currentHash in seen)) {
+            seen[currentHash] = 1
+            order[orderCount++] = currentHash
+          }
+          if (currentList == "spki") {
+            hashes[currentHash] = 1
+            spkiEntries++
+          } else {
+            hashes[currentHash] = 0
+            interceptionEntries++
+          }
+          currentHash = ""
+          byteCount = 0
+        } else if (braceDepth == 1) {
+          currentList = ""
+        } else {
+          failed = 1
+          exit 1
+        }
+        braceDepth--
+        pos++
+      } else if (braceDepth == 2 && substr(line, pos, 2) == "0x") {
+        hexByte = tolower(substr(line, pos + 2, 2))
+        if (hexByte !~ /^[0-9a-f][0-9a-f]$/) {
+          failed = 1
+          exit 1
+        }
+        if (byteCount > 0) {
+          currentHash = currentHash "," hexByte
+        } else {
+          currentHash = hexByte
+        }
+        byteCount++
+        pos += 4
+      } else if (braceDepth == 2 && ch !~ /[ ,\t]/) {
+        failed = 1
+        exit 1
+      } else {
+        pos++
+      }
+    }
+  }
 }
 
 END {
-  # Make sure we are out of the declaration blocks.
-  if (inSPKIBlockList || inKnownInterceptionList)
+  # Validate that both expected declaration blocks were completely parsed.
+  if (failed || !foundSPKIBlockList || !foundKnownInterceptionList) {
     exit 1
+  }
+  if (braceDepth != 0 || currentList != "") {
+    exit 1
+  }
+  if (spkiEntries == 0 || interceptionEntries == 0) {
+    exit 1
+  }
 
-  # Only keep the hashes that are only in kSPKIBlockList.
-  for (h in hashes) {
+  # Only keep the hashes that are only in kSPKIBlockList, preserving file order.
+  numBlocked = 0
+  for (idx = 0; idx < orderCount; idx++) {
+    h = order[idx]
     if (hashes[h]) {
-      blockedHashes[i++] = h
+      blockedHashes[numBlocked++] = h
     }
+  }
+  if (numBlocked == 0) {
+    exit 1
   }
 
   # Generate the Java class.
@@ -87,14 +154,15 @@ END {
   print "final class StaticBlocklist {"
   print "    static final byte[][] PUBLIC_KEYS = {"
   ORS = ""
-  for (h in blockedHashes) {
+  for (idx = 0; idx < numBlocked; idx++) {
     print "       {\n       "
-    n = split(blockedHashes[h], splitHash, ",")
-    for (i=1; i<=n; i++) {
-      if (splitHash[i] != "") {
-        print "(byte) 0x" splitHash[i] ", "
-        if (i % 8 == 0) {
-          print "\n       "
+    n = split(blockedHashes[idx], splitHash, ",")
+    for (b = 1; b <= n; b++) {
+      if (splitHash[b] != "") {
+        if (b % 8 == 0) {
+          print "(byte) 0x" splitHash[b] ",\n       "
+        } else {
+          print "(byte) 0x" splitHash[b] ", "
         }
       }
     }

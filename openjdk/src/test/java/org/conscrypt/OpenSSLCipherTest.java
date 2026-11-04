@@ -16,6 +16,8 @@
 
 package org.conscrypt;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.conscrypt.TestUtils.UTF_8;
 import static org.conscrypt.TestUtils.decodeHex;
 import static org.junit.Assert.assertArrayEquals;
@@ -27,6 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.Provider;
 import java.security.spec.AlgorithmParameterSpec;
@@ -1308,5 +1311,667 @@ public class OpenSSLCipherTest {
         assertEquals(0, cipher.getOutputSize(5));
         assertEquals(0, cipher.getOutputSize(16));
         assertEquals(51, cipher.getOutputSize(67));
+    }
+
+    // =========================================================================
+    // 4. Cipher.getParameters Tests
+    // =========================================================================
+
+    @Test
+    public void getParameters_aesEcbNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aesEcbPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aesCbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aesCbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aesCtrNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes128EcbNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aes128EcbPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/ECB/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aes128CbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes128CbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes256EcbNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/ECB/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aes256EcbPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/ECB/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aes256CbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes256CbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("AES");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(16);
+        assertThat(randomIv).isNotEqualTo(iv16);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_desedeCbcNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("DESEDE/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key24, "DESEDE");
+        IvParameterSpec iv = new IvParameterSpec(iv8);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("DESede");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv8);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("DESede");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv8);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("DESede");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(8);
+        assertThat(randomIv).isNotEqualTo(iv8);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_desedeCbcPkcs5Padding() throws Exception {
+        Cipher cipher = Cipher.getInstance("DESEDE/CBC/PKCS5Padding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key24, "DESEDE");
+        IvParameterSpec iv = new IvParameterSpec(iv8);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("DESede");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv8);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("DESede");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv8);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("DESede");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(8);
+        assertThat(randomIv).isNotEqualTo(iv8);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_arc4() throws Exception {
+        Cipher cipher = Cipher.getInstance("ARC4", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "ARC4");
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        assertThat(cipher.getParameters()).isNull();
+    }
+
+    @Test
+    public void getParameters_aesGcmNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        GCMParameterSpec actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).hasLength(12);
+        assertThat(actualSpec.getIV()).isNotEqualTo(iv12);
+        assertThat(actualSpec.getIV()).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes128GcmNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        GCMParameterSpec actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).hasLength(12);
+        assertThat(actualSpec.getIV()).isNotEqualTo(iv12);
+        assertThat(actualSpec.getIV()).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes256GcmNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/GCM/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        GCMParameterSpec actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).hasLength(12);
+        assertThat(actualSpec.getIV()).isNotEqualTo(iv12);
+        assertThat(actualSpec.getIV()).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aesGcmSivNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        GCMParameterSpec actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).hasLength(12);
+        assertThat(actualSpec.getIV()).isNotEqualTo(iv12);
+        assertThat(actualSpec.getIV()).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes128GcmSivNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_128/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        GCMParameterSpec actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).hasLength(12);
+        assertThat(actualSpec.getIV()).isNotEqualTo(iv12);
+        assertThat(actualSpec.getIV()).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_aes256GcmSivNoPadding() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES_256/GCM-SIV/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "AES");
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        GCMParameterSpec actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("GCM");
+        actualSpec = params.getParameterSpec(GCMParameterSpec.class);
+        assertThat(actualSpec.getTLen()).isEqualTo(128);
+        assertThat(actualSpec.getIV()).hasLength(12);
+        assertThat(actualSpec.getIV()).isNotEqualTo(iv12);
+        assertThat(actualSpec.getIV()).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_chaCha20() throws Exception {
+        Cipher cipher = Cipher.getInstance("ChaCha20", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "ChaCha20");
+        IvParameterSpec iv = new IvParameterSpec(iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("ChaCha20");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("ChaCha20");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("ChaCha20");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(12);
+        assertThat(randomIv).isNotEqualTo(iv12);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_chaCha20Poly1305() throws Exception {
+        Cipher cipher = Cipher.getInstance("ChaCha20/Poly1305/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "ChaCha20");
+        IvParameterSpec iv = new IvParameterSpec(iv12);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("ChaCha20");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("ChaCha20");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv12);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("ChaCha20");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(12);
+        assertThat(randomIv).isNotEqualTo(iv12);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getParameters_xChaCha20Poly1305() throws Exception {
+        Cipher cipher = Cipher.getInstance("XChaCha20/Poly1305/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key32, "XChaCha20");
+        IvParameterSpec iv = new IvParameterSpec(iv24);
+        assertThat(cipher.getParameters()).isNull();
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        AlgorithmParameters params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("XChaCha20");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv24);
+
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("XChaCha20");
+        assertThat(params.getParameterSpec(IvParameterSpec.class).getIV()).isEqualTo(iv24);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        params = cipher.getParameters();
+        assertThat(params).isNotNull();
+        assertThat(params.getAlgorithm()).isEqualTo("XChaCha20");
+        byte[] randomIv = params.getParameterSpec(IvParameterSpec.class).getIV();
+        assertThat(randomIv).hasLength(24);
+        assertThat(randomIv).isNotEqualTo(iv24);
+        assertThat(randomIv).isEqualTo(cipher.getIV());
+    }
+
+    @Test
+    public void getIV_returnsNewBuffer() throws Exception {
+        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", CONSCRYPT_PROVIDER);
+        SecretKey key = new SecretKeySpec(key16, "AES");
+        IvParameterSpec iv = new IvParameterSpec(iv16);
+
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        assertThat(cipher.getIV()).isEqualTo(iv16);
+        assertThat(cipher.getIV()).isNotSameInstanceAs(cipher.getIV());
+
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        assertThat(cipher.getIV()).isEqualTo(cipher.getIV());
+        assertThat(cipher.getIV()).isNotSameInstanceAs(cipher.getIV());
     }
 }

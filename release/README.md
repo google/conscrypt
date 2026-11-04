@@ -6,22 +6,43 @@
 
 - You need to have an account on [Maven Central](https://central.sonatype.com/),
   and have access to the namespace `org.conscrypt`. It should be listed in
-  [https://central.sonatype.com/publishing/namespaces]
-  (https://central.sonatype.com/publishing/namespaces). If you don't have access
-  to the namespace, contact a Conscrypt maintainer.
+  [https://central.sonatype.com/publishing/namespaces](https://central.sonatype.com/publishing/namespaces).
+  If you don't have access to the namespace, contact a Conscrypt maintainer.
 
 #### Setup GPG
 
 - Install GnuPG and [generate your key
   pair](https://www.gnupg.org/documentation/howtos.html).
 - [Publish your public key](https://www.gnupg.org/gph/en/manual.html#AEN464)
-  to make it visible to the Sonatype servers
-  (e.g. `gpg --keyserver pgp.mit.edu --send-key <key ID>`).
+  to make it visible to the keyservers supported by Sonatype Central Portal
+  (`keyserver.ubuntu.com`, `keys.openpgp.org`, and `pgp.mit.edu`):
+
+  ```bash
+  gpg --keyserver hkps://keyserver.ubuntu.com --send-keys <KEY_ID>
+  ```
+  
+  ```bash
+  gpg --keyserver hkps://keys.openpgp.org --send-keys <KEY_ID>
+  ```
+  
+  ```bash
+  gpg --keyserver hkps://pgp.mit.edu --send-keys <KEY_ID>
+  ```
+- To inspect which key ID was used to create a detached `.asc` signature inside
+  a bundle, run:
+  ```bash
+  gpg --list-packets <file>.asc
+  ```
+
+#### Setup Copybara for GitHub
+
+- Follow [go/copybara-github#authentication](http://go/copybara-github#authentication)
+  to configure GitHub authentication for Copybara.
 
 ## Make a New Release
 
 Create a new bug with the title "Release Conscrypt X.Y.Z", where X.Y.Z is the
-version you want to release. See for example b/555033517.
+version you want to release. See for example b/555033517 or b/565318191.
 
 Document all steps you do in that bug.
 
@@ -33,33 +54,37 @@ patch release, you need to adapt this process yourself.)
 
 Make sure that the latest changes in google3 are exported to GitHub. Run:
 
-```
+```bash
 /google/data/ro/teams/copybara/copybara third_party/java/conscrypt/main_src/copy.bara.sky export
 ```
 
 Make sure that the copybara transformation works. If it doesn't, it is possible
-that one of the transformation is out of date, because the code in google3 has
+that one of the transformations is out of date, because the code in google3 has
 changed. You need to update the transformation in this case.
 
 This will create a commit in the `google3-export` branch, and overwrite previous
 commits in that branch. It also tries to create a pull request, but this may
 fail due to lack of permissions. This is not a problem, because we can create
-the pull request manually. Create a pull request on GitHub, add a reviewer, and
-once it is approved, merge it.
+the pull request manually at
+[https://github.com/google/conscrypt/compare/master...google3-export](https://github.com/google/conscrypt/compare/master...google3-export)
+(`base: master` <- `compare: google3-export`). Add a reviewer, and once it is
+approved, merge it.
 
 #### Commit the new version number
 
-Make a cl that changes the version number in
+Make a CL that changes the version number in
 `third_party/java/conscrypt/main_src/build.gradle` to the next version you want
-to release. (For example, from `2.7-SNAPSHOT` to `2.7.0`, see
-cl/973727647.) Submit this cl, and then merge it in github, again running
-copybara:
+to release. (For example, from `2.8-SNAPSHOT` to `2.8.0`, see
+cl/1000110980.) Submit this CL, and then merge it in GitHub, again running
+Copybara:
 
-```
+```bash
 /google/data/ro/teams/copybara/copybara third_party/java/conscrypt/main_src/copy.bara.sky export
 ```
 
-and again, create a pull request, add a reviewer, approve it, and merge it.
+and again, create a pull request at
+[https://github.com/google/conscrypt/compare/master...google3-export](https://github.com/google/conscrypt/compare/master...google3-export),
+add a reviewer, approve it, and merge it.
 
 Now, the CI pipeline on GitHub should run with the new version number.
 
@@ -68,7 +93,7 @@ Now, the CI pipeline on GitHub should run with the new version number.
 Make sure that `/tmp/m2` is empty, and that `~/Downloads/m2repo-uber.zip` does
 not exist:
 
-```
+```bash
 rm -rf /tmp/m2/*
 rm -rf ~/Downloads/m2repo-uber.zip
 ```
@@ -81,12 +106,16 @@ and click on your commit. Verify that all jobs pass,
 and if some fail, fix them or re-run the failed jobs.
 
 If everything passes, click on the job "uberjar", and open the tab
-"Upload maven repository". It will show a artifact link. Click on it to download
-the generated repository.
+"Upload maven repository". It will show an artifact link. Click on it to
+download the generated repository.
+
+If you downloaded `m2repo-uber.zip` on your
+local machine instead of directly on your Cloudtop, copy it to your Cloudtop
+with `scp ~/Downloads/m2repo-uber.zip <username>.c.googlers.com:~/Downloads/`.
 
 Verify that the download worked by calling:
 
-```
+```bash
 ls ~/Downloads/m2repo*
 ```
 
@@ -101,19 +130,25 @@ m2repo-uber.zip
 Run this script. It will generate the checksums and signatures for all artifacts
 and create three zip files, one for each Conscrypt artifact we want to publish.
 
-```
-#!/bin/bash
+If running over SSH on a Cloudtop, `export GPG_TTY=$(tty)` ensures the GPG
+passphrase prompt can attach to your terminal.
 
-mkdir /tmp/m2
+```bash
+#!/bin/bash
+set -euo pipefail
+
+export GPG_TTY=$(tty)
+
+mkdir -p /tmp/m2
 cp ~/Downloads/m2repo-uber.zip /tmp/m2/m2repo-uber.zip
 
 cd /tmp/m2
 unzip m2repo-uber.zip
 
 # remove some metadata files that are not needed
-rm /tmp/m2/org/conscrypt/conscrypt-android/maven-metadata-local.xml
-rm /tmp/m2/org/conscrypt/conscrypt-openjdk/maven-metadata-local.xml
-rm /tmp/m2/org/conscrypt/conscrypt-openjdk-uber/maven-metadata-local.xml
+rm -f /tmp/m2/org/conscrypt/conscrypt-android/maven-metadata-local.xml
+rm -f /tmp/m2/org/conscrypt/conscrypt-openjdk/maven-metadata-local.xml
+rm -f /tmp/m2/org/conscrypt/conscrypt-openjdk-uber/maven-metadata-local.xml
 
 # generate checksums and signatures for all artifacts
 for f in /tmp/m2/org/conscrypt/*/*/*; do
@@ -167,54 +202,59 @@ echo "Listing contents of conscrypt-openjdk-uber.zip:"
 unzip -l conscrypt-openjdk-uber.zip
 ```
 
-Check that the these zip files contain the expected files. For example, for `conscrypt-openjdk-uber.zip`, you should look like this:
+Check that these zip files contain the expected files. For example, for
+`conscrypt-openjdk-uber.zip`, it should look like this:
 
 ```
 Archive:  /tmp/m2/conscrypt-openjdk-uber.zip
   Length      Date    Time    Name
 ---------  ---------- -----   ----
-        0  2026-08-24 13:11   org/
-        0  2026-08-24 13:11   org/conscrypt/
-        0  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/
-        0  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/
-      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.asc
-      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.sha512
-       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.sha256
-       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.sha1
-       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar.md5
-      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.asc
-      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.sha512
-       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.sha256
-       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.sha1
-       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom.md5
-      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.asc
-      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.sha512
-       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.sha256
-       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.sha1
-       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar.md5
-      228  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.asc
-      129  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.sha512
-       65  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.sha256
-       41  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.sha1
-       33  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar.md5
-     1269  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.pom
-  6846924  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0.jar
-   421660  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-sources.jar
-    39203  2026-08-24 13:11   org/conscrypt/conscrypt-openjdk-uber/2.7.0/conscrypt-openjdk-uber-2.7.0-javadoc.jar
+        0  2026-10-19 14:30   org/
+        0  2026-10-19 14:30   org/conscrypt/
+        0  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/
+        0  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/
+      228  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-sources.jar.asc
+      129  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-sources.jar.sha512
+       65  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-sources.jar.sha256
+       41  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-sources.jar.sha1
+       33  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-sources.jar.md5
+      228  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.pom.asc
+      129  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.pom.sha512
+       65  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.pom.sha256
+       41  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.pom.sha1
+       33  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.pom.md5
+      228  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-javadoc.jar.asc
+      129  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-javadoc.jar.sha512
+       65  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-javadoc.jar.sha256
+       41  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-javadoc.jar.sha1
+       33  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-javadoc.jar.md5
+      228  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.jar.asc
+      129  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.jar.sha512
+       65  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.jar.sha256
+       41  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.jar.sha1
+       33  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.jar.md5
+     1269  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.pom
+  6846924  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0.jar
+   421660  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-sources.jar
+    39203  2026-10-19 14:30   org/conscrypt/conscrypt-openjdk-uber/2.8.0/conscrypt-openjdk-uber-2.8.0-javadoc.jar
 ---------                     -------
   7311040                     28 files
 ```
 
 #### Upload to Maven Central
 
-Now, we can upload these zip files to Maven Central. Open
-https://central.sonatype.com/ in a browser, and log in.
+Now, we can upload these zip files to Maven Central. (If you are using a browser
+on your local machine rather than inside your Cloudtop, first copy the three zip
+files to your local machine with
+`scp <username>.c.googlers.com:"/tmp/m2/conscrypt-*.zip" ~/Downloads/`.)
 
-click on "Publish", and then "Publish Component".
+Open https://central.sonatype.com/ in a browser, and log in.
+
+Click on "Publish", and then "Publish Component".
 
 You get a form. For "Deployment Name", we write "conscrypt-openjdk-uber version
-2.7.0". As description, we also just use "conscrypt-openjdk-uber version
-2.7.0". Then click on "Choose File".
+2.8.0". As description, we also just use "conscrypt-openjdk-uber version
+2.8.0". Then click on "Choose File".
 Choose "/tmp/m2/conscrypt-openjdk-uber.zip".
 
 Then, you get a pop-up and you have to say that you only share public data.
@@ -238,21 +278,40 @@ Finally, create the release tag on GitHub.
 Go to
 https://github.com/google/conscrypt/releases/new
 
-"Select Tag", "Create new Tag". Write the tag name, for example, "2.7.0".
+Click "Select Tag", then "Create new Tag". Write the tag name, for example,
+"2.8.0". Ensure the target points to the release commit on `master` (where
+`build.gradle` was set to `2.8.0`).
 
 Add a description. Check "Pre-release" if it is a "-alpha" release, and click
 the button to make the release.
 
-Github will create a new tag, such as:
-https://github.com/google/conscrypt/releases/tag/2.7.0.
+GitHub will create a new tag, such as:
+https://github.com/google/conscrypt/releases/tag/2.8.0.
 
-#### Submit a commit with the next version number
+#### Submit a commit with the next version number and update the documentation
 
-Now, you should change the version number in `build.gradle` back to a snapshot
-version, with the `-SNAPSHOT` suffix. For example, from `2.7.0` to
-`2.7-SNAPSHOT`.
+Now, create a CL that:
 
-#### Update the documentation
+1. Changes the version number in
+   `third_party/java/conscrypt/main_src/build.gradle` back to a snapshot
+   version, with the `-SNAPSHOT` suffix (for example, from `2.8.0` to
+   `2.8-SNAPSHOT` or `2.9-SNAPSHOT`). Note that the `-SNAPSHOT` version is only
+   used during development on `master` and does not restrict whether the next
+   release is `2.8.1` or `2.9.0`.
+2. Updates the dependency version examples in
+   `third_party/java/conscrypt/main_src/README.md` to the newly released
+   version (for example, `2.8.0`, see cl/1003877001).
 
-Update the documentation to reflect the new release. For example, the
-[README](https://github.com/google/conscrypt/blob/master/README.md).
+Submit this CL, export it to GitHub via Copybara:
+
+```bash
+/google/data/ro/teams/copybara/copybara third_party/java/conscrypt/main_src/copy.bara.sky export
+```
+
+and create and merge the pull request at
+[https://github.com/google/conscrypt/compare/master...google3-export](https://github.com/google/conscrypt/compare/master...google3-export).
+
+#### Close the release bug
+
+Once all steps are documented in the release bug and the post-release pull
+request is merged, mark the release bug as **Fixed**.

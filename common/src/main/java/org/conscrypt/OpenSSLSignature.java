@@ -447,13 +447,13 @@ public class OpenSSLSignature extends SignatureSpi {
         @Override
         protected final AlgorithmParameters engineGetParameters() {
             try {
-                AlgorithmParameters result = AlgorithmParameters.getInstance("PSS");
+                AlgorithmParameters result = InternalProvider.getPssParametersInstance();
                 result.init(new PSSParameterSpec(contentDigestAlgorithm,
                                                  EvpMdRef.MGF1_ALGORITHM_NAME,
                                                  new MGF1ParameterSpec(mgf1DigestAlgorithm),
                                                  saltSizeBytes, TRAILER_FIELD_BC_ID));
                 return result;
-            } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+            } catch (InvalidParameterSpecException e) {
                 throw new ProviderException("Failed to create PSS AlgorithmParameters", e);
             }
         }

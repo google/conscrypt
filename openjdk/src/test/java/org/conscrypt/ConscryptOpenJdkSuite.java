@@ -92,6 +92,7 @@ import org.junit.runners.Suite;
         AddressUtilsTest.class,
         ApplicationProtocolSelectorAdapterTest.class,
         ArrayUtilsTest.class,
+        CertBlocklistTest.class,
         CertPinManagerTest.class,
         ChaCha20Poly1305Test.class,
         ChainStrengthAnalyzerTest.class,

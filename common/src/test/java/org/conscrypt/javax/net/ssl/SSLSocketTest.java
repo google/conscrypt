@@ -1073,10 +1073,8 @@ public class SSLSocketTest {
         } catch (Throwable ignored) {
             // No overrides were previously set.
         }
-        Set<Long> enabledSet =
-                enabled ? Collections.singleton(changeId) : Collections.emptySet();
-        Set<Long> disabledSet =
-                enabled ? Collections.emptySet() : Collections.singleton(changeId);
+        Set<Long> enabledSet = enabled ? Collections.singleton(changeId) : Collections.emptySet();
+        Set<Long> disabledSet = enabled ? Collections.emptySet() : Collections.singleton(changeId);
         Object config = changeConfigClass.getConstructor(Set.class, Set.class)
                                 .newInstance(enabledSet, disabledSet);
         compatClass.getMethod("setOverrides", changeConfigClass).invoke(null, config);

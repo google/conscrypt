@@ -2583,6 +2583,8 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(JNIEnv* env, jclass, jbyteArray
     }
     bssl::UniquePtr<BIGNUM> cofactor(BN_new());
     if (cofactor == nullptr || !BN_set_word(cofactor.get(), static_cast<uint32_t>(cofactorInt))) {
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to create cofactor BIGNUM");
+        ERR_clear_error();
         return 0;
     }
 
@@ -2597,6 +2599,7 @@ static jlong NativeCrypto_EC_GROUP_new_arbitrary(JNIEnv* env, jclass, jbyteArray
     bssl::UniquePtr<EC_POINT> generator(EC_POINT_new(group.get()));
     if (generator.get() == nullptr) {
         JNI_TRACE("EC_POINT_new => null");
+        conscrypt::jniutil::throwOutOfMemory(env, "Unable to create generator EC_POINT");
         ERR_clear_error();
         return 0;
     }
@@ -6172,8 +6175,9 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender(JNIEnv* env
         return {};
     }
     ScopedLocalRef<jobject> ctxObject(
-            env, createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
-                                 conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx)));
+            env,
+            createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
+                            conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx)));
     if (ctxObject.get() == nullptr) {
         return {};
     }
@@ -6278,8 +6282,9 @@ static jobjectArray NativeCrypto_EVP_HPKE_CTX_setup_base_mode_sender_with_seed_f
     }
 
     ScopedLocalRef<jobject> ctxObject(
-            env, createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
-                                 conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx)));
+            env,
+            createNativeRef(env, conscrypt::jniutil::nativeRefHpkeCtxClass,
+                            conscrypt::jniutil::nativeRefHpkeCtxClass_constructor, std::move(ctx)));
     if (ctxObject.get() == nullptr) {
         return nullptr;
     }

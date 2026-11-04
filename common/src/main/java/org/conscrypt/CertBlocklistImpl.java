@@ -18,9 +18,6 @@ package org.conscrypt;
 
 import static org.conscrypt.CertBlocklistEntry.Origin;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import org.conscrypt.Platform;
 import org.conscrypt.metrics.StatsLog;
 
 import java.io.ByteArrayOutputStream;
@@ -37,7 +34,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -68,11 +64,13 @@ public final class CertBlocklistImpl implements CertBlocklist {
         }
     }
 
+    private static final Entry MISS = new Entry(null, -1);
+
     private final Set<BigInteger> serialBlocklist;
     private final Map<ByteArray, Entry> sha1PubkeyBlocklist;
     private final Map<ByteArray, Entry> sha256PubkeyBlocklist;
     private final StatsLog metrics;
-    private Map<ByteArray, Optional<Entry>> cache;
+    private final Map<ByteArray, Entry> cache;
 
     /**
      * Number of entries in the cache. The cache contains public keys which are
@@ -82,10 +80,10 @@ public final class CertBlocklistImpl implements CertBlocklist {
     private static final int CACHE_SIZE = 64;
 
     private CertBlocklistImpl(Builder builder) {
-        this.cache = Collections.synchronizedMap(new LinkedHashMap<ByteArray, Optional<Entry>>() {
+        this.cache = Collections.synchronizedMap(new LinkedHashMap<ByteArray, Entry>() {
             @Override
             protected boolean removeEldestEntry(
-                    Map.Entry<ByteArray, Optional<CertBlocklistImpl.Entry>> eldest) {
+                    Map.Entry<ByteArray, CertBlocklistImpl.Entry> eldest) {
                 return size() > CACHE_SIZE;
             }
         });
@@ -96,14 +94,23 @@ public final class CertBlocklistImpl implements CertBlocklist {
     }
 
     public static class Builder {
-        private static String ANDROID_DATA = System.getenv("ANDROID_DATA");
-        private static String BLOCKLIST_ROOT = ANDROID_DATA + "/misc/keychain/";
-        private static String DEFAULT_PUBKEY_BLOCKLIST_PATH =
-                BLOCKLIST_ROOT + "pubkey_blacklist.txt";
-        private static String DEFAULT_SERIAL_BLOCKLIST_PATH =
-                BLOCKLIST_ROOT + "serial_blacklist.txt";
-        private static String DEFAULT_PUBKEY_SHA256_BLOCKLIST_PATH =
-                BLOCKLIST_ROOT + "pubkey_sha256_blocklist.txt";
+        private static final String ANDROID_DATA = readAndroidData();
+        private static final String BLOCKLIST_ROOT =
+                (ANDROID_DATA != null) ? ANDROID_DATA + "/misc/keychain/" : null;
+        private static final String DEFAULT_PUBKEY_BLOCKLIST_PATH =
+                (BLOCKLIST_ROOT != null) ? BLOCKLIST_ROOT + "pubkey_blacklist.txt" : null;
+        private static final String DEFAULT_SERIAL_BLOCKLIST_PATH =
+                (BLOCKLIST_ROOT != null) ? BLOCKLIST_ROOT + "serial_blacklist.txt" : null;
+        private static final String DEFAULT_PUBKEY_SHA256_BLOCKLIST_PATH =
+                (BLOCKLIST_ROOT != null) ? BLOCKLIST_ROOT + "pubkey_sha256_blocklist.txt" : null;
+
+        private static String readAndroidData() {
+            try {
+                return System.getenv("ANDROID_DATA");
+            } catch (SecurityException e) {
+                return null;
+            }
+        }
 
         private Set<BigInteger> serialBlocklist;
         private Map<ByteArray, Entry> sha1PubkeyBlocklist;
@@ -162,7 +169,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
 
     private static boolean isHex(String value) {
         try {
-            new BigInteger(value, 16);
+            Object unused = new BigInteger(value, 16);
             return true;
         } catch (NumberFormatException e) {
             logger.log(Level.WARNING, "Could not parse hex value " + value, e);
@@ -179,6 +186,9 @@ public final class CertBlocklistImpl implements CertBlocklist {
     }
 
     private static String readBlocklist(String path) {
+        if (path == null) {
+            return "";
+        }
         try {
             return readFileAsString(path);
         } catch (FileNotFoundException ignored) {
@@ -317,7 +327,10 @@ public final class CertBlocklistImpl implements CertBlocklist {
                 String value = fileBlocklist[i];
                 value = value.trim();
                 if (isPubkeyHash(value, hashLength)) {
-                    bl.putIfAbsent(new ByteArray(Hex.decodeHex(value)), new Entry(origin, i));
+                    ByteArray key = new ByteArray(Hex.decodeHex(value));
+                    if (!bl.containsKey(key)) {
+                        bl.put(key, new Entry(origin, i));
+                    }
                 } else {
                     logger.log(Level.WARNING, "Tried to blocklist invalid pubkey " + value);
                 }
@@ -347,10 +360,10 @@ public final class CertBlocklistImpl implements CertBlocklist {
         // for a Map, its underlying array (encodedPublicKey) should not be
         // modified.
         ByteArray cacheKey = new ByteArray(encodedPublicKey);
-        Optional<Entry> cachedResult = cache.get(cacheKey);
+        Entry cachedResult = cache.get(cacheKey);
         if (cachedResult != null) {
-            if (cachedResult.isPresent()) {
-                metrics.reportBlocklistHit(cachedResult.get());
+            if (cachedResult != MISS) {
+                metrics.reportBlocklistHit(cachedResult);
                 return true;
             }
             return false;
@@ -359,7 +372,7 @@ public final class CertBlocklistImpl implements CertBlocklist {
             Entry entry =
                     isPublicKeyBlockListed(encodedPublicKey, sha1PubkeyBlocklist, DIGEST_SHA1);
             if (entry != null) {
-                cache.put(cacheKey, Optional.of(entry));
+                cache.put(cacheKey, entry);
                 metrics.reportBlocklistHit(entry);
                 return true;
             }
@@ -368,12 +381,12 @@ public final class CertBlocklistImpl implements CertBlocklist {
             Entry entry =
                     isPublicKeyBlockListed(encodedPublicKey, sha256PubkeyBlocklist, DIGEST_SHA256);
             if (entry != null) {
-                cache.put(cacheKey, Optional.of(entry));
+                cache.put(cacheKey, entry);
                 metrics.reportBlocklistHit(entry);
                 return true;
             }
         }
-        cache.put(cacheKey, Optional.empty());
+        cache.put(cacheKey, MISS);
         return false;
     }
 

@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -165,8 +166,8 @@ public class OpenSSLCipherChaCha20 extends OpenSSLCipher {
     }
 
     @Override
-    String getBaseCipherName() {
-        return "ChaCha20";
+    protected AlgorithmParameters engineGetParameters() {
+        return InternalProvider.getIvParameters("ChaCha20", iv);
     }
 
     @Override

@@ -44,11 +44,6 @@ public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
     }
 
     @Override
-    String getBaseCipherName() {
-        return "AES";
-    }
-
-    @Override
     protected int engineGetBlockSize() {
         return AES_BLOCK_SIZE;
     }
@@ -69,7 +64,7 @@ public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
     @Override
     protected AlgorithmParameters engineGetParameters() {
         // iv will be non-null after initialization.
-        if (iv == null) {
+        if (iv == null || iv.length == 0) {
             return null;
         }
 
@@ -78,16 +73,13 @@ public abstract class OpenSSLAeadCipherAES extends OpenSSLAeadCipher {
             // The platform doesn't support GCMParameterSpec. Fall back to
             // the generic AES parameters so at least the caller can get the
             // IV.
-            return super.engineGetParameters();
+            return InternalProvider.getIvParameters("AES", iv);
         }
 
         try {
-            AlgorithmParameters params = AlgorithmParameters.getInstance("GCM");
+            AlgorithmParameters params = InternalProvider.getGcmParametersInstance();
             params.init(spec);
             return params;
-        } catch (NoSuchAlgorithmException e) {
-            // We should not get here.
-            throw(Error) new AssertionError("GCM not supported").initCause(e);
         } catch (InvalidParameterSpecException e) {
             // This may happen since Conscrypt doesn't provide this itself.
             return null;

@@ -16,6 +16,7 @@
 
 package org.conscrypt;
 
+import java.security.AlgorithmParameters;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
@@ -49,8 +50,8 @@ public abstract class OpenSSLEvpCipherDESEDE extends OpenSSLEvpCipher {
     }
 
     @Override
-    String getBaseCipherName() {
-        return "DESede";
+    protected AlgorithmParameters engineGetParameters() {
+        return InternalProvider.getIvParameters("DESede", iv);
     }
 
     @Override

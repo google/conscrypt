@@ -23,7 +23,7 @@ package org.conscrypt;
 public final class Hex {
     private Hex() {}
 
-    private final static char[] DIGITS = {'0', '1', '2', '3', '4', '5', '6', '7',
+    private static final char[] DIGITS = {'0', '1', '2', '3', '4', '5', '6', '7',
                                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     public static String intToHexString(int i, int minWidth) {

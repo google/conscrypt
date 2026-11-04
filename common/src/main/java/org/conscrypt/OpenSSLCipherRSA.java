@@ -447,7 +447,7 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
             }
 
             try {
-                AlgorithmParameters params = AlgorithmParameters.getInstance("OAEP");
+                AlgorithmParameters params = InternalProvider.getOaepParametersInstance();
 
                 final PSource pSrc;
                 if (label == null) {
@@ -463,9 +463,6 @@ public abstract class OpenSSLCipherRSA extends CipherSpi {
                                 EvpMdRef.getJcaDigestAlgorithmStandardNameFromEVP_MD(mgf1Md)),
                         pSrc));
                 return params;
-            } catch (NoSuchAlgorithmException e) {
-                // We should not get here.
-                throw(Error) new AssertionError("OAEP not supported").initCause(e);
             } catch (InvalidParameterSpecException e) {
                 throw new RuntimeException("No providers of AlgorithmParameters.OAEP available");
             }

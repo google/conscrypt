@@ -285,6 +285,10 @@ public abstract class OpenSSLEvpCipher extends OpenSSLCipher {
      */
     abstract long getCipherType(int keySize);
 
+    boolean supportsVariableSizeKey() {
+        return false;
+    }
+
     /**
      * Reset this Cipher instance state to process a new chunk of data.
      */

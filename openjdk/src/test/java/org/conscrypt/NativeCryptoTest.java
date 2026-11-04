@@ -1237,6 +1237,26 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void checkEnabledProtocols_deprecatedTlsV1Protocols_throwsWithExpectedMessage() {
+        if (!Platform.isTlsV1Supported()) {
+            IllegalArgumentException e = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> NativeCrypto.checkEnabledProtocols(new String[] {"TLSv1"}));
+            assertEquals("protocol TLSv1 is not supported" + Platform.getTlsV1DeprecationNote(),
+                         e.getMessage());
+            e = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> NativeCrypto.checkEnabledProtocols(new String[] {"TLSv1.1"}));
+            assertEquals("protocol TLSv1.1 is not supported" + Platform.getTlsV1DeprecationNote(),
+                         e.getMessage());
+        }
+        IllegalArgumentException e = assertThrows(
+                IllegalArgumentException.class,
+                () -> NativeCrypto.checkEnabledProtocols(new String[] {"SSLv3"}));
+        assertEquals("protocol SSLv3 is not supported", e.getMessage());
+    }
+
+    @Test
     public void SSL_set_cipher_lists_withNullSslShouldThrow() throws Exception {
         assertThrows(NullPointerException.class,
                      () -> NativeCrypto.SSL_set_cipher_lists(NULL, null, null));
