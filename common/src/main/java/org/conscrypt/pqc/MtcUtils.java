@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package org.conscrypt.util;
+package org.conscrypt.pqc;
 
 import org.conscrypt.ConscryptCertStore;
 import org.conscrypt.Internal;
+import org.conscrypt.util.DerUtils;
+import org.conscrypt.util.SerializationException;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
@@ -37,24 +39,24 @@ import java.util.Set;
 import javax.security.auth.x500.X500Principal;
 
 /**
- * Utility methods for draft-ietf-plants-merkle-tree-certs-06 (MTC) ID parsing and message
+ * Utility methods for draft-ietf-plants-merkle-tree-certs-07 (MTC) ID parsing and message
  * construction.
  */
 @Internal
 public final class MtcUtils {
-    private static final String MTC_PROOF_SIG_ALG_OID = "1.3.6.1.4.1.44363.47.0";
-    private static final String MTC_CA_ID_OID = "1.3.6.1.4.1.44363.47.3";
-    private static final String MTC_CA_EXT_SHA256_OID = "1.3.6.1.4.1.44363.47.4";
+    static final String MTC_PROOF_SIG_ALG_OID = "1.3.6.1.5.5.7.6.67";
+    private static final String MTC_CA_ID_OID = "1.3.6.1.5.5.7.25.3";
+    private static final String MTC_CA_EXT_SHA256_OID = "1.3.6.1.5.5.7.1.38";
     private static final String ML_DSA_44_OID = "2.16.840.1.101.3.4.3.17";
     private static final String ML_DSA_65_OID = "2.16.840.1.101.3.4.3.18";
     private static final String ML_DSA_87_OID = "2.16.840.1.101.3.4.3.19";
-    public static final int MTC_INDEX_BITS = 48;
-    public static final long MTC_INDEX_MASK = (1L << MTC_INDEX_BITS) - 1;
+    static final int MTC_INDEX_BITS = 48;
+    static final long MTC_INDEX_MASK = (1L << MTC_INDEX_BITS) - 1;
     private static final BigInteger MIN_MTC_SERIAL = BigInteger.ONE.shiftLeft(MTC_INDEX_BITS);
     private static final BigInteger MAX_MTC_SERIAL =
             BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE);
-    public static final byte MTC_LEAF_PREFIX = 0x00;
-    public static final short ENTRY_TYPE_TBS_CERT = 0x0001;
+    static final byte MTC_LEAF_PREFIX = 0x00;
+    static final short ENTRY_TYPE_TBS_CERT = 0x0001;
 
     private static final String MTC_TAI_PREFIX = "oid/1.3.6.1.4.1.";
     private static final byte[] MTC_SUBTREE_V1_LABEL =
@@ -64,10 +66,10 @@ public final class MtcUtils {
 
     /**
      * Checks whether the given certificate uses the MTC proof signature algorithm per
-     * {@code draft-ietf-plants-merkle-tree-certs-06 Section 6.2}.
+     * {@code draft-ietf-plants-merkle-tree-certs-07 Section 6.2}.
      *
      * <p>An MTC signature is identified by having a synthesized signature algorithm indicating
-     * an MTC proof (OID {@code 1.3.6.1.4.1.44363.47.0}, {@code id-alg-mtcProof}) with omitted
+     * an MTC proof (OID {@code 1.3.6.1.5.5.7.6.67}, {@code id-alg-mtcProof}) with omitted
      * parameters.
      *
      * <p>Note: Per Section 7.2, dispatching between classic X.509 signature verification and
@@ -83,10 +85,10 @@ public final class MtcUtils {
 
     /**
      * Checks whether the given certificate is an MTC CA / Trust Anchor certificate per
-     * {@code draft-ietf-plants-merkle-tree-certs-06 Section 5.5}.
+     * {@code draft-ietf-plants-merkle-tree-certs-07 Section 5.5}.
      *
      * <p>An MTC CA certificate is identified by the presence of the MTC CA extension
-     * (OID {@code 1.3.6.1.4.1.44363.47.4}, {@code id-pe-mtcCertificationAuthority-SHA256}).
+     * (OID {@code 1.3.6.1.5.5.7.1.38}, {@code id-pe-mtcCertificationAuthority-SHA256}).
      * Structural validity of the extension (such as criticality and serial bounds) and the
      * Subject DN (Trust Anchor ID) is enforced separately during verification so that a
      * malformed MTC CA certificate never falls back to classic X.509 verification.
@@ -101,11 +103,11 @@ public final class MtcUtils {
     /**
      * Extracts the CA Trust Anchor ID bytes (raw DER {@code RELATIVE-OID} content) from the
      * trust anchor's Subject Distinguished Name per
-     * {@code draft-ietf-plants-merkle-tree-certs-06 Section 5.1}.
+     * {@code draft-ietf-plants-merkle-tree-certs-07 Section 5.1}.
      *
      * <p>The Subject DN must consist of a single {@code RelativeDistinguishedName} containing a
      * single {@code AttributeTypeAndValue} with type {@code id-rdna-trustAnchorID}
-     * ({@code 1.3.6.1.4.1.44363.47.3}) and value encoded as an ASN.1 {@code RELATIVE-OID}.
+     * ({@code 1.3.6.1.5.5.7.25.3}) and value encoded as an ASN.1 {@code RELATIVE-OID}.
      */
     public static byte[] extractCaId(TrustAnchor anchor) throws CertificateException {
         X509Certificate cert = (anchor != null) ? anchor.getTrustedCert() : null;
@@ -183,7 +185,7 @@ public final class MtcUtils {
     /**
      * Extracts the signature algorithm OID string ({@code sigAlg.algorithm}) from the trust
      * anchor's critical {@code id-pe-mtcCertificationAuthority-SHA256} extension per
-     * {@code draft-ietf-plants-merkle-tree-certs-06 Section 5.5}.
+     * {@code draft-ietf-plants-merkle-tree-certs-07 Section 5.5}.
      *
      * <p>Only ML-DSA algorithms ({@code ML-DSA-44}, {@code ML-DSA-65}, {@code ML-DSA-87}) with
      * omitted {@code AlgorithmIdentifier} parameters (RFC 9881 Section 2) are supported.
@@ -246,7 +248,7 @@ public final class MtcUtils {
 
     /**
      * Computes the Subtree v1 Log ID bytes ({@code <ca_id>.0.<logNumber>}) as a base-128
-     * {@code RELATIVE-OID} byte array per draft-ietf-plants-merkle-tree-certs-06 Section 5.2.
+     * {@code RELATIVE-OID} byte array per draft-ietf-plants-merkle-tree-certs-07 Section 5.2.
      *
      * @param caId the issuing CA Trust Anchor ID bytes
      * @param logNumber the log number from the MTC proof
@@ -283,7 +285,7 @@ public final class MtcUtils {
 
     /**
      * Constructs the CosignedMessage structure for signature verification, per
-     * draft-ietf-plants-merkle-tree-certs-06 Section 5.3.1 and Section 7.2 Step 12.
+     * draft-ietf-plants-merkle-tree-certs-07 Section 5.3.1 and Section 7.2 Step 12.
      */
     private static byte[] constructCosignedMessage(byte[] cosignerId, byte[] logId, long start,
                                                    long end, byte[] expectedSubtreeHash)
@@ -316,6 +318,26 @@ public final class MtcUtils {
         buf.putLong(end);
         buf.put(expectedSubtreeHash);
         return buf.array();
+    }
+
+    /**
+     * Validates that the {@code MTCLogEntryExtension} list is well-formed and that extensions
+     * appear in strictly ascending order by {@code extension_type} without duplicates per
+     * Section 5.2.1.
+     */
+    public static void validateExtensions(byte[] extensions) throws CertificateException {
+        ByteBuffer extBuf = ByteBuffer.wrap(extensions);
+        int prevType = -1;
+        while (extBuf.hasRemaining()) {
+            int extType = readUint16(extBuf);
+            if (extType <= prevType) {
+                throw new CertificateException(
+                        "Malformed MTC proof: extensions are duplicate or out of order");
+            }
+            prevType = extType;
+            int extDataLen = readUint16(extBuf);
+            readBytes(extBuf, extDataLen);
+        }
     }
 
     /**
@@ -372,19 +394,19 @@ public final class MtcUtils {
     }
 
     /**
-     * Verifies the issuing CA's signature over the signed tree root for the specified log ID.
+     * Verifies the issuing CA's signature over the signed subtree root for the specified log ID.
      *
      * @throws CertificateException if the signature is invalid
      */
-    public static void verifySignedTreeRoot(PublicKey publicKey, String sigAlg, byte[] caId,
-                                            byte[] logId, long start, long end,
-                                            byte[] expectedSubtreeHash, byte[] caSignature)
+    static void verifySignedSubtreeRoot(PublicKey publicKey, String sigAlg, byte[] caId,
+                                        byte[] logId, long start, long end,
+                                        byte[] expectedSubtreeHash, byte[] caSignature)
             throws CertificateException {
         byte[] msg = constructCosignedMessage(caId, logId, start, end, expectedSubtreeHash);
         try {
             verifySignatureWithKey(publicKey, sigAlg, msg, caSignature);
         } catch (Exception e) {
-            throw new CertificateException("MTC CA signed tree root verification failed", e);
+            throw new CertificateException("MTC CA signed subtree root verification failed", e);
         }
     }
 
@@ -401,7 +423,7 @@ public final class MtcUtils {
     /**
      * Reads a 16-bit unsigned integer from the buffer in big-endian order.
      */
-    public static int readUint16(ByteBuffer buffer) throws CertificateException {
+    static int readUint16(ByteBuffer buffer) throws CertificateException {
         if (buffer.remaining() < 2) {
             throw new CertificateException("Malformed MTC proof: unexpected end of data");
         }
@@ -409,9 +431,19 @@ public final class MtcUtils {
     }
 
     /**
+     * Reads a 24-bit unsigned integer from the buffer in big-endian order.
+     */
+    public static int readUint24(ByteBuffer buffer) throws CertificateException {
+        if (buffer.remaining() < 3) {
+            throw new CertificateException("Malformed MTC proof: unexpected end of data");
+        }
+        return (Byte.toUnsignedInt(buffer.get()) << 16) | Short.toUnsignedInt(buffer.getShort());
+    }
+
+    /**
      * Reads a 48-bit unsigned integer from the buffer in big-endian order.
      */
-    public static long readUint48(ByteBuffer buffer) throws CertificateException {
+    static long readUint48(ByteBuffer buffer) throws CertificateException {
         if (buffer.remaining() < 6) {
             throw new CertificateException("Malformed MTC proof: unexpected end of data");
         }
@@ -422,7 +454,7 @@ public final class MtcUtils {
     /**
      * Reads a byte array of the specified length from the buffer.
      */
-    public static byte[] readBytes(ByteBuffer buffer, int length) throws CertificateException {
+    static byte[] readBytes(ByteBuffer buffer, int length) throws CertificateException {
         if (buffer.remaining() < length) {
             throw new CertificateException("Malformed MTC proof: unexpected end of data");
         }
@@ -434,7 +466,7 @@ public final class MtcUtils {
     /**
      * Obtains a thread-safe / clean instance of SHA-256 {@link MessageDigest}.
      */
-    public static MessageDigest getSha256Digest() throws CertificateException {
+    static MessageDigest getSha256Digest() throws CertificateException {
         try {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
@@ -445,7 +477,7 @@ public final class MtcUtils {
     /**
      * Computes the SHA-256 digest of the given data.
      */
-    public static byte[] sha256(byte[] data) throws CertificateException {
+    static byte[] sha256(byte[] data) throws CertificateException {
         return getSha256Digest().digest(data);
     }
 
@@ -505,7 +537,7 @@ public final class MtcUtils {
 
     /**
      * Checks whether the interval {@code [start, end)} defines a valid subtree per
-     * draft-ietf-plants-merkle-tree-certs-06 Section 4.1:
+     * draft-ietf-plants-merkle-tree-certs-07 Section 4.1:
      * <ul>
      *   <li>{@code 0 <= start <= end <= 2^48}</li>
      *   <li>{@code start} is a multiple of {@code BIT_CEIL(end - start)}</li>

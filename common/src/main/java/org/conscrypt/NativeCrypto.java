@@ -309,6 +309,22 @@ public final class NativeCrypto {
     // android-add: @FastNative
     static native byte[] MLDSA87_public_key_from_seed(byte[] privateKeySeed);
 
+    // --- MLDSA (all parameter sets) ---------------------------------------------
+
+    /**
+     * Signs the 64-byte ML-DSA message representative {@code mu} with the ML-DSA private key
+     * {@code pkey} and returns the encoded signature. This is the "external mu" variant of
+     * ML-DSA.Sign (FIPS 204, Algorithm 2): {@code mu} must have been computed as
+     * {@code SHAKE256(SHAKE256(pk, 64) || 0x00 || |ctx| || ctx || M, 64)} for the public key
+     * {@code pk} of the same key pair, so the resulting signature verifies as a regular ML-DSA
+     * signature of the message {@code M} under the context string {@code ctx}. Throws an
+     * {@link InvalidKeyException} if {@code pkey} is not an ML-DSA private key and an
+     * {@link IllegalArgumentException} if {@code mu} is not 64 bytes long.
+     */
+    // android-add: @FastNative
+    static native byte[] MLDSA_sign_message_representative(NativeRef.EVP_PKEY pkey, byte[] mu)
+            throws InvalidKeyException;
+
     // --- SLHDSA_SHA2_128S --------------------------------------------------------------
 
     static native void SLHDSA_SHA2_128S_generate_key(byte[] outPublicKey, byte[] outPrivateKey);
@@ -402,6 +418,16 @@ public final class NativeCrypto {
 
     // android-add: @FastNative
     static native int EVP_DigestFinal_ex(NativeRef.EVP_MD_CTX ctx, byte[] hash, int offset);
+
+    /**
+     * Writes {@code length} bytes of output from the extendable-output function (XOF) in
+     * {@code ctx} to {@code out} and then cleanses and resets {@code ctx}, which must be
+     * re-initialized with {@link #EVP_DigestInit_ex} before it can be used again. Throws if the
+     * digest in {@code ctx} is not an XOF (e.g. SHAKE256).
+     */
+    // android-add: @FastNative
+    static native void EVP_DigestFinalXOF(NativeRef.EVP_MD_CTX ctx, byte[] out, int offset,
+                                          int length);
 
     // --- Signature handling functions ----------------------------------------
 
@@ -1607,7 +1633,7 @@ public final class NativeCrypto {
             if (!Arrays.asList(SUPPORTED_PROTOCOLS).contains(protocol)) {
                 String message = "protocol " + protocol + " is not supported";
                 if (protocol.equals(DEPRECATED_PROTOCOL_TLSV1)
-                        || protocol.equals(DEPRECATED_PROTOCOL_TLSV1_1)) {
+                    || protocol.equals(DEPRECATED_PROTOCOL_TLSV1_1)) {
                     message += Platform.getTlsV1DeprecationNote();
                 }
                 throw new IllegalArgumentException(message);
@@ -1700,6 +1726,9 @@ public final class NativeCrypto {
             throws SSLException;
 
     // android-add: @FastNative
+    static native void setSessionIdContextSha256(long ssl, NativeSsl ssl_holder, byte[] context);
+
+    // android-add: @FastNative
     static native void SSL_set_session_creation_enabled(long ssl, NativeSsl ssl_holder,
                                                         boolean creationEnabled)
             throws SSLException;
@@ -1725,6 +1754,9 @@ public final class NativeCrypto {
     public static native String SSL_get_version(long ssl, NativeSsl ssl_holder);
 
     public static native void SSL_set1_groups(long ssl, NativeSsl sslHolder, int[] groups);
+
+    public static native void SSL_set_verify_algorithm_prefs(long ssl, NativeSsl sslHolder,
+                                                             int[] prefs);
 
     public static native String SSL_get_curve_name(long ssl, NativeSsl sslHolder);
 
@@ -2028,6 +2060,32 @@ public final class NativeCrypto {
     /** Return {@code true} if BoringSSL has been built in FIPS mode. */
     // android-add: @CriticalNative
     static native boolean usesBoringSsl_FIPS_mode();
+
+    /* Trust Anchor Identifiers (draft-ietf-tls-trust-anchor-ids) */
+
+    /*
+     * All trust anchor ID lists below are in wire format: a series of non-empty, 8-bit
+     * length-prefixed binary trust anchor IDs. See TrustAnchorIds for encoding helpers.
+     */
+
+    /**
+     * Client: configures the trust anchor IDs to request in the {@code trust_anchors} ClientHello
+     * extension. An empty list still sends the extension, signalling support for the retry flow.
+     *
+     * @throws IllegalArgumentException if {@code ids} is not a valid wire-format trust anchor ID
+     *     list (e.g. a truncated length prefix, or an ID that is not a valid RELATIVE-OID of at
+     *     most 32 bytes)
+     */
+    // android-add: @FastNative
+    static native void SSL_set1_requested_trust_anchors(long ssl, NativeSsl ssl_holder, byte[] ids)
+            throws SSLException;
+
+    /**
+     * Client: returns the server's available trust anchor IDs in wire format, or {@code null} if
+     * the server did not send any. Only meaningful during certificate verification.
+     */
+    // android-add: @FastNative
+    static native byte[] SSL_get0_peer_available_trust_anchors(long ssl, NativeSsl ssl_holder);
 
     /* ECH */
 

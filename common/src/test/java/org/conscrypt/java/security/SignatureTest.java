@@ -111,6 +111,12 @@ public class SignatureTest {
                 .skipAlgorithm("ML-DSA-44")
                 .skipAlgorithm("ML-DSA-65")
                 .skipAlgorithm("ML-DSA-87")
+                // EXTERNAL-MU-ML-DSA is skipped because it only signs (a 64-byte message
+                // representative, not arbitrary data) and does not support initVerify().
+                .skipAlgorithm("EXTERNAL-MU-ML-DSA")
+                .skipAlgorithm("EXTERNAL-MU-ML-DSA-44")
+                .skipAlgorithm("EXTERNAL-MU-ML-DSA-65")
+                .skipAlgorithm("EXTERNAL-MU-ML-DSA-87")
                 // SLH-DSA-SHA2-128S is skipped because it doesn't yet support getFormat() and
                 // getEncoded().
                 .skipAlgorithm("SLH-DSA-SHA2-128S")

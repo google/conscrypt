@@ -20,6 +20,7 @@ import static org.conscrypt.TestUtils.decodeBase64;
 import static org.conscrypt.TestUtils.decodeHex;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -40,10 +41,12 @@ import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -971,6 +974,250 @@ public class MlDsaTest {
             assertTrue(errMsg + ", testvector signature verification failed. how about: ["
                                + TestUtils.encodeHex(sig) + "]",
                        verifier.verify(signature));
+        }
+    }
+
+    /**
+     * Computes the ML-DSA message representative mu of {@code message} for {@code publicKey} with
+     * an empty context string, which is the input expected by the "EXTERNAL-MU-ML-DSA" signatures
+     * (FIPS 204, Algorithm 7, line 6): {@code mu = SHAKE256-512(tr || 0x00 || 0x00 || message)}
+     * with {@code tr = SHAKE256-512(rawPublicKey)}.
+     */
+    // The algorithm name must be a compile-time constant for the crypto API lint checks.
+    private KeyPairGenerator mlDsaKeyPairGenerator(String algorithm) throws Exception {
+        switch (algorithm) {
+            case "ML-DSA":
+                return KeyPairGenerator.getInstance("ML-DSA", conscryptProvider);
+            case "ML-DSA-44":
+                return KeyPairGenerator.getInstance("ML-DSA-44", conscryptProvider);
+            case "ML-DSA-65":
+                return KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+            case "ML-DSA-87":
+                return KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider);
+            default:
+                throw new IllegalArgumentException("Unknown ML-DSA algorithm: " + algorithm);
+        }
+    }
+
+    private KeyFactory mlDsaKeyFactory(String algorithm) throws Exception {
+        switch (algorithm) {
+            case "ML-DSA":
+                return KeyFactory.getInstance("ML-DSA", conscryptProvider);
+            case "ML-DSA-44":
+                return KeyFactory.getInstance("ML-DSA-44", conscryptProvider);
+            case "ML-DSA-65":
+                return KeyFactory.getInstance("ML-DSA-65", conscryptProvider);
+            case "ML-DSA-87":
+                return KeyFactory.getInstance("ML-DSA-87", conscryptProvider);
+            default:
+                throw new IllegalArgumentException("Unknown ML-DSA algorithm: " + algorithm);
+        }
+    }
+
+    private byte[] externalMu(PublicKey publicKey, byte[] message) throws Exception {
+        // The generic ML-DSA key factory exports the raw public key of all parameter sets.
+        KeyFactory keyFactory = KeyFactory.getInstance("ML-DSA", conscryptProvider);
+        byte[] rawPublicKey = keyFactory.getKeySpec(publicKey, RawKeySpec.class).getEncoded();
+
+        MessageDigest shake256 = MessageDigest.getInstance("SHAKE256-512", conscryptProvider);
+        byte[] tr = shake256.digest(rawPublicKey);
+        shake256.update(tr);
+        shake256.update(new byte[] {0, 0}); // Domain separator and length of the empty context.
+        return shake256.digest(message);
+    }
+
+    @Test
+    public void externalMu_signVerify_works() throws Exception {
+        String[] algorithms = new String[] {"ML-DSA-44", "ML-DSA-65", "ML-DSA-87"};
+        int[] signatureLengths = new int[] {2420, 3309, 4627};
+        for (int i = 0; i < algorithms.length; i++) {
+            String algorithm = algorithms[i];
+            KeyPairGenerator keyGen = mlDsaKeyPairGenerator(algorithm);
+            KeyPair keyPair = keyGen.generateKeyPair();
+            byte[] message = ("External mu " + algorithm).getBytes(StandardCharsets.UTF_8);
+            byte[] mu = externalMu(keyPair.getPublic(), message);
+            assertEquals(64, mu.length);
+
+            for (String signAlgorithm :
+                 new String[] {"EXTERNAL-MU-" + algorithm, "EXTERNAL-MU-ML-DSA"}) {
+                Signature signer = Signature.getInstance(signAlgorithm, conscryptProvider);
+                assertEquals(signAlgorithm, signer.getAlgorithm());
+                signer.initSign(keyPair.getPrivate());
+                signer.update(mu);
+                byte[] sig = signer.sign();
+                assertEquals(signatureLengths[i], sig.length);
+
+                // The result is a regular ML-DSA signature of the message.
+                for (String verifyAlgorithm : new String[] {algorithm, "ML-DSA"}) {
+                    Signature verifier = Signature.getInstance(verifyAlgorithm, conscryptProvider);
+                    verifier.initVerify(keyPair.getPublic());
+                    verifier.update(message);
+                    assertTrue(verifier.verify(sig));
+                }
+
+                // But not of a different message, nor of mu itself.
+                Signature verifier = Signature.getInstance(algorithm, conscryptProvider);
+                verifier.initVerify(keyPair.getPublic());
+                verifier.update(message, 0, message.length - 1);
+                assertFalse(verifier.verify(sig));
+                verifier.initVerify(keyPair.getPublic());
+                verifier.update(mu);
+                assertFalse(verifier.verify(sig));
+            }
+        }
+    }
+
+    @Test
+    public void externalMu_signWithForeignKey_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        PrivateKey privateKey = new TestPrivateKey(keyPair.getPrivate().getEncoded());
+        PublicKey publicKey = new TestPublicKey(keyPair.getPublic().getEncoded());
+        byte[] message = "External mu with a foreign key".getBytes(StandardCharsets.UTF_8);
+        byte[] mu = externalMu(keyPair.getPublic(), message);
+
+        Signature signer = Signature.getInstance("EXTERNAL-MU-ML-DSA-65", conscryptProvider);
+        signer.initSign(privateKey);
+        signer.update(mu);
+        byte[] sig = signer.sign();
+
+        Signature verifier = Signature.getInstance("ML-DSA-65", conscryptProvider);
+        verifier.initVerify(publicKey);
+        verifier.update(message);
+        assertTrue(verifier.verify(sig));
+    }
+
+    @Test
+    public void externalMu_withTestVectors_works() throws Exception {
+        List<TestVector> vectors = TestUtils.readTestVectors("crypto/mldsa.txt");
+
+        for (TestVector vector : vectors) {
+            String errMsg = vector.getString("name");
+            String algorithm = vector.getString("algorithm");
+            byte[] seed = vector.getBytes("seed");
+            byte[] publicKeyBytes = vector.getBytes("public_key");
+            byte[] message = vector.getBytes("message");
+            byte[] signature = vector.getBytes("signature");
+
+            KeyFactory keyFactory = mlDsaKeyFactory(algorithm);
+            PrivateKey privateKey = keyFactory.generatePrivate(new RawKeySpec(seed));
+            PublicKey publicKey = keyFactory.generatePublic(new RawKeySpec(publicKeyBytes));
+            byte[] mu = externalMu(publicKey, message);
+
+            Signature signer = Signature.getInstance("EXTERNAL-MU-" + algorithm, conscryptProvider);
+            signer.initSign(privateKey);
+            signer.update(mu);
+            byte[] sig = signer.sign();
+            assertEquals(errMsg + ", signature length mismatch", signature.length, sig.length);
+
+            Signature verifier = Signature.getInstance(algorithm, conscryptProvider);
+            verifier.initVerify(publicKey);
+            verifier.update(message);
+            assertTrue(errMsg + ", external mu signature verification failed",
+                       verifier.verify(sig));
+        }
+    }
+
+    @Test
+    public void externalMu_updateInChunks_works() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        byte[] message = "External mu in chunks".getBytes(StandardCharsets.UTF_8);
+        byte[] mu = externalMu(keyPair.getPublic(), message);
+
+        Signature signer = Signature.getInstance("EXTERNAL-MU-ML-DSA-65", conscryptProvider);
+        Signature verifier = Signature.getInstance("ML-DSA-65", conscryptProvider);
+
+        // Byte by byte.
+        signer.initSign(keyPair.getPrivate());
+        for (byte b : mu) {
+            signer.update(b);
+        }
+        byte[] sig = signer.sign();
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(message);
+        assertTrue(verifier.verify(sig));
+
+        // In two chunks, without calling initSign again.
+        signer.update(mu, 0, 10);
+        signer.update(mu, 10, mu.length - 10);
+        byte[] sig2 = signer.sign();
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(message);
+        assertTrue(verifier.verify(sig2));
+    }
+
+    @Test
+    public void externalMu_invalidMuLength_throws() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        byte[] message = "External mu of the wrong length".getBytes(StandardCharsets.UTF_8);
+        byte[] mu = externalMu(keyPair.getPublic(), message);
+
+        Signature signer = Signature.getInstance("EXTERNAL-MU-ML-DSA-65", conscryptProvider);
+        signer.initSign(keyPair.getPrivate());
+
+        // Nothing, too little, or too much input is rejected.
+        assertThrows(SignatureException.class, signer::sign);
+        signer.update(mu, 0, 63);
+        assertThrows(SignatureException.class, signer::sign);
+        signer.update(mu);
+        signer.update((byte) 0);
+        assertThrows(SignatureException.class, signer::sign);
+        signer.update(message);
+        assertThrows(SignatureException.class, signer::sign);
+
+        // A failed sign() discards the buffered input, so the signer remains usable.
+        signer.update(mu);
+        byte[] sig = signer.sign();
+        Signature verifier = Signature.getInstance("ML-DSA-65", conscryptProvider);
+        verifier.initVerify(keyPair.getPublic());
+        verifier.update(message);
+        assertTrue(verifier.verify(sig));
+    }
+
+    @Test
+    public void externalMu_keyMismatch_throws() throws Exception {
+        KeyPair keyPair44 =
+                KeyPairGenerator.getInstance("ML-DSA-44", conscryptProvider).generateKeyPair();
+        KeyPair keyPair65 =
+                KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider).generateKeyPair();
+        KeyPair keyPair87 =
+                KeyPairGenerator.getInstance("ML-DSA-87", conscryptProvider).generateKeyPair();
+
+        Signature s44 = Signature.getInstance("EXTERNAL-MU-ML-DSA-44", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s44.initSign(keyPair65.getPrivate()));
+        assertThrows(InvalidKeyException.class, () -> s44.initSign(keyPair87.getPrivate()));
+
+        Signature s65 = Signature.getInstance("EXTERNAL-MU-ML-DSA-65", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s65.initSign(keyPair44.getPrivate()));
+        assertThrows(InvalidKeyException.class, () -> s65.initSign(keyPair87.getPrivate()));
+
+        Signature s87 = Signature.getInstance("EXTERNAL-MU-ML-DSA-87", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s87.initSign(keyPair44.getPrivate()));
+        assertThrows(InvalidKeyException.class, () -> s87.initSign(keyPair65.getPrivate()));
+
+        // Keys of other algorithms are rejected too.
+        KeyPair ecKeyPair = KeyPairGenerator.getInstance("EC", conscryptProvider).generateKeyPair();
+        Signature s = Signature.getInstance("EXTERNAL-MU-ML-DSA", conscryptProvider);
+        assertThrows(InvalidKeyException.class, () -> s.initSign(ecKeyPair.getPrivate()));
+    }
+
+    @Test
+    public void externalMu_initVerify_throws() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ML-DSA-65", conscryptProvider);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        PublicKey publicKey = keyPair.getPublic();
+        PublicKey foreignPublicKey = new TestPublicKey(publicKey.getEncoded());
+
+        // External mu ML-DSA only signs; signatures are verified with the regular ML-DSA
+        // Signature and the original message.
+        for (String algorithm : new String[] {"EXTERNAL-MU-ML-DSA", "EXTERNAL-MU-ML-DSA-44",
+                                              "EXTERNAL-MU-ML-DSA-65", "EXTERNAL-MU-ML-DSA-87"}) {
+            Signature verifier = Signature.getInstance(algorithm, conscryptProvider);
+            assertThrows(UnsupportedOperationException.class, () -> verifier.initVerify(publicKey));
+            assertThrows(UnsupportedOperationException.class,
+                         () -> verifier.initVerify(foreignPublicKey));
         }
     }
 

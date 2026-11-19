@@ -83,7 +83,7 @@ public class ConscryptNetworkSecurityPolicy implements NetworkSecurityPolicy {
         if (Platform.isSdkGreater(36)) {
             return platformToConscryptEncryptionMode(policy.getDomainEncryptionMode(hostname));
         }
-        return DomainEncryptionMode.UNKNOWN;
+        return DomainEncryptionMode.DISABLED;
     }
 
     private static DomainEncryptionMode platformToConscryptEncryptionMode(int platformMode) {

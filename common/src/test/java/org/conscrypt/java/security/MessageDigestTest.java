@@ -16,10 +16,10 @@
 
 package org.conscrypt.java.security;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 // android-add: import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
-
 import org.conscrypt.TestUtils;
 // android-add: import org.junit.ClassRule;
 import org.junit.Test;
@@ -27,8 +27,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -218,6 +220,54 @@ public final class MessageDigestTest {
             assertEquals(algorithm, javaBytes(expected), javaBytes(actual));
             assertEquals(algorithm, expected.length, md.getDigestLength());
         }
+    }
+
+    // SHAKE256 with 512-bit output of the 1600-bit message consisting of 200 bytes of 0xa3, from
+    // https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE256_Msg1600.pdf
+    private static final String SHAKE256_512_OF_MSG1600 =
+            "cd8a920ed141aa0407a22d59288652e9d9f1a7ee0c1e7c1ca699424da84a904d"
+            + "2d700caae7396ece96604440577da4f3aa22aeb8857f961c4cd8e06f0ae6610b";
+
+    /**
+     * SHAKE256 is an extendable-output function, which Conscrypt exposes through the fixed-length
+     * MessageDigest algorithm "SHAKE256-512". Checks that the fixed output length is applied
+     * consistently across one-shot, incremental, cloned, and reused digests.
+     */
+    @Test
+    public void testShake256_512() throws Exception {
+        Provider conscrypt = TestUtils.getConscryptProvider();
+        byte[] msg1600 = new byte[200];
+        Arrays.fill(msg1600, (byte) 0xa3);
+        byte[] expectedMsg1600 = TestUtils.decodeHex(SHAKE256_512_OF_MSG1600);
+        byte[] expectedEmpty = getExpectations("SHAKE256-512").get(INPUT_EMPTY);
+
+        MessageDigest md = MessageDigest.getInstance("SHAKE256-512", conscrypt);
+        assertEquals("SHAKE256-512", md.getAlgorithm());
+        assertEquals(64, md.getDigestLength());
+        assertArrayEquals(expectedMsg1600, md.digest(msg1600));
+
+        // digest() resets the state, so the same instance can be reused.
+        assertArrayEquals(expectedEmpty, md.digest());
+
+        // Incremental updates give the same result as the one-shot computation.
+        md.update(msg1600, 0, 100);
+        for (int i = 100; i < 150; i++) {
+            md.update(msg1600[i]);
+        }
+        md.update(ByteBuffer.wrap(msg1600, 150, 50));
+        assertArrayEquals(expectedMsg1600, md.digest());
+
+        // A clone taken part-way through continues independently of the original.
+        md.update(msg1600, 0, 100);
+        MessageDigest copy = (MessageDigest) md.clone();
+        md.reset();
+        assertArrayEquals(expectedMsg1600, copy.digest(Arrays.copyOfRange(msg1600, 100, 200)));
+        assertArrayEquals(expectedEmpty, md.digest());
+
+        // The id-shake256 OID (RFC 8702) is an alias for SHAKE256-512.
+        MessageDigest byOid = MessageDigest.getInstance("2.16.840.1.101.3.4.2.12", conscrypt);
+        assertEquals(64, byOid.getDigestLength());
+        assertArrayEquals(expectedMsg1600, byOid.digest(msg1600));
     }
 
     private String javaBytes(byte[] bytes) {

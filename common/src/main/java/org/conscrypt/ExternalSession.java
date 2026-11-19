@@ -70,6 +70,11 @@ final class ExternalSession implements ConscryptSession {
     }
 
     @Override
+    public String getEchNameOverride() {
+        return provider.provideSession().getEchNameOverride();
+    }
+
+    @Override
     public byte[] getId() {
         return provider.provideSession().getId();
     }

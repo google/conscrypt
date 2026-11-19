@@ -28,7 +28,7 @@ import javax.net.ssl.SSLSocket;
  * An adapter to bridge between the native code and the {@link ApplicationProtocolSelector} API.
  */
 final class ApplicationProtocolSelectorAdapter {
-    private static final int NO_PROTOCOL_SELECTED = -1;
+    static final int NO_PROTOCOL_SELECTED = -1;
 
     private final SSLEngine engine;
     private final SSLSocket socket;

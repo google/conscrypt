@@ -384,6 +384,45 @@ public class ConscryptEngineTest {
         assertNull(Conscrypt.getApplicationProtocol(serverEngine));
     }
 
+    @Test
+    public void alpnWithServerProtocolSelectorClearedAfterBeginHandshakeShouldNotSelect()
+            throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+
+        // Configure two 1-byte client protocols ("a", "b" -> 4 wire bytes: 01 61 01 62) so
+        // misinterpreting SSL_TLSEXT_ERR_NOACK (3) as a wire offset would index in[3] out of
+        // bounds.
+        Conscrypt.setApplicationProtocols(clientEngine, new String[] {"a", "b"});
+
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
+        Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
+        clientEngine.beginHandshake();
+        serverEngine.beginHandshake();
+        Conscrypt.setApplicationProtocolSelector(serverEngine, null);
+
+        doHandshake(false);
+        assertNull(Conscrypt.getApplicationProtocol(clientEngine));
+        assertNull(Conscrypt.getApplicationProtocol(serverEngine));
+    }
+
+    @Test
+    public void alpnWithThrowingServerProtocolSelectorShouldAbortHandshake() throws Exception {
+        setupEngines(TestKeyStore.getClient(), TestKeyStore.getServer());
+
+        Conscrypt.setApplicationProtocols(clientEngine, new String[] {"http/1.1", "h2"});
+
+        RuntimeException selectorFailure = new RuntimeException("selector failure");
+        ApplicationProtocolSelector selector = Mockito.mock(ApplicationProtocolSelector.class);
+        when(selector.selectApplicationProtocol(same(serverEngine),
+                                                ArgumentMatchers.<String>anyList()))
+                .thenThrow(selectorFailure);
+        Conscrypt.setApplicationProtocolSelector(serverEngine, selector);
+
+        Throwable thrown = assertThrows(Throwable.class, () -> doHandshake(true));
+        assertTrue(thrown == selectorFailure || thrown.getCause() == selectorFailure);
+        assertNull(Conscrypt.getApplicationProtocol(serverEngine));
+    }
+
     /**
      * BoringSSL server doesn't support renegotiation. BoringSSL clients do not support
      * initiating a renegotiation, only processing a renegotiation initiated by the

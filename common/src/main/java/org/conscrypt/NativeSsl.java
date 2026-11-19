@@ -31,6 +31,7 @@ import org.conscrypt.SSLParametersImpl.PSKCallbacks;
 import org.conscrypt.metrics.TlsEncryptedClientHelloHandshake;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
@@ -40,6 +41,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -55,6 +57,10 @@ import javax.security.auth.x500.X500Principal;
  * A utility wrapper that abstracts operations on the underlying native SSL instance.
  */
 final class NativeSsl {
+    private static final byte CLIENT_AUTH_NONE = 0;
+    private static final byte CLIENT_AUTH_WANT = 1;
+    private static final byte CLIENT_AUTH_NEED = 2;
+
     private final SSLParametersImpl parameters;
     private final SSLHandshakeCallbacks handshakeCallbacks;
     private final AliasChooser aliasChooser;
@@ -62,6 +68,7 @@ final class NativeSsl {
     private X509Certificate[] localCertificates;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private volatile long ssl;
+    private volatile byte serverClientAuthMode = CLIENT_AUTH_NONE;
     private final TlsEncryptedClientHelloHandshake.Builder echHandshakeBuilder =
             new TlsEncryptedClientHelloHandshake.Builder();
 
@@ -412,19 +419,171 @@ final class NativeSsl {
         return toBoringSslGroups(namedGroups);
     }
 
-    private static final int[] DEFAULT_BORINGSSL_NAMED_GROUPS = new int[0];
+    // IMPLEMENTATION NOTE: Default named groups (key exchange curves and KEMs) are explicitly
+    // pinned in Java rather than inherited from BoringSSL's C++ defaults
+    // (DefaultSupportedGroupIds()). Modifying this list alters the TLS ClientHello
+    // (supported_groups and key_share extensions) on the wire, which can break handshakes with
+    // non-compliant middleboxes or servers. On Android, any change to the default named groups
+    // MUST be gated behind an aconfig feature flag and an AppCompat (@ChangeId) gate via
+    // Platform.isPqcDefaultEnabled() and NativeSsl.getDefaultNamedGroups().
 
-    private static final int[] DEFAULT_CLASSICAL_NAMED_GROUPS =
-            toBoringSslGroups(new String[] {"X25519", "P-256", "P-384"});
+    /**
+     * Default TLS named groups with Post-Quantum Cryptography (X25519MLKEM768) enabled, in
+     * preference order.
+     */
+    static final String[] DEFAULT_PQC_NAMED_GROUPS = new String[] {
+            "X25519MLKEM768",
+            "X25519",
+            "P-256",
+            "P-384",
+    };
+
+    /** Classical-only default TLS named groups, in preference order. */
+    static final String[] DEFAULT_CLASSICAL_NAMED_GROUPS = new String[] {
+            "X25519",
+            "P-256",
+            "P-384",
+    };
+
+    private static final int[] DEFAULT_PQC_GROUP_IDS =
+            toBoringSslGroups(DEFAULT_PQC_NAMED_GROUPS);
+    private static final int[] DEFAULT_CLASSICAL_GROUP_IDS =
+            toBoringSslGroups(DEFAULT_CLASSICAL_NAMED_GROUPS);
+
+    static int[] getDefaultNamedGroups() {
+        // Must stay dynamic: isPqcDefaultEnabled() is per-app / post-fork on Android.
+        return (Platform.isPqcDefaultEnabled() ? DEFAULT_PQC_GROUP_IDS
+                                               : DEFAULT_CLASSICAL_GROUP_IDS)
+                .clone();
+    }
 
     private static void setDefaultNamedGroups(long ssl, NativeSsl sslHolder) {
-        if (Platform.isPqcDefaultEnabled()) {
-            // When the groups list is empty, BoringSSL's default named groups
-            // (DefaultSupportedGroupIds()) are used as the single source of truth.
-            NativeCrypto.SSL_set1_groups(ssl, sslHolder, DEFAULT_BORINGSSL_NAMED_GROUPS);
-        } else {
-            NativeCrypto.SSL_set1_groups(ssl, sslHolder, DEFAULT_CLASSICAL_NAMED_GROUPS);
+        // Explicitly configure the platform's pinned default named groups rather than passing
+        // an empty array (which would implicitly inherit BoringSSL's C++ defaults).
+        NativeCrypto.SSL_set1_groups(ssl, sslHolder, getDefaultNamedGroups());
+    }
+
+    private static int toBoringSslSignatureAlgorithm(String signatureAlgorithm) {
+        switch (signatureAlgorithm) {
+            case "mldsa44":
+            case "ML-DSA-44":
+                return NativeConstants.SSL_SIGN_ML_DSA_44;
+            case "mldsa65":
+            case "ML-DSA-65":
+                return NativeConstants.SSL_SIGN_ML_DSA_65;
+            case "mldsa87":
+            case "ML-DSA-87":
+                return NativeConstants.SSL_SIGN_ML_DSA_87;
+            case "ecdsa_secp256r1_sha256":
+                return NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256;
+            case "ecdsa_secp384r1_sha384":
+                return NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384;
+            case "ecdsa_secp521r1_sha512":
+                return NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512;
+            case "ecdsa_sha1":
+                return NativeConstants.SSL_SIGN_ECDSA_SHA1;
+            case "rsa_pss_rsae_sha256":
+                return NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA256;
+            case "rsa_pss_rsae_sha384":
+                return NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA384;
+            case "rsa_pss_rsae_sha512":
+                return NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA512;
+            case "rsa_pkcs1_sha256":
+                return NativeConstants.SSL_SIGN_RSA_PKCS1_SHA256;
+            case "rsa_pkcs1_sha384":
+                return NativeConstants.SSL_SIGN_RSA_PKCS1_SHA384;
+            case "rsa_pkcs1_sha512":
+                return NativeConstants.SSL_SIGN_RSA_PKCS1_SHA512;
+            case "rsa_pkcs1_sha1":
+                return NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1;
+            case "ed25519":
+                return NativeConstants.SSL_SIGN_ED25519;
+            default:
+                return -1; // Unknown signature algorithm.
         }
+    }
+
+    static int[] toBoringSslSignatureAlgorithms(String[] signatureAlgorithms) {
+        int[] outputAlgs = new int[signatureAlgorithms.length];
+        int i = 0;
+        for (String signatureAlgorithm : signatureAlgorithms) {
+            int alg = toBoringSslSignatureAlgorithm(signatureAlgorithm);
+            if (alg > 0) {
+                outputAlgs[i] = alg;
+                i++;
+            }
+        }
+        if (i == 0) {
+            throw new IllegalArgumentException(
+                    "No valid known signature algorithm found in: "
+                    + Arrays.toString(signatureAlgorithms));
+        }
+        if (i < signatureAlgorithms.length) {
+            return Arrays.copyOf(outputAlgs, i);
+        }
+        return outputAlgs;
+    }
+
+    // IMPLEMENTATION NOTE: Default signature verification algorithms (signature_algorithms
+    // extension) are explicitly pinned in Java rather than inherited from BoringSSL's C++ defaults
+    // (kVerifySignatureAlgorithms). Modifying this list alters the TLS ClientHello
+    // (signature_algorithms extension) and CertificateRequest on the wire, which can break
+    // handshakes with non-compliant middleboxes or peers. On Android, any change to the default
+    // signature algorithms MUST be gated behind an aconfig feature flag and an AppCompat
+    // (@ChangeId) gate via Platform.isPqcDefaultSignatureAlgorithmsEnabled() and
+    // NativeSsl.getDefaultSignatureAlgorithms().
+
+    /**
+     * Default TLS signature verification algorithms with Post-Quantum Cryptography (ML-DSA)
+     * enabled, in preference order.
+     */
+    static final String[] DEFAULT_PQC_SIGNATURE_ALGORITHMS = new String[] {
+            "mldsa44",
+            "mldsa65",
+            "mldsa87",
+            "ecdsa_secp256r1_sha256",
+            "rsa_pss_rsae_sha256",
+            "rsa_pkcs1_sha256",
+            "ecdsa_secp384r1_sha384",
+            "rsa_pss_rsae_sha384",
+            "rsa_pkcs1_sha384",
+            "rsa_pss_rsae_sha512",
+            "rsa_pkcs1_sha512",
+            "rsa_pkcs1_sha1",
+    };
+
+    /** Classical-only default TLS signature verification algorithms, in preference order. */
+    static final String[] DEFAULT_CLASSICAL_SIGNATURE_ALGORITHMS = new String[] {
+            "ecdsa_secp256r1_sha256",
+            "rsa_pss_rsae_sha256",
+            "rsa_pkcs1_sha256",
+            "ecdsa_secp384r1_sha384",
+            "rsa_pss_rsae_sha384",
+            "rsa_pkcs1_sha384",
+            "rsa_pss_rsae_sha512",
+            "rsa_pkcs1_sha512",
+            "rsa_pkcs1_sha1",
+    };
+
+    private static final int[] DEFAULT_PQC_SIGNATURE_ALGORITHM_IDS =
+            toBoringSslSignatureAlgorithms(DEFAULT_PQC_SIGNATURE_ALGORITHMS);
+
+    private static final int[] DEFAULT_CLASSICAL_SIGNATURE_ALGORITHM_IDS =
+            toBoringSslSignatureAlgorithms(DEFAULT_CLASSICAL_SIGNATURE_ALGORITHMS);
+
+    static int[] getDefaultSignatureAlgorithms() {
+        // Must stay dynamic: isPqcDefaultSignatureAlgorithmsEnabled() is per-app / post-fork on
+        // Android.
+        return Platform.isPqcDefaultSignatureAlgorithmsEnabled()
+                ? DEFAULT_PQC_SIGNATURE_ALGORITHM_IDS
+                : DEFAULT_CLASSICAL_SIGNATURE_ALGORITHM_IDS;
+    }
+
+    private static void setDefaultSignatureAlgorithms(long ssl, NativeSsl sslHolder) {
+        // Explicitly configure the platform's pinned default signature verification algorithms
+        // rather than implicitly inheriting BoringSSL's C++ defaults (kVerifySignatureAlgorithms).
+        NativeCrypto.SSL_set_verify_algorithm_prefs(ssl, sslHolder,
+                                                    getDefaultSignatureAlgorithms());
     }
 
     void initialize(String hostname) throws IOException {
@@ -491,6 +650,8 @@ final class NativeSsl {
             }
         }
 
+        setDefaultSignatureAlgorithms(ssl, this);
+
         if (parameters.applicationProtocols.length > 0) {
             NativeCrypto.setApplicationProtocols(ssl, this, isClient(),
                                                  parameters.applicationProtocols);
@@ -535,8 +696,12 @@ final class NativeSsl {
         }
     }
 
+    private static final byte[] SERVER_SID_CTX_DOMAIN =
+            "ConscryptServerSidCtx-v1\0".getBytes(StandardCharsets.US_ASCII);
+
     void configureServerCertificate() throws IOException {
-        verifyWithSniMatchers(getRequestedServerName());
+        String requestedServerName = getRequestedServerName();
+        verifyWithSniMatchers(requestedServerName);
         if (isClient()) {
             return;
         }
@@ -549,6 +714,56 @@ final class NativeSsl {
                     throw new IOException(e);
                 }
             }
+        }
+        updateServerSessionIdContext(requestedServerName);
+    }
+
+    private void updateServerSessionIdContext(String requestedServerName) {
+        // Resumed handshakes skip requesting and verifying the client certificate, so bind
+        // BoringSSL's session ID context to the per-connection settings that determine whether a
+        // client is accepted. Variable-length fields are length-prefixed to avoid collisions.
+        byte[] sniBytes = (requestedServerName == null)
+                ? null
+                : requestedServerName.toLowerCase(Locale.US).getBytes(StandardCharsets.UTF_8);
+        String endpointIdAlg = parameters.getEndpointIdentificationAlgorithm();
+        byte[] endpointIdBytes = (endpointIdAlg == null || endpointIdAlg.isEmpty())
+                ? null
+                : endpointIdAlg.toLowerCase(Locale.US).getBytes(StandardCharsets.UTF_8);
+
+        // Allocate buffer for session ID context.
+        int length = SERVER_SID_CTX_DOMAIN.length + lengthPrefixedSize(sniBytes)
+                + 1 // serverClientAuthMode
+                + lengthPrefixedSize(endpointIdBytes);
+        ByteBuffer buf = ByteBuffer.allocate(length);
+
+        // Write to session ID context buffer.
+        buf.put(SERVER_SID_CTX_DOMAIN);
+        putLengthPrefixedBytes(buf, sniBytes);
+        buf.put(serverClientAuthMode);
+        putLengthPrefixedBytes(buf, endpointIdBytes);
+
+        // Set session ID context.
+        lock.readLock().lock();
+        try {
+            if (!isClosed()) {
+                NativeCrypto.setSessionIdContextSha256(ssl, this, buf.array());
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    private static int lengthPrefixedSize(byte[] bytes) {
+        return 4 // size of bytes.length or size of -1
+                + (bytes == null ? 0 : bytes.length);
+    }
+
+    private static void putLengthPrefixedBytes(ByteBuffer buf, byte[] bytes) {
+        if (bytes == null) {
+            buf.putInt(-1);
+        } else {
+            buf.putInt(bytes.length);
+            buf.put(bytes);
         }
     }
 
@@ -666,14 +881,17 @@ final class NativeSsl {
             if (parameters.getNeedClientAuth()) {
                 NativeCrypto.SSL_set_verify(ssl, this,
                                             SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT);
+                serverClientAuthMode = CLIENT_AUTH_NEED;
                 certRequested = true;
                 // ... over just wanting it...
             } else if (parameters.getWantClientAuth()) {
                 NativeCrypto.SSL_set_verify(ssl, this, SSL_VERIFY_PEER);
+                serverClientAuthMode = CLIENT_AUTH_WANT;
                 certRequested = true;
                 // ... and we must disable verification if we don't want client auth.
             } else {
                 NativeCrypto.SSL_set_verify(ssl, this, SSL_VERIFY_NONE);
+                serverClientAuthMode = CLIENT_AUTH_NONE;
                 certRequested = false;
             }
 

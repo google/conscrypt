@@ -45,6 +45,7 @@ final class SessionSnapshot implements ConscryptSession {
     private X509Certificate[] peerCertificates;
     private final String[] peerSupportedSignatureAlgorithms;
     private final String[] localSupportedSignatureAlgorithms;
+    private final String echNameOverride;
 
     SessionSnapshot(ConscryptSession session) {
         sessionContext = session.getSessionContext();
@@ -66,6 +67,7 @@ final class SessionSnapshot implements ConscryptSession {
         }
         peerSupportedSignatureAlgorithms = session.getPeerSupportedSignatureAlgorithms();
         localSupportedSignatureAlgorithms = session.getLocalSupportedSignatureAlgorithms();
+        echNameOverride = session.getEchNameOverride();
     }
 
     @Override
@@ -85,6 +87,11 @@ final class SessionSnapshot implements ConscryptSession {
     @Override
     public byte[] getPeerSignedCertificateTimestamp() {
         return peerTlsSctData != null ? peerTlsSctData.clone() : null;
+    }
+
+    @Override
+    public String getEchNameOverride() {
+        return echNameOverride;
     }
 
     @Override

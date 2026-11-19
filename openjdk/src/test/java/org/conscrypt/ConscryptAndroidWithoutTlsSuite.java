@@ -64,8 +64,8 @@ import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
 import org.conscrypt.metrics.CipherSuiteTest;
 import org.conscrypt.metrics.OptionalMethodTest;
 import org.conscrypt.metrics.ProtocolTest;
+import org.conscrypt.pqc.MtcUtilsTest;
 import org.conscrypt.util.DerUtilsTest;
-import org.conscrypt.util.MtcUtilsTest;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -124,9 +124,10 @@ import tests.util.ServiceTester;
         // org.conscrypt.ct tests
         VerifierTest.class,
         SerializationTest.class,
+        // org.conscrypt.pqc tests
+        MtcUtilsTest.class,
         // org.conscrypt.util tests
         DerUtilsTest.class,
-        MtcUtilsTest.class,
         // java.security tests
         CertificateFactoryTest.class,
         X509CertificateTest.class,

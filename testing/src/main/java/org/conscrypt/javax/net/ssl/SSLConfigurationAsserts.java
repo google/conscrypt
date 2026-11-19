@@ -46,6 +46,11 @@ public class SSLConfigurationAsserts {
      * {@link SSLSocketFactory}, {@link SSLServerSocketFactory}, {@link SSLSocket},
      * {@link SSLServerSocket} and {@link SSLEngine} instances created from the context match the
      * configuration.
+     *
+     * <p>ANDROID COMPATIBILITY GATE: These default configuration assertions guard Android app
+     * compatibility. Do NOT relax or update expected default protocols or cipher suites to
+     * accommodate upstream changes without an Android compatibility review and an associated
+     * AppCompat / aconfig flag.
      */
     public static void assertSSLContextDefaultConfiguration(SSLContext sslContext)
             throws IOException {

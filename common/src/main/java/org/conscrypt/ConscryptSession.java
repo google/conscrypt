@@ -57,4 +57,12 @@ interface ConscryptSession extends SSLSession {
     public String[] getPeerSupportedSignatureAlgorithms();
 
     public String[] getLocalSupportedSignatureAlgorithms();
+
+    /**
+     * Returns the ECH public name that the peer certificate must be authenticated against if
+     * this client offered ECH and the server rejected it, or {@code null} otherwise. When
+     * non-null, the handshake will never complete; it only authenticates the server's retry
+     * configs (RFC 9849, section 6.1.7).
+     */
+    String getEchNameOverride();
 }

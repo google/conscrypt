@@ -65,6 +65,11 @@ class Java7ExtendedSSLSession extends ExtendedSSLSession implements ConscryptSes
     }
 
     @Override
+    public final String getEchNameOverride() {
+        return delegate.getEchNameOverride();
+    }
+
+    @Override
     public final byte[] getId() {
         return delegate.getId();
     }
