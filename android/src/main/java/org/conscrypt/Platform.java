@@ -908,8 +908,22 @@ final public class Platform {
         pqcDefaultEnabled = enabled;
     }
 
+    private static volatile boolean pqcDefaultSignatureAlgorithmsEnabled = true;
+
+    public static boolean isPqcDefaultSignatureAlgorithmsEnabled() {
+        return pqcDefaultSignatureAlgorithmsEnabled;
+    }
+
+    public static void setPqcDefaultSignatureAlgorithmsEnabledForTesting(boolean enabled) {
+        pqcDefaultSignatureAlgorithmsEnabled = enabled;
+    }
+
     public static boolean isSdkGreater(int sdk) {
         return Build.VERSION.SDK_INT > sdk;
+    }
+
+    public static boolean isMerkleTreeCertsEnabled() {
+        return false;
     }
 
     private static class X509NativeAllocationRegistryHolder {

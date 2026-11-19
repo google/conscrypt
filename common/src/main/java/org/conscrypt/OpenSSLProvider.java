@@ -176,6 +176,12 @@ public final class OpenSSLProvider extends Provider {
         put("Alg.Alias.MessageDigest.SHA512", "SHA-512");
         put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.3", "SHA-512");
 
+        // SHAKE256 is an extendable-output function; "SHAKE256-512" is the fixed 512-bit output
+        // variant, named as in the OpenJDK provider. The OID is id-shake256 (RFC 8702), which
+        // denotes SHAKE256 with a 512-bit output when used as a message digest.
+        put("MessageDigest.SHAKE256-512", PREFIX + "OpenSSLMessageDigestJDK$Shake256_512");
+        put("Alg.Alias.MessageDigest.2.16.840.1.101.3.4.2.12", "SHAKE256-512");
+
         // iso(1) member-body(2) US(840) rsadsi(113549) digestAlgorithm(2) md5(5)
         put("MessageDigest.MD5", PREFIX + "OpenSSLMessageDigestJDK$MD5");
         put("Alg.Alias.MessageDigest.1.2.840.113549.2.5", "MD5");
@@ -305,7 +311,11 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyPairGenerator.ML-KEM", PREFIX + "OpenSslMlKemKeyPairGenerator$MlKem");
         put("KeyPairGenerator.ML-KEM-768", PREFIX + "OpenSslMlKemKeyPairGenerator$MlKem768");
+        put("Alg.Alias.KeyPairGenerator.2.16.840.1.101.3.4.4.2", "ML-KEM-768");
+        put("Alg.Alias.KeyPairGenerator.OID.2.16.840.1.101.3.4.4.2", "ML-KEM-768");
         put("KeyPairGenerator.ML-KEM-1024", PREFIX + "OpenSslMlKemKeyPairGenerator$MlKem1024");
+        put("Alg.Alias.KeyPairGenerator.2.16.840.1.101.3.4.4.3", "ML-KEM-1024");
+        put("Alg.Alias.KeyPairGenerator.OID.2.16.840.1.101.3.4.4.3", "ML-KEM-1024");
 
         put("KeyPairGenerator.XWING", PREFIX + "OpenSslXwingKeyPairGenerator");
 
@@ -389,7 +399,11 @@ public final class OpenSSLProvider extends Provider {
 
         put("KeyFactory.ML-KEM", PREFIX + "OpenSslMlKemKeyFactory$MlKem");
         put("KeyFactory.ML-KEM-768", PREFIX + "OpenSslMlKemKeyFactory$MlKem768");
+        put("Alg.Alias.KeyFactory.2.16.840.1.101.3.4.4.2", "ML-KEM-768");
+        put("Alg.Alias.KeyFactory.OID.2.16.840.1.101.3.4.4.2", "ML-KEM-768");
         put("KeyFactory.ML-KEM-1024", PREFIX + "OpenSslMlKemKeyFactory$MlKem1024");
+        put("Alg.Alias.KeyFactory.2.16.840.1.101.3.4.4.3", "ML-KEM-1024");
+        put("Alg.Alias.KeyFactory.OID.2.16.840.1.101.3.4.4.3", "ML-KEM-1024");
 
         put("KeyFactory.XWING", PREFIX + "OpenSslXwingKeyFactory");
 
@@ -523,6 +537,17 @@ public final class OpenSSLProvider extends Provider {
         putSignatureImplClass("ML-DSA-87", "OpenSslSignatureMlDsa$MlDsa87");
         put("Alg.Alias.Signature.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
         put("Alg.Alias.Signature.OID.2.16.840.1.101.3.4.3.19", "ML-DSA-87");
+        // "External mu" ML-DSA signs a precomputed 64-byte ML-DSA message representative mu
+        // (FIPS 204, Algorithm 7, line 6) instead of the message itself; see
+        // OpenSslSignatureExternalMuMlDsa for how mu is computed (e.g. with the "SHAKE256-512"
+        // MessageDigest). It only supports signing: the result is a regular ML-DSA signature, which
+        // is verified with "ML-DSA" and the original message. Context strings are currently not
+        // supported (mu must be computed with an empty context string). There are no OID aliases
+        // because no OIDs are assigned to external-mu ML-DSA.
+        putSignatureImplClass("EXTERNAL-MU-ML-DSA", "OpenSslSignatureExternalMuMlDsa$MlDsa");
+        putSignatureImplClass("EXTERNAL-MU-ML-DSA-44", "OpenSslSignatureExternalMuMlDsa$MlDsa44");
+        putSignatureImplClass("EXTERNAL-MU-ML-DSA-65", "OpenSslSignatureExternalMuMlDsa$MlDsa65");
+        putSignatureImplClass("EXTERNAL-MU-ML-DSA-87", "OpenSslSignatureExternalMuMlDsa$MlDsa87");
         putSignatureImplClass("MLDSA44-RSA2048-PSS-SHA256",
                               "OpenSslSignatureCompositeMlDsa$Mldsa44Rsa2048PssSha256");
         put("Alg.Alias.Signature.1.3.6.1.5.5.7.6.37", "MLDSA44-RSA2048-PSS-SHA256");
@@ -806,7 +831,11 @@ public final class OpenSSLProvider extends Provider {
             // Standard JCA KEM algorithm names per Java Security Standard Algorithm Names spec.
             put("KEM.ML-KEM", PREFIX + "OpenSslMlKem$MlKem");
             put("KEM.ML-KEM-768", PREFIX + "OpenSslMlKem$MlKem768");
+            put("Alg.Alias.KEM.2.16.840.1.101.3.4.4.2", "ML-KEM-768");
+            put("Alg.Alias.KEM.OID.2.16.840.1.101.3.4.4.2", "ML-KEM-768");
             put("KEM.ML-KEM-1024", PREFIX + "OpenSslMlKem$MlKem1024");
+            put("Alg.Alias.KEM.2.16.840.1.101.3.4.4.3", "ML-KEM-1024");
+            put("Alg.Alias.KEM.OID.2.16.840.1.101.3.4.4.3", "ML-KEM-1024");
         }
     }
 

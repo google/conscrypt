@@ -35,6 +35,8 @@
 package org.conscrypt;
 
 import org.conscrypt.metrics.CertificateValidationFailureReason;
+import org.conscrypt.pqc.MtcUtils;
+import org.conscrypt.pqc.MtcVerifier;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -56,6 +58,7 @@ import java.security.cert.PKIXRevocationChecker.Option;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,7 +69,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
@@ -419,12 +421,29 @@ public final class TrustManagerImpl
             String identificationAlgorithm = parameters.getEndpointIdentificationAlgorithm();
             if ("HTTPS".equalsIgnoreCase(identificationAlgorithm)) {
                 ConscryptHostnameVerifier verifier = getHttpsVerifier();
-                if (!verifier.verify(certs, hostname, session)) {
+                String expectedHostname = getHostnameForHttpsVerification(session, hostname);
+                if (!verifier.verify(certs, expectedHostname, session)) {
                     throw new CertificateException("No subjectAltNames on the certificate match");
                 }
             }
         }
+        // Pinning and CT intentionally continue to use the session's peer host.
         return checkTrusted(certs, ocspData, tlsSctData, authType, hostname, clientAuth);
+    }
+
+    /**
+     * Returns the name to match against the leaf certificate for HTTPS endpoint identification.
+     * If the server rejected ECH, RFC 9849 section 6.1.7 requires authenticating the ECH public
+     * name instead of the true server name.
+     */
+    private static String getHostnameForHttpsVerification(SSLSession session, String peerHost) {
+        if (session instanceof ConscryptSession) {
+            String echNameOverride = ((ConscryptSession) session).getEchNameOverride();
+            if (echNameOverride != null) {
+                return echNameOverride;
+            }
+        }
+        return peerHost;
     }
 
     @SuppressWarnings("unchecked")
@@ -490,6 +509,14 @@ public final class TrustManagerImpl
         if (err != null) {
             throw new CertificateException(err);
         }
+        if (Platform.isMerkleTreeCertsEnabled()) {
+            TrustAnchor mtcAnchor = MtcUtils.findIssuingCaTrustAnchor(certs[0], acceptedIssuers,
+                                                                      trustedCertificateStore);
+            if (mtcAnchor != null) {
+                MtcVerifier.verifyMTC(certs[0], mtcAnchor);
+                return Arrays.asList(certs[0], mtcAnchor.getTrustedCert());
+            }
+        }
         Set<X509Certificate> used = new HashSet<>();
         List<X509Certificate> untrustedChain = new ArrayList<>();
         List<TrustAnchor> trustedChain = new ArrayList<>();
@@ -505,9 +532,9 @@ public final class TrustManagerImpl
             untrustedChain.add(leaf);
         }
         used.add(leaf);
-        int[] budget = { MAX_PATH_BUILD_ITERATIONS };
-        return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth,
-                untrustedChain, trustedChain, used, budget);
+        int[] budget = {MAX_PATH_BUILD_ITERATIONS};
+        return checkTrustedRecursive(certs, ocspData, tlsSctData, host, clientAuth, untrustedChain,
+                                     trustedChain, used, budget);
     }
 
     /**
@@ -538,8 +565,7 @@ public final class TrustManagerImpl
                                                         boolean clientAuth,
                                                         List<X509Certificate> untrustedChain,
                                                         List<TrustAnchor> trustAnchorChain,
-                                                        Set<X509Certificate> used,
-                                                        int[] budget)
+                                                        Set<X509Certificate> used, int[] budget)
             throws CertificateException {
         if (--budget[0] < 0) {
             throw new CertificateException("Path-building iteration limit exceeded");

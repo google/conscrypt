@@ -27,6 +27,7 @@ import org.junit.runners.JUnit4;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 
 @RunWith(JUnit4.class)
 public final class NativeSslTest {
@@ -76,6 +77,177 @@ public final class NativeSslTest {
                      () -> NativeSsl.toBoringSslGroups(new String[] {"Unknown"}));
         assertThrows(IllegalArgumentException.class,
                      () -> NativeSsl.toBoringSslGroups(new String[] {"Unknown", "Unknown2"}));
+    }
+
+    @Test
+    public void getDefaultNamedGroups_returnsExplicitlyPinnedGroups() throws Exception {
+        int[] pqcGroups = new int[] {NativeConstants.NID_X25519MLKEM768, NativeConstants.NID_X25519,
+                                     NativeConstants.NID_X9_62_prime256v1,
+                                     NativeConstants.NID_secp384r1};
+        int[] classicalGroups = new int[] {
+                NativeConstants.NID_X25519, NativeConstants.NID_X9_62_prime256v1,
+                NativeConstants.NID_secp384r1};
+        assertArrayEquals(pqcGroups,
+                          NativeSsl.toBoringSslGroups(NativeSsl.DEFAULT_PQC_NAMED_GROUPS));
+        assertArrayEquals(classicalGroups,
+                          NativeSsl.toBoringSslGroups(NativeSsl.DEFAULT_CLASSICAL_NAMED_GROUPS));
+
+        int[] defaultGroups = NativeSsl.getDefaultNamedGroups();
+        assertNotNull(defaultGroups);
+        assertArrayEquals(Platform.isPqcDefaultEnabled() ? pqcGroups : classicalGroups,
+                          defaultGroups);
+
+        try {
+            Method setPqcForTesting = Platform.class.getDeclaredMethod(
+                    "setPqcDefaultEnabledForTesting", boolean.class);
+            boolean saved = Platform.isPqcDefaultEnabled();
+            try {
+                setPqcForTesting.invoke(null, true);
+                assertArrayEquals(pqcGroups, NativeSsl.getDefaultNamedGroups());
+                setPqcForTesting.invoke(null, false);
+                assertArrayEquals(classicalGroups, NativeSsl.getDefaultNamedGroups());
+            } finally {
+                setPqcForTesting.invoke(null, saved);
+            }
+        } catch (NoSuchMethodException ignored) {
+            // android/Platform does not define setPqcDefaultEnabledForTesting.
+        }
+    }
+
+    @Test
+    public void toBoringSslSignatureAlgorithms_convertsKnownValues() {
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_44},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"mldsa44"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_44},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"ML-DSA-44"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_65},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"mldsa65"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_65},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"ML-DSA-65"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_87},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"mldsa87"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_87},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"ML-DSA-87"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256},
+                          NativeSsl.toBoringSslSignatureAlgorithms(
+                                  new String[] {"ecdsa_secp256r1_sha256"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA256},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pss_rsae_sha256"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PKCS1_SHA256},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pkcs1_sha256"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384},
+                          NativeSsl.toBoringSslSignatureAlgorithms(
+                                  new String[] {"ecdsa_secp384r1_sha384"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA384},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pss_rsae_sha384"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PKCS1_SHA384},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pkcs1_sha384"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ECDSA_SECP521R1_SHA512},
+                          NativeSsl.toBoringSslSignatureAlgorithms(
+                                  new String[] {"ecdsa_secp521r1_sha512"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA512},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pss_rsae_sha512"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PKCS1_SHA512},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pkcs1_sha512"}));
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1},
+                NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"rsa_pkcs1_sha1"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ECDSA_SHA1},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"ecdsa_sha1"}));
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ED25519},
+                          NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"ed25519"}));
+    }
+
+    @Test
+    public void toBoringSslSignatureAlgorithms_convertsLists() {
+        assertArrayEquals(new int[] {NativeConstants.SSL_SIGN_ML_DSA_65,
+                                     NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256},
+                          NativeSsl.toBoringSslSignatureAlgorithms(
+                                  new String[] {"mldsa65", "ecdsa_secp256r1_sha256"}));
+    }
+
+    @Test
+    public void toBoringSslSignatureAlgorithms_ignoresUnknownValues() {
+        assertArrayEquals(
+                new int[] {NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256},
+                NativeSsl.toBoringSslSignatureAlgorithms(
+                        new String[] {"Unknown", "ecdsa_secp256r1_sha256", "Unknown2"}));
+    }
+
+    @Test
+    public void toBoringSslSignatureAlgorithms_throwsIfNoKnownAlgorithmsFound() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeSsl.toBoringSslSignatureAlgorithms(new String[] {}));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeSsl.toBoringSslSignatureAlgorithms(new String[] {"Unknown"}));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeSsl.toBoringSslSignatureAlgorithms(
+                             new String[] {"Unknown", "Unknown2"}));
+    }
+
+    @Test
+    public void getDefaultSignatureAlgorithms_returnsExplicitlyPinnedAlgorithms() throws Exception {
+        int[] pqcAlgs = new int[] {
+                NativeConstants.SSL_SIGN_ML_DSA_44,
+                NativeConstants.SSL_SIGN_ML_DSA_65,
+                NativeConstants.SSL_SIGN_ML_DSA_87,
+                NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256,
+                NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA256,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA256,
+                NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384,
+                NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA384,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA384,
+                NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA512,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA512,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1,
+        };
+        int[] classicalAlgs = new int[] {
+                NativeConstants.SSL_SIGN_ECDSA_SECP256R1_SHA256,
+                NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA256,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA256,
+                NativeConstants.SSL_SIGN_ECDSA_SECP384R1_SHA384,
+                NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA384,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA384,
+                NativeConstants.SSL_SIGN_RSA_PSS_RSAE_SHA512,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA512,
+                NativeConstants.SSL_SIGN_RSA_PKCS1_SHA1,
+        };
+        assertArrayEquals(
+                pqcAlgs,
+                NativeSsl.toBoringSslSignatureAlgorithms(
+                        NativeSsl.DEFAULT_PQC_SIGNATURE_ALGORITHMS));
+        assertArrayEquals(
+                classicalAlgs,
+                NativeSsl.toBoringSslSignatureAlgorithms(
+                        NativeSsl.DEFAULT_CLASSICAL_SIGNATURE_ALGORITHMS));
+
+        int[] defaultAlgs = NativeSsl.getDefaultSignatureAlgorithms();
+        assertNotNull(defaultAlgs);
+        assertArrayEquals(
+                Platform.isPqcDefaultSignatureAlgorithmsEnabled() ? pqcAlgs : classicalAlgs,
+                defaultAlgs);
+
+        try {
+            Method setPqcForTesting = Platform.class.getDeclaredMethod(
+                    "setPqcDefaultSignatureAlgorithmsEnabledForTesting", boolean.class);
+            boolean saved = Platform.isPqcDefaultSignatureAlgorithmsEnabled();
+            try {
+                setPqcForTesting.invoke(null, true);
+                assertArrayEquals(pqcAlgs, NativeSsl.getDefaultSignatureAlgorithms());
+                setPqcForTesting.invoke(null, false);
+                assertArrayEquals(classicalAlgs, NativeSsl.getDefaultSignatureAlgorithms());
+            } finally {
+                setPqcForTesting.invoke(null, saved);
+            }
+        } catch (NoSuchMethodException ignored) {
+            // platform/Platform does not define setPqcDefaultSignatureAlgorithmsEnabledForTesting.
+        }
     }
 
     @Test

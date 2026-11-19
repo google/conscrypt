@@ -275,7 +275,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
     /**
      * Adds the given session to the cache.
      */
-    final void cacheSession(NativeSslSession session) {
+    @Internal
+    public final void cacheSession(NativeSslSession session) {
         byte[] id = session.getId();
         if (id == null || id.length == 0) {
             return;
@@ -314,7 +315,8 @@ abstract class AbstractSessionContext implements SSLSessionContext {
      * Called for server sessions only. Retrieves the session by its ID. Overridden by
      * {@link ServerSessionContext} to
      */
-    final NativeSslSession getSessionFromCache(byte[] sessionId) {
+    @Internal
+    public final NativeSslSession getSessionFromCache(byte[] sessionId) {
         if (sessionId == null) {
             return null;
         }

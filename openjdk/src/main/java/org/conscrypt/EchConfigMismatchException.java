@@ -21,10 +21,24 @@ import javax.net.ssl.SSLException;
 /**
  * Exception thrown when the provided ECH (Encrypted Client Hello) config does not match the server.
  *
- * <p>Before accessing the retry configuration, clients <b>must</b> call {@link #getPublicHostname()}
- * and verify that the hostname matches the connection hostname (using their preferred {@link
- * javax.net.ssl.HostnameVerifier}). If the returned hostname is {@code null}, any provided retry
- * configuration must be ignored.
+ * <p>Before accessing the retry configuration, clients <b>must</b> verify that the server's
+ * certificate is valid for the hostname returned by {@link #getPublicHostname()}. If the returned
+ * hostname is {@code null}, any provided retry configuration must be ignored. Whether the client
+ * has to perform this check itself depends on how the connection was configured:
+ *
+ * <ul>
+ *   <li>If HTTPS endpoint identification was enabled, by calling {@link
+ *       javax.net.ssl.SSLParameters#setEndpointIdentificationAlgorithm(String)} with {@code
+ *       "HTTPS"}, and a Conscrypt {@link javax.net.ssl.TrustManager} is used, the certificate has
+ *       already been verified against {@link #getPublicHostname()} during the handshake, so no
+ *       further hostname check is needed. If the certificate is not valid for the public hostname,
+ *       this exception is not thrown; the handshake instead fails with an {@link
+ *       javax.net.ssl.SSLHandshakeException} whose cause is a {@link
+ *       java.security.cert.CertificateException}.
+ *   <li>Otherwise, clients must check the hostname themselves, for example by passing {@link
+ *       #getPublicHostname()} and the connection's {@link javax.net.ssl.SSLSession} to their
+ *       preferred {@link javax.net.ssl.HostnameVerifier}.
+ * </ul>
  *
  * <p>Clients can then attempt to establish a new connection, using the provided retry {@link
  * EchConfigList}, if available. A retry {@link EchConfigList} may not be available if the server
@@ -39,7 +53,8 @@ public class EchConfigMismatchException extends SSLException {
      * {@code null} if no retry configuration was set by the server.
      *
      * Prior to reading this value, the client <b>must</b> verify that the certificate is valid for
-     * the name returned by {@link #getPublicHostname()}.
+     * the name returned by {@link #getPublicHostname()}, unless that check was already performed
+     * during the handshake by HTTPS endpoint identification (see the class documentation).
      */
     public EchConfigList getRetryConfigList() {
         if (publicName == null) {

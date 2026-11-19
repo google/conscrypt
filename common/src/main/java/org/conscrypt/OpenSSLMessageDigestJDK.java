@@ -38,6 +38,14 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     private final int size;
 
     /**
+     * Whether the digest is an extendable-output function (XOF), such as SHAKE256. For an XOF,
+     * {@link #size} is the fixed output length of the JCA algorithm (e.g. 64 bytes for
+     * "SHAKE256-512") rather than a property of the EVP_MD, and the output is produced with
+     * EVP_DigestFinalXOF instead of EVP_DigestFinal_ex.
+     */
+    private final boolean xof;
+
+    /**
      * Holds a dummy buffer for writing single bytes to the digest.
      */
     private final byte[] singleByte = new byte[1];
@@ -50,17 +58,28 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     /**
      * Creates a new OpenSSLMessageDigest instance for the given algorithm name.
      */
-    private OpenSSLMessageDigestJDK(long evp_md, int size) throws NoSuchAlgorithmException {
-        this.evp_md = evp_md;
+    private OpenSSLMessageDigestJDK(long evpMd, int size) {
+        this(evpMd, size, /* xof= */ false);
+    }
+
+    /**
+     * Creates a new OpenSSLMessageDigest instance for the given algorithm name, producing
+     * {@code size} bytes of output. If {@code xof} is true, the algorithm is an extendable-output
+     * function and {@code size} may differ from the native EVP_MD size.
+     */
+    private OpenSSLMessageDigestJDK(long evpMd, int size, boolean xof) {
+        this.evp_md = evpMd;
         this.size = size;
+        this.xof = xof;
         NativeRef.EVP_MD_CTX ctxLocal = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
         this.ctx = ctxLocal;
     }
 
-    private OpenSSLMessageDigestJDK(long evp_md, int size, NativeRef.EVP_MD_CTX ctx,
+    private OpenSSLMessageDigestJDK(long evpMd, int size, boolean xof, NativeRef.EVP_MD_CTX ctx,
                                     boolean digestInitializedInContext) {
-        this.evp_md = evp_md;
+        this.evp_md = evpMd;
         this.size = size;
+        this.xof = xof;
         this.ctx = ctx;
         this.digestInitializedInContext = digestInitializedInContext;
     }
@@ -143,11 +162,15 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
     protected synchronized byte[] engineDigest() {
         ensureDigestInitializedInContext();
         final byte[] result = new byte[size];
-        NativeCrypto.EVP_DigestFinal_ex(ctx, result, 0);
+        if (xof) {
+            NativeCrypto.EVP_DigestFinalXOF(ctx, result, 0, size);
+        } else {
+            NativeCrypto.EVP_DigestFinal_ex(ctx, result, 0);
+        }
 
         // Optimized reset path:
-        // 1. No need to wipe EVP_MD_CTX because EVP_DigestFinal_ex has already cleansed any
-        //    sensitive state from it.
+        // 1. No need to wipe EVP_MD_CTX because EVP_DigestFinal_ex (or EVP_DigestFinalXOF) has
+        //    already cleansed any sensitive state from it.
         // 2. Require EVP_DigestInit_ex to be invoked before this MessageDigestSpi starts computing
         //    a new digest.
         digestInitializedInContext = false;
@@ -191,6 +214,17 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
         }
     }
 
+    /**
+     * SHAKE256 with a fixed 512-bit (64-byte) output. SHAKE256 is an extendable-output function,
+     * but the {@code MessageDigest} API only supports a fixed output length, so the length is part
+     * of the algorithm name ("SHAKE256-512"), consistent with the OpenJDK provider.
+     */
+    public static final class Shake256_512 extends OpenSSLMessageDigestJDK {
+        public Shake256_512() {
+            super(EvpMdRef.Shake256_512.EVP_MD, EvpMdRef.Shake256_512.SIZE_BYTES, /* xof= */ true);
+        }
+    }
+
     @Override
     public Object clone() {
         NativeRef.EVP_MD_CTX ctxCopy = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
@@ -199,6 +233,6 @@ public class OpenSSLMessageDigestJDK extends MessageDigestSpi implements Cloneab
         if (digestInitializedInContext) {
             NativeCrypto.EVP_MD_CTX_copy_ex(ctxCopy, ctx);
         }
-        return new OpenSSLMessageDigestJDK(evp_md, size, ctxCopy, digestInitializedInContext);
+        return new OpenSSLMessageDigestJDK(evp_md, size, xof, ctxCopy, digestInitializedInContext);
     }
 }
