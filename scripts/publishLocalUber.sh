@@ -34,15 +34,19 @@ die() {
 	exit 1
 }
 
-case $(uname -s) in
+PLATFORM=$(uname -s)
+case "$PLATFORM" in
 	Darwin)
 		CLASSIFIERS="osx-x86_64,osx-aarch_64"
 		;;
 	Linux)
 		CLASSIFIERS="linux-x86_64"
 		;;
+	MINGW64*)
+		CLASSIFIERS="windows-x86_64"
+		;;
 	*)
-		die "TODO: Finish this switch statement"
+		die "Unsupported platform: $PLATFORM"
 		;;
 esac
 
