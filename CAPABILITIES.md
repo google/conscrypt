@@ -251,6 +251,7 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `SHA-256`
 * `SHA-384`
 * `SHA-512`
+* `SHAKE256-512`
 
 ### SecretKeyFactory
 
@@ -286,7 +287,18 @@ Conscrypt's EC AlgorithmParameters implementation only supports named curves.
 * `ML-DSA-44`
 * `ML-DSA-65`
 * `ML-DSA-87`
+* `EXTERNAL-MU-ML-DSA`
+* `EXTERNAL-MU-ML-DSA-44`
+* `EXTERNAL-MU-ML-DSA-65`
+* `EXTERNAL-MU-ML-DSA-87`
 * `SLH-DSA-SHA2-128S`
+
+Conscrypt's `EXTERNAL-MU-ML-DSA` signatures take the 64-byte ML-DSA message
+representative mu as input instead of the message (FIPS 204, Algorithm 7,
+line 6, with an empty context string), which the caller computes as
+`SHAKE256-512(SHAKE256-512(rawPublicKey) || 0x00 || 0x00 || message)`. They
+only support signing; the result is a regular ML-DSA signature of the message,
+which is verified with `ML-DSA`. Context strings are currently not supported.
 
 ### ECDSA Elliptic Curves
 

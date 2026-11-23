@@ -261,12 +261,20 @@ final class SSLParametersImpl implements Cloneable {
         }
     }
 
+    private static X509TrustManager unwrapTrustManager(X509TrustManager tm) {
+        if (tm instanceof ConscryptEngineSocket.DelegatingTrustManager) {
+            return ((ConscryptEngineSocket.DelegatingTrustManager) tm).getDelegate();
+        }
+        return tm;
+    }
+
     private Method getNetworkSecurityPolicyMethod(X509TrustManager tm) {
-        if (tm == null) {
+        X509TrustManager unwrapped = unwrapTrustManager(tm);
+        if (unwrapped == null) {
             return null;
         }
         try {
-            return tm.getClass().getMethod("getNetworkSecurityPolicy");
+            return unwrapped.getClass().getMethod("getNetworkSecurityPolicy");
         } catch (NoSuchMethodException ignored) {
             return null;
         }
@@ -841,7 +849,8 @@ final class SSLParametersImpl implements Cloneable {
         // NetworkSecurityTrustManager), which we need to query.
         if (getNetworkSecurityPolicy != null) {
             try {
-                Object objPolicy = getNetworkSecurityPolicy.invoke(x509TrustManager);
+                Object objPolicy =
+                        getNetworkSecurityPolicy.invoke(unwrapTrustManager(x509TrustManager));
                 if (objPolicy instanceof NetworkSecurityPolicy) {
                     return (NetworkSecurityPolicy) objPolicy;
                 }

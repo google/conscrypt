@@ -907,6 +907,10 @@ public final class TestUtils {
         return callPlatformMethod("isJavaxCertificateSupported", true);
     }
 
+    public static boolean isPqcDefaultEnabled() {
+        return callPlatformMethod("isPqcDefaultEnabled", false);
+    }
+
     // Calls a boolean platform method by reflection.  If the method is not present, e.g.
     // due to version skew etc then return the default value.
     public static boolean callPlatformMethod(String methodName, boolean defaultValue) {

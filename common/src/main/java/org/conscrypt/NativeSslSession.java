@@ -42,8 +42,11 @@ import javax.net.ssl.SSLSessionContext;
  * <p>
  * This is abstract only to support mocking for tests.
  */
-abstract class NativeSslSession {
+@Internal
+public abstract class NativeSslSession {
     private static final Logger logger = Logger.getLogger(NativeSslSession.class.getName());
+
+    NativeSslSession() {}
 
     /**
      * Creates a new instance. Since BoringSSL does not provide an API to get access to all
@@ -78,6 +81,12 @@ abstract class NativeSslSession {
      * @return The new instance if successful. If unable to parse the bytes for any reason, returns
      * {@code null}.
      */
+    @Internal
+    public static NativeSslSession newInstance(ClientSessionContext context, byte[] data,
+                                               String host, int port) {
+        return newInstance((AbstractSessionContext) context, data, host, port);
+    }
+
     static NativeSslSession newInstance(AbstractSessionContext context, byte[] data, String host,
                                         int port) {
         ByteBuffer buf = ByteBuffer.wrap(data);
@@ -200,7 +209,7 @@ abstract class NativeSslSession {
      *
      * @return session data as bytes or null if the session can't be converted
      */
-    abstract byte[] toBytes();
+    @Internal public abstract byte[] toBytes();
 
     /**
      * Converts this object to a {@link SSLSession}. The returned session will support only a
@@ -301,7 +310,7 @@ abstract class NativeSslSession {
         }
 
         @Override
-        byte[] toBytes() {
+        public byte[] toBytes() {
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 DataOutputStream daos = new DataOutputStream(baos);

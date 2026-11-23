@@ -802,7 +802,6 @@ final public class Platform {
         return true;
     }
 
-    public static final long ENABLE_TLS_PQC_DEFAULT_GROUPS = 556729260L;
     private static volatile boolean pqcDefaultEnabled = true;
 
     public static boolean isPqcDefaultEnabled() {
@@ -813,7 +812,21 @@ final public class Platform {
         pqcDefaultEnabled = enabled;
     }
 
+    private static volatile boolean pqcDefaultSignatureAlgorithmsEnabled = true;
+
+    public static boolean isPqcDefaultSignatureAlgorithmsEnabled() {
+        return pqcDefaultSignatureAlgorithmsEnabled;
+    }
+
+    public static void setPqcDefaultSignatureAlgorithmsEnabledForTesting(boolean enabled) {
+        pqcDefaultSignatureAlgorithmsEnabled = enabled;
+    }
+
     public static boolean isSdkGreater(int sdk) {
+        return false;
+    }
+
+    public static boolean isMerkleTreeCertsEnabled() {
         return false;
     }
 

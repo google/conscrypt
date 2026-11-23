@@ -344,12 +344,31 @@ public final class StandardNames {
             "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "TLS_PSK_WITH_AES_128_CBC_SHA",
             "TLS_PSK_WITH_AES_256_CBC_SHA");
 
-    // Should be updated to match BoringSSL's defaults when they change.
-    // https://boringssl.googlesource.com/boringssl/+/main/ssl/extensions.cc#215
+    // ANDROID COMPATIBILITY GATE: These default named group lists guard Android app compatibility
+    // on the wire (ClientHello supported_groups extension). Do NOT modify or relax these lists to
+    // accommodate upstream BoringSSL or Conscrypt changes without an Android compatibility review
+    // and an associated AppCompat / aconfig flag.
+    // Must mirror NativeSsl.DEFAULT_CLASSICAL_NAMED_GROUPS and
+    // NativeSsl.DEFAULT_PQC_NAMED_GROUPS.
     private static final List<String> ELLIPTIC_CURVES_DEFAULT =
             Arrays.asList("x25519 (29)", "secp256r1 (23)", "secp384r1 (24)");
     private static final List<String> ELLIPTIC_CURVES_DEFAULT_PQC = Arrays.asList(
             "x25519mlkem768 (4588)", "x25519 (29)", "secp256r1 (23)", "secp384r1 (24)");
+
+    // ANDROID COMPATIBILITY GATE: These default signature algorithm lists guard Android app
+    // compatibility on the wire (ClientHello signature_algorithms extension). Do NOT modify or
+    // relax these lists to accommodate upstream BoringSSL or Conscrypt changes without an Android
+    // compatibility review and an associated AppCompat / aconfig flag.
+    // Must mirror NativeSsl.DEFAULT_CLASSICAL_SIGNATURE_ALGORITHMS and
+    // NativeSsl.DEFAULT_PQC_SIGNATURE_ALGORITHMS.
+    private static final List<String> SIGNATURE_ALGORITHMS_DEFAULT = Arrays.asList(
+            "ecdsa_secp256r1_sha256", "rsa_pss_rsae_sha256", "rsa_pkcs1_sha256",
+            "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha384", "rsa_pkcs1_sha384",
+            "rsa_pss_rsae_sha512", "rsa_pkcs1_sha512", "rsa_pkcs1_sha1");
+    private static final List<String> SIGNATURE_ALGORITHMS_DEFAULT_PQC = Arrays.asList(
+            "mldsa44", "mldsa65", "mldsa87", "ecdsa_secp256r1_sha256", "rsa_pss_rsae_sha256",
+            "rsa_pkcs1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha384",
+            "rsa_pkcs1_sha384", "rsa_pss_rsae_sha512", "rsa_pkcs1_sha512", "rsa_pkcs1_sha1");
 
     /**
      * Asserts that the cipher suites array is non-null and that it
@@ -460,6 +479,11 @@ public final class StandardNames {
     /**
      * Assert cipher suites match the default list in content and priority order and contain
      * only cipher suites permitted by default.
+     *
+     * <p>ANDROID COMPATIBILITY GATE: This assertion guards the default cipher suites exposed to
+     * Android apps and sent in TLS ClientHello messages. Do NOT relax or update the expected
+     * default cipher suites to accommodate upstream changes without an Android compatibility
+     * review and an associated AppCompat / aconfig flag.
      */
     public static void assertDefaultCipherSuites(String[] cipherSuites) {
         assertValidCipherSuites(cipherSuites);
@@ -469,13 +493,67 @@ public final class StandardNames {
         assertEquals(expected, actual);
     }
 
+    /**
+     * Assert that the provided list of elliptic curves matches the default list.
+     *
+     * <p>ANDROID COMPATIBILITY GATE: This assertion guards the default TLS namedGroups
+     * (supported_groups extension in ClientHello). Adding or reordering default groups can
+     * significantly increase ClientHello size (e.g. post-quantum key shares) or alter server
+     * negotiation and break middleboxes. Do NOT modify expected defaults without an Android
+     * compatibility review and an associated AppCompat / aconfig flag.
+     */
     public static void assertDefaultEllipticCurves(String[] curves) {
-        List<String> actualList = Arrays.asList(curves);
-        assertTrue("Unexpected default curves list: " + actualList,
-                   actualList.equals(ELLIPTIC_CURVES_DEFAULT)
-                           || actualList.equals(ELLIPTIC_CURVES_DEFAULT_PQC));
+        List<String> expected = TestUtils.isPqcDefaultEnabled() ? ELLIPTIC_CURVES_DEFAULT_PQC
+                                                                : ELLIPTIC_CURVES_DEFAULT;
+        assertEquals("Unexpected default curves list", expected, Arrays.asList(curves));
     }
 
+    /**
+     * Assert that the provided list of signature algorithms matches the default list.
+     *
+     * <p>ANDROID COMPATIBILITY GATE: This assertion guards the default TLS signature algorithms
+     * (signature_algorithms extension in ClientHello). Adding or reordering default signature
+     * algorithms alters ClientHello wire format and peer certificate/key selection. Do NOT modify
+     * expected defaults without an Android compatibility review and an associated AppCompat /
+     * aconfig flag.
+     */
+    public static void assertDefaultSignatureAlgorithms(String[] signatureAlgorithms) {
+        List<String> actualList = Arrays.asList(signatureAlgorithms);
+        Boolean pqcEnabled = isPlatformPqcDefaultSignatureAlgorithmsEnabledOrNull();
+        if (Boolean.TRUE.equals(pqcEnabled)) {
+            assertEquals("Unexpected default signature algorithms list when PQC is enabled",
+                         SIGNATURE_ALGORITHMS_DEFAULT_PQC, actualList);
+        } else if (Boolean.FALSE.equals(pqcEnabled)) {
+            assertEquals("Unexpected default signature algorithms list when PQC is disabled",
+                         SIGNATURE_ALGORITHMS_DEFAULT, actualList);
+        } else {
+            assertTrue("Unexpected default signature algorithms list: " + actualList,
+                       actualList.equals(SIGNATURE_ALGORITHMS_DEFAULT)
+                               || actualList.equals(SIGNATURE_ALGORITHMS_DEFAULT_PQC));
+        }
+    }
+
+    private static Boolean isPlatformPqcDefaultSignatureAlgorithmsEnabledOrNull() {
+        String stdNamesPkg = StandardNames.class.getPackage().getName();
+        String basePkg = stdNamesPkg.substring(0, stdNamesPkg.length() - ".java.security".length());
+        try {
+            Class<?> platformClass = Class.forName(basePkg + ".Platform");
+            java.lang.reflect.Method method =
+                    platformClass.getDeclaredMethod("isPqcDefaultSignatureAlgorithmsEnabled");
+            method.setAccessible(true);
+            return (Boolean) method.invoke(null);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Assert that the enabled protocols on an {@code SSLContext} match the expected default list.
+     *
+     * <p>ANDROID COMPATIBILITY GATE: This assertion guards default enabled TLS protocol versions.
+     * Do NOT change default enabled protocols without an Android compatibility review and an
+     * associated AppCompat / aconfig flag.
+     */
     public static void assertSSLContextEnabledProtocols(String version, String[] protocols) {
         Set<String> expected =
                 new HashSet<>(Arrays.asList(SSL_CONTEXT_PROTOCOLS_ENABLED.get(version)));

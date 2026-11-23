@@ -1191,6 +1191,59 @@ def _fetch_android_clang_format() -> Tuple[Optional[str], Optional[str]]:
   return str(gcf_path), str(cf_path)
 
 
+def _get_change_id_seeds(
+    android_dir: pathlib.Path, cl: Optional[str] = None
+) -> List[str]:
+  """Returns an ordered list of deterministic seeds for Gerrit Change-Id."""
+  base_res = subprocess.run(
+      ["git", "rev-parse", "HEAD~1"],
+      cwd=android_dir,
+      capture_output=True,
+      text=True,
+      check=False,
+  )
+  seeds: List[str] = []
+  if base_res.returncode == 0 and base_res.stdout.strip():
+    base_sha = base_res.stdout.strip()
+    seeds.append(f"conscrypt-ag-export-base-{base_sha}")
+    for idx in range(1, 6):
+      seeds.append(f"conscrypt-ag-export-base-{base_sha}-r{idx}")
+  if cl:
+    seeds.append(f"conscrypt-ag-export-cl-{cl}")
+  head_sha = subprocess.check_output(
+      ["git", "rev-parse", "HEAD"], cwd=android_dir, text=True
+  ).strip()
+  seeds.append(f"conscrypt-ag-export-head-{head_sha}")
+  return seeds
+
+
+def _set_commit_change_id(
+    android_dir: pathlib.Path, seed: str, reset_author: bool = False
+) -> str:
+  """Sets or replaces the Change-Id footer on HEAD and amends the commit."""
+  change_id = "I" + hashlib.sha1(seed.encode("utf-8")).hexdigest()
+  msg = subprocess.check_output(
+      ["git", "log", "-1", "--format=%B"], cwd=android_dir, text=True
+  ).strip()
+  if re.search(r"^Change-Id:\s*I[0-9a-fA-F]+", msg, flags=re.MULTILINE):
+    msg = re.sub(
+        r"^Change-Id:\s*I[0-9a-fA-F]+",
+        f"Change-Id: {change_id}",
+        msg,
+        flags=re.MULTILINE,
+    )
+  else:
+    sep = "\n" if "PiperOrigin-RevId:" in msg.splitlines()[-1] else "\n\n"
+    msg = f"{msg}{sep}Change-Id: {change_id}\n"
+
+  cmd = ["git", "commit", "--amend"]
+  if reset_author:
+    cmd.append("--reset-author")
+  cmd.extend(["--allow-empty", "-m", msg])
+  run_cmd(cmd, cwd=android_dir, check=False)
+  return change_id
+
+
 def step_format_and_commit_android(
     android_dir: pathlib.Path,
     build_top: Optional[pathlib.Path],
@@ -1300,47 +1353,13 @@ def step_format_and_commit_android(
         check=False,
     )
 
-  msg = subprocess.check_output(
-      ["git", "log", "-1", "--format=%B"], cwd=android_dir, text=True
-  ).strip()
-
-  # Ensure Gerrit Change-Id footer is present
-  if "Change-Id:" not in msg:
-    base_res = subprocess.run(
-        ["git", "rev-parse", "HEAD~1"],
-        cwd=android_dir,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if base_res.returncode == 0 and base_res.stdout.strip():
-      seed = f"conscrypt-export-base-{base_res.stdout.strip()}"
-    elif cl:
-      seed = f"conscrypt-export-{cl}"
-    else:
-      seed = subprocess.check_output(
-          ["git", "rev-parse", "HEAD"], cwd=android_dir, text=True
-      ).strip()
-    change_id = "I" + hashlib.sha1(seed.encode("utf-8")).hexdigest()
-    sep = "\n" if "PiperOrigin-RevId:" in msg.splitlines()[-1] else "\n\n"
-    msg = f"{msg}{sep}Change-Id: {change_id}\n"
-
-  run_cmd(
-      [
-          "git",
-          "commit",
-          "--amend",
-          "--reset-author",
-          "--allow-empty",
-          "-m",
-          msg,
-      ],
-      cwd=android_dir,
-      check=False,
-  )
+  seeds = _get_change_id_seeds(android_dir, cl)
+  _set_commit_change_id(android_dir, seeds[0], reset_author=True)
 
 
-def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
+def step_upload_gerrit(
+    android_dir: pathlib.Path, upload: bool, cl: Optional[str] = None
+) -> None:
   """Uploads to Gerrit directly."""
   if upload:
     print("\n--- Step 6: Uploading complete change to Gerrit ---")
@@ -1349,19 +1368,26 @@ def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
     else:
       push_urls = list(GERRIT_PUSH_URLS)
 
+    seeds = _get_change_id_seeds(android_dir, cl)
+    seed_idx = 0
+
     uploaded = False
     last_err = ""
-    label_opt_sets = [
+    push_opt_sets = [
+        ["-o", "r=miguelaranda@google.com", "-o", "l=Presubmit-Ready+1"],
+        ["-o", "r=miguelaranda@google.com"],
         ["-o", "l=Presubmit-Ready+1"],
         [],
     ]
     for url in push_urls:
       for target_branch in ("main", "master"):
-        for label_opts in label_opt_sets:
-          label_desc = " with Presubmit-Ready+1" if label_opts else ""
+        opt_idx = 0
+        while opt_idx < len(push_opt_sets):
+          push_opts = push_opt_sets[opt_idx]
+          opts_desc = f" ({' '.join(push_opts)})" if push_opts else ""
           print(
               f"==> Attempting push to {url}"
-              f" (HEAD:refs/for/{target_branch}){label_desc}..."
+              f" (HEAD:refs/for/{target_branch}){opts_desc}..."
           )
           res = subprocess.run(
               [
@@ -1369,7 +1395,7 @@ def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
                   "push",
                   "-o",
                   "nokeycheck",
-                  *label_opts,
+                  *push_opts,
                   url,
                   f"HEAD:refs/for/{target_branch}",
               ],
@@ -1386,11 +1412,38 @@ def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
             uploaded = True
             break
           last_err = res.stderr.strip()
-          if label_opts and "Presubmit-Ready" in last_err:
+          err_lower = last_err.lower()
+          if "no new changes" in err_lower:
             print(
-                "Notice: Presubmit-Ready+1 label not permitted yet for this"
-                " account; retrying upload without label..."
+                "Notice: Gerrit reported 'no new changes' — the open export CL"
+                " is already up to date with HEAD."
             )
+            uploaded = True
+            break
+          if (
+              "closed" in err_lower or "abandoned" in err_lower
+          ) and seed_idx + 1 < len(seeds):
+            seed_idx += 1
+            new_cid = _set_commit_change_id(
+                android_dir, seeds[seed_idx], reset_author=False
+            )
+            print(
+                "Notice: Existing Gerrit change for previous Change-Id was"
+                f" closed/abandoned; rotated Change-Id to {new_cid} and"
+                " retrying..."
+            )
+            continue
+          if push_opts and (
+              "presubmit-ready" in err_lower
+              or "reviewer" in err_lower
+              or "restricted" in err_lower
+              or "not permitted" in err_lower
+          ):
+            print(
+                "Notice: Push options not permitted; retrying with fallback"
+                " options..."
+            )
+            opt_idx += 1
             continue
           break
         if uploaded:
@@ -1416,8 +1469,9 @@ def step_upload_gerrit(android_dir: pathlib.Path, upload: bool) -> None:
     )
     print("To upload to Gerrit, run:")
     print(
-        f"  cd {android_dir} && git push -o nokeycheck {GERRIT_SSO_URL}"
-        " HEAD:refs/for/main"
+        f"  cd {android_dir} && git push -o nokeycheck"
+        " -o r=miguelaranda@google.com -o l=Presubmit-Ready+1"
+        f" {GERRIT_SSO_URL} HEAD:refs/for/main"
     )
 
 
@@ -1622,7 +1676,7 @@ def main() -> None:
     )
 
     # Step 6: Upload to Gerrit
-    step_upload_gerrit(android_dir, upload=args.upload)
+    step_upload_gerrit(android_dir, upload=args.upload, cl=target_cl)
 
   finally:
     if temp_dir_holder:

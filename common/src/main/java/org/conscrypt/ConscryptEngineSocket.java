@@ -143,49 +143,69 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl implements SSLParametersIm
     // references to the given ConscryptEngineSocket.  Our internal engine will call
     // the SSLEngine-receiving methods, but our callers expect the SSLSocket-receiving
     // methods to get called.
-    @SuppressWarnings("CustomX509TrustManager")
     private static X509TrustManager getDelegatingTrustManager(final X509TrustManager delegate,
                                                               final ConscryptEngineSocket socket) {
         if (delegate instanceof X509ExtendedTrustManager) {
-            final X509ExtendedTrustManager extendedDelegate = (X509ExtendedTrustManager) delegate;
-            return new X509ExtendedTrustManager() {
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                                               Socket socket) throws CertificateException {
-                    throw new AssertionError("Should not be called");
-                }
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                                               Socket socket) throws CertificateException {
-                    throw new AssertionError("Should not be called");
-                }
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
-                                               SSLEngine sslEngine) throws CertificateException {
-                    extendedDelegate.checkClientTrusted(x509Certificates, s, socket);
-                }
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
-                                               SSLEngine sslEngine) throws CertificateException {
-                    extendedDelegate.checkServerTrusted(x509Certificates, s, socket);
-                }
-                @Override
-                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
-                        throws CertificateException {
-                    extendedDelegate.checkClientTrusted(x509Certificates, s);
-                }
-                @Override
-                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
-                        throws CertificateException {
-                    extendedDelegate.checkServerTrusted(x509Certificates, s);
-                }
-                @Override
-                public X509Certificate[] getAcceptedIssuers() {
-                    return extendedDelegate.getAcceptedIssuers();
-                }
-            };
+            return new DelegatingTrustManager((X509ExtendedTrustManager) delegate, socket);
         }
         return delegate;
+    }
+
+    @SuppressWarnings("CustomX509TrustManager")
+    static final class DelegatingTrustManager extends X509ExtendedTrustManager {
+        private final X509ExtendedTrustManager extendedDelegate;
+        private final ConscryptEngineSocket socket;
+
+        DelegatingTrustManager(X509ExtendedTrustManager extendedDelegate,
+                               ConscryptEngineSocket socket) {
+            this.extendedDelegate = extendedDelegate;
+            this.socket = socket;
+        }
+
+        X509ExtendedTrustManager getDelegate() {
+            return extendedDelegate;
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s, Socket socket)
+                throws CertificateException {
+            throw new AssertionError("Should not be called");
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s, Socket socket)
+                throws CertificateException {
+            throw new AssertionError("Should not be called");
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                                       SSLEngine sslEngine) throws CertificateException {
+            extendedDelegate.checkClientTrusted(x509Certificates, s, socket);
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                                       SSLEngine sslEngine) throws CertificateException {
+            extendedDelegate.checkServerTrusted(x509Certificates, s, socket);
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                throws CertificateException {
+            extendedDelegate.checkClientTrusted(x509Certificates, s);
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                throws CertificateException {
+            extendedDelegate.checkServerTrusted(x509Certificates, s);
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return extendedDelegate.getAcceptedIssuers();
+        }
     }
 
     @Override

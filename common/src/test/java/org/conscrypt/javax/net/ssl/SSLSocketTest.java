@@ -39,6 +39,7 @@ import org.conscrypt.tlswire.handshake.CompressionMethod;
 import org.conscrypt.tlswire.handshake.EllipticCurve;
 import org.conscrypt.tlswire.handshake.EllipticCurvesHelloExtension;
 import org.conscrypt.tlswire.handshake.HelloExtension;
+import org.conscrypt.tlswire.handshake.SignatureAlgorithmsHelloExtension;
 import org.conscrypt.tlswire.util.TlsProtocolVersion;
 import org.junit.After;
 import org.junit.Before;
@@ -149,6 +150,10 @@ public class SSLSocketTest {
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
     }
 
+    // ANDROID COMPATIBILITY GATE: Guards the default SSLSocket configuration (enabled cipher
+    // suites, protocols, client mode, and session creation). Do NOT relax or update expected
+    // defaults for upstream changes without an Android compatibility review and an AppCompat /
+    // aconfig flag.
     @Test
     public void test_SSLSocket_defaultConfiguration() throws Exception {
         SSLConfigurationAsserts.assertSSLSocketDefaultConfiguration(
@@ -1015,15 +1020,8 @@ public class SSLSocketTest {
         });
         s.get();
         c.get();
-        // By default, BoringSSL uses X25519, P-256, and P-384, in this order.
-        // So X25519 gets priority.
-        // We also allow for X25519MLKEM768, as that may be the default in the future.
-        String clientCurve = getCurveName(client);
-        String serverCurve = getCurveName(server);
-        assertTrue("Unexpected client curve: " + clientCurve,
-                   clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-        assertTrue("Unexpected server curve: " + serverCurve,
-                   serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+        assertDefaultCurveName(getCurveName(client));
+        assertDefaultCurveName(getCurveName(server));
         client.close();
         server.close();
         context.close();
@@ -1132,6 +1130,13 @@ public class SSLSocketTest {
         }
     }
 
+    // ANDROID COMPATIBILITY GATE: Guards the top-priority default named group negotiated during a
+    // TLS handshake when no explicit namedGroups are configured. Do NOT modify without an Android
+    // compatibility review and an associated AppCompat / aconfig flag.
+    private static void assertDefaultCurveName(String actualCurve) {
+        assertEquals(TestUtils.isPqcDefaultEnabled() ? "X25519MLKEM768" : "X25519", actualCurve);
+    }
+
     @Test
     public void defaultNamedGroups_compatChangeEnabled_includesPqcAndExpectedGroups()
             throws Exception {
@@ -1217,6 +1222,164 @@ public class SSLSocketTest {
         }
     }
 
+    private static final long ENABLE_TLS_PQC_DEFAULT_SIGNATURE_ALGORITHMS = 576621461L;
+
+    private static void setSignatureAlgorithmsCompatChangeEnabled(boolean enabled)
+            throws Exception {
+        try {
+            Class<?> platformClass =
+                    Class.forName(TestUtils.class.getPackage().getName() + ".Platform");
+            platformClass
+                    .getMethod("setPqcDefaultSignatureAlgorithmsEnabledForTesting", boolean.class)
+                    .invoke(null, enabled);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Platform module uses android.compat.Compatibility overrides instead.
+        }
+        setCompatChangeEnabled(ENABLE_TLS_PQC_DEFAULT_SIGNATURE_ALGORITHMS, enabled);
+    }
+
+    private static void clearSignatureAlgorithmsCompatChangeOverrides() throws Exception {
+        try {
+            Class<?> platformClass =
+                    Class.forName(TestUtils.class.getPackage().getName() + ".Platform");
+            platformClass
+                    .getMethod("setPqcDefaultSignatureAlgorithmsEnabledForTesting", boolean.class)
+                    .invoke(null, true);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Platform module uses android.compat.Compatibility overrides instead.
+        }
+        clearCompatChangeOverrides();
+    }
+
+    private static boolean isConscryptSignatureAlgorithmsCompatSupported() {
+        if (!isConscryptPqcCompatConfigPresent()) {
+            return false;
+        }
+        try {
+            Class<?> platformClass =
+                    Class.forName(TestUtils.class.getPackage().getName() + ".Platform");
+            return platformClass.getDeclaredMethod("isPqcDefaultSignatureAlgorithmsEnabled")
+                    != null;
+        } catch (ReflectiveOperationException | SecurityException e) {
+            return false;
+        }
+    }
+
+    private static boolean isTlsPqcSignatureAlgorithmsFlagEnabled() {
+        String basePkg = TestUtils.class.getPackage().getName();
+        try {
+            Class<?> testFlagsClass = Class.forName(basePkg + ".test.flags.Flags");
+            return (Boolean) testFlagsClass.getMethod("tlsPqcDefaultSignatureAlgorithms")
+                    .invoke(null);
+        } catch (ClassNotFoundException ignored) {
+            // Fall back to non-repackaged Flags class when running outside conscrypt-tests.
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+        try {
+            Class<?> flagsClass = Class.forName(basePkg + ".flags.Flags");
+            return (Boolean) flagsClass.getMethod("tlsPqcDefaultSignatureAlgorithms").invoke(null);
+        } catch (ClassNotFoundException e) {
+            return true;
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+    }
+
+    @Test
+    public void defaultSignatureAlgorithms_compatChangeEnabled_includesPqcAndExpectedAlgorithms()
+            throws Exception {
+        assumeTrue(isConscryptSignatureAlgorithmsCompatSupported());
+        assumeTrue(isTlsPqcSignatureAlgorithmsFlagEnabled());
+        TestSSLContext context = null;
+        try {
+            setSignatureAlgorithmsCompatChangeEnabled(true);
+            context = TestSSLContext.create();
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(
+                    executor, context.clientContext.getSocketFactory());
+            SignatureAlgorithmsHelloExtension sigAlgsExtension =
+                    (SignatureAlgorithmsHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_SIGNATURE_ALGORITHMS);
+            assertNotNull(sigAlgsExtension);
+            assertTrue(sigAlgsExtension.wellFormed);
+            assertEquals(Arrays.asList("mldsa44", "mldsa65", "mldsa87", "ecdsa_secp256r1_sha256",
+                                       "rsa_pss_rsae_sha256", "rsa_pkcs1_sha256",
+                                       "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha384",
+                                       "rsa_pkcs1_sha384", "rsa_pss_rsae_sha512",
+                                       "rsa_pkcs1_sha512", "rsa_pkcs1_sha1"),
+                         sigAlgsExtension.supported);
+
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                            context.host, context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            client.close();
+            server.close();
+        } finally {
+            if (context != null) {
+                context.close();
+            }
+            clearSignatureAlgorithmsCompatChangeOverrides();
+        }
+    }
+
+    @Test
+    public void defaultSignatureAlgorithms_compatChangeDisabled_usesClassicalAlgorithmsOnly()
+            throws Exception {
+        assumeTrue(isConscryptSignatureAlgorithmsCompatSupported());
+        TestSSLContext context = null;
+        try {
+            setSignatureAlgorithmsCompatChangeEnabled(false);
+            context = TestSSLContext.create();
+            ClientHello clientHello = TlsTester.captureTlsHandshakeClientHello(
+                    executor, context.clientContext.getSocketFactory());
+            SignatureAlgorithmsHelloExtension sigAlgsExtension =
+                    (SignatureAlgorithmsHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_SIGNATURE_ALGORITHMS);
+            assertNotNull(sigAlgsExtension);
+            assertTrue(sigAlgsExtension.wellFormed);
+            assertEquals(Arrays.asList("ecdsa_secp256r1_sha256", "rsa_pss_rsae_sha256",
+                                       "rsa_pkcs1_sha256", "ecdsa_secp384r1_sha384",
+                                       "rsa_pss_rsae_sha384", "rsa_pkcs1_sha384",
+                                       "rsa_pss_rsae_sha512", "rsa_pkcs1_sha512", "rsa_pkcs1_sha1"),
+                         sigAlgsExtension.supported);
+
+            final SSLSocket client =
+                    (SSLSocket) context.clientContext.getSocketFactory().createSocket(
+                            context.host, context.port);
+            final SSLSocket server = (SSLSocket) context.serverSocket.accept();
+            Future<Void> s = runAsync(() -> {
+                server.startHandshake();
+                return null;
+            });
+            Future<Void> c = runAsync(() -> {
+                client.startHandshake();
+                return null;
+            });
+            s.get();
+            c.get();
+            client.close();
+            server.close();
+        } finally {
+            if (context != null) {
+                context.close();
+            }
+            clearSignatureAlgorithmsCompatChangeOverrides();
+        }
+    }
+
     @Test
     public void handshake_p256IsSupportedByDefault() throws Exception {
         TestSSLContext context = TestSSLContext.create();
@@ -1236,20 +1399,15 @@ public class SSLSocketTest {
         });
         s.get();
         c.get();
-        // By default, BoringSSL uses X25519, P-256, and P-384.
-        // On newer versions of BoringSSL, X25519MLKEM768 is also a default.
+        // P-256 is included in Conscrypt's pinned default namedGroups list.
         if (sslParametersSupportsNamedGroups()) {
             // If the client requests P-256, it will be chosen.
             assertEquals("P-256", getCurveName(client));
             assertEquals("P-256", getCurveName(server));
         } else {
-            // Otherwise, X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // Otherwise, the platform's top-priority default namedGroup is negotiated.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1276,20 +1434,15 @@ public class SSLSocketTest {
         });
         s.get();
         c.get();
-        // By default, BoringSSL uses X25519, P-256, and P-384.
-        // On newer versions of BoringSSL, X25519MLKEM768 is also a default.
+        // P-384 is included in Conscrypt's pinned default namedGroups list.
         if (sslParametersSupportsNamedGroups()) {
             // If the client requests P-384, it will be chosen.
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // Otherwise, X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // Otherwise, the platform's top-priority default namedGroup is negotiated.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1324,13 +1477,9 @@ public class SSLSocketTest {
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // The platform's pinned default namedGroups are used.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1387,13 +1536,9 @@ public class SSLSocketTest {
             assertEquals("P-384", getCurveName(client));
             assertEquals("P-384", getCurveName(server));
         } else {
-            // The defaults are used, X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // The platform's pinned default namedGroups are used.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1426,13 +1571,9 @@ public class SSLSocketTest {
             assertEquals("X25519MLKEM768", getCurveName(client));
             assertEquals("X25519MLKEM768", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // The platform's pinned default namedGroups are used.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1465,13 +1606,9 @@ public class SSLSocketTest {
             assertEquals("MLKEM1024", getCurveName(client));
             assertEquals("MLKEM1024", getCurveName(server));
         } else {
-            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // The platform's pinned default namedGroups are used.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1506,13 +1643,9 @@ public class SSLSocketTest {
         } else {
             s.get();
             c.get();
-            // The defaults are used, and X25519 or X25519MLKEM768 gets priority.
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Curve is not X25519 or X25519MLKEM768: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            // The platform's pinned default namedGroups are used.
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
         }
         client.close();
         server.close();
@@ -1621,18 +1754,19 @@ public class SSLSocketTest {
             });
             s.get();
             c.get();
-            String clientCurve = getCurveName(client);
-            String serverCurve = getCurveName(server);
-            assertTrue("Unexpected client curve: " + clientCurve,
-                       clientCurve.equals("X25519") || clientCurve.equals("X25519MLKEM768"));
-            assertTrue("Unexpected server curve: " + serverCurve,
-                       serverCurve.equals("X25519") || serverCurve.equals("X25519MLKEM768"));
+            assertDefaultCurveName(getCurveName(client));
+            assertDefaultCurveName(getCurveName(server));
             client.close();
             server.close();
             context.close();
         }
     }
 
+    // ANDROID COMPATIBILITY GATE: The ClientHello wire-format tests below
+    // (test_SSLSocket_ClientHello_supportedCurves, signatureAlgorithms, clientProtocolVersion,
+    // compressionMethods) guard Android app compatibility on the wire. Do NOT relax or update
+    // these assertions to accommodate upstream BoringSSL or Conscrypt changes without an Android
+    // compatibility review and an associated AppCompat / aconfig flag.
     @Test
     public void test_SSLSocket_ClientHello_supportedCurves() throws Exception {
         ForEachRunner.runNamed(sslSocketFactory -> {
@@ -1653,6 +1787,26 @@ public class SSLSocketTest {
                 }
             }
             StandardNames.assertDefaultEllipticCurves(supportedCurves);
+        }, getSSLSocketFactoriesToTest());
+    }
+
+    @Test
+    public void test_SSLSocket_ClientHello_signatureAlgorithms() throws Exception {
+        ForEachRunner.runNamed(sslSocketFactory -> {
+            ClientHello clientHello =
+                    TlsTester.captureTlsHandshakeClientHello(executor, sslSocketFactory);
+            SignatureAlgorithmsHelloExtension sigAlgsExtension =
+                    (SignatureAlgorithmsHelloExtension) clientHello.findExtensionByType(
+                            HelloExtension.TYPE_SIGNATURE_ALGORITHMS);
+            final String[] supportedSignatureAlgorithms;
+            if (sigAlgsExtension == null) {
+                supportedSignatureAlgorithms = new String[0];
+            } else {
+                assertTrue(sigAlgsExtension.wellFormed);
+                supportedSignatureAlgorithms =
+                        sigAlgsExtension.supported.toArray(new String[0]);
+            }
+            StandardNames.assertDefaultSignatureAlgorithms(supportedSignatureAlgorithms);
         }, getSSLSocketFactoriesToTest());
     }
 

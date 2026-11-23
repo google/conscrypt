@@ -735,6 +735,39 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void setSessionIdContextSha256_NullSslArgument() {
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.setSessionIdContextSha256(NULL, null, new byte[0]));
+    }
+
+    @Test
+    public void setSessionIdContextSha256_withNullShouldThrow() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+        try {
+            assertThrows(NullPointerException.class,
+                         () -> NativeCrypto.setSessionIdContextSha256(s, null, null));
+        } finally {
+            NativeCrypto.SSL_free(s, null);
+            NativeCrypto.SSL_CTX_free(c, null);
+        }
+    }
+
+    @Test
+    public void test_setSessionIdContextSha256() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, null);
+        try {
+            NativeCrypto.setSessionIdContextSha256(s, null, new byte[0]);
+            NativeCrypto.setSessionIdContextSha256(s, null, new byte[32]);
+            NativeCrypto.setSessionIdContextSha256(s, null, new byte[128]);
+        } finally {
+            NativeCrypto.SSL_free(s, null);
+            NativeCrypto.SSL_CTX_free(c, null);
+        }
+    }
+
+    @Test
     public void test_SSL_new() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
         long s = NativeCrypto.SSL_new(c, null);
@@ -1068,6 +1101,104 @@ public class NativeCryptoTest {
         NativeCrypto.SSL_CTX_free(c, null);
     }
 
+    // Wire-format trust anchor ID lists containing 32473.1 and/or 32473.2.
+    private static final byte[] TRUST_ANCHOR_ID_LIST_1 = {0x04, (byte) 0x81, (byte) 0xfd, 0x59,
+                                                          0x01};
+    private static final byte[] TRUST_ANCHOR_ID_LIST_1_2 = {
+            0x04, (byte) 0x81, (byte) 0xfd, 0x59, 0x01, 0x04, (byte) 0x81, (byte) 0xfd, 0x59, 0x02};
+
+    @Test
+    public void test_SSL_set1_requested_trust_anchors() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, /* holder= */ null);
+
+        NativeCrypto.SSL_set1_requested_trust_anchors(s, /* ssl_holder= */ null,
+                                                      TRUST_ANCHOR_ID_LIST_1_2);
+        // An empty list is valid and signals support for the retry flow.
+        NativeCrypto.SSL_set1_requested_trust_anchors(s, /* ssl_holder= */ null, new byte[0]);
+
+        NativeCrypto.SSL_free(s, /* ssl_holder= */ null);
+        NativeCrypto.SSL_CTX_free(c, /* holder= */ null);
+    }
+
+    @Test
+    public void test_SSL_set1_requested_trust_anchors_invalid() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, /* holder= */ null);
+
+        // Truncated ID.
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.SSL_set1_requested_trust_anchors(
+                                     s, /* ssl_holder= */ null,
+                                     new byte[] {0x04, (byte) 0x81, (byte) 0xfd}));
+        // Not a valid RELATIVE-OID (last byte has the continuation bit set).
+        assertThrows(IllegalArgumentException.class,
+                     ()
+                             -> NativeCrypto.SSL_set1_requested_trust_anchors(
+                                     s, /* ssl_holder= */ null, new byte[] {0x01, (byte) 0x81}));
+        assertThrows(NullPointerException.class,
+                     ()
+                             -> NativeCrypto.SSL_set1_requested_trust_anchors(
+                                     s, /* ssl_holder= */ null, /* ids= */ null));
+
+        NativeCrypto.SSL_free(s, /* ssl_holder= */ null);
+        NativeCrypto.SSL_CTX_free(c, /* holder= */ null);
+    }
+
+    @Test
+    public void test_SSL_trust_anchor_results_beforeHandshake() throws Exception {
+        long c = NativeCrypto.SSL_CTX_new();
+        long s = NativeCrypto.SSL_new(c, /* holder= */ null);
+
+        assertNull(NativeCrypto.SSL_get0_peer_available_trust_anchors(s, /* ssl_holder= */ null));
+
+        NativeCrypto.SSL_free(s, /* ssl_holder= */ null);
+        NativeCrypto.SSL_CTX_free(c, /* holder= */ null);
+    }
+
+    @Test
+    public void test_SSL_do_handshake_trust_anchors() throws Exception {
+        final ServerSocket listener = newServerSocket();
+
+        Hooks cHooks = new ClientHooks() {
+            @Override
+            public long beforeHandshake(long c) throws SSLException {
+                long ssl = super.beforeHandshake(c);
+                assertEquals(1,
+                             NativeCrypto.SSL_set_protocol_versions(ssl, /* ssl_holder= */ null,
+                                                                    TLS1_VERSION, TLS1_3_VERSION));
+                NativeCrypto.SSL_set1_requested_trust_anchors(ssl, /* ssl_holder= */ null,
+                                                              TRUST_ANCHOR_ID_LIST_1);
+                return ssl;
+            }
+        };
+        Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
+            @Override
+            public long beforeHandshake(long c) throws SSLException {
+                long ssl = super.beforeHandshake(c);
+                assertEquals(1,
+                             NativeCrypto.SSL_set_protocol_versions(ssl, /* ssl_holder= */ null,
+                                                                    TLS1_VERSION, TLS1_3_VERSION));
+                return ssl;
+            }
+        };
+        Future<TestSSLHandshakeCallbacks> client =
+                handshake(listener, /* timeout= */ 0, /* client= */ true, cHooks,
+                          /* alpnProtocols= */ null, /* alpnSelector= */ null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, /* timeout= */ 0, /* client= */ false, sHooks,
+                          /* alpnProtocols= */ null, /* alpnSelector= */ null);
+        TestSSLHandshakeCallbacks clientCallback = client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        assertTrue(clientCallback.verifyCertificateChainCalled);
+        assertTrue(clientCallback.handshakeCompletedCalled);
+        // The server's (legacy) credential has no trust anchor ID, so it doesn't advertise any
+        // available trust anchors.
+        assertNull(clientCallback.peerAvailableTrustAnchors);
+    }
+
     @Test
     public void test_SSL_CTX_ech_enable_server() throws Exception {
         long c = NativeCrypto.SSL_CTX_new();
@@ -1239,20 +1370,19 @@ public class NativeCryptoTest {
     @Test
     public void checkEnabledProtocols_deprecatedTlsV1Protocols_throwsWithExpectedMessage() {
         if (!Platform.isTlsV1Supported()) {
-            IllegalArgumentException e = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> NativeCrypto.checkEnabledProtocols(new String[] {"TLSv1"}));
+            IllegalArgumentException e =
+                    assertThrows(IllegalArgumentException.class,
+                                 () -> NativeCrypto.checkEnabledProtocols(new String[] {"TLSv1"}));
             assertEquals("protocol TLSv1 is not supported" + Platform.getTlsV1DeprecationNote(),
                          e.getMessage());
-            e = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> NativeCrypto.checkEnabledProtocols(new String[] {"TLSv1.1"}));
+            e = assertThrows(IllegalArgumentException.class,
+                             () -> NativeCrypto.checkEnabledProtocols(new String[] {"TLSv1.1"}));
             assertEquals("protocol TLSv1.1 is not supported" + Platform.getTlsV1DeprecationNote(),
                          e.getMessage());
         }
-        IllegalArgumentException e = assertThrows(
-                IllegalArgumentException.class,
-                () -> NativeCrypto.checkEnabledProtocols(new String[] {"SSLv3"}));
+        IllegalArgumentException e =
+                assertThrows(IllegalArgumentException.class,
+                             () -> NativeCrypto.checkEnabledProtocols(new String[] {"SSLv3"}));
         assertEquals("protocol SSLv3 is not supported", e.getMessage());
     }
 
@@ -1460,6 +1590,8 @@ public class NativeCryptoTest {
         private long[] certificateChainRefs;
         private String authMethod;
         private boolean verifyCertificateChainCalled;
+        // Trust anchor negotiation result, which is only available during verification.
+        private byte[] peerAvailableTrustAnchors;
 
         @Override
         public void verifyCertificateChain(byte[][] certs, String authMethod)
@@ -1474,6 +1606,10 @@ public class NativeCryptoTest {
                 }
             }
             this.authMethod = authMethod;
+            if (sslNativePointer != NULL) {
+                this.peerAvailableTrustAnchors = NativeCrypto.SSL_get0_peer_available_trust_anchors(
+                        sslNativePointer, /* ssl_holder= */ null);
+            }
             this.verifyCertificateChainCalled = true;
         }
 
@@ -1603,8 +1739,17 @@ public class NativeCryptoTest {
             this.serverSignatureAlgs = signatureAlgs;
         }
 
+        private Integer selectApplicationProtocolResult;
+        private RuntimeException selectApplicationProtocolException;
+
         @Override
         public int selectApplicationProtocol(byte[] protocols) {
+            if (selectApplicationProtocolException != null) {
+                throw selectApplicationProtocolException;
+            }
+            if (selectApplicationProtocolResult != null) {
+                return selectApplicationProtocolResult;
+            }
             if (alpnSelector == null) {
                 fail("Should not be called when no alpnSelector");
             }
@@ -2919,6 +3064,66 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void alpnWithOutOfBoundsSelectorOffsetShouldAbortHandshake() throws Exception {
+        // 4 wire bytes: 01 61 01 62
+        final byte[] clientAlpnProtocols = SSLUtils.encodeProtocols(new String[] {"a", "b"});
+        ApplicationProtocolSelectorAdapter dummyAdapter = new ApplicationProtocolSelectorAdapter(
+                Mockito.mock(SSLEngine.class), Mockito.mock(ApplicationProtocolSelector.class));
+
+        for (final int badOffset : new int[] {3, clientAlpnProtocols.length, Integer.MAX_VALUE}) {
+            Hooks cHooks = new Hooks();
+            Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
+                @Override
+                public void configureCallbacks(TestSSLHandshakeCallbacks callbacks) {
+                    super.configureCallbacks(callbacks);
+                    callbacks.selectApplicationProtocolResult = badOffset;
+                }
+            };
+
+            ServerSocket listener = newServerSocket();
+            Future<TestSSLHandshakeCallbacks> client =
+                    handshake(listener, 0, true, cHooks, clientAlpnProtocols, null);
+            Future<TestSSLHandshakeCallbacks> server =
+                    handshake(listener, 0, false, sHooks, null, dummyAdapter);
+            ExecutionException serverEx = assertThrows(
+                    ExecutionException.class, () -> server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertTrue(serverEx.getCause() instanceof SSLException);
+            assertThrows(ExecutionException.class,
+                         () -> client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            listener.close();
+        }
+    }
+
+    @Test
+    public void alpnWithThrowingSelectorCallbackShouldPropagateException() throws Exception {
+        final byte[] clientAlpnProtocols =
+                SSLUtils.encodeProtocols(new String[] {"http/1.1", "h2"});
+        final RuntimeException expected = new IllegalStateException("alpn selector threw");
+        ApplicationProtocolSelectorAdapter dummyAdapter = new ApplicationProtocolSelectorAdapter(
+                Mockito.mock(SSLEngine.class), Mockito.mock(ApplicationProtocolSelector.class));
+
+        Hooks cHooks = new Hooks();
+        Hooks sHooks = new ServerHooks(SERVER_PRIVATE_KEY, ENCODED_SERVER_CERTIFICATES) {
+            @Override
+            public void configureCallbacks(TestSSLHandshakeCallbacks callbacks) {
+                super.configureCallbacks(callbacks);
+                callbacks.selectApplicationProtocolException = expected;
+            }
+        };
+
+        ServerSocket listener = newServerSocket();
+        Future<TestSSLHandshakeCallbacks> client =
+                handshake(listener, 0, true, cHooks, clientAlpnProtocols, null);
+        Future<TestSSLHandshakeCallbacks> server =
+                handshake(listener, 0, false, sHooks, null, dummyAdapter);
+        ExecutionException serverEx = assertThrows(
+                ExecutionException.class, () -> server.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertEquals(expected, serverEx.getCause());
+        assertThrows(ExecutionException.class, () -> client.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        listener.close();
+    }
+
+    @Test
     public void test_SSL_get_servername_withNullShouldThrow() throws Exception {
         assertThrows(NullPointerException.class, () -> NativeCrypto.SSL_get_servername(NULL, null));
     }
@@ -3384,6 +3589,146 @@ public class NativeCryptoTest {
     }
 
     @Test
+    public void evpGetDigestByName_shake256() throws Exception {
+        assertTrue(NativeCrypto.EVP_get_digestbyname("shake256") != NULL);
+    }
+
+    // SHAKE256 test vectors with 512-bit output, from
+    // https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE256_Msg0.pdf
+    // https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE256_Msg1600.pdf
+    private static final String SHAKE256_512_OF_EMPTY =
+            "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f"
+            + "d75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be";
+    private static final String SHAKE256_512_OF_MSG1600 =
+            "cd8a920ed141aa0407a22d59288652e9d9f1a7ee0c1e7c1ca699424da84a904d"
+            + "2d700caae7396ece96604440577da4f3aa22aeb8857f961c4cd8e06f0ae6610b";
+
+    @Test
+    public void evpDigestFinalXof_shake256() throws Exception {
+        long shake256 = NativeCrypto.EVP_get_digestbyname("shake256");
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeCrypto.EVP_DigestInit_ex(ctx, shake256);
+        byte[] out = new byte[64];
+        NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, out.length);
+        assertArrayEquals(decodeHex(SHAKE256_512_OF_EMPTY), out);
+
+        // EVP_DigestFinalXOF resets the context, so it can be re-initialized and reused. Write the
+        // output into the middle of a larger buffer to exercise the offset handling.
+        byte[] msg1600 = new byte[200];
+        Arrays.fill(msg1600, (byte) 0xa3);
+        NativeCrypto.EVP_DigestInit_ex(ctx, shake256);
+        NativeCrypto.EVP_DigestUpdate(ctx, msg1600, 0, msg1600.length);
+        byte[] padded = new byte[80];
+        NativeCrypto.EVP_DigestFinalXOF(ctx, padded, 8, 64);
+        assertArrayEquals(decodeHex(SHAKE256_512_OF_MSG1600), Arrays.copyOfRange(padded, 8, 72));
+        assertArrayEquals(new byte[8], Arrays.copyOf(padded, 8));
+        assertArrayEquals(new byte[8], Arrays.copyOfRange(padded, 72, 80));
+
+        // The requested length is honoured: a shorter output is a prefix of the longer one.
+        NativeCrypto.EVP_DigestInit_ex(ctx, shake256);
+        byte[] shortOut = new byte[32];
+        NativeCrypto.EVP_DigestFinalXOF(ctx, shortOut, 0, shortOut.length);
+        assertArrayEquals(Arrays.copyOf(decodeHex(SHAKE256_512_OF_EMPTY), 32), shortOut);
+    }
+
+    @Test
+    public void evpDigestFinalXof_withNonXofDigestShouldThrow() throws Exception {
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("sha256"));
+        byte[] out = new byte[64];
+        assertThrows(RuntimeException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, out.length));
+    }
+
+    @Test
+    public void evpDigestFinalXof_withNullOutputShouldThrow() throws Exception {
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("shake256"));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, null, 0, 64));
+    }
+
+    @Test
+    public void evpDigestFinalXof_withUninitializedContextShouldThrow() throws Exception {
+        // A freshly created context has no digest configured.
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        byte[] out = new byte[64];
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, out.length));
+
+        // EVP_DigestFinalXOF clears the context, so a second call without re-initializing fails
+        // the same way instead of crashing.
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("shake256"));
+        NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, out.length);
+        assertArrayEquals(decodeHex(SHAKE256_512_OF_EMPTY), out);
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, out.length));
+
+        // Likewise after an explicit EVP_MD_CTX_cleanup.
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("shake256"));
+        NativeCrypto.EVP_MD_CTX_cleanup(ctx);
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, out.length));
+    }
+
+    @Test
+    public void evpDigestFinalXof_withInvalidBoundsShouldThrow() throws Exception {
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("shake256"));
+        byte[] out = new byte[64];
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 1, 64));
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, -1, 64));
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, 65));
+        assertThrows(ArrayIndexOutOfBoundsException.class,
+                     () -> NativeCrypto.EVP_DigestFinalXOF(ctx, out, 0, -1));
+    }
+
+    @Test
+    public void evpDigestUpdate_withUninitializedContextShouldThrow() throws Exception {
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        byte[] in = new byte[16];
+        ByteBuffer direct = ByteBuffer.allocateDirect(in.length);
+        long directPtr = NativeCrypto.getDirectBufferAddress(direct);
+
+        // A freshly created context has no digest configured.
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestUpdate(ctx, in, 0, in.length));
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestUpdateDirect(ctx, directPtr, in.length));
+
+        // Likewise after an explicit EVP_MD_CTX_cleanup.
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("sha256"));
+        NativeCrypto.EVP_DigestUpdate(ctx, in, 0, in.length);
+        NativeCrypto.EVP_DigestUpdateDirect(ctx, directPtr, in.length);
+        NativeCrypto.EVP_MD_CTX_cleanup(ctx);
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestUpdate(ctx, in, 0, in.length));
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestUpdateDirect(ctx, directPtr, in.length));
+    }
+
+    @Test
+    public void evpDigestFinalEx_withUninitializedContextShouldThrow() throws Exception {
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        byte[] out = new byte[32];
+
+        // A freshly created context has no digest configured.
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestFinal_ex(ctx, out, 0));
+
+        // Likewise after an explicit EVP_MD_CTX_cleanup.
+        NativeCrypto.EVP_DigestInit_ex(ctx, NativeCrypto.EVP_get_digestbyname("sha256"));
+        assertEquals(32, NativeCrypto.EVP_DigestFinal_ex(ctx, out, 0));
+        NativeCrypto.EVP_MD_CTX_cleanup(ctx);
+        assertThrows(IllegalStateException.class,
+                     () -> NativeCrypto.EVP_DigestFinal_ex(ctx, out, 0));
+    }
+
+    @Test
     public void test_EVP_DigestSignInit() throws Exception {
         RSAPrivateCrtKey privKey = TEST_RSA_KEY;
 
@@ -3795,6 +4140,157 @@ public class NativeCryptoTest {
                      ()
                              -> new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
                                      NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey)));
+    }
+
+    /**
+     * Computes the ML-DSA message representative mu of {@code message} under the context string
+     * {@code context} for the raw public key {@code rawPublicKey} (FIPS 204, Algorithms 2 and 7):
+     * {@code mu = SHAKE256(tr || 0x00 || |context| || context || message, 64)} with
+     * {@code tr = SHAKE256(rawPublicKey, 64)}.
+     */
+    private static byte[] mldsaMessageRepresentative(byte[] rawPublicKey, byte[] context,
+                                                     byte[] message) {
+        long shake256 = NativeCrypto.EVP_get_digestbyname("shake256");
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+
+        NativeCrypto.EVP_DigestInit_ex(ctx, shake256);
+        NativeCrypto.EVP_DigestUpdate(ctx, rawPublicKey, 0, rawPublicKey.length);
+        byte[] tr = new byte[64];
+        NativeCrypto.EVP_DigestFinalXOF(ctx, tr, 0, tr.length);
+
+        NativeCrypto.EVP_DigestInit_ex(ctx, shake256);
+        NativeCrypto.EVP_DigestUpdate(ctx, tr, 0, tr.length);
+        NativeCrypto.EVP_DigestUpdate(ctx, new byte[] {0, (byte) context.length}, 0, 2);
+        NativeCrypto.EVP_DigestUpdate(ctx, context, 0, context.length);
+        NativeCrypto.EVP_DigestUpdate(ctx, message, 0, message.length);
+        byte[] mu = new byte[64];
+        NativeCrypto.EVP_DigestFinalXOF(ctx, mu, 0, mu.length);
+        return mu;
+    }
+
+    @Test
+    public void mldsaSignMessageRepresentative_works() throws Exception {
+        int[] keyTypes =
+                new int[] {NativeConstants.EVP_PKEY_ML_DSA_44, NativeConstants.EVP_PKEY_ML_DSA_65,
+                           NativeConstants.EVP_PKEY_ML_DSA_87};
+        int[] signatureLengths = new int[] {2420, 3309, 4627};
+        for (int i = 0; i < keyTypes.length; i++) {
+            int keyType = keyTypes[i];
+            byte[] seed = new byte[32];
+            NativeCrypto.RAND_bytes(seed);
+            NativeRef.EVP_PKEY privateKey =
+                    new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(keyType, seed));
+            byte[] rawPublicKey;
+            if (keyType == NativeConstants.EVP_PKEY_ML_DSA_44) {
+                rawPublicKey = NativeCrypto.MLDSA44_public_key_from_seed(seed);
+            } else if (keyType == NativeConstants.EVP_PKEY_ML_DSA_65) {
+                rawPublicKey = NativeCrypto.MLDSA65_public_key_from_seed(seed);
+            } else {
+                rawPublicKey = NativeCrypto.MLDSA87_public_key_from_seed(seed);
+            }
+            NativeRef.EVP_PKEY publicKey = new NativeRef.EVP_PKEY(
+                    NativeCrypto.EVP_PKEY_from_raw_public_key(keyType, rawPublicKey));
+
+            byte[] message = new byte[100];
+            NativeCrypto.RAND_bytes(message);
+            byte[] mu = mldsaMessageRepresentative(rawPublicKey, new byte[0], message);
+
+            byte[] sig = NativeCrypto.MLDSA_sign_message_representative(privateKey, mu);
+            assertEquals(signatureLengths[i], sig.length);
+
+            // The signature verifies as a regular ML-DSA signature of the message under the empty
+            // context string.
+            NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+            NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+            assertTrue(NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, message, 0,
+                                                     message.length));
+
+            // But not of a different message.
+            byte[] otherMessage = message.clone();
+            otherMessage[0] ^= 1;
+            NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+            assertFalse(NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, otherMessage, 0,
+                                                      otherMessage.length));
+
+            // Signing the same mu again yields a different (randomized) but valid signature.
+            byte[] sig2 = NativeCrypto.MLDSA_sign_message_representative(privateKey, mu);
+            assertFalse(Arrays.equals(sig, sig2));
+            NativeCrypto.EVP_DigestVerifyInit(ctx, 0, publicKey);
+            assertTrue(NativeCrypto.EVP_DigestVerify(ctx, sig2, 0, sig2.length, message, 0,
+                                                     message.length));
+        }
+    }
+
+    @Test
+    public void mldsaSignMessageRepresentative_withContextString_works() throws Exception {
+        // Key and inputs from wycheproof/testvectors_v1/mldsa_44_sign_seed_test.json, see
+        // EVP_PKEY_CTX_set1_signature_context_string_works.
+        byte[] seed = TestUtils.decodeHex(
+                "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a");
+        byte[] contextStr = TestUtils.decodeHex("436f6e74657874");
+        byte[] data = TestUtils.decodeHex("48656c6c6f20776f726c64");
+        NativeRef.EVP_PKEY privateKey = new NativeRef.EVP_PKEY(
+                NativeCrypto.EVP_PKEY_from_private_seed(NativeConstants.EVP_PKEY_ML_DSA_44, seed));
+        byte[] rawPublicKey = NativeCrypto.MLDSA44_public_key_from_seed(seed);
+
+        // The context string is bound into mu, so the signature verifies under that context...
+        byte[] mu = mldsaMessageRepresentative(rawPublicKey, contextStr, data);
+        byte[] sig = NativeCrypto.MLDSA_sign_message_representative(privateKey, mu);
+
+        NativeRef.EVP_MD_CTX ctx = new NativeRef.EVP_MD_CTX(NativeCrypto.EVP_MD_CTX_create());
+        long pkeyCtx = NativeCrypto.EVP_DigestVerifyInit(ctx, 0, privateKey);
+        NativeCrypto.EVP_PKEY_CTX_set1_signature_context_string(pkeyCtx, contextStr);
+        assertTrue(NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length));
+
+        // ... but not under the empty one.
+        NativeCrypto.EVP_DigestVerifyInit(ctx, 0, privateKey);
+        assertFalse(NativeCrypto.EVP_DigestVerify(ctx, sig, 0, sig.length, data, 0, data.length));
+    }
+
+    @Test
+    public void mldsaSignMessageRepresentative_withInvalidMuLengthShouldThrow() throws Exception {
+        NativeRef.EVP_PKEY privateKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(
+                        NativeConstants.EVP_PKEY_ML_DSA_65, new byte[32]));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> NativeCrypto.MLDSA_sign_message_representative(privateKey, new byte[63]));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> NativeCrypto.MLDSA_sign_message_representative(privateKey, new byte[65]));
+        assertThrows(IllegalArgumentException.class,
+                     () -> NativeCrypto.MLDSA_sign_message_representative(privateKey, new byte[0]));
+    }
+
+    @Test
+    public void mldsaSignMessageRepresentative_withNullArgumentsShouldThrow() throws Exception {
+        NativeRef.EVP_PKEY privateKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_private_seed(
+                        NativeConstants.EVP_PKEY_ML_DSA_65, new byte[32]));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLDSA_sign_message_representative(null, new byte[64]));
+        assertThrows(NullPointerException.class,
+                     () -> NativeCrypto.MLDSA_sign_message_representative(privateKey, null));
+    }
+
+    @Test
+    public void mldsaSignMessageRepresentative_withPublicKeyShouldThrow() throws Exception {
+        byte[] seed = new byte[32];
+        byte[] rawPublicKey = NativeCrypto.MLDSA65_public_key_from_seed(seed);
+        NativeRef.EVP_PKEY publicKey =
+                new NativeRef.EVP_PKEY(NativeCrypto.EVP_PKEY_from_raw_public_key(
+                        NativeConstants.EVP_PKEY_ML_DSA_65, rawPublicKey));
+        assertThrows(InvalidKeyException.class,
+                     () -> NativeCrypto.MLDSA_sign_message_representative(publicKey, new byte[64]));
+    }
+
+    @Test
+    public void mldsaSignMessageRepresentative_withNonMldsaKeyShouldThrow() throws Exception {
+        NativeRef.EC_GROUP group =
+                new NativeRef.EC_GROUP(NativeCrypto.EC_GROUP_new_by_curve_name("prime256v1"));
+        NativeRef.EVP_PKEY ecKey = new NativeRef.EVP_PKEY(NativeCrypto.EC_KEY_generate_key(group));
+        assertThrows(InvalidKeyException.class,
+                     () -> NativeCrypto.MLDSA_sign_message_representative(ecKey, new byte[64]));
     }
 
     @Test

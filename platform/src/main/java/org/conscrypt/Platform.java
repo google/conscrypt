@@ -683,6 +683,38 @@ final public class Platform {
         }
     }
 
+    /**
+     * Controls whether Post-Quantum Cryptography (ML-DSA) is enabled in the default TLS signature
+     * algorithms for this application.
+     */
+    @ChangeId
+    public static final long ENABLE_TLS_PQC_DEFAULT_SIGNATURE_ALGORITHMS = 576621461L;
+
+    /**
+     * Returns true if PQC signature algorithms (ML-DSA) should be enabled by default.
+     *
+     * <p>Note: Do not cache the result of {@link Compatibility#isChangeEnabled(long)} in a static
+     * field. Conscrypt classes are preloaded in Zygote ({@link #RUNNING_IN_ZYGOTE}), where
+     * {@code Compatibility.isChangeEnabled} always returns true. This check must be evaluated
+     * dynamically per connection post-fork inside the application process.
+     *
+     * <p>Unlike {@code @EnabledAfter}/{@code @EnabledSince} targetSdk-gated changes,
+     * {@link #ENABLE_TLS_PQC_DEFAULT_SIGNATURE_ALGORITHMS} is enabled by default across all
+     * targetSdkVersions, so {@code PlatformCompat} evaluates it to {@code true} for both app and
+     * non-app processes on older Android releases as well, while still allowing per-app overrides
+     * on debuggable builds and via Developer Options.
+     */
+    public static boolean isPqcDefaultSignatureAlgorithmsEnabled() {
+        if (!Flags.tlsPqcDefaultSignatureAlgorithms()) {
+            return false;
+        }
+        try {
+            return Compatibility.isChangeEnabled(ENABLE_TLS_PQC_DEFAULT_SIGNATURE_ALGORITHMS);
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
     private static boolean inZygote() {
         if (canCallZygoteMethod) {
             return ZygoteHooks.isInZygote();
@@ -737,6 +769,10 @@ final public class Platform {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static boolean isMerkleTreeCertsEnabled() {
+        return com.android.org.conscrypt.net.flags.Flags.merkleTreeCertificates();
     }
 
     private static class X509NativeAllocationRegistryHolder {

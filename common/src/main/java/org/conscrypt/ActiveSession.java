@@ -138,6 +138,13 @@ final class ActiveSession implements ConscryptSession {
     }
 
     @Override
+    public String getEchNameOverride() {
+        synchronized (ssl) {
+            return ssl.getEchNameOverride();
+        }
+    }
+
+    @Override
     public void invalidate() {
         synchronized (ssl) {
             ssl.setTimeout(0L);
@@ -320,6 +327,7 @@ final class ActiveSession implements ConscryptSession {
     void onPeerCertificateAvailable(String peerHost, int peerPort) throws CertificateException {
         synchronized (ssl) {
             id = null;
+            this.protocol = null;
             if (localCertificates == null) {
                 this.localCertificates = ssl.getLocalCertificates();
             }

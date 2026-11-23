@@ -129,7 +129,7 @@ public class NativeCryptoArgTest {
                                       .hasArg(0, long.class)
                                       .hasArg(1, conscryptClass("NativeSsl"))
                                       .except(nonThrowingMethods)
-                                      .expectSize(60)
+                                      .expectSize(63)
                                       .build();
 
         testMethods(filter, NullPointerException.class);
@@ -150,6 +150,9 @@ public class NativeCryptoArgTest {
 
         expectNPE("ENGINE_SSL_shutdown", NOT_NULL, null, null);
         expectVoid("SSL_set_session", NOT_NULL, null, NULL);
+        // A null ID list must throw before the (fake) SSL pointer is dereferenced.
+        expectNPE("SSL_set1_requested_trust_anchors", NOT_NULL, /* ssl_holder= */ null,
+                  /* ids= */ null);
         checkMethodsTested();
     }
 

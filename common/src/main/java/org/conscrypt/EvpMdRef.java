@@ -154,5 +154,23 @@ final class EvpMdRef {
         private SHA512() {}
     }
 
+    /**
+     * SHAKE256 with a fixed 512-bit output, i.e. the "SHAKE256-512" JCA algorithm.
+     *
+     * <p>SHAKE256 is an extendable-output function (XOF), so its output length is not a property
+     * of the underlying {@code EVP_MD}. The output must therefore be produced with
+     * {@link NativeCrypto#EVP_DigestFinalXOF} rather than {@link NativeCrypto#EVP_DigestFinal_ex},
+     * and {@link #SIZE_BYTES} is the fixed output length of this JCA algorithm rather than
+     * {@code EVP_MD_size(EVP_MD)}.
+     */
+    static final class Shake256_512 {
+        static final String JCA_NAME = "SHAKE256-512";
+        static final String OID = "2.16.840.1.101.3.4.2.12";
+        static final long EVP_MD = NativeCrypto.EVP_get_digestbyname("shake256");
+        static final int SIZE_BYTES = 64;
+
+        private Shake256_512() {}
+    }
+
     private EvpMdRef() {}
 }

@@ -72,6 +72,11 @@ final class SSLNullSession implements ConscryptSession, Cloneable {
     }
 
     @Override
+    public String getEchNameOverride() {
+        return null;
+    }
+
+    @Override
     public int getApplicationBufferSize() {
         return NativeConstants.SSL3_RT_MAX_PLAIN_LENGTH;
     }

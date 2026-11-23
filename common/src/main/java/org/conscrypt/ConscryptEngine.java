@@ -1727,7 +1727,7 @@ final class ConscryptEngine extends AbstractConscryptEngine
     public int selectApplicationProtocol(byte[] protocols) {
         ApplicationProtocolSelectorAdapter adapter = sslParameters.getApplicationProtocolSelector();
         if (adapter == null) {
-            return NativeConstants.SSL_TLSEXT_ERR_NOACK;
+            return ApplicationProtocolSelectorAdapter.NO_PROTOCOL_SELECTED;
         }
         return adapter.selectApplicationProtocol(protocols);
     }

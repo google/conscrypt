@@ -17,16 +17,24 @@
 package org.conscrypt;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.conscrypt.java.security.TestKeyStore;
 import org.conscrypt.javax.net.ssl.TestHostnameVerifier;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.security.KeyStore;
 import java.security.Principal;
 import java.security.cert.Certificate;
@@ -36,11 +44,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 
 @RunWith(JUnit4.class)
@@ -228,6 +241,105 @@ public class TrustManagerImplTest {
         ConscryptNetworkSecurityPolicy nsp = ConscryptNetworkSecurityPolicy.getDefault();
         tm.setNetworkSecurityPolicy(nsp);
         assertEquals(nsp, tm.getNetworkSecurityPolicy());
+    }
+
+    @Test
+    public void testDelegatingTrustManagerPreservesNetworkSecurityPolicy() throws Exception {
+        TestUtils.assumeExtendedTrustManagerAvailable();
+        // ConscryptAndroidWithoutTlsSuite runs against uninitialized Android stubs (SDK_INT == 0),
+        // where SSLSocket creation falls back to KitKat stub sockets and TLS is unsupported.
+        Assume.assumeTrue(!TestUtils.isAndroid() || TestUtils.isAndroidSdkGreater(23));
+
+        final NetworkSecurityPolicy requiredEchPolicy = new NetworkSecurityPolicy() {
+            @Override
+            public boolean isCertificateTransparencyVerificationRequired(String hostname) {
+                return false;
+            }
+
+            @Override
+            public CertificateTransparencyVerificationReason
+            getCertificateTransparencyVerificationReason(String hostname) {
+                return CertificateTransparencyVerificationReason.UNKNOWN;
+            }
+
+            @Override
+            public DomainEncryptionMode getDomainEncryptionMode(String hostname) {
+                return DomainEncryptionMode.REQUIRED;
+            }
+        };
+
+        X509ExtendedTrustManager tm = new X509ExtendedTrustManager() {
+            @SuppressWarnings("unused")
+            public NetworkSecurityPolicy getNetworkSecurityPolicy() {
+                return requiredEchPolicy;
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType,
+                                           Socket socket) {}
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType,
+                                           Socket socket) {}
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType,
+                                           SSLEngine engine) {}
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType,
+                                           SSLEngine engine) {}
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {}
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {}
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+        };
+
+        SSLContext sslContext = SSLContext.getInstance("TLS", Conscrypt.newProvider());
+        sslContext.init(null, new TrustManager[] {tm}, null);
+
+        final ByteArrayOutputStream clientOutbound = new ByteArrayOutputStream();
+        Socket underlyingSocket = new Socket() {
+            private boolean closed = false;
+
+            @Override
+            public boolean isConnected() {
+                return true;
+            }
+
+            @Override
+            public boolean isClosed() {
+                return closed;
+            }
+
+            @Override
+            public void close() {
+                closed = true;
+            }
+
+            @Override
+            public InputStream getInputStream() {
+                return new ByteArrayInputStream(new byte[0]);
+            }
+
+            @Override
+            public OutputStream getOutputStream() {
+                return clientOutbound;
+            }
+        };
+
+        try (SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(
+                     underlyingSocket, "example.com", 443, true)) {
+            assertThrows(SSLHandshakeException.class, sslSocket::startHandshake);
+            assertEquals(0, clientOutbound.size());
+        }
     }
 
     @Test

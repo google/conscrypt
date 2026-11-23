@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  BORINGSSL_VERSION: 0.20260929.0
+  BORINGSSL_VERSION: 0.20261105.0
 
 jobs:
   boringssl_version_check:
@@ -445,7 +445,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-latest, macos-14, macos-latest, windows-latest]
+        platform: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-latest, macos-15, macos-latest, windows-latest]
         java: [8, 11, 17, 21, 25, EA]
         dist: ['temurin', 'zulu']
         include:
@@ -457,7 +457,7 @@ jobs:
             separator: ':'
           - platform: macos-latest
             separator: ':'
-          - platform: macos-14
+          - platform: macos-15
             separator: ':'
           - platform: windows-latest
             separator: ';'
@@ -465,7 +465,7 @@ jobs:
           - platform: macos-latest
             java: 8
             dist: 'temurin'
-          - platform: macos-14
+          - platform: macos-15
             java: 8
             dist: 'temurin'
 
@@ -513,6 +513,9 @@ jobs:
           EXTRA_FLAGS=""
           if [ "${{ matrix.java }}" != "8" ]; then
             EXTRA_FLAGS="--add-opens=java.base/java.net=ALL-UNNAMED"
+          fi
+          if [ "${{ matrix.java }}" = "EA" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS -Djdk.reflect.allowNonSerializableConstruction=true"
           fi
           # SIGTERM handler, e.g. for when tests hang and time out.
           # Send SIGQUIT to test process to get thread dump, give it

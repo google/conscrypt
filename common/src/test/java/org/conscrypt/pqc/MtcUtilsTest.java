@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.conscrypt.util;
+package org.conscrypt.pqc;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import org.conscrypt.util.DerUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -37,43 +38,42 @@ import java.security.cert.X509Certificate;
 
 @RunWith(JUnit4.class)
 public class MtcUtilsTest {
-    // Valid MTC CA certificate (CA ID 32473.1, Subject RDN 1.3.6.1.4.1.44363.47.3=#0D0481FD5901,
-    // critical extension 1.3.6.1.4.1.44363.47.4 with minSerial=0x1000000000000,
+    // Valid MTC CA certificate (CA ID 32473.1, Subject RDN 1.3.6.1.5.5.7.25.3=#0D0481FD5901,
+    // critical extension 1.3.6.1.5.5.7.1.38 with minSerial=0x1000000000000,
     // maxSerial=0x5ffffffffffff).
     private static final String VALID_MTC_CA_PEM = "-----BEGIN CERTIFICATE-----\n"
-            + "MIIGADCCBe2gAwIBAgIBATAKBggrBgEFBQcGJDAQMQ4wDAYIKwYBBQUHGQEMADAe\n"
-            + "Fw0yMDAxMDEwMDAwMDBaFw0zMDEyMzEyMzU5NTlaMBYxFDASBgorBgEEAYLaSy8D\n"
-            + "DQSB/VkBMIIFMjALBglghkgBZQMEAxEDggUhAFzN/zgGMsaBJd+nNwxE0mZlxiSI\n"
-            + "OIrZwLSScveu9rIIIPfYjTEvKetlhX1W5quTKhFrZqvMzskfSBqUqMuqMCcykhiC\n"
-            + "5x5r4GVBvK2GCaP2sTCOM5kJ9hzwCevraUeClJhgDB8dRpYuJox68eNkNnfDsYTN\n"
-            + "pfB1HUey8jfDhI9+tGmtHC7apuIEyeYyAMwYobBeCquk4ikCb04KoYQRWkhPSDnN\n"
-            + "4XLfY+otOwXy4Ev96V6pK74UrTwHKSzMQPMTF0O8zsVJKgSSNfd1zJp+Tk/CHZDD\n"
-            + "2+ZcFMzcU2BdAO0QiMb6O3BOLK5eg1ZFcX/abzQyNcBo3hfuvHlSTsOezgh3u4/x\n"
-            + "q4zALLfVTcNQAqY0E6HTSrt+3K7MJhmRwQfr8IsyB+x8nAuesYGrzJbCzDq4Wmfu\n"
-            + "R+LCOujNQNT26yBwTIbEUCCRQAz6htYICqmW8jD6hjLnlizUE1lTG2kp/lvtqJj8\n"
-            + "AGu654MkUsxVOUAMP1LV3DTHq5RmhZd5oET63yQ/pj+CBzsZx9iJf3ovbNJ7LRGr\n"
-            + "nMba9L85KTIjF9vtJKdiQp5Td7gyUlDhKeajvk4VJ6baQa1xuYxa6thcBt18E8Jx\n"
-            + "OBvXO8qw+l3jOJnzZdDtnFg3TajfCb1OUZ5cpcEajPtT7IhgbGhKu1B8bcIynUy8\n"
-            + "N6Wb99SBdBn8xbaWJOdsq++Yi45VVBdlCL/4psXG6hRoot4V21yUO9xQCQCXYsSI\n"
-            + "EQwnUmOkoK82UQ3v0n5Z5K/KZhS6bIWc7zEAp5WU7DBAye8V+rSAoLvxeJE9uvMU\n"
-            + "2twQDBVOQAfqVSpskzMZpypMdPPjnBUk0vUaOIih2UuCqLooT/yL54PXO3WHLPj0\n"
-            + "G6XKmQ92ksFPyc7skwwnYSh2PDk879/m6i4/8s37i9e6T68O5oQWf7CMShV2z50w\n"
-            + "Dkuy34hzHQzCtJ0HWdH73q31etKfIvR11ni7aWVmRGlmU8xXjMATrgJ3w9I8aVY4\n"
-            + "M9LG0ykCJYhwZG74zr4WRTr/LEdr97H06D7TZKsBM/jdfHYKLu3VYciHAnwI7iAM\n"
-            + "htR3cw9lMGs1NLKdYi12vWdSIiSH//1o6Foa+Yej9j+h4LbNn0orlEZMLBPx+bAf\n"
-            + "OzYKIYegyAsxguFvDYDCIhOQ6ZuCD49RyXOKgcfgklFi2d3wiQSyPMAl8nGG1Hun\n"
-            + "PdJWVRx4tPx+8/SY8TVcFiTciW/Itdy8uytslOR0h5fB5dQFWxJXaClRzlvOqHXA\n"
-            + "bSthBETzCpMDkeRk4qg5MCmrTFepTeshtKC3cwRcPXQo0jys3VrVASLjQehcm7k1\n"
-            + "hFXo9TkfBY5hYShjOYoekIuy3wI3dr+SeARSJre2VMxdyd6ZEtQrfaz0pbQaOIr5\n"
-            + "CqcM7uyR/lycHlbnwsE2pKPubbFXev836BjfQItaIX2SExK/1rlbXs/rDAidw3Ts\n"
-            + "c2XO2Lh8AfG5SPgcJeo3cOQhjhywqECjwcPsTl0CwHDqiW++8wyBGPTyl5niOYPu\n"
-            + "VQhAF6wPYUQD8xBywy5QpgvRajWv7LZ0/wztQhkjSiAs453WwRn2WaDlXqAX3xjC\n"
-            + "p7UC5NCoB02LCE1xzQa++plEg5uvdMPyFeGRxqmBmU0jUH4PeJyEQJXj0lj2/W+y\n"
-            + "YyjbwO51qHyK6AuLyDexkLR2y/H2y+cG4LfRYpI4kmTTItPgzEqSbuhhEKIPZRGR\n"
-            + "y5p/8IJvwTDmjQ3H9FwJH9yKBxIoDJIB+9wYkumo/GbvyZ2m1lAVsxI6WqajVzBV\n"
-            + "MA4GA1UdDwEB/wQEAwICBDAPBgNVHRMBAf8EBTADAQH/MDIGCisGAQQBgtpLLwQB\n"
-            + "Af8EITAfMAsGCWCGSAFlAwQDEQIHAQAAAAAAAAIHBf///////zAKBggrBgEFBQcG\n"
-            + "JAMBAA==\n"
+            + "MIIF/DCCBemgAwIBAgIBATAKBggrBgEFBQcGJDAQMQ4wDAYIKwYBBQUHGQEMADAe\n"
+            + "Fw0yMDAxMDEwMDAwMDBaFw0zMDEyMzEyMzU5NTlaMBQxEjAQBggrBgEFBQcZAw0E\n"
+            + "gf1ZATCCBTIwCwYJYIZIAWUDBAMRA4IFIQBczf84BjLGgSXfpzcMRNJmZcYkiDiK\n"
+            + "2cC0knL3rvayCCD32I0xLynrZYV9VuarkyoRa2arzM7JH0galKjLqjAnMpIYguce\n"
+            + "a+BlQbythgmj9rEwjjOZCfYc8Anr62lHgpSYYAwfHUaWLiaMevHjZDZ3w7GEzaXw\n"
+            + "dR1HsvI3w4SPfrRprRwu2qbiBMnmMgDMGKGwXgqrpOIpAm9OCqGEEVpIT0g5zeFy\n"
+            + "32PqLTsF8uBL/eleqSu+FK08BykszEDzExdDvM7FSSoEkjX3dcyafk5Pwh2Qw9vm\n"
+            + "XBTM3FNgXQDtEIjG+jtwTiyuXoNWRXF/2m80MjXAaN4X7rx5Uk7Dns4Id7uP8auM\n"
+            + "wCy31U3DUAKmNBOh00q7ftyuzCYZkcEH6/CLMgfsfJwLnrGBq8yWwsw6uFpn7kfi\n"
+            + "wjrozUDU9usgcEyGxFAgkUAM+obWCAqplvIw+oYy55Ys1BNZUxtpKf5b7aiY/ABr\n"
+            + "uueDJFLMVTlADD9S1dw0x6uUZoWXeaBE+t8kP6Y/ggc7GcfYiX96L2zSey0Rq5zG\n"
+            + "2vS/OSkyIxfb7SSnYkKeU3e4MlJQ4Snmo75OFSem2kGtcbmMWurYXAbdfBPCcTgb\n"
+            + "1zvKsPpd4ziZ82XQ7ZxYN02o3wm9TlGeXKXBGoz7U+yIYGxoSrtQfG3CMp1MvDel\n"
+            + "m/fUgXQZ/MW2liTnbKvvmIuOVVQXZQi/+KbFxuoUaKLeFdtclDvcUAkAl2LEiBEM\n"
+            + "J1JjpKCvNlEN79J+WeSvymYUumyFnO8xAKeVlOwwQMnvFfq0gKC78XiRPbrzFNrc\n"
+            + "EAwVTkAH6lUqbJMzGacqTHTz45wVJNL1GjiIodlLgqi6KE/8i+eD1zt1hyz49Bul\n"
+            + "ypkPdpLBT8nO7JMMJ2Eodjw5PO/f5uouP/LN+4vXuk+vDuaEFn+wjEoVds+dMA5L\n"
+            + "st+Icx0MwrSdB1nR+96t9XrSnyL0ddZ4u2llZkRpZlPMV4zAE64Cd8PSPGlWODPS\n"
+            + "xtMpAiWIcGRu+M6+FkU6/yxHa/ex9Og+02SrATP43Xx2Ci7t1WHIhwJ8CO4gDIbU\n"
+            + "d3MPZTBrNTSynWItdr1nUiIkh//9aOhaGvmHo/Y/oeC2zZ9KK5RGTCwT8fmwHzs2\n"
+            + "CiGHoMgLMYLhbw2AwiITkOmbgg+PUclzioHH4JJRYtnd8IkEsjzAJfJxhtR7pz3S\n"
+            + "VlUceLT8fvP0mPE1XBYk3IlvyLXcvLsrbJTkdIeXweXUBVsSV2gpUc5bzqh1wG0r\n"
+            + "YQRE8wqTA5HkZOKoOTApq0xXqU3rIbSgt3MEXD10KNI8rN1a1QEi40HoXJu5NYRV\n"
+            + "6PU5HwWOYWEoYzmKHpCLst8CN3a/kngEUia3tlTMXcnemRLUK32s9KW0GjiK+Qqn\n"
+            + "DO7skf5cnB5W58LBNqSj7m2xV3r/N+gY30CLWiF9khMSv9a5W17P6wwIncN07HNl\n"
+            + "zti4fAHxuUj4HCXqN3DkIY4csKhAo8HD7E5dAsBw6olvvvMMgRj08peZ4jmD7lUI\n"
+            + "QBesD2FEA/MQcsMuUKYL0Wo1r+y2dP8M7UIZI0ogLOOd1sEZ9lmg5V6gF98Ywqe1\n"
+            + "AuTQqAdNiwhNcc0GvvqZRIObr3TD8hXhkcapgZlNI1B+D3ichECV49JY9v1vsmMo\n"
+            + "28Dudah8iugLi8g3sZC0dsvx9svnBuC30WKSOJJk0yLT4MxKkm7oYRCiD2URkcua\n"
+            + "f/CCb8Ew5o0Nx/RcCR/cigcSKAySAfvcGJLpqPxm78mdptZQFbMSOlqmo1UwUzAO\n"
+            + "BgNVHQ8BAf8EBAMCAgQwDwYDVR0TAQH/BAUwAwEB/zAwBggrBgEFBQcBJgEB/wQh\n"
+            + "MB8wCwYJYIZIAWUDBAMRAgcBAAAAAAAAAgcF////////MAoGCCsGAQUFBwYkAwEA\n"
             + "-----END CERTIFICATE-----\n";
 
     private static X509Certificate parseCert(String pem) throws Exception {
@@ -174,6 +174,44 @@ public class MtcUtilsTest {
         assertFalse(MtcUtils.isValidSubtree(8, 4));
         assertFalse(MtcUtils.isValidSubtree(0, (1L << 48) + 1));
         assertFalse(MtcUtils.isValidSubtree(2, 6));
+    }
+
+    @Test
+    public void testReadUint24() throws Exception {
+        ByteBuffer buf = ByteBuffer.wrap(
+                new byte[] {0x00, 0x09, 0x7b, (byte) 0xff, (byte) 0xff, (byte) 0xff});
+        assertEquals(0x00097b, MtcUtils.readUint24(buf));
+        assertEquals(0xffffff, MtcUtils.readUint24(buf));
+
+        // Buffer with fewer than 3 bytes must throw CertificateException
+        ByteBuffer shortBuf = ByteBuffer.wrap(new byte[] {0x01, 0x02});
+        assertThrows(CertificateException.class, () -> MtcUtils.readUint24(shortBuf));
+    }
+
+    @Test
+    public void testValidateExtensions() throws Exception {
+        // Empty extensions vector is valid
+        MtcUtils.validateExtensions(new byte[0]);
+
+        // Strictly ascending extension_types (1, 2) with empty and 1-byte data are valid
+        MtcUtils.validateExtensions(
+                new byte[] {0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x42});
+
+        // Duplicate extension_type (1, 1) must be rejected
+        assertThrows(CertificateException.class,
+                     ()
+                             -> MtcUtils.validateExtensions(
+                                     new byte[] {0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00}));
+
+        // Out-of-order extension_type (2, 1) must be rejected
+        assertThrows(CertificateException.class,
+                     ()
+                             -> MtcUtils.validateExtensions(
+                                     new byte[] {0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00}));
+
+        // Truncated extension entry must be rejected
+        assertThrows(CertificateException.class,
+                     () -> MtcUtils.validateExtensions(new byte[] {0x00, 0x01, 0x00, 0x02, 0x42}));
     }
 
     private static byte[] packSignatures(byte[][] cids, byte[][] sigs) {
