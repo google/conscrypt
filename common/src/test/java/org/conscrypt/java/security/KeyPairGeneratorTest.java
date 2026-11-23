@@ -101,6 +101,12 @@ public class KeyPairGeneratorTest {
                 .skipAlgorithm("MLDSA65-RSA4096-PSS-SHA512")
                 .skipAlgorithm("MLDSA65-RSA4096-PKCS15-SHA512")
                 .skipAlgorithm("MLDSA87-RSA4096-PSS-SHA512")
+                // SunJCE registers internal TLS 1.3 hybrid key exchange generators for SunJSSE
+                // (JDK-8385968) whose private keys intentionally return null from getEncoded()
+                // and are not serializable.
+                .skipCombination("SunJCE", "X25519MLKEM768")
+                .skipCombination("SunJCE", "SecP256r1MLKEM768")
+                .skipCombination("SunJCE", "SecP384r1MLKEM1024")
                 .run(new ServiceTester.Test() {
                     @Override
                     // g3-add: @SuppressWarnings("InsecureCryptoUsage")
